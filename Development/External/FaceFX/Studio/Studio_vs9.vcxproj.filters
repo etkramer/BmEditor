@@ -1,0 +1,913 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Main">
+      <UniqueIdentifier>{f70894d7-958c-48cf-8b81-b9cd9df66ea7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Main\Inc">
+      <UniqueIdentifier>{035f1697-608e-4007-8ffa-14ef65941916}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Main\Src">
+      <UniqueIdentifier>{0956b9c2-fe5f-475b-b9ed-bfa34958df89}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Framework">
+      <UniqueIdentifier>{07ce3bd7-fb45-4415-aa4e-6d3f4817491c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Framework\Audio">
+      <UniqueIdentifier>{6f018943-90c2-4828-8a4d-cd78246956ac}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Framework\Audio\Inc">
+      <UniqueIdentifier>{c254911e-48ac-4b09-87ba-fc32f74ed8c7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Framework\Audio\Src">
+      <UniqueIdentifier>{1313c427-5b1f-4438-bf10-be3ab162c350}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Framework\GUI">
+      <UniqueIdentifier>{4e7e4c3f-f432-4272-bfc8-089ae4c790f8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Framework\GUI\Inc">
+      <UniqueIdentifier>{0620d7c0-faf7-4752-a616-2de0e5e439ee}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Framework\GUI\Src">
+      <UniqueIdentifier>{f2702800-caab-436b-accc-c3baa512c7a6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Framework\Misc">
+      <UniqueIdentifier>{f6f0ded2-bc44-431c-9aed-ebe16bc64fb3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Framework\Misc\Src">
+      <UniqueIdentifier>{aa8d7308-864d-4afa-b338-aa67506dd530}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Framework\Misc\Extensions">
+      <UniqueIdentifier>{727a2006-32b6-4de3-965f-c51f940b19d5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Framework\Misc\Extensions\Inc">
+      <UniqueIdentifier>{14503c33-c73b-4c7b-a4e0-efe08afccbf8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Framework\Misc\Extensions\Src">
+      <UniqueIdentifier>{d6a43e7f-96c7-4a56-bb26-bd48ae3d25e9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Framework\Misc\Inc">
+      <UniqueIdentifier>{4539b612-ee9c-4d72-a4da-5924e9aeb981}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Framework\Console">
+      <UniqueIdentifier>{73e5f51c-1436-46b8-9614-86bd875d69dc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Framework\Console\Inc">
+      <UniqueIdentifier>{d53c428d-ed74-4f34-90bd-871764803fcb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Framework\Console\Src">
+      <UniqueIdentifier>{d6d51471-839d-4074-9c56-13b7fadae6e5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Framework\Commands">
+      <UniqueIdentifier>{79183f5f-8b13-41a3-8e6a-d4ea435bce8e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Framework\Commands\Inc">
+      <UniqueIdentifier>{90833d30-dbe1-43ad-a74e-b65824601b5e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Framework\Commands\Src">
+      <UniqueIdentifier>{5cb87d68-4409-4552-929a-c29104f8daf5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Framework\Proxies">
+      <UniqueIdentifier>{ed341709-ee03-49a5-8913-1ee4c07fb19d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Framework\Proxies\Inc">
+      <UniqueIdentifier>{fafcd681-0407-4727-9361-a18c71d5452a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Framework\Proxies\Src">
+      <UniqueIdentifier>{c19babba-c237-4511-a708-669c34f524ff}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Widgets">
+      <UniqueIdentifier>{040dea47-a8f8-423d-a867-be9d00efa03e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Widgets\Inc">
+      <UniqueIdentifier>{513d0f4f-74ed-48c5-8652-6a9076ad2e96}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Widgets\Src">
+      <UniqueIdentifier>{2627e397-8a4d-4fa8-aa79-b1c42298ba60}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Workspaces">
+      <UniqueIdentifier>{efcc11d4-8b8b-46f5-b96d-bb4a8f3c2e75}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Workspaces\Inc">
+      <UniqueIdentifier>{b05ba86b-3102-4eb2-b58d-0691a399e183}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Workspaces\Src">
+      <UniqueIdentifier>{5f656a7f-876b-41fb-b11b-e193a1a7d821}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resources">
+      <UniqueIdentifier>{1e775e0e-b893-47af-b044-dd5c197c338c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resources\Bitmaps">
+      <UniqueIdentifier>{83eb57b8-dcc2-4085-bafe-7decf5a7d4d2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resources\Icons">
+      <UniqueIdentifier>{a093953a-c7f0-42c5-b500-c7f09a41c347}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Main\Inc\_wx_intellisense.h">
+      <Filter>Main\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Main\Inc\FxCommandLineMode.h">
+      <Filter>Main\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Main\Inc\FxResource.h">
+      <Filter>Main\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Main\Inc\FxSecurity.h">
+      <Filter>Main\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Main\Inc\FxSecurityDefinesOnly.h">
+      <Filter>Main\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Main\Inc\FxSecurityWrapper.h">
+      <Filter>Main\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Main\Inc\FxStudioApp.h">
+      <Filter>Main\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Main\Inc\FxStudioMainWin.h">
+      <Filter>Main\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Main\Inc\FxStudioOptions.h">
+      <Filter>Main\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Main\Inc\FxStudioSession.h">
+      <Filter>Main\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Main\Inc\FxUndoRedoManager.h">
+      <Filter>Main\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Main\Inc\FxVM.h">
+      <Filter>Main\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Main\Inc\FxWxWrappers.h">
+      <Filter>Main\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Main\Inc\resource.h">
+      <Filter>Main\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Main\Inc\stdwx.h">
+      <Filter>Main\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Audio\Inc\FxAudio.h">
+      <Filter>Framework\Audio\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Audio\Inc\FxAudioFile.h">
+      <Filter>Framework\Audio\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Audio\Inc\FxAudioPlayer.h">
+      <Filter>Framework\Audio\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Audio\Inc\FxAudioPlayerDirectSound8.h">
+      <Filter>Framework\Audio\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Audio\Inc\FxAudioPlayerOpenAL.h">
+      <Filter>Framework\Audio\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Audio\Inc\FxComplexNumber.h">
+      <Filter>Framework\Audio\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Audio\Inc\FxFFT.h">
+      <Filter>Framework\Audio\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Gui\Inc\FxAnimCurveNameSelDialog.h">
+      <Filter>Framework\GUI\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Gui\Inc\FxAnimManagerDialog.h">
+      <Filter>Framework\GUI\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Gui\Inc\FxBoneWeightDialog.h">
+      <Filter>Framework\GUI\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Gui\Inc\FxButton.h">
+      <Filter>Framework\GUI\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Gui\Inc\FxCommandPanel.h">
+      <Filter>Framework\GUI\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Gui\Inc\FxCreateAnimWizard.h">
+      <Filter>Framework\GUI\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Gui\Inc\FxCreateCameraDialog.h">
+      <Filter>Framework\GUI\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Gui\Inc\FxCreateFaceGraphNodeDialog.h">
+      <Filter>Framework\GUI\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Gui\Inc\FxCurveManagerDialog.h">
+      <Filter>Framework\GUI\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Gui\Inc\FxCurvePropertiesDialog.h">
+      <Filter>Framework\GUI\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Gui\Inc\FxDropButton.h">
+      <Filter>Framework\GUI\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Gui\Inc\FxExpandableWindow.h">
+      <Filter>Framework\GUI\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Gui\Inc\FxFaceGraphNodeGroupManagerDialog.h">
+      <Filter>Framework\GUI\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Gui\Inc\FxFreeFloatingFrame.h">
+      <Filter>Framework\GUI\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Gui\Inc\FxFunctionEditor.h">
+      <Filter>Framework\GUI\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Gui\Inc\FxLinkFnEditDlg.h">
+      <Filter>Framework\GUI\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Gui\Inc\FxMRUFileListManager.h">
+      <Filter>Framework\GUI\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Gui\Inc\FxProgressDialog.h">
+      <Filter>Framework\GUI\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Gui\Inc\FxReanalyzeSelectionDialog.h">
+      <Filter>Framework\GUI\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Gui\Inc\FxSlider.h">
+      <Filter>Framework\GUI\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Gui\Inc\FxSplitterWindow.h">
+      <Filter>Framework\GUI\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Gui\Inc\FxTearoffWindow.h">
+      <Filter>Framework\GUI\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Misc\Extensions\Inc\FxXMLSupport.h">
+      <Filter>Framework\Misc\Extensions\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Misc\Inc\FxActorTemplate.h">
+      <Filter>Framework\Misc\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Misc\Inc\FxAnimController.h">
+      <Filter>Framework\Misc\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Misc\Inc\FxAnimSetManager.h">
+      <Filter>Framework\Misc\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Misc\Inc\FxAnimUserData.h">
+      <Filter>Framework\Misc\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Misc\Inc\FxCameraManager.h">
+      <Filter>Framework\Misc\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Misc\Inc\FxCGConfigManager.h">
+      <Filter>Framework\Misc\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Misc\Inc\FxColor.h">
+      <Filter>Framework\Misc\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Misc\Inc\FxColourMapping.h">
+      <Filter>Framework\Misc\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Misc\Inc\FxCurveUserData.h">
+      <Filter>Framework\Misc\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Misc\Inc\FxFaceGraphNodeGroup.h">
+      <Filter>Framework\Misc\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Misc\Inc\FxFaceGraphNodeGroupManager.h">
+      <Filter>Framework\Misc\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Misc\Inc\FxFaceGraphNodeUserData.h">
+      <Filter>Framework\Misc\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Misc\Inc\FxFileSystemUtilitiesWin32.h">
+      <Filter>Framework\Misc\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Misc\Inc\FxFunctionPlotter.h">
+      <Filter>Framework\Misc\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Misc\Inc\FxGridTools.h">
+      <Filter>Framework\Misc\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Misc\Inc\FxMemFnCallback.h">
+      <Filter>Framework\Misc\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Misc\Inc\FxPhonemeInfo.h">
+      <Filter>Framework\Misc\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Misc\Inc\FxPhonWordList.h">
+      <Filter>Framework\Misc\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Misc\Inc\FxPrimitives.h">
+      <Filter>Framework\Misc\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Misc\Inc\FxSegment2d.h">
+      <Filter>Framework\Misc\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Misc\Inc\FxSimplePhonemeList.h">
+      <Filter>Framework\Misc\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Misc\Inc\FxStudioAnimPlayer.h">
+      <Filter>Framework\Misc\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Misc\Inc\FxTimeManager.h">
+      <Filter>Framework\Misc\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Misc\Inc\FxUtilityFunctions.h">
+      <Filter>Framework\Misc\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Misc\Inc\FxValidators.h">
+      <Filter>Framework\Misc\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Console\Inc\FxConsole.h">
+      <Filter>Framework\Console\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Console\Inc\FxConsoleVariable.h">
+      <Filter>Framework\Console\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Console\Inc\FxConsoleWin32CommandPrompt.h">
+      <Filter>Framework\Console\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Console\Inc\FxInternalConsoleVariables.h">
+      <Filter>Framework\Console\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Commands\Inc\FxActorXMLCommand.h">
+      <Filter>Framework\Commands\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Commands\Inc\FxAnalysisCommand.h">
+      <Filter>Framework\Commands\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Commands\Inc\FxAnimCommand.h">
+      <Filter>Framework\Commands\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Commands\Inc\FxAnimGroupCommand.h">
+      <Filter>Framework\Commands\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Commands\Inc\FxAnimSetCommand.h">
+      <Filter>Framework\Commands\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Commands\Inc\FxBatchCommand.h">
+      <Filter>Framework\Commands\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Commands\Inc\FxCloseActorCommand.h">
+      <Filter>Framework\Commands\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Commands\Inc\FxCollapseFaceGraphCommand.h">
+      <Filter>Framework\Commands\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Commands\Inc\FxCommand.h">
+      <Filter>Framework\Commands\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Commands\Inc\FxCookCommand.h">
+      <Filter>Framework\Commands\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Commands\Inc\FxCoordSysCommand.h">
+      <Filter>Framework\Commands\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Commands\Inc\FxCurrentTimeCommand.h">
+      <Filter>Framework\Commands\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Commands\Inc\FxCurveCommand.h">
+      <Filter>Framework\Commands\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Commands\Inc\FxDeveloperCommand.h">
+      <Filter>Framework\Commands\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Commands\Inc\FxExecCommand.h">
+      <Filter>Framework\Commands\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Commands\Inc\FxExitCommand.h">
+      <Filter>Framework\Commands\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Commands\Inc\FxExportLTFCommand.h">
+      <Filter>Framework\Commands\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Commands\Inc\FxFlushUndoCommand.h">
+      <Filter>Framework\Commands\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Commands\Inc\FxGetCommand.h">
+      <Filter>Framework\Commands\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Commands\Inc\FxGraphCommand.h">
+      <Filter>Framework\Commands\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Commands\Inc\FxInternalCommands.h">
+      <Filter>Framework\Commands\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Commands\Inc\FxKeyCommand.h">
+      <Filter>Framework\Commands\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Commands\Inc\FxLoadActorCommand.h">
+      <Filter>Framework\Commands\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Commands\Inc\FxMapCommand.h">
+      <Filter>Framework\Commands\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Commands\Inc\FxNewActorCommand.h">
+      <Filter>Framework\Commands\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Commands\Inc\FxNodeGroupCommand.h">
+      <Filter>Framework\Commands\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Commands\Inc\FxPhonemeListCommand.h">
+      <Filter>Framework\Commands\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Commands\Inc\FxPlaybackCommands.h">
+      <Filter>Framework\Commands\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Commands\Inc\FxPrintCommands.h">
+      <Filter>Framework\Commands\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Commands\Inc\FxRedoCommand.h">
+      <Filter>Framework\Commands\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Commands\Inc\FxRenameActorCommand.h">
+      <Filter>Framework\Commands\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Commands\Inc\FxRenameCommand.h">
+      <Filter>Framework\Commands\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Commands\Inc\FxSaveActorCommand.h">
+      <Filter>Framework\Commands\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Commands\Inc\FxSelectCommand.h">
+      <Filter>Framework\Commands\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Commands\Inc\FxSetCommand.h">
+      <Filter>Framework\Commands\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Commands\Inc\FxSetNameCommand.h">
+      <Filter>Framework\Commands\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Commands\Inc\FxTemplateCommand.h">
+      <Filter>Framework\Commands\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Commands\Inc\FxUndoCommand.h">
+      <Filter>Framework\Commands\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Proxies\Inc\FxSessionProxy.h">
+      <Filter>Framework\Proxies\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\Inc\FxActorWidget.h">
+      <Filter>Widgets\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\Inc\FxAnalysisWidget.h">
+      <Filter>Widgets\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\Inc\FxAudioPlayerWidget.h">
+      <Filter>Widgets\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\Inc\FxAudioWidget.h">
+      <Filter>Widgets\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\Inc\FxCoarticulationWidget.h">
+      <Filter>Widgets\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\Inc\FxConsoleWidget.h">
+      <Filter>Widgets\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\Inc\FxCurveWidget.h">
+      <Filter>Widgets\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\Inc\FxFaceGraphNodePropertiesWidget.h">
+      <Filter>Widgets\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\Inc\FxFaceGraphWidget.h">
+      <Filter>Widgets\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\Inc\FxGestureWidget.h">
+      <Filter>Widgets\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\Inc\FxMappingWidget.h">
+      <Filter>Widgets\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\Inc\FxPhonemeWidget.h">
+      <Filter>Widgets\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\Inc\FxRenderWidget.h">
+      <Filter>Widgets\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\Inc\FxRenderWidgetOC3.h">
+      <Filter>Widgets\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\Inc\FxTimelineWidget.h">
+      <Filter>Widgets\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\Inc\FxWidget.h">
+      <Filter>Widgets\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Gui\Inc\FxNewWorkspaceWizard.h">
+      <Filter>Workspaces\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\Inc\FxWorkspaceEditWidget.h">
+      <Filter>Workspaces\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Gui\Inc\FxWorkspaceElements.h">
+      <Filter>Workspaces\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Misc\Inc\FxWorkspaceManager.h">
+      <Filter>Workspaces\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\Inc\FxWorkspaceWidget.h">
+      <Filter>Workspaces\Inc</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Main\Src\FxCommandLineMode.cpp">
+      <Filter>Main\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Main\Src\FxPreCompiledHeader.cpp">
+      <Filter>Main\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Main\Src\FxSecurity.cpp">
+      <Filter>Main\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Main\Src\FxStudioApp.cpp">
+      <Filter>Main\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Main\Src\FxStudioMainWin.cpp">
+      <Filter>Main\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Main\Src\FxStudioOptions.cpp">
+      <Filter>Main\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Main\Src\FxStudioSession.cpp">
+      <Filter>Main\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Main\Src\FxUndoRedoManager.cpp">
+      <Filter>Main\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Main\Src\FxVM.cpp">
+      <Filter>Main\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Main\Src\stdwx.cpp">
+      <Filter>Main\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Audio\Src\FxAudio.cpp">
+      <Filter>Framework\Audio\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Audio\Src\FxAudioFile.cpp">
+      <Filter>Framework\Audio\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Audio\Src\FxAudioPlayer.cpp">
+      <Filter>Framework\Audio\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Audio\Src\FxAudioPlayerDirectSound8.cpp">
+      <Filter>Framework\Audio\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Audio\Src\FxAudioPlayerOpenAL.cpp">
+      <Filter>Framework\Audio\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Audio\Src\FxFFT.cpp">
+      <Filter>Framework\Audio\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Gui\Src\FxAnimCurveNameSelDialog.cpp">
+      <Filter>Framework\GUI\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Gui\Src\FxAnimManagerDialog.cpp">
+      <Filter>Framework\GUI\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Gui\Src\FxBoneWeightDialog.cpp">
+      <Filter>Framework\GUI\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Gui\Src\FxButton.cpp">
+      <Filter>Framework\GUI\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Gui\Src\FxCommandPanel.cpp">
+      <Filter>Framework\GUI\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Gui\Src\FxCreateAnimWizard.cpp">
+      <Filter>Framework\GUI\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Gui\Src\FxCreateCameraDialog.cpp">
+      <Filter>Framework\GUI\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Gui\Src\FxCreateFaceGraphNodeDialog.cpp">
+      <Filter>Framework\GUI\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Gui\Src\FxCurveManagerDialog.cpp">
+      <Filter>Framework\GUI\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Gui\Src\FxCurvePropertiesDialog.cpp">
+      <Filter>Framework\GUI\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Gui\Src\FxDropButton.cpp">
+      <Filter>Framework\GUI\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Gui\Src\FxExpandableWindow.cpp">
+      <Filter>Framework\GUI\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Gui\Src\FxFaceGraphNodeGroupManagerDialog.cpp">
+      <Filter>Framework\GUI\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Gui\Src\FxFreeFloatingFrame.cpp">
+      <Filter>Framework\GUI\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Gui\Src\FxFunctionEditor.cpp">
+      <Filter>Framework\GUI\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Gui\Src\FxLinkFnEditDlg.cpp">
+      <Filter>Framework\GUI\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Gui\Src\FxMRUFileListManager.cpp">
+      <Filter>Framework\GUI\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Gui\Src\FxProgressDialog.cpp">
+      <Filter>Framework\GUI\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Gui\Src\FxReanalyzeSelectionDialog.cpp">
+      <Filter>Framework\GUI\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Gui\Src\FxSlider.cpp">
+      <Filter>Framework\GUI\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Gui\Src\FxSplitterWindow.cpp">
+      <Filter>Framework\GUI\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Gui\Src\FxTearoffWindow.cpp">
+      <Filter>Framework\GUI\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Misc\Src\FxActorTemplate.cpp">
+      <Filter>Framework\Misc\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Misc\Src\FxAnimController.cpp">
+      <Filter>Framework\Misc\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Misc\Src\FxAnimSetManager.cpp">
+      <Filter>Framework\Misc\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Misc\Src\FxAnimUserData.cpp">
+      <Filter>Framework\Misc\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Misc\Src\FxCameraManager.cpp">
+      <Filter>Framework\Misc\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Misc\Src\FxCGConfigManager.cpp">
+      <Filter>Framework\Misc\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Misc\Src\FxColor.cpp">
+      <Filter>Framework\Misc\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Misc\Src\FxColourMapping.cpp">
+      <Filter>Framework\Misc\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Misc\Src\FxCurveUserData.cpp">
+      <Filter>Framework\Misc\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Misc\Src\FxFaceGraphNodeGroup.cpp">
+      <Filter>Framework\Misc\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Misc\Src\FxFaceGraphNodeGroupManager.cpp">
+      <Filter>Framework\Misc\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Misc\Src\FxFileSystemUtilitiesWin32.cpp">
+      <Filter>Framework\Misc\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Misc\Src\FxFunctionPlotter.cpp">
+      <Filter>Framework\Misc\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Misc\Src\FxPhonemeInfo.cpp">
+      <Filter>Framework\Misc\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Misc\Src\FxPhonWordList.cpp">
+      <Filter>Framework\Misc\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Misc\Src\FxPrimitives.cpp">
+      <Filter>Framework\Misc\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Misc\Src\FxSegment2d.cpp">
+      <Filter>Framework\Misc\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Misc\Src\FxStudioAnimPlayer.cpp">
+      <Filter>Framework\Misc\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Misc\Src\FxTimeManager.cpp">
+      <Filter>Framework\Misc\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Misc\Src\FxUtilityFunctions.cpp">
+      <Filter>Framework\Misc\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Misc\Extensions\Src\FxXMLSupport.cpp">
+      <Filter>Framework\Misc\Extensions\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Console\Src\FxConsole.cpp">
+      <Filter>Framework\Console\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Console\Src\FxConsoleVariable.cpp">
+      <Filter>Framework\Console\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Console\Src\FxConsoleWin32CommandPrompt.cpp">
+      <Filter>Framework\Console\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Console\Src\FxInternalConsoleVariables.cpp">
+      <Filter>Framework\Console\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Commands\Src\FxActorXMLCommand.cpp">
+      <Filter>Framework\Commands\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Commands\Src\FxAnalysisCommand.cpp">
+      <Filter>Framework\Commands\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Commands\Src\FxAnimCommand.cpp">
+      <Filter>Framework\Commands\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Commands\Src\FxAnimGroupCommand.cpp">
+      <Filter>Framework\Commands\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Commands\Src\FxAnimSetCommand.cpp">
+      <Filter>Framework\Commands\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Commands\Src\FxBatchCommand.cpp">
+      <Filter>Framework\Commands\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Commands\Src\FxCloseActorCommand.cpp">
+      <Filter>Framework\Commands\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Commands\Src\FxCollapseFaceGraphCommand.cpp">
+      <Filter>Framework\Commands\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Commands\Src\FxCommand.cpp">
+      <Filter>Framework\Commands\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Commands\Src\FxCookCommand.cpp">
+      <Filter>Framework\Commands\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Commands\Src\FxCoordSysCommand.cpp">
+      <Filter>Framework\Commands\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Commands\Src\FxCurrentTimeCommand.cpp">
+      <Filter>Framework\Commands\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Commands\Src\FxCurveCommand.cpp">
+      <Filter>Framework\Commands\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Commands\Src\FxDeveloperCommand.cpp">
+      <Filter>Framework\Commands\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Commands\Src\FxExecCommand.cpp">
+      <Filter>Framework\Commands\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Commands\Src\FxExitCommand.cpp">
+      <Filter>Framework\Commands\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Commands\Src\FxExportLTFCommand.cpp">
+      <Filter>Framework\Commands\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Commands\Src\FxFlushUndoCommand.cpp">
+      <Filter>Framework\Commands\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Commands\Src\FxGetCommand.cpp">
+      <Filter>Framework\Commands\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Commands\Src\FxGraphCommand.cpp">
+      <Filter>Framework\Commands\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Commands\Src\FxInternalCommands.cpp">
+      <Filter>Framework\Commands\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Commands\Src\FxKeyCommand.cpp">
+      <Filter>Framework\Commands\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Commands\Src\FxLoadActorCommand.cpp">
+      <Filter>Framework\Commands\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Commands\Src\FxMapCommand.cpp">
+      <Filter>Framework\Commands\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Commands\Src\FxNewActorCommand.cpp">
+      <Filter>Framework\Commands\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Commands\Src\FxNodeGroupCommand.cpp">
+      <Filter>Framework\Commands\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Commands\Src\FxPhonemeListCommand.cpp">
+      <Filter>Framework\Commands\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Commands\Src\FxPlaybackCommands.cpp">
+      <Filter>Framework\Commands\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Commands\Src\FxPrintCommands.cpp">
+      <Filter>Framework\Commands\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Commands\Src\FxRedoCommand.cpp">
+      <Filter>Framework\Commands\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Commands\Src\FxRenameActorCommand.cpp">
+      <Filter>Framework\Commands\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Commands\Src\FxRenameCommand.cpp">
+      <Filter>Framework\Commands\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Commands\Src\FxSaveActorCommand.cpp">
+      <Filter>Framework\Commands\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Commands\Src\FxSelectCommand.cpp">
+      <Filter>Framework\Commands\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Commands\Src\FxSetCommand.cpp">
+      <Filter>Framework\Commands\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Commands\Src\FxSetNameCommand.cpp">
+      <Filter>Framework\Commands\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Commands\Src\FxTemplateCommand.cpp">
+      <Filter>Framework\Commands\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Commands\Src\FxUndoCommand.cpp">
+      <Filter>Framework\Commands\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Proxies\Src\FxSessionProxy.cpp">
+      <Filter>Framework\Proxies\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\Src\FxActorWidget.cpp">
+      <Filter>Widgets\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\Src\FxAnalysisWidget.cpp">
+      <Filter>Widgets\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\Src\FxAudioPlayerWidget.cpp">
+      <Filter>Widgets\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\Src\FxAudioWidget.cpp">
+      <Filter>Widgets\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\Src\FxCoarticulationWidget.cpp">
+      <Filter>Widgets\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\Src\FxConsoleWidget.cpp">
+      <Filter>Widgets\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\Src\FxCurveWidget.cpp">
+      <Filter>Widgets\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\Src\FxFaceGraphNodePropertiesWidget.cpp">
+      <Filter>Widgets\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\Src\FxFaceGraphWidget.cpp">
+      <Filter>Widgets\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\Src\FxGestureWidget.cpp">
+      <Filter>Widgets\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\Src\FxMappingWidget.cpp">
+      <Filter>Widgets\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\Src\FxPhonemeWidget.cpp">
+      <Filter>Widgets\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\Src\FxRenderWidget.cpp">
+      <Filter>Widgets\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\Src\FxRenderWidgetOC3.cpp">
+      <Filter>Widgets\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\Src\FxTimelineWidget.cpp">
+      <Filter>Widgets\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\Src\FxWidget.cpp">
+      <Filter>Widgets\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Gui\Src\FxNewWorkspaceWizard.cpp">
+      <Filter>Workspaces\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\Src\FxWorkspaceEditWidget.cpp">
+      <Filter>Workspaces\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Gui\Src\FxWorkspaceElements.cpp">
+      <Filter>Workspaces\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Misc\Src\FxWorkspaceManager.cpp">
+      <Filter>Workspaces\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\Src\FxWorkspaceWidget.cpp">
+      <Filter>Workspaces\Src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="res\FxStudioApp.ico">
+      <Filter>Resources</Filter>
+    </None>
+    <None Include="res\bmp\Curve_Background.bmp">
+      <Filter>Resources\Bitmaps</Filter>
+    </None>
+    <None Include="res\bmp\FaceGraph_Background.bmp">
+      <Filter>Resources\Bitmaps</Filter>
+    </None>
+    <None Include="res\icons\FxBonePoseNode.bmp">
+      <Filter>Resources\Icons</Filter>
+    </None>
+    <None Include="res\icons\FxCombinerNode.bmp">
+      <Filter>Resources\Icons</Filter>
+    </None>
+    <None Include="res\icons\FxCurrentTimeNode.bmp">
+      <Filter>Resources\Icons</Filter>
+    </None>
+    <None Include="res\icons\FxDeltaNode.bmp">
+      <Filter>Resources\Icons</Filter>
+    </None>
+    <None Include="res\icons\FxMorphTargetNode.bmp">
+      <Filter>Resources\Icons</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="res\FxStudioApp.rc">
+      <Filter>Resources</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+</Project>

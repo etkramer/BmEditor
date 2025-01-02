@@ -1,0 +1,116 @@
+//
+// CIS Compile PC (Gear)
+//
+
+status (CIS #BranchFriendlyName Gear: CL %JobLabel%) Starting up...
+
+errormode checkerrors
+
+saveerror GearError
+CarbonCopyAddress builder-notify-verification@epicgames.com
+
+timeout 30
+
+status (CIS #BranchFriendlyName Gear: CL %JobLabel%) Syncing to changelist
+watchstart CISCompilePC_P4
+sync
+watchstop
+
+status (CIS #BranchFriendlyName Gear: CL %JobLabel%) Cleaning output directories
+clean
+
+status (CIS #BranchFriendlyName Gear: CL %JobLabel%) Building UBT
+BuildUBT
+
+status (CIS #BranchFriendlyName Example: CL %JobLabel%) Checking out UnrealEdCSharp
+include UnrealEdCSharp
+
+status (CIS #BranchFriendlyName Example: CL %JobLabel%) Checking out Swarm
+include Swarm
+
+buildconfig %JobConfig%
+game Gear
+
+watchstart CISCompileWin32
+
+status (CIS #BranchFriendlyName Gear: CL %JobLabel%) Building Gear %JobConfig% Win32
+platform Win32
+checkoutgame Gear
+unrealbuild
+
+watchstop
+
+watchstart CISCompileWin64
+
+timeout 60
+
+status (CIS #BranchFriendlyName Gear: CL %JobLabel%) Building Gear %JobConfig% Win64
+platform Win64
+checkoutgame Gear
+unrealbuild
+
+timeout 30
+
+watchstop
+
+watchstart CISCompileWin32GearServer
+
+status (CIS #BranchFriendlyName Gear: CL %JobLabel%) Building Gear Server %JobConfig% Win32
+platform Win32Server
+checkoutgame Gear
+define WITH_PANORAMA=1 DEDICATED_SERVER=1
+unrealbuild
+define
+
+watchstop
+
+platform Win32
+use64bit
+timeout 10
+
+watchstart CISCompileScriptGear
+
+status (CIS #BranchFriendlyName Gear: CL %JobLabel%) Building Gear Script Release
+scriptconfig
+checkout GearGame/Script/*.u
+checkout GearGame/Script/Manifest.txt
+buildscript Gear
+
+watchstop
+
+watchstart CISCompileScriptGearFR
+
+status (CIS #BranchFriendlyName Gear: CL %JobLabel%) Building Gear Script FinalRelease
+scriptconfig final_release
+checkout GearGame/ScriptFinalRelease/*.u
+checkout GearGame/ScriptFinalRelease/Manifest.txt
+buildscript Gear
+
+watchstop
+
+watchstart CISWin32GearServerSmokeTest
+
+status (CIS #BranchFriendlyName Gear: CL %JobLabel%) GearGameServer Win32 Smoke Test
+platform Win32Server
+Use32bit
+SmokeTest
+
+watchstop
+
+watchstart CISWin32GearSmokeTest
+
+status (CIS #BranchFriendlyName Gear: CL %JobLabel%) GearGame Win32 Smoke Test
+platform Win32
+Use32bit
+SmokeTest
+
+watchstop
+
+watchstart CISWin64GearSmokeTest
+
+status (CIS #BranchFriendlyName Gear: CL %JobLabel%) GearGame Win64 Smoke Test
+platform Win64
+Use64bit
+SmokeTest
+
+watchstop

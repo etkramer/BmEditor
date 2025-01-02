@@ -1,0 +1,16 @@
+VoiceCmd: Sample code to demonstrate Fonix speech recognition on the Win32.
+
+To try out speech recognition on the Win32, you can do the following:
+
+   1. Double-click "Examples\data\VoiceCmd\Data\vocabBuilderWin32.bat"
+      This file creates the required recognition files as well as copies
+      the files into a c:\data directory referenced in the program.
+   2. Fix the project to include the common files included in the DXSDK
+      that are used by the VoiceCmd project. They are included in the 
+      project in the Common folder.  You will also need to make sure that 
+      the include and library files are referenced correctly.
+   3. Compile and run "VoiceCmd" in the VoiceCmd directory or in the debuger.
+      
+
+
+For more information, see Fonix\Docs\GamersASR.doc.

@@ -1,0 +1,12 @@
+22	Guten Tag
+23	Wie geht's
+24	Willkommen
+25	Bitte
+26	Danke schön
+27	Auf Wiedersehen
+
+30	English
+31	Französisch
+32	Deutsch
+33	Japanisch
+34	Spanisch

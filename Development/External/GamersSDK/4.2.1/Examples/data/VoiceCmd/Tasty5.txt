@@ -1,0 +1,7 @@
+#Tasty vocab
+1	Hamburger
+2	Hot dog
+3	Cheeseburger
+4	Salad
+5	Taco
+	

@@ -1,0 +1,12 @@
+22	Bonjour
+23	Comment ca va
+24	Bienvenue
+25	S'il vous plait
+26	Merci
+27	Au revoir
+
+30	Anglais
+31	Françias
+32	Allemand
+33	Japonese
+34	Éspangnol

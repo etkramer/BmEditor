@@ -1,0 +1,25 @@
+Changes to version "3.11a" (11/12/03):
+- Built vocablib.lib to add grammars.  Renamed XBOX_GRAMMAR to FNX_GRAMMAR to allow the header to reflect the functionality of the build as well as placing FNX_GRAMMAR as a preprocessor define in VocabLib.
+
+
+Changes to version "3.3c" (3/23/03):
+- Built Vocablib.lib to fix the heap bug.
+
+Changes to version "3.3b" (3/23/03):
+- Built VoiceCmds.lib with /Zl switch set and also XBuildVoice.exe. Also fixed the heap bug.
+
+Changes to version "3.3" (3/12/03):
+- Built VocabLib.lib and VoiceCmds.lib with /Nodefaultlib switch set.
+
+Changes to version "3.2" (2/13/03):
+
+- Added 4 new languages German, French, UKEnglish and Spanish.
+- Changes to documentation: Reference new languages; added tips on how to make good word list text files (including advice on international characters in new languages).
+- Modified dictionary code to support new languages.  Now better handles international characters, and more quietly ignores punctuation.
+
+Changes to version "3.1" (2/4/03):
+
+- Fixed bug in VoiceCmdsLib.lib that was preventing multiple simultaneous vocabularies from being used.
+- Checked for NULL pointer passed into FnxSelectVocabs().
+- Enhanced dictionary support in preparation for other languages.
+

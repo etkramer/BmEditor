@@ -1,0 +1,10 @@
+1	Unicorn
+2	Dragon
+3	Centaur
+4	Sprite
+5	Dwarf
+6	Goblin
+7	Mummy
+8	Phoenix
+9   Ghost
+10  Toddler

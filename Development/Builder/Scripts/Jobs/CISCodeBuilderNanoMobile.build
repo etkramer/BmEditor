@@ -1,0 +1,92 @@
+//
+// CIS Compile PC (NanoMobile)
+//
+
+status (CIS #BranchFriendlyName NanoMobile: CL %JobLabel%) Starting up...
+
+errormode checkerrors
+
+saveerror NanoMobileError
+CarbonCopyAddress builder-notify-verification@epicgames.com
+
+timeout 30
+
+status (CIS #BranchFriendlyName NanoMobile: CL %JobLabel%) Syncing to changelist
+watchstart CISCompilePC_P4
+sync
+watchstop
+
+status (CIS #BranchFriendlyName NanoMobile: CL %JobLabel%) Cleaning output directories
+clean
+
+status (CIS #BranchFriendlyName NanoMobile: CL %JobLabel%) Building UBT
+BuildUBT
+
+status (CIS #BranchFriendlyName Example: CL %JobLabel%) Checking out UnrealEdCSharp
+include UnrealEdCSharp
+
+status (CIS #BranchFriendlyName Example: CL %JobLabel%) Checking out Swarm
+include Swarm
+
+buildconfig %JobConfig%
+game NanoMobile
+
+watchstart CISCompileWin32
+
+status (CIS #BranchFriendlyName NanoMobile: CL %JobLabel%) Building NanoMobile %JobConfig% Win32
+platform Win32
+checkoutgame NanoMobile
+unrealbuild
+
+watchstop
+
+watchstart CISCompileWin64
+
+timeout 60
+
+status (CIS #BranchFriendlyName NanoMobile: CL %JobLabel%) Building NanoMobile %JobConfig% Win64
+platform Win64
+checkoutgame NanoMobile
+unrealbuild
+
+watchstop
+
+platform Win32
+Use64bit
+timeout 10
+
+watchstart CISCompileScriptNanoMobile
+
+status (CIS #BranchFriendlyName NanoMobile: CL %JobLabel%) Building NanoMobile Script Release
+scriptconfig
+checkout NanoMobileGame/Script/*.u
+checkout NanoMobileGame/Script/Manifest.txt
+buildscript NanoMobile
+
+watchstop
+
+watchstart CISCompileScriptNanoMobileFR
+
+status (CIS #BranchFriendlyName NanoMobile: CL %JobLabel%) Building NanoMobile Script FinalRelease
+scriptconfig final_release
+checkout NanoMobileGame/ScriptFinalRelease/*.u
+checkout NanoMobileGame/ScriptFinalRelease/Manifest.txt
+buildscript NanoMobile
+
+watchstop
+
+watchstart CISWin32NanoMobileSmokeTest
+
+status (CIS #BranchFriendlyName NanoMobile: CL %JobLabel%) NanoMobileGame Win32 Smoke Test
+Use32bit
+SmokeTest
+
+watchstop
+
+watchstart CISWin64NanoMobileSmokeTest
+
+status (CIS #BranchFriendlyName NanoMobile: CL %JobLabel%) NanoMobileGame Win64 Smoke Test
+Use64bit
+SmokeTest
+
+watchstop

@@ -1,0 +1,103 @@
+//
+// CIS Compile PC (UDK)
+//
+
+status (CIS #BranchFriendlyName UDK: CL %JobLabel%) Starting up...
+
+errormode checkerrors
+
+saveerror UDKError
+CarbonCopyAddress builder-notify-verification@epicgames.com
+
+timeout 30
+
+status (CIS #BranchFriendlyName UDK: CL %JobLabel%) Syncing to changelist
+watchstart CISCompilePC_P4
+sync
+watchstop
+
+status (CIS #BranchFriendlyName UDK: CL %JobLabel%) Cleaning output directories
+clean
+
+status (CIS #BranchFriendlyName UDK: CL %JobLabel%) Building UBT
+BuildUBT
+
+status (CIS #BranchFriendlyName Example: CL %JobLabel%) Checking out UnrealEdCSharp
+include UnrealEdCSharp
+
+status (CIS #BranchFriendlyName Example: CL %JobLabel%) Checking out Swarm
+include Swarm
+
+buildconfig %JobConfig%
+game UDK
+
+watchstart CISCompileWin32
+
+status (CIS #BranchFriendlyName UDK: CL %JobLabel%) Building UDK %JobConfig% Win32
+platform Win32
+checkoutgame UDK
+unrealbuild
+
+watchstop
+
+watchstart CISCompileWin64
+
+timeout 60
+
+status (CIS #BranchFriendlyName UDK: CL %JobLabel%) Building UDK %JobConfig% Win64
+platform Win64
+checkoutgame UDK
+unrealbuild
+
+timeout 30
+
+watchstop
+
+watchstart CISCompileWin32UTDLL
+
+status (CIS #BranchFriendlyName UDK: CL %JobLabel%) Building UDK DLL %JobConfig% Win32
+platform Win32Dll
+checkoutgame UDK
+unrealbuild
+
+watchstop
+
+platform Win32
+Use64bit
+timeout 10
+
+watchstart CISCompileScriptUDK
+
+status (CIS #BranchFriendlyName UDK: CL %JobLabel%) Building UDK Script Release
+scriptconfig
+checkout UDKGame/Script/*.u
+checkout UDKGame/Script/Manifest.txt
+buildscript UDK
+
+watchstop
+
+watchstart CISCompileScriptUDKFR
+
+status (CIS #BranchFriendlyName UDK: CL %JobLabel%) Building UDK Script FinalRelease
+scriptconfig final_release
+checkout UDKGame/ScriptFinalRelease/*.u
+checkout UDKGame/ScriptFinalRelease/Manifest.txt
+buildscript UDK
+
+watchstop
+
+watchstart CISWin32UTSmokeTest
+
+status (CIS #BranchFriendlyName UDK: CL %JobLabel%) UDKGame Win32 Smoke Test
+Use32bit
+SmokeTest
+
+watchstop
+
+watchstart CISWin64UTSmokeTest
+
+status (CIS #BranchFriendlyName UDK: CL %JobLabel%) UDKGame Win64 Smoke Test
+Use64bit
+SmokeTest
+
+watchstop

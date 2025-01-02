@@ -1,0 +1,179 @@
+===============================================================================
+ B u i l d i n g   E x t e r n a l s
+===============================================================================
+
+Convention:
+
+--------------
+Configurations
+--------------
+Only the used solution/project configurations are maintained.
+That is, if a project has 10 configurations and we only use
+'Static Unicode Debug' and 'Static Unicode  Release', we will only maintain
+these project configurations.
+Other configurations should be presumed broken.
+
+
+-------------
+x64 and win32
+-------------
+All 64-bit binaries are appended with _64 in addition to conventional
+suffixes. e.g. libpng_64.lib, libpngd_64.lib
+Win32 binaries have no platform-specific suffix. e.g. libpng.lib, libpngd.lib
+
+to switch between 32-bit and 64-bit targets select the 'Win32' or 'x64' from
+the 'Solution Platforms' combo box . In most cases you will end up building
+four sets of binaries 'Debug 32', 'Debug 64', 'Release 32', and 'Release 64'.
+
+
+--------------------
+Directory Structure:
+--------------------
+<UE3> denotes the location of the Unreal Engine 3 directory.
+Let <UE3DevExt> denote <UE3/Development/External>
+
+Relevant directory layout
+<UE3>
+ +---Binaries                        
+     +---Win32                       # 32-bit exe, DLLs, and corresponding PDBs
+     +---x64                         # 64-bit exe, DLLs, and corresponding PDBs
+ +---Development
+     +---External                    # 3rd party libraries; a.k.a <UE3DevExt>
+         +---Bink
+         +---FaceFX
+         +---FCollada-3.05B
+         +---libogg-1.1.3
+         +---libPNG
+         +---libvorbis-1.1.2
+         +---lzopro
+         +---nvTextureTools-2.0.4
+         +---nvTriStrip
+         +---PhysX
+         +---SpeedTreeRT
+         +---TestTrack
+         +---tinyXML
+         +---wxWidgets
+         etc
+         ...
+         
+
+- - - - - - - -
+libpng and zlib
+- - - - - - - -
+            Solution:   <UE3DevExt>/libPNG/projects/msvc2005/libpng.sln
+    Configs to Build:   LIB Release
+                        LIB Debug
+         Output Type:   Static Libs
+         Output Dirs:   <UE3DevExt>/libPNG/lib    
+               Notes:   Zlib is built as a prerequisite for libpng.
+
+
+- - - - -
+FCollada
+- - - - -
+            Solution:   <UE3DevExt>/FCollada-3.05B/FCollada/FCollada.sln
+    Configs to Build:   Debug Unicode
+                        Release Unicode
+         Output Type:   Static Libs
+         Output Dirs:   <UE3DevExt>/FCollada-3.05B/lib/release
+                        <UE3DevExt>/FCollada-3.05B/lib/debug
+  
+
+- - - - - - - -
+nvTextureTools
+- - - - - - - -
+            Solution:   <UE3DevExt>/nvTextureTools-2.0.4/src/project/vc8/nvtt.sln
+    Configs to Build:   Release
+                        (Debug to ensure it builds)
+         Output Type:   DLL + Static Lib
+          Output Dir:   <UE3DevExt>/nvTextureTools-2.0.4/release.win32
+                        <UE3DevExt>/nvTextureTools-2.0.4/release.x64
+         Manual Step:   Copy dlls and corresponding pdbs from the output directories
+                        to <UE3>/Binaries/Win32/ and <UE3>/Binaries/Win64/
+               Notes:   Requires CUDA SDK and Toolkit.
+                        "Release Win32" requires the Win32 version of CUDA SDK/Toolkit to be installed.
+                        "Release x64" requires the Win64 version of CUDA SDK/Toolkit to be installed.
+                        The SDK/Toolkit installs cannot co-exist.
+
+
+- - - 
+ogg
+- - -
+            Solution:   <UE3DevExt>/libogg-1.1.3/win32/ogg.sln
+    Configs to Build:   Release
+                        Debug
+         Output Type:   Static Lib + DLL
+         Output Dirs:   <UE3>/Binaries/Win32
+                        <UE3>/Binaries/Win64
+                        <UE3DevExt>/libogg-1.1.3/win32/Debug
+                        <UE3DevExt>/libogg-1.1.3/win32/Release
+                        <UE3DevExt>/libogg-1.1.3/win32/x64/Debug
+                        <UE3DevExt>/libogg-1.1.3/win32/x64/Release                        
+               Notes:   DLLs are output directly to <UE3>/Binaries/Win32/ and <UE3>/Binaries/Win64/
+
+
+- - - -
+vorbis
+- - - -
+            Solution:   <UE3DevExt>/libvorbis-1.1.2/win32/vorbis.sln
+    Configs to Build:   Release
+                        Debug
+         Output Type:   Static Lib + DLL
+         Output Dirs:   <UE3>/Binaries/Win32/
+                        <UE3>/Binaries/Win64/
+                        <UE3DevExt>/libvorbis-1.1.2/win32/Debug
+                        <UE3DevExt>/libvorbis-1.1.2/win32/Release
+                        <UE3DevExt>/libvorbis-1.1.2/win32/x64/Debug
+                        <UE3DevExt>/libvorbis-1.1.2/win32/x64/Release                        
+               Notes:   DLLs are output directly to <UE3>/Binaries/Win32/ and <UE3>/Binaries/Win64/.
+                        Depends on libogg.
+               Hacks:   For x64, "C/C++ | Output Files | Object File Name" must be "$(IntDir)\". Notice the "\" at the end!
+
+
+- - - - - 
+wxWidgets
+- - - - - 
+            Solution:   <UE3DevExt>/wxWidgets/build/msw/wx_dll.sln
+    Configs to Build:   DLL Unicode Release
+                        DLL Unicode Debug
+         Output Type:   Static Libs 
+                        DLLs + Static Libs
+         Output Dirs:   <UE3>/Binaries/Win32
+                        <UE3>/Binaries/Win64
+                        <UE3DevExt>/wxWidgets/lib/vc_dll/win32
+                        <UE3DevExt>/wxWidgets/lib/vc_dll/x64
+               Notes:   Outputs dlls, pdbs directly into <UE3>/Binaries/Win32/ and <UE3>/Binaries/Win64/
+
+
+- - - - - 
+TestTrack
+- - - - - 
+            Solution:   <UE3DevExt>/TestTrack/Source/TestTrack.sln
+    Configs to Build:   Release
+                        Debug
+         Output Type:   Static Libs
+         Output Dirs:   <UE3DevExt>/TestTrack/Lib/release
+                        <UE3DevExt>/TestTrack/Lib/debug
+
+
+- - - - 
+lzopro
+- - - - 
+            Solution:   none;  See <UE3DevExt>/README.1ST for build instructions
+              Output:   Static Lib
+         Output Dirs:   <UE3DevExt>/lzopro/lib
+               Notes:   Need to set up appropriate environment before building. For x64 (win64/vc.bat) target use 
+                        Microsoft Visual Studio 8\VC\bin\amd64\vcvarsamd64.bat
+
+
+- - - - - -
+SpeedTree
+- - - - - -
+            Solution:   SpeedTree/Code/SDKs/SpeedTreeRT_SDK_v4.1_Windows_Full/SpeedTreeRT_SDK_v4.1_Full/Source/SpeedTreeRT_VC8.sln
+    Configs to Build:   Release (Full)
+                        Debug (Full)            
+              Output:   Static Libs
+               Notes:   Code is in depo root. Copy the library files into
+                           <UE3DevExt>/SpeedTreeRT/lib/PC/Debug
+                           <UE3DevExt>/SpeedTreeRT/lib/PC/Release
+

@@ -1,0 +1,12 @@
+22	Buenos Dias
+23	Como Estas
+24	Bienvenido
+25	Por favor
+26	Gracias
+27	Adiós
+
+30	Inglés
+31	Francés
+32	Alemán
+33	Japonés
+34	Español

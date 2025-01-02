@@ -1,0 +1,20 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 9.00
+# Visual Studio 2005
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "VoiceCmd", "VoiceCmd.vcproj", "{91454F10-D3D8-4E8E-8324-DB892B678D5A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		PS3 Debug|Win32 = PS3 Debug|Win32
+		PS3 Release|Win32 = PS3 Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{91454F10-D3D8-4E8E-8324-DB892B678D5A}.PS3 Debug|Win32.ActiveCfg = PS3 Debug|Win32
+		{91454F10-D3D8-4E8E-8324-DB892B678D5A}.PS3 Debug|Win32.Build.0 = PS3 Debug|Win32
+		{91454F10-D3D8-4E8E-8324-DB892B678D5A}.PS3 Release|Win32.ActiveCfg = PS3 Release|Win32
+		{91454F10-D3D8-4E8E-8324-DB892B678D5A}.PS3 Release|Win32.Build.0 = PS3 Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

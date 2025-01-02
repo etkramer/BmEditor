@@ -1,0 +1,72 @@
+#Tasty vocab
+1	Hamburger
+2	Hot dog
+3	Cheeseburger
+4	Salad
+5	Taco
+6	Burrito
+7	Lasagna
+8	Enchilada
+9	Waffle
+10	Pancake
+11	Fried chicken
+12	Spicy Dragon
+13	Pasta
+14	Calzone
+15	French fries
+16	Root beer
+17	Soft drink
+18	Almond 
+19	Apple 
+20	Artichoke 
+21	Asparagus 
+22	Banana 
+23	Beet 
+24	Broccoli 
+25	Buckwheat 
+26	Cabbage 
+27	Carrot 
+28	Cashew 
+29	Cattle 
+30	Cauliflower 
+31	Celery 
+32	Cherry 
+33	Chicken 
+34	Chives 
+35	Cinnamon 
+36	Ice cream 
+37	Cucumber 
+38	Date 
+39	Dairy 
+40	Dill 
+41	Eggs 
+42	Twist cone 
+43	Fig
+44	Fish 
+45	Garlic 
+46	Ginger 
+47	Goat 
+48	Grape
+49	Kelp 
+50	Lemon 
+51	Lettuce 
+52	Mango 
+53	Melon 
+54	Mushroom 
+55	Mustard 
+56	Oats 
+57	Olive 
+58	Onion 
+59	Orange 
+60	Peach 
+61	Pear 
+62	Pepper 
+63	Pistachio 
+64	Plum 
+65	Ribs 
+66	Rice 
+67	Rosemary 
+68	Sheep 
+69	Soybean 
+70	Spinach
+	
