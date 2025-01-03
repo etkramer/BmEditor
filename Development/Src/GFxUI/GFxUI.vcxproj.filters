@@ -1,0 +1,159 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Classes">
+      <UniqueIdentifier>{9abafd0e-7d2a-4ca7-ae26-d641bbee439c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Inc">
+      <UniqueIdentifier>{b3a0570c-6438-4eac-bf1a-66c62c6d48fb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Src">
+      <UniqueIdentifier>{741f7763-ffe1-44d3-8466-99858e0926dd}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Classes\FlashMovie.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\GFxAction_CloseMovie.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\GFxAction_GetVariable.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\GFxAction_Invoke.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\GFxAction_OpenMovie.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\GFxAction_SetCaptureKeys.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\GFxAction_SetVariable.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\GFxClikWidget.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\GFxDataStoreSubscriber.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\GFxEngine.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\GFxEvent_FsCommand.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\GFxFSCmdHandler.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\GFxFSCmdHandler_Kismet.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\GFxInteraction.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\GFxMoviePlayer.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\GFxObject.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\GFxRawData.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\SwfMovie.uc">
+      <Filter>Classes</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Inc\GFxUI.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\GFxUIAllocator.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\GFxUIClasses.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\GFxUIEngine.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\GFxUIFile.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\GFxUIFont.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\GFxUIFullscreenMovie.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\GFxUIImageInfo.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\GFxUIRenderer.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\GFxUIRendererImpl.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\GFxUIRendererRT.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\GFxUIStats.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\GFxUIUIPrivateClasses.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\GFxUIUISequenceClasses.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\GFxUINames.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Src\GFxUI.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GFxUIDataStore.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GFxUIEngine.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GFxUIFile.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GFxUIFont.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GFxUIFullscreenMovie.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GFxUIImageInfo.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GFxUIInteraction.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GFxUILocalization.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GFxUIMovie.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GFxUIRenderer.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GFxUIRendererRT.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GFxUISound.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GFxUIStats.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

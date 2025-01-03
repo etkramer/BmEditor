@@ -1,0 +1,370 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Classes">
+      <UniqueIdentifier>{a567943d-62ce-48b5-8179-465d7e969b1e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Classes\Crowds">
+      <UniqueIdentifier>{76ce6e33-6b1a-448b-b98b-e37b3456ad9b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Classes\Camera">
+      <UniqueIdentifier>{2ee3ea38-4773-4bfa-8cac-d3bcea275471}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Classes\Mobile">
+      <UniqueIdentifier>{40f16e8e-3961-4b8d-9b05-c849f1913706}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Classes\Mobile\Mobile UI">
+      <UniqueIdentifier>{28a5a383-bf97-4bfe-a6b8-4ca98b54ac53}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Classes\Stats">
+      <UniqueIdentifier>{a6cdc136-6943-4086-8135-4600d038ff95}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Classes\AI">
+      <UniqueIdentifier>{3c46e552-dd7b-4b1f-ba0d-f0dacc47d415}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Src">
+      <UniqueIdentifier>{73d75956-6254-4e2a-bd3c-f99388eba665}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Inc">
+      <UniqueIdentifier>{ac774fd5-d55f-4ff9-857c-66f373b294c6}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Classes\DynamicSpriteComponent.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\FrameworkGame.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\GameExplosion.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\GameExplosionActor.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\GameExplosionContent.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\GameKActorSpawnableEffect.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\GamePawn.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\GamePlayerController.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\GameSkelCtrl_Recoil.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\GameSpecialMove.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\GameTypes.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\GameWaveForms.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\PMESTG_LeaveADecalBase.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\SeqAct_ControlGameMovie.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\SeqAct_ModifyProperty.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\DynamicGameCrowdDestination.uc">
+      <Filter>Classes\Crowds</Filter>
+    </None>
+    <None Include="Classes\GameCrowd_ListOfAgents.uc">
+      <Filter>Classes\Crowds</Filter>
+    </None>
+    <None Include="Classes\GameCrowdAgent.uc">
+      <Filter>Classes\Crowds</Filter>
+    </None>
+    <None Include="Classes\GameCrowdAgentBehavior.uc">
+      <Filter>Classes\Crowds</Filter>
+    </None>
+    <None Include="Classes\GameCrowdAgentSkeletal.uc">
+      <Filter>Classes\Crowds</Filter>
+    </None>
+    <None Include="Classes\GameCrowdAgentSM.uc">
+      <Filter>Classes\Crowds</Filter>
+    </None>
+    <None Include="Classes\GameCrowdBehavior_PlayAnimation.uc">
+      <Filter>Classes\Crowds</Filter>
+    </None>
+    <None Include="Classes\GameCrowdBehavior_RunFromPanic.uc">
+      <Filter>Classes\Crowds</Filter>
+    </None>
+    <None Include="Classes\GameCrowdBehavior_WaitForGroup.uc">
+      <Filter>Classes\Crowds</Filter>
+    </None>
+    <None Include="Classes\GameCrowdBehavior_WaitInQueue.uc">
+      <Filter>Classes\Crowds</Filter>
+    </None>
+    <None Include="Classes\GameCrowdBehaviorPoint.uc">
+      <Filter>Classes\Crowds</Filter>
+    </None>
+    <None Include="Classes\GameCrowdDestination.uc">
+      <Filter>Classes\Crowds</Filter>
+    </None>
+    <None Include="Classes\GameCrowdDestinationQueuePoint.uc">
+      <Filter>Classes\Crowds</Filter>
+    </None>
+    <None Include="Classes\GameCrowdGroup.uc">
+      <Filter>Classes\Crowds</Filter>
+    </None>
+    <None Include="Classes\GameCrowdInfoVolume.uc">
+      <Filter>Classes\Crowds</Filter>
+    </None>
+    <None Include="Classes\GameCrowdInteractionDestination.uc">
+      <Filter>Classes\Crowds</Filter>
+    </None>
+    <None Include="Classes\GameCrowdInteractionPoint.uc">
+      <Filter>Classes\Crowds</Filter>
+    </None>
+    <None Include="Classes\GameCrowdPopulationManager.uc">
+      <Filter>Classes\Crowds</Filter>
+    </None>
+    <None Include="Classes\GameCrowdReplicationActor.uc">
+      <Filter>Classes\Crowds</Filter>
+    </None>
+    <None Include="Classes\GameCrowdSpawnerInterface.uc">
+      <Filter>Classes\Crowds</Filter>
+    </None>
+    <None Include="Classes\GameCrowdSpawnInterface.uc">
+      <Filter>Classes\Crowds</Filter>
+    </None>
+    <None Include="Classes\GameCrowdSpawnRelativeActor.uc">
+      <Filter>Classes\Crowds</Filter>
+    </None>
+    <None Include="Classes\GameDestinationConnRenderingComponent.uc">
+      <Filter>Classes\Crowds</Filter>
+    </None>
+    <None Include="Classes\SeqAct_GameCrowdPopulationManagerToggle.uc">
+      <Filter>Classes\Crowds</Filter>
+    </None>
+    <None Include="Classes\SeqAct_GameCrowdSpawner.uc">
+      <Filter>Classes\Crowds</Filter>
+    </None>
+    <None Include="Classes\SeqAct_PlayAgentAnimation.uc">
+      <Filter>Classes\Crowds</Filter>
+    </None>
+    <None Include="Classes\SeqEvent_CrowdAgentReachedDestination.uc">
+      <Filter>Classes\Crowds</Filter>
+    </None>
+    <None Include="Classes\GameCameraBase.uc">
+      <Filter>Classes\Camera</Filter>
+    </None>
+    <None Include="Classes\GameCameraBlockingVolume.uc">
+      <Filter>Classes\Camera</Filter>
+    </None>
+    <None Include="Classes\GameFixedCamera.uc">
+      <Filter>Classes\Camera</Filter>
+    </None>
+    <None Include="Classes\GamePlayerCamera.uc">
+      <Filter>Classes\Camera</Filter>
+    </None>
+    <None Include="Classes\GameThirdPersonCamera.uc">
+      <Filter>Classes\Camera</Filter>
+    </None>
+    <None Include="Classes\GameThirdPersonCameraMode.uc">
+      <Filter>Classes\Camera</Filter>
+    </None>
+    <None Include="Classes\GameThirdPersonCameraMode_Default.uc">
+      <Filter>Classes\Camera</Filter>
+    </None>
+    <None Include="Classes\MobileHUD.uc">
+      <Filter>Classes\Mobile</Filter>
+    </None>
+    <None Include="Classes\MobileInputZone.uc">
+      <Filter>Classes\Mobile</Filter>
+    </None>
+    <None Include="Classes\MobilePlayerInput.uc">
+      <Filter>Classes\Mobile</Filter>
+    </None>
+    <None Include="Classes\SeqAct_Deproject.uc">
+      <Filter>Classes\Mobile</Filter>
+    </None>
+    <None Include="Classes\SeqAct_MobileAddInputZones.uc">
+      <Filter>Classes\Mobile</Filter>
+    </None>
+    <None Include="Classes\SeqAct_MobileClearInputZones.uc">
+      <Filter>Classes\Mobile</Filter>
+    </None>
+    <None Include="Classes\SeqAct_MobileRemoveInputZone.uc">
+      <Filter>Classes\Mobile</Filter>
+    </None>
+    <None Include="Classes\SeqAct_MobileSaveLoadValue.uc">
+      <Filter>Classes\Mobile</Filter>
+    </None>
+    <None Include="Classes\SeqEvent_HudRender.uc">
+      <Filter>Classes\Mobile</Filter>
+    </None>
+    <None Include="Classes\SeqEvent_HudRenderImage.uc">
+      <Filter>Classes\Mobile</Filter>
+    </None>
+    <None Include="Classes\SeqEvent_HudRenderText.uc">
+      <Filter>Classes\Mobile</Filter>
+    </None>
+    <None Include="Classes\SeqEvent_MobileBase.uc">
+      <Filter>Classes\Mobile</Filter>
+    </None>
+    <None Include="Classes\SeqEvent_MobileButton.uc">
+      <Filter>Classes\Mobile</Filter>
+    </None>
+    <None Include="Classes\SeqEvent_MobileInput.uc">
+      <Filter>Classes\Mobile</Filter>
+    </None>
+    <None Include="Classes\SeqEvent_MobileLook.uc">
+      <Filter>Classes\Mobile</Filter>
+    </None>
+    <None Include="Classes\SeqEvent_MobileMotion.uc">
+      <Filter>Classes\Mobile</Filter>
+    </None>
+    <None Include="Classes\SeqEvent_MobileObjectPicker.uc">
+      <Filter>Classes\Mobile</Filter>
+    </None>
+    <None Include="Classes\SeqEvent_MobileRawInput.uc">
+      <Filter>Classes\Mobile</Filter>
+    </None>
+    <None Include="Classes\SeqEvent_MobileSwipe.uc">
+      <Filter>Classes\Mobile</Filter>
+    </None>
+    <None Include="Classes\SeqEvent_MobileZoneBase.uc">
+      <Filter>Classes\Mobile</Filter>
+    </None>
+    <None Include="Classes\MobileMenuButton.uc">
+      <Filter>Classes\Mobile\Mobile UI</Filter>
+    </None>
+    <None Include="Classes\MobileMenuGame.uc">
+      <Filter>Classes\Mobile\Mobile UI</Filter>
+    </None>
+    <None Include="Classes\MobileMenuImage.uc">
+      <Filter>Classes\Mobile\Mobile UI</Filter>
+    </None>
+    <None Include="Classes\MobileMenuLabel.uc">
+      <Filter>Classes\Mobile\Mobile UI</Filter>
+    </None>
+    <None Include="Classes\MobileMenuObject.uc">
+      <Filter>Classes\Mobile\Mobile UI</Filter>
+    </None>
+    <None Include="Classes\MobileMenuPlayerController.uc">
+      <Filter>Classes\Mobile\Mobile UI</Filter>
+    </None>
+    <None Include="Classes\MobileMenuScene.uc">
+      <Filter>Classes\Mobile\Mobile UI</Filter>
+    </None>
+    <None Include="Classes\GameStateObject.uc">
+      <Filter>Classes\Stats</Filter>
+    </None>
+    <None Include="Classes\GameStatsAggregator.uc">
+      <Filter>Classes\Stats</Filter>
+    </None>
+    <None Include="Classes\GameAICmd_Hover_MoveToGoal.uc">
+      <Filter>Classes\AI</Filter>
+    </None>
+    <None Include="Classes\GameAICmd_Hover_MoveToGoal_Mesh.uc">
+      <Filter>Classes\AI</Filter>
+    </None>
+    <None Include="Classes\GameAICommand.uc">
+      <Filter>Classes\AI</Filter>
+    </None>
+    <None Include="Classes\GameAIController.uc">
+      <Filter>Classes\AI</Filter>
+    </None>
+    <None Include="Classes\NavMeshGoal_OutOfViewFrom.uc">
+      <Filter>Classes\AI</Filter>
+    </None>
+    <None Include="Classes\NavMeshPath_BiasAgainstPolysWithinDistanceOfLocations.uc">
+      <Filter>Classes\AI</Filter>
+    </None>
+    <None Include="Globals.uci" />
+    <None Include="Classes\PlayerCollectorGame.uc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Src\DelayedUnpauser.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\DynamicSpriteComponent.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GameAI.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GameCamera.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GameController.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GameCrowd.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GameFramework.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GameMobile.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GameMobileKismet.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GamePawn.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GameSequence.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GameSkelControls.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GameSpecialMoves.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GameStats.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GameWeapon.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Src\DelayedUnpauser.h">
+      <Filter>Src</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\GameCrowdUtilities.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\GameFramework.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\GameFrameworkAnimClasses.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\GameFrameworkCameraClasses.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\GameFrameworkClasses.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\GameFrameworkGameStatsClasses.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\GameFrameworkNames.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\GameFrameworkParticleClasses.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\GameFrameworkSpecialMovesClasses.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\GameStatsUtilities.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

@@ -2,11 +2,18 @@
 /Binaries/*
 /Engine/*
 /UDKGame/*
+/BmGame/*
 /Development/External/GFx/*
 !**/MISSING_FILES.txt
 
 # Visual Studio 2015 user specific files
 .vs/
+
+/Development/Src/**/*.user
+/Development/Src/**/*.suo
+/Development/Src/**/*.idb
+/Development/Src/**/Debug/**
+/Development/Src/**/Release/**
 
 # Compiled Object files
 *.slo

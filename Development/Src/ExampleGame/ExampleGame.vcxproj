@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="BuiltWithUnrealBuildTool|Win32">
+      <Configuration>BuiltWithUnrealBuildTool</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <ProjectGuid>{3933DD39-0C20-494C-9A48-BD319A2F55E6}</ProjectGuid>
+    <RootNamespace>ExampleGame</RootNamespace>
+    <Keyword>MakeFileProj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='BuiltWithUnrealBuildTool|Win32'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='BuiltWithUnrealBuildTool|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>17.0.35521.163</_ProjectFileVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='BuiltWithUnrealBuildTool|Win32'">
+    <OutDir>..\..\Intermediate\Unused\</OutDir>
+    <IntDir>..\..\Intermediate\Unused\</IntDir>
+    <NMakeBuildCommandLine />
+    <NMakeReBuildCommandLine />
+    <NMakeCleanCommandLine />
+    <NMakeOutput />
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <None Include="..\..\..\ExampleGame\Config\DefaultCompat.ini" />
+    <None Include="..\..\..\ExampleGame\Config\DefaultEditor.ini" />
+    <None Include="..\..\..\ExampleGame\Config\DefaultEditorKeyBindings.ini" />
+    <None Include="..\..\..\ExampleGame\Config\DefaultEditorUserSettings.ini" />
+    <None Include="..\..\..\ExampleGame\Config\DefaultEngine.ini" />
+    <None Include="..\..\..\ExampleGame\Config\DefaultGame.ini" />
+    <None Include="..\..\..\ExampleGame\Config\DefaultInput.ini" />
+    <None Include="..\..\..\ExampleGame\Config\DefaultLightmass.ini" />
+    <None Include="..\..\..\ExampleGame\Config\DefaultUI.ini" />
+    <None Include="..\..\..\ExampleGame\Config\PCServer\PCServerEngine.ini" />
+    <None Include="..\..\..\ExampleGame\Config\PCServer\PCServerGame.ini" />
+    <None Include="..\..\..\ExampleGame\Config\PCServer\PCServerInput.ini" />
+    <None Include="..\..\..\ExampleGame\Config\PS3\PS3Engine.ini" />
+    <None Include="..\..\..\ExampleGame\Config\PS3\PS3Game.ini" />
+    <None Include="..\..\..\ExampleGame\Config\PS3\PS3Input.ini" />
+    <None Include="..\..\..\ExampleGame\Config\Xenon\XenonEditor.ini" />
+    <None Include="..\..\..\ExampleGame\Config\Xenon\XenonEngine.ini" />
+    <None Include="..\..\..\ExampleGame\Config\Xenon\XenonGame.ini" />
+    <None Include="..\..\..\ExampleGame\Config\Xenon\XenonInput.ini" />
+    <None Include="..\..\..\ExampleGame\Localization\Int\ExampleGame.int" />
+    <None Include="Classes\ExampleGameInfo.uc" />
+    <None Include="Classes\ExamplePawn.uc" />
+    <None Include="Classes\ExamplePlayerController.uc" />
+    <None Include="Live\ExampleGame.PNG" />
+    <None Include="Live\ExampleGame.spa" />
+    <None Include="Live\ExampleGame.xlast" />
+    <None Include="Live\ExampleGameLarge.png" />
+    <None Include="Live\GamerPicLarge.png" />
+    <None Include="Live\GamerPicSmall.png" />
+    <None Include="Live\LiveConfig.xml" />
+    <None Include="Live\xex.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Src\ExampleGame.cpp" />
+    <ClCompile Include="Src\NullSurveys.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Inc\ExampleGame.h" />
+    <ClInclude Include="Inc\ExampleGameClasses.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

@@ -1,0 +1,2202 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Src">
+      <UniqueIdentifier>{7944d15d-5ca0-4d16-932f-8b9ba042d424}</UniqueIdentifier>
+      <Extensions>*.cpp</Extensions>
+    </Filter>
+    <Filter Include="Src\Cascade">
+      <UniqueIdentifier>{4b407486-ed3f-4500-80fd-8db737e22ed3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Src\Matinee">
+      <UniqueIdentifier>{c5d44017-72e2-42da-b7aa-bc7170ae24d1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Src\PhAT">
+      <UniqueIdentifier>{e2aeaf6e-b3ef-4c05-8405-415c14d06e31}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Src\AnimSetViewer">
+      <UniqueIdentifier>{efa9129a-25e1-41dd-9969-22b2d747727f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Src\AnimTreeEditor">
+      <UniqueIdentifier>{a62e0204-58e9-4925-93b2-7cb6dd64c888}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Src\Browsers">
+      <UniqueIdentifier>{8af6df51-0fac-41ae-bc57-db2c2d596b63}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Src\FaceFX">
+      <UniqueIdentifier>{5284cd35-cee3-4d2d-8764-109e351cb39d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Src\MaterialEditor">
+      <UniqueIdentifier>{7c7cb1d2-d666-4547-ba71-4e3b3de32558}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Src\SpeedTree">
+      <UniqueIdentifier>{2c69d8f8-2b01-4cec-a819-7db898fcdbe1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Src\Dialogs">
+      <UniqueIdentifier>{7d76b308-c24c-4818-bc4f-f54b8a8552de}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Src\LensFlareEditor">
+      <UniqueIdentifier>{3fa14b69-5702-4e4c-939a-ba00c49f2fb3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Src\TaskDatabase">
+      <UniqueIdentifier>{94cfb76b-25d4-446a-bc5e-bf0d4b8fd32a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Src\GameStatsVisualizer">
+      <UniqueIdentifier>{a2fff510-9fa5-4ecd-b17a-1fa2f5b0fcf7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Src\AITreeEditor">
+      <UniqueIdentifier>{13a8cef8-be09-43ea-9535-6705433766ff}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Inc">
+      <UniqueIdentifier>{61210987-1910-435b-9ff2-a7a64d3dd00a}</UniqueIdentifier>
+      <Extensions>*.h</Extensions>
+    </Filter>
+    <Filter Include="Inc\UIEditor">
+      <UniqueIdentifier>{7911f0f8-149c-41e7-8ce4-c9ac02911dcf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Inc\MaterialEditor">
+      <UniqueIdentifier>{55513b9d-13d6-4d98-8055-17e001a48464}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Inc\Dialogs">
+      <UniqueIdentifier>{b1b41e97-362e-4860-87ae-9ce44422bc69}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Inc\LensFlareEditor">
+      <UniqueIdentifier>{44ece472-34b9-4f6d-89dc-4482d18b3c29}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Inc\TaskDatabase">
+      <UniqueIdentifier>{9f5f4db2-0629-4618-a8bb-9997603ce16c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Inc\GameStatsVisualizer">
+      <UniqueIdentifier>{989fcb99-dcbb-4240-85e7-e2840735bb1e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Classes">
+      <UniqueIdentifier>{ed8e8154-3428-4048-bf61-3cbd1ec9ce3a}</UniqueIdentifier>
+      <Extensions>*.uc</Extensions>
+    </Filter>
+    <Filter Include="Classes\Generic Browser Types">
+      <UniqueIdentifier>{550e08d4-ff99-4ea6-ab95-79e8f39e492f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Classes\ThumbnailRendering">
+      <UniqueIdentifier>{11531752-f68d-4aca-a783-577c059d625a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Classes\BrowserManager">
+      <UniqueIdentifier>{a5cb4bff-1658-408c-ae56-50b020595af5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Classes\InterpEditor">
+      <UniqueIdentifier>{8f3181ae-508a-4c80-bb3b-90da37a5892b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Classes\CurveEdPresets">
+      <UniqueIdentifier>{043cd70a-8511-46df-a269-497b137e809f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Classes\FaceFX">
+      <UniqueIdentifier>{7aa6729d-e26f-4ae2-8a11-7d7b9d34c122}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Classes\SoundCueEditor">
+      <UniqueIdentifier>{ea79a800-bb9b-4d68-a1fc-1a62b95cc65d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Classes\UIEditor">
+      <UniqueIdentifier>{89b80b0f-87ba-41f4-bf74-e631b5a7be3a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Classes\LensFlareEditor">
+      <UniqueIdentifier>{74318abb-88c7-4c81-ba8a-c20b6c4636f1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Classes\Preferences">
+      <UniqueIdentifier>{2862f4e6-0489-4336-a771-06fbee6b3ca2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Classes\Game Stats Visualization">
+      <UniqueIdentifier>{8ca59643-27d9-448f-bbf8-7b2090fb6ec0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Classes\Lightmass">
+      <UniqueIdentifier>{91562ce5-dfe9-48fa-8b14-2ebc52d0f0f3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Classes\Cascade">
+      <UniqueIdentifier>{839d8853-274b-4e4f-8662-40f3c42bdb0e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Classes\APEX">
+      <UniqueIdentifier>{2f4cf986-6956-497e-ab9a-dd639c59980e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Int">
+      <UniqueIdentifier>{f58a0652-acef-429f-a564-ac1ed5982d71}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Src\AnalyzeCookedContentCommandlet.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\AnalyzeReferencedContent.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\ApexEditorWidgets.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\AssetSelection.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\AttachmentEditor.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Bitmaps.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\BuildingStatsBrowser.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\BusyCursor.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\ButtonBar.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Buttons.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\CameraController.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\CategoryPropertyNode.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\ContentAuditCommandlet.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\ContentBrowserHost.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Controls.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\ConvertMapToNavMeshCommandlet.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\ConvexDecompTool.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\CurveEd.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\CurveEdPresetDlg.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\CurveEdPresets.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\DebugToolExec.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\DialogueManager.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\DiffPackagesCommandlet.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\DMC.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Docking.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\DockingParent.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\DragTool_BoxSelect.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\DragTool_FrustumSelect.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\DragTool_Measure.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\DropTarget.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\EdHook.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\EditorBuildUtils.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\EditorClassHierarchy.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\EditorFrame.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\EditorLevelUtils.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\ExportMeshUtils.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Facade.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\FCallbackDeviceEditor.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\FEdObjectPropagator.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\FFeedbackContextEditor.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\FileDialog.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\FileHelpers.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\FontPropertiesDlg.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GenerateUVsWindow.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GenericBrowserContextMenus.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GenericBrowserToolBar.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GenericBrowserTypes.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GenericDlgOptions.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GeomFitUtils.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GeomTools.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GroupActor.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GroupUtils.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\ItemPropertyNode.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Kismet.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\KismetMenus.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\LandscapeEdMode.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\LayerUtils.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\LevelViewportToolBar.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\LightingTools.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\LightmapResRatioAdjust.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Lightmass.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\LightmassPropertyNode.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\LightmassRender.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\LocalizationCommandlets.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Log.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\MainToolBar.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Menus.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\MeshPaintEdMode.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\MeshPaintRendering.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\MeshSimplificationWindow.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\MobileSupport.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\MouseDeltaTracker.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\MRUFavoritesList.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\MRUList.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\ObjectsPropertyNode.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\PackageBackup.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\PersistentMapInfo.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\PlayLevel.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\PostProcessEditor.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\PreCompiledHeader.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\ProcBuildingEdit.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\PropertyNode.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\PropertyUtils.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\PropertyWindow.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\PropertyWindowManager.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\ReferencedAssetsToolbar.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\RemoteControl.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\RemoteControlActorsPage.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\RemoteControlExec.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\RemoteControlFrame.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\RemoteControlGame.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\RemoteControlGamePC.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\RemoteControlPage.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\RemoteControlPageFactory.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\RemoteControlRenderPage.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\RemoteControlStatsPage.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\SceneManager.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\ScopedPropertyChange.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\ScopedTransaction.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Sentinel.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\SocketManager.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\SoundClassEditor.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\SoundCueEditor.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\SoundPreviewThread.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\SourceControl.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\SplineEdit.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\SplineLoftEdit.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\StartPageHost.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\StaticLightingAggregateMesh.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\StaticLightingDebug.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\StaticLightingExport.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\StaticLightingLegacyCode.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\StaticLightingTextureMapping.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\StaticLightingVertexMapping.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\StaticMeshEditor.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\StatusBars.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\TagBrowser.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\TerrainEditor.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\TextureStatsBrowser.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\ThumbnailManager.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\TrackableWindow.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\TTFontImport.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UAnalyzeScriptCommandlet.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UBatchExportCommandlet.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UBrushBuilder.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UContentCommandlets.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UDatabaseCommandlets.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UFixAmbiguousMaterialParameters.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UMakeCommandlet.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnAudioCompress.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnBsp.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnColladaExporter.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnColladaImporter.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnColladaSceneGraph.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnColladaSkeletalMesh.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnColladaStaticMesh.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnContentCookers.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnEdAct.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnEdCam.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnEdCnst.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnEdComponents.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnEdCsg.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnEdDragTools.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnEdExp.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnEdExpTerrain.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnEdFact.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnEdFactMorph.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnEdFactTerrain.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnEdGroup.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnEditor.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnEdModeInterpolation.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnEdModes.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnEdModeTools.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnEdObject.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnEdPrefab.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnEdSrv.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnEdTran.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnEdViewport.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnFbxFactory.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnFbxLightImport.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnFbxMainExport.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnFbxMainImport.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnFbxMaterialImport.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnFbxMatineeImport.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnFbxSkeletalMeshImport.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnFbxStaticMeshImport.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnFbxUtilsImport.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnFixupRedirectsCommandlet.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnGameCookerHelper.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnGeom.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnGeomModifiers.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnLinkedObjEditor.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnMeshEd.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnObjectTools.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnPackageTools.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnPackageUtilities.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnParams.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnPatchCommandlets.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnPrecompileShadersCommandlet.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnrealEd.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnrealEdApp.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnrealEdEngine.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnrealEdMisc.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnrealEdSrv.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnScrCom.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnScrPrecom.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnShadow.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnSkelMeshEdit.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnStaticMeshEdit.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnTerrainEdit.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnTexAlignTools.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnVisi.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UnWidget.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\USetMaterialUsageCommandlet.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\UStripSourceCommandlet.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Utils.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Viewports.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\ViewportsContainer.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Wizards.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Cascade.cpp">
+      <Filter>Src\Cascade</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\CascadeEmitterEd.cpp">
+      <Filter>Src\Cascade</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\CascadeMenus.cpp">
+      <Filter>Src\Cascade</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\CascadeModuleConversion.cpp">
+      <Filter>Src\Cascade</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\CascadePreview.cpp">
+      <Filter>Src\Cascade</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\InterpEditor.cpp">
+      <Filter>Src\Matinee</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\InterpEditorDraw.cpp">
+      <Filter>Src\Matinee</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\InterpEditorKeyReduction.cpp">
+      <Filter>Src\Matinee</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\InterpEditorMenus.cpp">
+      <Filter>Src\Matinee</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\InterpEditorTools.cpp">
+      <Filter>Src\Matinee</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\PhATDialogs.cpp">
+      <Filter>Src\PhAT</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\PhATMain.cpp">
+      <Filter>Src\PhAT</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\PhATRender.cpp">
+      <Filter>Src\PhAT</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\PhATTools.cpp">
+      <Filter>Src\PhAT</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\AnimSetViewerMain.cpp">
+      <Filter>Src\AnimSetViewer</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\AnimSetViewerMenus.cpp">
+      <Filter>Src\AnimSetViewer</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\AnimSetViewerTools.cpp">
+      <Filter>Src\AnimSetViewer</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\SoftBodyEditor.cpp">
+      <Filter>Src\AnimSetViewer</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\AnimAimOffsetEditor.cpp">
+      <Filter>Src\AnimTreeEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\AnimTreeEditor.cpp">
+      <Filter>Src\AnimTreeEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\AnimTreeEditorPreview.cpp">
+      <Filter>Src\AnimTreeEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\ActorBrowser.cpp">
+      <Filter>Src\Browsers</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\BrowserManager.cpp">
+      <Filter>Src\Browsers</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GenericBrowser.cpp">
+      <Filter>Src\Browsers</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\LayerBrowser.cpp">
+      <Filter>Src\Browsers</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\LevelBrowser.cpp">
+      <Filter>Src\Browsers</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\LogBrowser.cpp">
+      <Filter>Src\Browsers</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\ReferencedAssetsBrowser.cpp">
+      <Filter>Src\Browsers</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\StaticMeshStatsBrowser.cpp">
+      <Filter>Src\Browsers</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\FaceFXStudioLibs.cpp">
+      <Filter>Src\FaceFX</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\FaceFXStudioSkeletalComponent.cpp">
+      <Filter>Src\FaceFX</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\MaterialEditorBase.cpp">
+      <Filter>Src\MaterialEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\MaterialEditorContextMenus.cpp">
+      <Filter>Src\MaterialEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\MaterialEditorPreviewScene.cpp">
+      <Filter>Src\MaterialEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\MaterialEditorToolBar.cpp">
+      <Filter>Src\MaterialEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\MaterialInstanceConstantEditor.cpp">
+      <Filter>Src\MaterialEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\MaterialInstanceTimeVaryingEditor.cpp">
+      <Filter>Src\MaterialEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\NewMaterialEditor.cpp">
+      <Filter>Src\MaterialEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\SpeedTreeBrowserType.cpp">
+      <Filter>Src\SpeedTree</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\SpeedTreeEditor.cpp">
+      <Filter>Src\SpeedTree</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Dialogs.cpp">
+      <Filter>Src\Dialogs</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\DlgActorFactory.cpp">
+      <Filter>Src\Dialogs</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\DlgActorSearch.cpp">
+      <Filter>Src\Dialogs</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\DlgAnimationCompression.cpp">
+      <Filter>Src\Dialogs</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\DlgBuildProgress.cpp">
+      <Filter>Src\Dialogs</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\DlgColladaResource.cpp">
+      <Filter>Src\Dialogs</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\DlgDensityRenderingOptions.cpp">
+      <Filter>Src\Dialogs</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\DlgGenericBrowserSearch.cpp">
+      <Filter>Src\Dialogs</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\DlgGenericComboEntry.cpp">
+      <Filter>Src\Dialogs</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\DlgGenericStringCombo.cpp">
+      <Filter>Src\Dialogs</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\DlgGeometryTools.cpp">
+      <Filter>Src\Dialogs</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\DlgInterpEditorKeyReduction.cpp">
+      <Filter>Src\Dialogs</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\DlgLightingResults.cpp">
+      <Filter>Src\Dialogs</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\DlgMapCheck.cpp">
+      <Filter>Src\Dialogs</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\DlgMoveAssets.cpp">
+      <Filter>Src\Dialogs</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\DlgNewGeneric.cpp">
+      <Filter>Src\Dialogs</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\DlgOpenPackages.cpp">
+      <Filter>Src\Dialogs</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\DlgProgress.cpp">
+      <Filter>Src\Dialogs</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\DlgPropertyTextEditBox.cpp">
+      <Filter>Src\Dialogs</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\DlgReferenceTree.cpp">
+      <Filter>Src\Dialogs</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\DlgRename.cpp">
+      <Filter>Src\Dialogs</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\DlgRotateAnimSequence.cpp">
+      <Filter>Src\Dialogs</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\DlgSelectGroup.cpp">
+      <Filter>Src\Dialogs</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\DlgSoundNodeWaveOptions.cpp">
+      <Filter>Src\Dialogs</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\DlgStaticMeshTools.cpp">
+      <Filter>Src\Dialogs</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\DlgTransform.cpp">
+      <Filter>Src\Dialogs</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\StartupTipDialog.cpp">
+      <Filter>Src\Dialogs</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\LensFlareEditor.cpp">
+      <Filter>Src\LensFlareEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\LensFlareEditorElementEd.cpp">
+      <Filter>Src\LensFlareEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\LensFlareEditorMenus.cpp">
+      <Filter>Src\LensFlareEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\LensFlareEditorPreview.cpp">
+      <Filter>Src\LensFlareEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\TaskBrowser.cpp">
+      <Filter>Src\TaskDatabase</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\TaskDatabase.cpp">
+      <Filter>Src\TaskDatabase</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\TaskDatabaseThread.cpp">
+      <Filter>Src\TaskDatabase</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\TaskDataManager.cpp">
+      <Filter>Src\TaskDatabase</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\TestTrackTaskDatabaseProvider.cpp">
+      <Filter>Src\TaskDatabase</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GameStatsBrowser.cpp">
+      <Filter>Src\GameStatsVisualizer</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GameStatsDatabase.cpp">
+      <Filter>Src\GameStatsVisualizer</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GameStatsDatabaseRemote.cpp">
+      <Filter>Src\GameStatsVisualizer</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GameStatsReport.cpp">
+      <Filter>Src\GameStatsVisualizer</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GameStatsVisualizer.cpp">
+      <Filter>Src\GameStatsVisualizer</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\AITreeEditor.cpp">
+      <Filter>Src\AITreeEditor</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Src\Lightmass.h">
+      <Filter>Src</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\LightmassRender.h">
+      <Filter>Src</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\PostProcessEditor.h">
+      <Filter>Src</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\StaticLightingPrivate.h">
+      <Filter>Src</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\UnScrCom.h">
+      <Filter>Src</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\SoftBodyEditor.h">
+      <Filter>Src\AnimSetViewer</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\ActorBrowser.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\AITreeEditor.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\AnalyzeReferencedContent.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\AnimAimOffsetEditor.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\AnimSetViewer.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\AnimTreeEditor.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\ApexEditorWidgets.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\AssetSelection.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\AttachmentEditor.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\Bitmaps.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\BuildingStatsBrowser.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\BusyCursor.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\ButtonBar.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\Buttons.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\CameraController.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\Cascade.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\CategoryPropertyNode.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\ContentBrowserHost.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\Controls.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\ConvexDecompTool.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\CurveEd.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\CurveEdPresetDlg.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DebugToolExec.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DialogueManager.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\DMC.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\Docking.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DockingParent.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DragTool_BoxSelect.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DragTool_FrustumSelect.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DragTool_Measure.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DropTarget.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\Editor.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\EditorBuildUtils.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\EditorClasses.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\EditorClassHierarchy.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\EditorCommandlets.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\EditorFrame.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\EditorImageClasses.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\EditorLevelUtils.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\EditorNames.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\ExportMeshUtils.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\Facade.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\Factories.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\FCallbackDeviceEditor.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\FEdObjectPropagator.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\FFeedbackContextEditor.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\FileDialog.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\FileHelpers.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\FontPropertiesDlg.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\GameStatsReport.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\GenerateUVsWindow.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\GenericBrowser.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\GenericBrowserContextMenus.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\GenericBrowserToolBar.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\GenericDlgOptions.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\GeomFitUtils.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\GeomTools.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\InterpEditor.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\ItemPropertyNode.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\K2OwnerInterface.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\Kismet.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\LandscapeEdMode.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\LayerBrowser.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\LayerUtils.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\LevelBrowser.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\LevelViewportToolBar.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\LightingTools.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\LightmapResRatioAdjust.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\LightmassPropertyNode.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\Log.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\LogBrowser.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\MainToolBar.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\MaterialHitProxies.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\MatineeExporter.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\Menus.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\MeshPaintEdMode.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\MeshPaintRendering.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\MeshSimplificationWindow.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\MouseDeltaTracker.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\MRUFavoritesList.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\MRUList.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\ObjectsPropertyNode.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\PackageBackup.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\PackageHelperFunctions.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\PackageUtilityWorkers.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\PersistentMapInfo.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\PhAT.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\PropertyNode.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\PropertyUtils.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\PropertyWindow.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\PropertyWindowManager.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\ReferencedAssetsBrowser.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\ReferencedAssetsToolbar.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\RemoteControlActorsPage.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\RemoteControlFrame.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\RemoteControlGame.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\RemoteControlGameExtension.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\RemoteControlGamePC.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\RemoteControlPage.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\RemoteControlPageFactory.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\RemoteControlRenderPage.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\RemoteControlStatsPage.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\ResourceIDs.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\scc.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\SceneManager.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\ScopedPropertyChange.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\ScopedTransaction.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\Sentinel.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\SkelImport.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\SocketManager.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\SoundClassEditor.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\SoundCueEditor.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\SoundPreviewThread.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\SourceControl.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\SourceControlProvider.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\SpeedTreeEditor.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\SplineEdit.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\StartPageHost.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\StaticMeshEditor.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\StaticMeshStatsBrowser.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\StatusBars.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\TagBrowser.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\TerrainEditor.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\TextureStatsBrowser.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\ThumbnailHelpers.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\TrackableWindow.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\UBrowserManager.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\UIEditorStatusBar.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\UnAudioCompress.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\UnCollada.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\UnColladaExporter.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\UnColladaImporter.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\UnColladaSceneGraph.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\UnColladaSkeletalMesh.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\UnColladaStaticMesh.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\UnCompileHelper.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\UnContentCookers.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\UnEdComponents.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\UnEdDragTools.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\UnEdModeInterpolation.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\UnEdModes.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\UnEdModeTools.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\UnEdTran.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\UnEdViewport.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\UnFbxExporter.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\UnFbxImporter.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\UnGameCookerHelper.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\UnGeom.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\UnLinkedObjEditor.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\UnNativeClassExporter.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\UnObjectTools.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\UnPackageTools.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\UnPatchCommandlets.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\UnrealEd.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\UnrealEdApp.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\UnrealEdCascadeClasses.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\UnrealEdClasses.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\UnrealEdEngine.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\UnrealEdFactories.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\UnrealEdGameStatsClasses.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\UnrealEdMisc.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\UnrealEdNames.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\UnrealEdPrivateClasses.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\UnScrPrecom.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\UnTexAlignTools.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\UnWidget.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\Utils.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\Viewports.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\ViewportsContainer.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\Wizards.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\XWindow.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\WxDlgAddCalloutButton.h">
+      <Filter>Inc\UIEditor</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\MaterialEditorBase.h">
+      <Filter>Inc\MaterialEditor</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\MaterialEditorContextMenus.h">
+      <Filter>Inc\MaterialEditor</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\MaterialEditorPreviewScene.h">
+      <Filter>Inc\MaterialEditor</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\MaterialEditorToolBar.h">
+      <Filter>Inc\MaterialEditor</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\MaterialInstanceConstantEditor.h">
+      <Filter>Inc\MaterialEditor</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\MaterialInstanceTimeVaryingEditor.h">
+      <Filter>Inc\MaterialEditor</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\NewMaterialEditor.h">
+      <Filter>Inc\MaterialEditor</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\Dialogs.h">
+      <Filter>Inc\Dialogs</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DlgActorFactory.h">
+      <Filter>Inc\Dialogs</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DlgActorSearch.h">
+      <Filter>Inc\Dialogs</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DlgAnimationCompression.h">
+      <Filter>Inc\Dialogs</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DlgBuildProgress.h">
+      <Filter>Inc\Dialogs</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DlgCheckBoxList.h">
+      <Filter>Inc\Dialogs</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DlgColladaResource.h">
+      <Filter>Inc\Dialogs</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DlgDensityRenderingOptions.h">
+      <Filter>Inc\Dialogs</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DlgGenericBrowserSearch.h">
+      <Filter>Inc\Dialogs</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DlgGenericComboEntry.h">
+      <Filter>Inc\Dialogs</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DlgGenericStringCombo.h">
+      <Filter>Inc\Dialogs</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DlgGeometryTools.h">
+      <Filter>Inc\Dialogs</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DlgInterpEditorKeyReduction.h">
+      <Filter>Inc\Dialogs</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DlgLightingResults.h">
+      <Filter>Inc\Dialogs</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DlgMapCheck.h">
+      <Filter>Inc\Dialogs</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DlgMoveAssets.h">
+      <Filter>Inc\Dialogs</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DlgNewGeneric.h">
+      <Filter>Inc\Dialogs</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DlgOpenPackages.h">
+      <Filter>Inc\Dialogs</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DlgProgress.h">
+      <Filter>Inc\Dialogs</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DlgPropertyTextEditBox.h">
+      <Filter>Inc\Dialogs</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DlgReferenceTree.h">
+      <Filter>Inc\Dialogs</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DlgRename.h">
+      <Filter>Inc\Dialogs</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DlgRotateAnimSequence.h">
+      <Filter>Inc\Dialogs</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DlgSelectGroup.h">
+      <Filter>Inc\Dialogs</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DlgSoundNodeWaveOptions.h">
+      <Filter>Inc\Dialogs</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DlgStaticMeshTools.h">
+      <Filter>Inc\Dialogs</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DlgTransform.h">
+      <Filter>Inc\Dialogs</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\StartupTipDialog.h">
+      <Filter>Inc\Dialogs</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\LensFlareEditor.h">
+      <Filter>Inc\LensFlareEditor</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\TaskBrowser.h">
+      <Filter>Inc\TaskDatabase</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\TaskDatabase.h">
+      <Filter>Inc\TaskDatabase</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\TaskDatabaseDefs.h">
+      <Filter>Inc\TaskDatabase</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\TaskDatabaseThread.h">
+      <Filter>Inc\TaskDatabase</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\TaskDataManager.h">
+      <Filter>Inc\TaskDatabase</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\TestTrackTaskDatabaseProvider.h">
+      <Filter>Inc\TaskDatabase</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\GameStatsBrowser.h">
+      <Filter>Inc\GameStatsVisualizer</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\GameStatsDatabaseTypes.h">
+      <Filter>Inc\GameStatsVisualizer</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Src\makefile">
+      <Filter>Src</Filter>
+    </None>
+    <None Include="Classes\AnimNodeEditInfo.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\AnimNodeEditInfo_AimOffset.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\AnimTreeEdSkelComponent.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\ASVSkelComponent.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\BrushBuilder.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\ConeBuilder.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\ConvertMapToNavMesh.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\CubeBuilder.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\CurvedStairBuilder.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\CylinderBuilder.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\EditorComponent.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\EditorEngine.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\EditorUserSettings.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\EditorViewportInput.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\EdModeComponent.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\FbxImportUI.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\FindUnreferencedFunctionsCommandlet.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\GeomModifier.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\GeomModifier_Clip.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\GeomModifier_Create.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\GeomModifier_Delete.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\GeomModifier_Edit.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\GeomModifier_Extrude.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\GeomModifier_Flip.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\GeomModifier_Lathe.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\GeomModifier_Optimize.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\GeomModifier_Pen.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\GeomModifier_Split.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\GeomModifier_Triangulate.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\GeomModifier_Turn.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\GeomModifier_Weld.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\GroupActor.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\LightingChannelsObject.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\LinearStairBuilder.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\MaterialEditorInstanceConstant.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\MaterialEditorInstanceTimeVarying.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\MaterialEditorMeshComponent.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\MaterialEditorSkeletalMeshComponent.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\PhATSkeletalMeshComponent.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\PostProcessLabelRenderer.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\PreviewMaterial.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\SequenceObjectHelper.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\SheetBuilder.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\SpiralStairBuilder.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\StaticMeshMode_Options.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\TagSuboptimalTexturesCommandlet.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\TetrahedronBuilder.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\UnrealEd.upkg">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\UnrealEdEngine.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\UnrealEdTypes.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\VolumetricBuilder.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType.uc">
+      <Filter>Classes\Generic Browser Types</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_AITree.uc">
+      <Filter>Classes\Generic Browser Types</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_All.uc">
+      <Filter>Classes\Generic Browser Types</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_Animation.uc">
+      <Filter>Classes\Generic Browser Types</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_AnimTree.uc">
+      <Filter>Classes\Generic Browser Types</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_Archetype.uc">
+      <Filter>Classes\Generic Browser Types</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_CameraAnim.uc">
+      <Filter>Classes\Generic Browser Types</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_CurveEdPresetCurve.uc">
+      <Filter>Classes\Generic Browser Types</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_Custom.uc">
+      <Filter>Classes\Generic Browser Types</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_DecalMaterial.uc">
+      <Filter>Classes\Generic Browser Types</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_DMC.uc">
+      <Filter>Classes\Generic Browser Types</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_Font.uc">
+      <Filter>Classes\Generic Browser Types</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_FracturedStaticMesh.uc">
+      <Filter>Classes\Generic Browser Types</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_FractureMaterial.uc">
+      <Filter>Classes\Generic Browser Types</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_LensFlare.uc">
+      <Filter>Classes\Generic Browser Types</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_Material.uc">
+      <Filter>Classes\Generic Browser Types</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_MaterialInstanceConstant.uc">
+      <Filter>Classes\Generic Browser Types</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_MaterialInstanceTimeVarying.uc">
+      <Filter>Classes\Generic Browser Types</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_MorphTargetSet.uc">
+      <Filter>Classes\Generic Browser Types</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_MorphWeightSequence.uc">
+      <Filter>Classes\Generic Browser Types</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_ParticleSystem.uc">
+      <Filter>Classes\Generic Browser Types</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_PhysicalMaterial.uc">
+      <Filter>Classes\Generic Browser Types</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_PhysicsAsset.uc">
+      <Filter>Classes\Generic Browser Types</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_PhysXParticleSystem.uc">
+      <Filter>Classes\Generic Browser Types</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_PostProcess.uc">
+      <Filter>Classes\Generic Browser Types</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_Prefab.uc">
+      <Filter>Classes\Generic Browser Types</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_ProcBuildingRuleset.uc">
+      <Filter>Classes\Generic Browser Types</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_RenderTexture.uc">
+      <Filter>Classes\Generic Browser Types</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_Sequence.uc">
+      <Filter>Classes\Generic Browser Types</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_SkeletalMesh.uc">
+      <Filter>Classes\Generic Browser Types</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_SoundClass.uc">
+      <Filter>Classes\Generic Browser Types</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_SoundCue.uc">
+      <Filter>Classes\Generic Browser Types</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_SoundMode.uc">
+      <Filter>Classes\Generic Browser Types</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_Sounds.uc">
+      <Filter>Classes\Generic Browser Types</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_SoundWave.uc">
+      <Filter>Classes\Generic Browser Types</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_SpeechRecognition.uc">
+      <Filter>Classes\Generic Browser Types</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_SpeedTree.uc">
+      <Filter>Classes\Generic Browser Types</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_StaticMesh.uc">
+      <Filter>Classes\Generic Browser Types</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_TerrainLayer.uc">
+      <Filter>Classes\Generic Browser Types</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_TerrainMaterial.uc">
+      <Filter>Classes\Generic Browser Types</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_Texture.uc">
+      <Filter>Classes\Generic Browser Types</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_TextureCube.uc">
+      <Filter>Classes\Generic Browser Types</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_TextureMovie.uc">
+      <Filter>Classes\Generic Browser Types</Filter>
+    </None>
+    <None Include="Classes\AITreeLabelRenderer.uc">
+      <Filter>Classes\ThumbnailRendering</Filter>
+    </None>
+    <None Include="Classes\AnimSetLabelRenderer.uc">
+      <Filter>Classes\ThumbnailRendering</Filter>
+    </None>
+    <None Include="Classes\AnimTreeLabelRenderer.uc">
+      <Filter>Classes\ThumbnailRendering</Filter>
+    </None>
+    <None Include="Classes\ArchetypeThumbnailRenderer.uc">
+      <Filter>Classes\ThumbnailRendering</Filter>
+    </None>
+    <None Include="Classes\DefaultSizedThumbnailRenderer.uc">
+      <Filter>Classes\ThumbnailRendering</Filter>
+    </None>
+    <None Include="Classes\FontThumbnailLabelRenderer.uc">
+      <Filter>Classes\ThumbnailRendering</Filter>
+    </None>
+    <None Include="Classes\FontThumbnailRenderer.uc">
+      <Filter>Classes\ThumbnailRendering</Filter>
+    </None>
+    <None Include="Classes\FracturedStaticMeshLabelRenderer.uc">
+      <Filter>Classes\ThumbnailRendering</Filter>
+    </None>
+    <None Include="Classes\GenericThumbnailLabelRenderer.uc">
+      <Filter>Classes\ThumbnailRendering</Filter>
+    </None>
+    <None Include="Classes\IconThumbnailRenderer.uc">
+      <Filter>Classes\ThumbnailRendering</Filter>
+    </None>
+    <None Include="Classes\LensFlareThumbnailRenderer.uc">
+      <Filter>Classes\ThumbnailRendering</Filter>
+    </None>
+    <None Include="Classes\MaterialInstanceLabelRenderer.uc">
+      <Filter>Classes\ThumbnailRendering</Filter>
+    </None>
+    <None Include="Classes\MaterialInstanceThumbnailRenderer.uc">
+      <Filter>Classes\ThumbnailRendering</Filter>
+    </None>
+    <None Include="Classes\MemCountThumbnailLabelRenderer.uc">
+      <Filter>Classes\ThumbnailRendering</Filter>
+    </None>
+    <None Include="Classes\ParticleSystemLabelRenderer.uc">
+      <Filter>Classes\ThumbnailRendering</Filter>
+    </None>
+    <None Include="Classes\ParticleSystemThumbnailRenderer.uc">
+      <Filter>Classes\ThumbnailRendering</Filter>
+    </None>
+    <None Include="Classes\PhysicsAssetLabelRenderer.uc">
+      <Filter>Classes\ThumbnailRendering</Filter>
+    </None>
+    <None Include="Classes\PrefabThumbnailRenderer.uc">
+      <Filter>Classes\ThumbnailRendering</Filter>
+    </None>
+    <None Include="Classes\SkeletalMeshLabelRenderer.uc">
+      <Filter>Classes\ThumbnailRendering</Filter>
+    </None>
+    <None Include="Classes\SkeletalMeshThumbnailRenderer.uc">
+      <Filter>Classes\ThumbnailRendering</Filter>
+    </None>
+    <None Include="Classes\SoundLabelRenderer.uc">
+      <Filter>Classes\ThumbnailRendering</Filter>
+    </None>
+    <None Include="Classes\StaticMeshLabelRenderer.uc">
+      <Filter>Classes\ThumbnailRendering</Filter>
+    </None>
+    <None Include="Classes\StaticMeshThumbnailRenderer.uc">
+      <Filter>Classes\ThumbnailRendering</Filter>
+    </None>
+    <None Include="Classes\TextureCubeThumbnailRenderer.uc">
+      <Filter>Classes\ThumbnailRendering</Filter>
+    </None>
+    <None Include="Classes\TextureThumbnailRenderer.uc">
+      <Filter>Classes\ThumbnailRendering</Filter>
+    </None>
+    <None Include="Classes\ThumbnailLabelRenderer.uc">
+      <Filter>Classes\ThumbnailRendering</Filter>
+    </None>
+    <None Include="Classes\ThumbnailManager.uc">
+      <Filter>Classes\ThumbnailRendering</Filter>
+    </None>
+    <None Include="Classes\ThumbnailRenderer.uc">
+      <Filter>Classes\ThumbnailRendering</Filter>
+    </None>
+    <None Include="Classes\BrowserManager.uc">
+      <Filter>Classes\BrowserManager</Filter>
+    </None>
+    <None Include="Classes\InterpTrackAnimControlHelper.uc">
+      <Filter>Classes\InterpEditor</Filter>
+    </None>
+    <None Include="Classes\InterpTrackBoolPropHelper.uc">
+      <Filter>Classes\InterpEditor</Filter>
+    </None>
+    <None Include="Classes\InterpTrackColorPropHelper.uc">
+      <Filter>Classes\InterpEditor</Filter>
+    </None>
+    <None Include="Classes\InterpTrackDirectorHelper.uc">
+      <Filter>Classes\InterpEditor</Filter>
+    </None>
+    <None Include="Classes\InterpTrackEventHelper.uc">
+      <Filter>Classes\InterpEditor</Filter>
+    </None>
+    <None Include="Classes\InterpTrackFaceFXHelper.uc">
+      <Filter>Classes\InterpEditor</Filter>
+    </None>
+    <None Include="Classes\InterpTrackFloatPropHelper.uc">
+      <Filter>Classes\InterpEditor</Filter>
+    </None>
+    <None Include="Classes\InterpTrackHeadTrackingHelper.uc">
+      <Filter>Classes\InterpEditor</Filter>
+    </None>
+    <None Include="Classes\InterpTrackHelper.uc">
+      <Filter>Classes\InterpEditor</Filter>
+    </None>
+    <None Include="Classes\InterpTrackLinearColorPropHelper.uc">
+      <Filter>Classes\InterpEditor</Filter>
+    </None>
+    <None Include="Classes\InterpTrackParticleReplayHelper.uc">
+      <Filter>Classes\InterpEditor</Filter>
+    </None>
+    <None Include="Classes\InterpTrackSoundHelper.uc">
+      <Filter>Classes\InterpEditor</Filter>
+    </None>
+    <None Include="Classes\InterpTrackToggleHelper.uc">
+      <Filter>Classes\InterpEditor</Filter>
+    </None>
+    <None Include="Classes\InterpTrackVectorPropHelper.uc">
+      <Filter>Classes\InterpEditor</Filter>
+    </None>
+    <None Include="Classes\InterpTrackVisibilityHelper.uc">
+      <Filter>Classes\InterpEditor</Filter>
+    </None>
+    <None Include="Classes\CurveEdPreset_CosWave.uc">
+      <Filter>Classes\CurveEdPresets</Filter>
+    </None>
+    <None Include="Classes\CurveEdPreset_LinearDecay.uc">
+      <Filter>Classes\CurveEdPresets</Filter>
+    </None>
+    <None Include="Classes\CurveEdPreset_Nothing.uc">
+      <Filter>Classes\CurveEdPresets</Filter>
+    </None>
+    <None Include="Classes\CurveEdPreset_SineWave.uc">
+      <Filter>Classes\CurveEdPresets</Filter>
+    </None>
+    <None Include="Classes\CurveEdPreset_UserSet.uc">
+      <Filter>Classes\CurveEdPresets</Filter>
+    </None>
+    <None Include="Classes\CurveEdPresetBase.uc">
+      <Filter>Classes\CurveEdPresets</Filter>
+    </None>
+    <None Include="Classes\FaceFXStudioSkelComponent.uc">
+      <Filter>Classes\FaceFX</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_FaceFXAnimSet.uc">
+      <Filter>Classes\FaceFX</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_FaceFXAsset.uc">
+      <Filter>Classes\FaceFX</Filter>
+    </None>
+    <None Include="Classes\SoundNodeHelper.uc">
+      <Filter>Classes\SoundCueEditor</Filter>
+    </None>
+    <None Include="Classes\CustomPropertyItemBindings.uc">
+      <Filter>Classes\UIEditor</Filter>
+    </None>
+    <None Include="Classes\LensFlareEditorOptions.uc">
+      <Filter>Classes\LensFlareEditor</Filter>
+    </None>
+    <None Include="Classes\LensFlareEditorPropertyWrapper.uc">
+      <Filter>Classes\LensFlareEditor</Filter>
+    </None>
+    <None Include="Classes\LensFlarePreviewComponent.uc">
+      <Filter>Classes\LensFlareEditor</Filter>
+    </None>
+    <None Include="Classes\CascadeOptions.uc">
+      <Filter>Classes\Preferences</Filter>
+    </None>
+    <None Include="Classes\CurveEdOptions.uc">
+      <Filter>Classes\Preferences</Filter>
+    </None>
+    <None Include="Classes\InterpEdOptions.uc">
+      <Filter>Classes\Preferences</Filter>
+    </None>
+    <None Include="Classes\KismetBindings.uc">
+      <Filter>Classes\Preferences</Filter>
+    </None>
+    <None Include="Classes\MaterialEditorOptions.uc">
+      <Filter>Classes\Preferences</Filter>
+    </None>
+    <None Include="Classes\PhATSimOptions.uc">
+      <Filter>Classes\Preferences</Filter>
+    </None>
+    <None Include="Classes\TerrainEditOptions.uc">
+      <Filter>Classes\Preferences</Filter>
+    </None>
+    <None Include="Classes\UnrealEdKeyBindings.uc">
+      <Filter>Classes\Preferences</Filter>
+    </None>
+    <None Include="Classes\UnrealEdOptions.uc">
+      <Filter>Classes\Preferences</Filter>
+    </None>
+    <None Include="Classes\BasicStatsVisualizer.uc">
+      <Filter>Classes\Game Stats Visualization</Filter>
+    </None>
+    <None Include="Classes\GameStatsDatabase.uc">
+      <Filter>Classes\Game Stats Visualization</Filter>
+    </None>
+    <None Include="Classes\GameStatsDatabaseVisitor.uc">
+      <Filter>Classes\Game Stats Visualization</Filter>
+    </None>
+    <None Include="Classes\GameStatsDBUploader.uc">
+      <Filter>Classes\Game Stats Visualization</Filter>
+    </None>
+    <None Include="Classes\GameStatsFileReader.uc">
+      <Filter>Classes\Game Stats Visualization</Filter>
+    </None>
+    <None Include="Classes\GameStatsReport.uc">
+      <Filter>Classes\Game Stats Visualization</Filter>
+    </None>
+    <None Include="Classes\GameStatsVisitorImpl.uc">
+      <Filter>Classes\Game Stats Visualization</Filter>
+    </None>
+    <None Include="Classes\GameStatsVisualizer.uc">
+      <Filter>Classes\Game Stats Visualization</Filter>
+    </None>
+    <None Include="Classes\GenericParamListVisualizer.uc">
+      <Filter>Classes\Game Stats Visualization</Filter>
+    </None>
+    <None Include="Classes\HeatmapVisualizer.uc">
+      <Filter>Classes\Game Stats Visualization</Filter>
+    </None>
+    <None Include="Classes\PerformanceVisualizer.uc">
+      <Filter>Classes\Game Stats Visualization</Filter>
+    </None>
+    <None Include="Classes\PlayerMovementVisualizer.uc">
+      <Filter>Classes\Game Stats Visualization</Filter>
+    </None>
+    <None Include="Classes\LightmassOptionsObject.uc">
+      <Filter>Classes\Lightmass</Filter>
+    </None>
+    <None Include="Classes\CascadeConfiguration.uc">
+      <Filter>Classes\Cascade</Filter>
+    </None>
+    <None Include="Classes\CascadeParticleSystemComponent.uc">
+      <Filter>Classes\Cascade</Filter>
+    </None>
+    <None Include="Classes\CascadePreviewComponent.uc">
+      <Filter>Classes\Cascade</Filter>
+    </None>
+    <None Include="Classes\ApexClothingAssetLabelRenderer.uc">
+      <Filter>Classes\APEX</Filter>
+    </None>
+    <None Include="Classes\ApexDestructibleAssetLabelRenderer.uc">
+      <Filter>Classes\APEX</Filter>
+    </None>
+    <None Include="Classes\ApexDestructibleAssetThumbnailRenderer.uc">
+      <Filter>Classes\APEX</Filter>
+    </None>
+    <None Include="Classes\ApexGenericAssetLabelRenderer.uc">
+      <Filter>Classes\APEX</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_ApexClothingAsset.uc">
+      <Filter>Classes\APEX</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_ApexDestructibleAsset.uc">
+      <Filter>Classes\APEX</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_ApexDestructibleDamageParameters.uc">
+      <Filter>Classes\APEX</Filter>
+    </None>
+    <None Include="Classes\GenericBrowserType_ApexGenericAsset.uc">
+      <Filter>Classes\APEX</Filter>
+    </None>
+    <None Include="..\..\..\Engine\Localization\Int\EditorTips.int">
+      <Filter>Int</Filter>
+    </None>
+    <None Include="..\..\..\Engine\Localization\Int\UnrealEd.int">
+      <Filter>Int</Filter>
+    </None>
+    <None Include="..\..\Documentation\MacroLanguage.txt" />
+  </ItemGroup>
+</Project>

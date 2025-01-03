@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="BuiltWithUnrealBuildTool|Win32">
+      <Configuration>BuiltWithUnrealBuildTool</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <ProjectGuid>{0EE028CA-72A3-4A1D-ADEF-0D60B3B2EEE7}</ProjectGuid>
+    <Keyword>MakeFileProj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='BuiltWithUnrealBuildTool|Win32'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='BuiltWithUnrealBuildTool|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>17.0.35521.163</_ProjectFileVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='BuiltWithUnrealBuildTool|Win32'">
+    <OutDir>..\..\Intermediate\Unused\</OutDir>
+    <IntDir>..\..\Intermediate\Unused\</IntDir>
+    <NMakeBuildCommandLine />
+    <NMakeReBuildCommandLine />
+    <NMakeCleanCommandLine />
+    <NMakeOutput />
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="Src\ClientBeaconAddressResolver.cpp" />
+    <ClCompile Include="Src\FDebugServer.cpp" />
+    <ClCompile Include="Src\FFileManagerNetwork.cpp" />
+    <ClCompile Include="Src\FMultiThreadedRingBuffer.cpp" />
+    <ClCompile Include="Src\FRemotePropagator.cpp" />
+    <ClCompile Include="Src\FRemotePropagatorNet.cpp" />
+    <ClCompile Include="Src\HardwareSurvey.cpp" />
+    <ClCompile Include="Src\HTTPDownload.cpp" />
+    <ClCompile Include="Src\InternetLink.cpp" />
+    <ClCompile Include="Src\IpDrv.cpp" />
+    <ClCompile Include="Src\OnlineGameInterfaceImpl.cpp" />
+    <ClCompile Include="Src\OnlineSubsystemCommonImpl.cpp" />
+    <ClCompile Include="Src\TcpLink.cpp" />
+    <ClCompile Include="Src\TcpNetDriver.cpp" />
+    <ClCompile Include="Src\UMeshBeacon.cpp" />
+    <ClCompile Include="Src\UnSocket.cpp" />
+    <ClCompile Include="Src\UnSocketWin.cpp" />
+    <ClCompile Include="Src\UnStatsNotifyProviders_UDP.cpp" />
+    <ClCompile Include="Src\UOnlineEventsInterfaceMcp.cpp" />
+    <ClCompile Include="Src\UOnlineNewsInterfaceMcp.cpp" />
+    <ClCompile Include="Src\UOnlinePlaylistManager.cpp" />
+    <ClCompile Include="Src\UOnlineTitleFileDownloadMcp.cpp" />
+    <ClCompile Include="Src\UPartyBeacon.cpp" />
+    <ClCompile Include="Src\WebServer.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Classes\ClientBeaconAddressResolver.uc" />
+    <None Include="Classes\HelloWeb.uc" />
+    <None Include="Classes\ImageServer.uc" />
+    <None Include="Classes\InternetLink.uc" />
+    <None Include="Classes\MCPBase.uc" />
+    <None Include="Classes\MeshBeacon.uc" />
+    <None Include="Classes\MeshBeaconClient.uc" />
+    <None Include="Classes\MeshBeaconHost.uc" />
+    <None Include="Classes\OnlineEventsInterfaceMcp.uc" />
+    <None Include="Classes\OnlineGameInterfaceImpl.uc" />
+    <None Include="Classes\OnlineNewsInterfaceMcp.uc" />
+    <None Include="Classes\OnlinePlaylistManager.uc" />
+    <None Include="Classes\OnlinePlaylistProvider.uc" />
+    <None Include="Classes\OnlineSubsystemCommonImpl.uc" />
+    <None Include="Classes\OnlineTitleFileDownloadMcp.uc" />
+    <None Include="Classes\PartyBeacon.uc" />
+    <None Include="Classes\PartyBeaconClient.uc" />
+    <None Include="Classes\PartyBeaconHost.uc" />
+    <None Include="Classes\TcpLink.uc" />
+    <None Include="Classes\UIDataStore_OnlinePlaylists.uc" />
+    <None Include="Classes\WebApplication.uc" />
+    <None Include="Classes\WebConnection.uc" />
+    <None Include="Classes\WebRequest.uc" />
+    <None Include="Classes\WebResponse.uc" />
+    <None Include="Classes\WebServer.uc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Inc\FDebugServer.h" />
+    <ClInclude Include="Inc\FFileManagerNetwork.h" />
+    <ClInclude Include="Inc\FMultiThreadedRingBuffer.h" />
+    <ClInclude Include="Inc\FRemotePropagator.h" />
+    <ClInclude Include="Inc\GameType.h" />
+    <ClInclude Include="Inc\HTTPDownload.h" />
+    <ClInclude Include="Inc\InternetLink.h" />
+    <ClInclude Include="Inc\IpDrvClasses.h" />
+    <ClInclude Include="Inc\IpDrvNames.h" />
+    <ClInclude Include="Inc\IpDrvUIPrivateClasses.h" />
+    <ClInclude Include="Inc\OnlineSubsystemUtilities.h" />
+    <ClInclude Include="Inc\UnIpDrv.h" />
+    <ClInclude Include="Inc\UnIpDrvCommandlets.h" />
+    <ClInclude Include="Inc\UnSocket.h" />
+    <ClInclude Include="Inc\UnSocketArchive.h" />
+    <ClInclude Include="Inc\UnSocketWin.h" />
+    <ClInclude Include="Inc\UnStatsNotifyProviders_UDP.h" />
+    <ClInclude Include="Inc\UnTcpNetDriver.h" />
+    <ClInclude Include="Inc\UOnlineGameInterfaceImpl.h" />
+    <ClInclude Include="Inc\UOnlineSubsystemCommonImpl.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

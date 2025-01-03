@@ -1,0 +1,143 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Classes">
+      <UniqueIdentifier>{b3de761f-37a5-47c8-912d-47b6601b3526}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Src">
+      <UniqueIdentifier>{732ae35a-3ff1-48c5-86ff-f320893cce65}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Inc">
+      <UniqueIdentifier>{6a30a8bb-1f59-4745-aad4-f5da72ad3c78}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Int">
+      <UniqueIdentifier>{fa5a0704-7570-417b-9ef3-fd635a361307}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Live">
+      <UniqueIdentifier>{ba8fddc8-80f8-452e-8e08-1a6741133134}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Ini">
+      <UniqueIdentifier>{bc87517c-3ebd-483d-9df8-cc81af5f2e69}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Ini\PS3">
+      <UniqueIdentifier>{153a4f5b-7098-4ccc-bb24-018e2bd157be}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Ini\Xenon">
+      <UniqueIdentifier>{e6d25bf0-485a-4ba1-b45f-cf5effb39ca6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Ini\PCServer">
+      <UniqueIdentifier>{ad6ba3a7-f531-494d-a35b-87aefbd2aecf}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Classes\ExampleGameInfo.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\ExamplePawn.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\ExamplePlayerController.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="..\..\..\ExampleGame\Localization\Int\ExampleGame.int">
+      <Filter>Int</Filter>
+    </None>
+    <None Include="Live\ExampleGame.PNG">
+      <Filter>Live</Filter>
+    </None>
+    <None Include="Live\ExampleGame.spa">
+      <Filter>Live</Filter>
+    </None>
+    <None Include="Live\ExampleGame.xlast">
+      <Filter>Live</Filter>
+    </None>
+    <None Include="Live\ExampleGameLarge.png">
+      <Filter>Live</Filter>
+    </None>
+    <None Include="Live\GamerPicLarge.png">
+      <Filter>Live</Filter>
+    </None>
+    <None Include="Live\GamerPicSmall.png">
+      <Filter>Live</Filter>
+    </None>
+    <None Include="Live\LiveConfig.xml">
+      <Filter>Live</Filter>
+    </None>
+    <None Include="Live\xex.xml">
+      <Filter>Live</Filter>
+    </None>
+    <None Include="..\..\..\ExampleGame\Config\DefaultCompat.ini">
+      <Filter>Ini</Filter>
+    </None>
+    <None Include="..\..\..\ExampleGame\Config\DefaultEditor.ini">
+      <Filter>Ini</Filter>
+    </None>
+    <None Include="..\..\..\ExampleGame\Config\DefaultEditorKeyBindings.ini">
+      <Filter>Ini</Filter>
+    </None>
+    <None Include="..\..\..\ExampleGame\Config\DefaultEditorUserSettings.ini">
+      <Filter>Ini</Filter>
+    </None>
+    <None Include="..\..\..\ExampleGame\Config\DefaultEngine.ini">
+      <Filter>Ini</Filter>
+    </None>
+    <None Include="..\..\..\ExampleGame\Config\DefaultGame.ini">
+      <Filter>Ini</Filter>
+    </None>
+    <None Include="..\..\..\ExampleGame\Config\DefaultInput.ini">
+      <Filter>Ini</Filter>
+    </None>
+    <None Include="..\..\..\ExampleGame\Config\DefaultLightmass.ini">
+      <Filter>Ini</Filter>
+    </None>
+    <None Include="..\..\..\ExampleGame\Config\DefaultUI.ini">
+      <Filter>Ini</Filter>
+    </None>
+    <None Include="..\..\..\ExampleGame\Config\PS3\PS3Engine.ini">
+      <Filter>Ini\PS3</Filter>
+    </None>
+    <None Include="..\..\..\ExampleGame\Config\PS3\PS3Game.ini">
+      <Filter>Ini\PS3</Filter>
+    </None>
+    <None Include="..\..\..\ExampleGame\Config\PS3\PS3Input.ini">
+      <Filter>Ini\PS3</Filter>
+    </None>
+    <None Include="..\..\..\ExampleGame\Config\Xenon\XenonEditor.ini">
+      <Filter>Ini\Xenon</Filter>
+    </None>
+    <None Include="..\..\..\ExampleGame\Config\Xenon\XenonEngine.ini">
+      <Filter>Ini\Xenon</Filter>
+    </None>
+    <None Include="..\..\..\ExampleGame\Config\Xenon\XenonGame.ini">
+      <Filter>Ini\Xenon</Filter>
+    </None>
+    <None Include="..\..\..\ExampleGame\Config\Xenon\XenonInput.ini">
+      <Filter>Ini\Xenon</Filter>
+    </None>
+    <None Include="..\..\..\ExampleGame\Config\PCServer\PCServerEngine.ini">
+      <Filter>Ini\PCServer</Filter>
+    </None>
+    <None Include="..\..\..\ExampleGame\Config\PCServer\PCServerGame.ini">
+      <Filter>Ini\PCServer</Filter>
+    </None>
+    <None Include="..\..\..\ExampleGame\Config\PCServer\PCServerInput.ini">
+      <Filter>Ini\PCServer</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Src\ExampleGame.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\NullSurveys.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Inc\ExampleGame.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\ExampleGameClasses.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
