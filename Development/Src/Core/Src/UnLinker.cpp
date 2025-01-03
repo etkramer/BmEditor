@@ -1357,6 +1357,8 @@ UBOOL ULinkerLoad::SerializePackageFileSummary()
 			appThrowf( LocalizeSecure(LocalizeError(TEXT("OldVersionFile"),TEXT("Core")), *Filename, GPackageFileMinVersion, Summary.GetFileVersion() ));
 		}
 		
+#if BATMAN
+#else
 		// Don't load packages that were saved with an engine version newer than the current one.
 		if( (Summary.GetFileVersion() > GPackageFileVersion) || (Summary.GetFileVersionLicensee() > GPackageFileLicenseeVersion) )
 		{
@@ -1364,6 +1366,7 @@ UBOOL ULinkerLoad::SerializePackageFileSummary()
 			appThrowf(LocalizeSecure(LocalizeError(TEXT("FileVersionDump"),TEXT("Core")), *Filename, Summary.GetFileVersion(), GPackageFileVersion, Summary.GetFileVersionLicensee(), GPackageFileLicenseeVersion));
 
 		}
+#endif
 
 #if CONSOLE && !SUPPORTS_SCRIPTPATCH_LOADING
 		// check that the package being loaded has the correct CookedContentVersion
@@ -4073,6 +4076,10 @@ UObject* ULinkerLoad::IndexToObject( PACKAGE_INDEX Index )
 {
 	if( Index > 0 )
 	{
+#if BATMAN
+		if (!ExportMap.IsValidIndex(Index - 1))
+			appDumpCallStackToLog(0);
+#endif
 		if( !ExportMap.IsValidIndex( Index-1 ) )
 			appErrorf( LocalizeSecure(LocalizeError(TEXT("ExportIndex"),TEXT("Core")), Index-1, ExportMap.Num()) );			
 		return CreateExport( Index-1 );

@@ -711,11 +711,7 @@ enum ELicenseeVersion
 // !!
 #define VER_LATEST_ENGINE									(PREPROCESSOR_ENUM_PROTECT(VER_AUTOMATIC_VERSION_PLUS_ONE) - 1)
 
-#if BATMAN
-#define VER_LATEST_ENGINE_LICENSEE							(PREPROCESSOR_ENUM_PROTECT(VER_BATMAN1))
-#else
 #define VER_LATEST_ENGINE_LICENSEE							0
-#endif
 
 // Cooked packages loaded with an older package version are recooked
 #define VER_LATEST_COOKED_PACKAGE							129
