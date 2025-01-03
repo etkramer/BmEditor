@@ -348,6 +348,10 @@ enum EUnrealEngineObjectVersion
 	VER_FREE_GPUSKIN_SHADER_CONSTANT					= 648,
 	// - Added per-object foliage shader parameters
 	VER_ADDED_FOLIAGE_PARAMETERS						= 649,
+#if BATMAN
+	// https://github.com/EliotVU/Unreal-Library/blob/f7e45802bf69b89ce979af7c2dd8011f8ac6f4a8/src/Branch/PackageObjectLegacyVersion.cs#L240
+	VER_ADDED_END_TOKEN_TO_ARRAY_TOKEN_INTRINSICS = 649,
+#endif
 	// - Fixed hit proxy material parameters not getting serialized
 	VER_FIXED_HIT_PROXY_VERTEX_OFFSET					= 650,
 	// - Added general OcclusionPercentage material expression

@@ -3103,14 +3103,6 @@ void ULinkerLoad::LoadAllObjects( UBOOL bForcePreload )
 	{
 		UObject* Object = CreateExport( i );
 
-/*#if BATMAN
-		// Temporary hack, just don't even try to load UClass objects for now.
-		if (Object && Object->GetClass() == UClass::StaticClass() && Summary.GetFileVersionLicensee() >= VER_BATMAN1)
-		{
-			continue;
-		}
-#endif*/
-
 		if (Object && (bForcePreload || Object->GetClass() == UClass::StaticClass() || Object->IsTemplate()))
 		{
 			Preload(Object);
@@ -4081,16 +4073,6 @@ UObject* ULinkerLoad::IndexToObject( PACKAGE_INDEX Index )
 {
 	if( Index > 0 )
 	{
-#if BATMAN
-		if (Summary.GetFileVersion() == 576 || Summary.GetFileVersionLicensee() == 21)
-		{
-			if (!ExportMap.IsValidIndex(Index - 1))
-			{
-				appDumpCallStackToLog(0);
-			}
-		}
-#endif
-
 		if( !ExportMap.IsValidIndex( Index-1 ) )
 			appErrorf( LocalizeSecure(LocalizeError(TEXT("ExportIndex"),TEXT("Core")), Index-1, ExportMap.Num()) );			
 		return CreateExport( Index-1 );

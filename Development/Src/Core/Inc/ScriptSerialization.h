@@ -234,15 +234,15 @@
 #ifdef SERIALIZEEXPR_INC
 	EExprToken Expr=(EExprToken)0;
 
-#if BATMAN
-	if (Ar.LicenseeVer() >= VER_BATMAN1) {
-		warnf(NAME_Warning, TEXT("SerializeExpr(%d)"), (INT)Expr);
-	}
-#endif
-
 	// Get expr token.
 	XFER(BYTE);
 	Expr = (EExprToken)Script(iCode-1);
+#if BATMAN
+	if (Ar.Ver() < 600)
+	{
+		warnf(TEXT("'%s': Serialize script pos %d (expr %d)"), *GetFullName(), (INT)iCode, (INT)(BYTE)Expr);
+	}
+#endif
 	if( Expr >= EX_FirstNative )
 	{
 		// Native final function with id 1-127.
@@ -367,13 +367,31 @@
 			XFERPTR(UProperty*);
 			break;
 		}
+#if BATMAN
+		case EX_RSSContext:
+#endif
 		case EX_ClassContext:
 		case EX_Context:
 		{
 			SerializeExpr( iCode, Ar ); // Object expression.
 			XFER(CodeSkipSizeType);		// Code offset for NULL expressions.
-			XFERPTR(UField*);			// Property corresponding to the r-value data, in case the l-value needs to be mem-zero'd
-			XFER(BYTE);					// Property type, in case the r-value is a non-property such as dynamic array length
+#if BATMAN
+			if (Ar.Ver() >= 588)
+#endif
+			{
+				XFERPTR(UField*);			// Property corresponding to the r-value data, in case the l-value needs to be mem-zero'd
+			}
+#if BATMAN
+			if (Ar.Ver() >= 512 && Ar.Ver() < 588)
+			{
+				XFER(WORD);					// Property type, in case the r-value is a non-property such as dynamic array length
+			}
+			else
+#endif
+			{
+				XFER(BYTE);					// Property type, in case the r-value is a non-property such as dynamic array length
+			}
+			
 			SerializeExpr( iCode, Ar ); // Context expression.
 			break;
 		}
@@ -412,7 +430,9 @@
 			SerializeExpr( iCode, Ar ); // Base expression
 			SerializeExpr( iCode, Ar ); // Index
 			SerializeExpr( iCode, Ar ); // Count
-			if (Ar.Ver() >= 649)
+#if BATMAN
+			if (Ar.Ver() > VER_ADDED_END_TOKEN_TO_ARRAY_TOKEN_INTRINSICS)
+#endif
 			{
 				SerializeExpr( iCode, Ar ); // EX_EndFunctionParms
 			}
@@ -425,7 +445,9 @@
 			SerializeExpr( iCode, Ar ); // Array property expression
 			XFER(CodeSkipSizeType);		// Number of bytes to skip if NULL context encountered
 			SerializeExpr( iCode, Ar ); // Item
-			if (Ar.Ver() >= 649)
+#if BATMAN
+			if (Ar.Ver() > VER_ADDED_END_TOKEN_TO_ARRAY_TOKEN_INTRINSICS)
+#endif
 			{
 				SerializeExpr( iCode, Ar ); // EX_EndFunctionParms
 			}
@@ -438,7 +460,9 @@
 			XFER(CodeSkipSizeType);		// Number of bytes to skip if NULL context encountered
 			SerializeExpr( iCode, Ar ); // Index
 			SerializeExpr( iCode, Ar );	// Item
-			if (Ar.Ver() >= 649)
+#if BATMAN
+			if (Ar.Ver() > VER_ADDED_END_TOKEN_TO_ARRAY_TOKEN_INTRINSICS)
+#endif
 			{
 				SerializeExpr( iCode, Ar ); // EX_EndFunctionParms
 			}
@@ -450,9 +474,11 @@
 			SerializeExpr( iCode, Ar ); // Array property expression
 			XFER(CodeSkipSizeType);		// Number of bytes to skip if NULL context encountered
 			SerializeExpr( iCode, Ar ); // Search item
-			if (Ar.Ver() >= 649)
+#if BATMAN
+			if (Ar.Ver() > VER_ADDED_END_TOKEN_TO_ARRAY_TOKEN_INTRINSICS)
+#endif
 			{
-				SerializeExpr( iCode, Ar ); // EX_EndFunctionParms
+				SerializeExpr( iCode, Ar) ; // EX_EndFunctionParms
 			}
 			HANDLE_OPTIONAL_DEBUG_INFO;									// DEBUGGER
 			break;
@@ -463,7 +489,9 @@
 			XFER(CodeSkipSizeType);		// Number of bytes to skip if NULL context encountered
 			SerializeExpr( iCode, Ar );	// Property name
 			SerializeExpr( iCode, Ar ); // Search item
-			if (Ar.Ver() >= 649)
+#if BATMAN
+			if (Ar.Ver() > VER_ADDED_END_TOKEN_TO_ARRAY_TOKEN_INTRINSICS)
+#endif
 			{
 				SerializeExpr( iCode, Ar ); // EX_EndFunctionParms
 			}
@@ -475,7 +503,9 @@
 			SerializeExpr( iCode, Ar );	// Array property
 			XFER(CodeSkipSizeType);		// Number of bytes to skip if NULL context encountered
 			SerializeExpr( iCode, Ar );	// Sort compare delegate
-			if (Ar.Ver() >= 649)
+#if BATMAN
+			if (Ar.Ver() > VER_ADDED_END_TOKEN_TO_ARRAY_TOKEN_INTRINSICS)
+#endif
 			{
 				SerializeExpr( iCode, Ar ); // EX_EndFunctionParms
 			}
@@ -643,7 +673,12 @@
 		case EX_DelegateProperty:
 		{
 			XFER_FUNC_NAME;				// Name of function we're assigning to the delegate.
-			XFER_PROP_POINTER;			// delegate property corresponding to the function we're assigning (if any)
+#if BATMAN
+			if (Ar.Ver() > 610)
+#endif
+			{
+				XFER_PROP_POINTER;			// delegate property corresponding to the function we're assigning (if any)
+			}
 			break;
 		}
 		case EX_InstanceDelegate:
