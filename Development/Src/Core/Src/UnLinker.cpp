@@ -4086,6 +4086,10 @@ UObject* ULinkerLoad::IndexToObject( PACKAGE_INDEX Index )
 	}
 	else if( Index < 0 )
 	{
+#if BATMAN
+		if (!ImportMap.IsValidIndex(-Index - 1))
+			appDumpCallStackToLog(0);
+#endif
 		if( !ImportMap.IsValidIndex( -Index-1 ) )
 			appErrorf( LocalizeSecure(LocalizeError(TEXT("ImportIndex"),TEXT("Core")), -Index-1, ImportMap.Num()) );
 		return CreateImport( -Index-1 );
@@ -4627,6 +4631,9 @@ FArchive& ULinkerLoad::operator<<( FName& Name )
 
 	if( !NameMap.IsValidIndex(NameIndex) )
 	{
+#if BATMAN
+		appDumpCallStackToLog(0);
+#endif
 		appErrorf( TEXT("Bad name index %i/%i"), NameIndex, NameMap.Num() );
 	}
 

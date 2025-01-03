@@ -1231,7 +1231,7 @@ void UStruct::Serialize( FArchive& Ar )
 #if BATMAN
 					if (Ar.Ver() < 600)
 					{
-						warnf(TEXT("'%s': Read script pos %d"), *GetFullName(), (INT)iCode);
+						warnf(TEXT("'%s': Read script pos %d/%d"), *GetFullName(), (INT)iCode, (INT)ScriptBytecodeSize);
 					}
 #endif
 					SerializeExpr( iCode, Ar );
@@ -2326,7 +2326,13 @@ void UClass::Serialize( FArchive& Ar )
 			Ar << ClassGroupNames;
 		}
 
-		Ar << ClassHeaderFilename;
+#if BATMAN
+		// Added some time after 629
+		if (Ar.LicenseeVer() < VER_BATMAN1 || Ar.Ver() > 629)
+#endif
+		{
+			Ar << ClassHeaderFilename;
+		}
 	}
 #endif //DEDICATED_SERVER
 #endif //!CONSOLE
