@@ -59,7 +59,7 @@ namespace UnrealBuildTool
 		public static bool bShouldDeleteAllOutdatedProducedItems = Utils.GetEnvironmentVariable("ue3.bShouldDeleteAllOutdatedProducedItems", false);
 
 		/** Whether to use incremental linking or not. */
-		public static bool bUseIncrementalLinking = Utils.GetEnvironmentVariable("ue3.bUseIncrementalLinking", false);
+		public static bool bUseIncrementalLinking = Utils.GetEnvironmentVariable("ue3.bUseIncrementalLinking", true);
 
 		/** Whether to allow the use of LTCG (link time code generation) .*/
 		public static bool bAllowLTCG = Utils.GetEnvironmentVariable("ue3.bAllowLTCG", true);

@@ -198,7 +198,7 @@ FArchive& operator<<( FArchive& Ar, FObjectExport& E )
 	Ar << E.SuperIndex;
 	Ar << E.OuterIndex;
 	Ar << E.ObjectName;
-	Ar << E.ArchetypeIndex;	
+	Ar << E.ArchetypeIndex;
 	Ar << E.ObjectFlags;
 
 	Ar << E.SerialSize;
@@ -3528,13 +3528,6 @@ UBOOL ULinkerLoad::WillTextureBeLoaded( UClass* Class, INT ExportIndex )
 
 UObject* ULinkerLoad::CreateExport( INT Index )
 {
-#if BATMAN
-	if (Summary.GetFileVersionLicensee() >= VER_BATMAN1)
-	{
-		warnf(NAME_Warning, TEXT("Creating export %d '%s"), Index, *GetExportFullName(Index));
-	}
-#endif
-
 	FScopedCreateExportCounter ScopedCounter( this, Index );
 
 	// Map the object into our table.
@@ -4076,20 +4069,12 @@ UObject* ULinkerLoad::IndexToObject( PACKAGE_INDEX Index )
 {
 	if( Index > 0 )
 	{
-#if BATMAN
-		if (!ExportMap.IsValidIndex(Index - 1))
-			appDumpCallStackToLog(0);
-#endif
 		if( !ExportMap.IsValidIndex( Index-1 ) )
 			appErrorf( LocalizeSecure(LocalizeError(TEXT("ExportIndex"),TEXT("Core")), Index-1, ExportMap.Num()) );			
 		return CreateExport( Index-1 );
 	}
 	else if( Index < 0 )
 	{
-#if BATMAN
-		if (!ImportMap.IsValidIndex(-Index - 1))
-			appDumpCallStackToLog(0);
-#endif
 		if( !ImportMap.IsValidIndex( -Index-1 ) )
 			appErrorf( LocalizeSecure(LocalizeError(TEXT("ImportIndex"),TEXT("Core")), -Index-1, ImportMap.Num()) );
 		return CreateImport( -Index-1 );

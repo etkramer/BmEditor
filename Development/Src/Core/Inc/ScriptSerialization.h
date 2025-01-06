@@ -96,6 +96,42 @@
 		} \
 		iCode += sizeof(ScriptPointerType); \
 	}
+#elif BATMAN
+	#define XFERPTR_OLD(T) \
+	{ \
+		T AlignedPtr = NULL; \
+		DWORD TempCode; \
+        if (!Ar.IsLoading()) \
+		{ \
+			appMemcpy( &TempCode, &Script(iCode), sizeof(T) ); \
+			AlignedPtr = (T)appDWORDToPointer(TempCode); \
+		} \
+		Ar << AlignedPtr; \
+		if (!Ar.IsSaving()) \
+		{ \
+			TempCode = appPointerToDWORD(AlignedPtr); \
+			appMemcpy( &Script(iCode), &TempCode, sizeof(T) ); \
+		} \
+		iCode += sizeof(DWORD); \
+	}
+	#define XFERPTR_NEW(T) \
+	{ \
+   	    T AlignedPtr = NULL; \
+		ScriptPointerType TempCode; \
+        if (!Ar.IsLoading()) \
+		{ \
+			appMemcpy( &TempCode, &Script(iCode), sizeof(ScriptPointerType) ); \
+			AlignedPtr = (T)appSPtrToPointer(TempCode); \
+		} \
+		Ar << AlignedPtr; \
+		if (!Ar.IsSaving()) \
+		{ \
+			TempCode = appPointerToSPtr(AlignedPtr); \
+			appMemcpy( &Script(iCode), &TempCode, sizeof(ScriptPointerType) ); \
+		} \
+		iCode += sizeof(ScriptPointerType); \
+	}
+	#define XFERPTR(T) if (Ar.Ver() <= 576) { XFERPTR_OLD(T) } else { XFERPTR_NEW(T) }
 #else
 	#define XFERPTR(T) \
 	{ \
@@ -595,8 +631,26 @@
 		}
 		case EX_Switch:
 		{
+#if BATMAN
+			// https://github.com/EliotVU/Unreal-Library/blob/f7e45802bf69b89ce979af7c2dd8011f8ac6f4a8/src/Core/Tokens/JumpTokens.cs#L480
+			if (Ar.Ver() >= 600)
+			{
+				XFER_PROP_POINTER;		// Size of property value, in case null context is encountered.
+			}
+
+			// https://github.com/EliotVU/Unreal-Library/blob/f7e45802bf69b89ce979af7c2dd8011f8ac6f4a8/src/Core/Tokens/JumpTokens.cs#L489
+			if (Ar.Ver() >= 536 && Ar.Ver() <= 587)
+			{
+				XFER(WORD);				// Property type, in case the r-value is a non-property such as dynamic array length
+			}
+			else
+			{
+				XFER(BYTE);				// Property type, in case the r-value is a non-property such as dynamic array length
+			}
+#else
 			XFER_PROP_POINTER;			// Size of property value, in case null context is encountered.
 			XFER(BYTE);					// Property type, in case the r-value is a non-property such as dynamic array length
+#endif
 			SerializeExpr( iCode, Ar ); // Switch expr.
 			break;
 		}

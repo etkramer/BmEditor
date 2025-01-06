@@ -1765,12 +1765,6 @@ void UObject::Serialize( FArchive& Ar )
 	// Memory counting (with proper alignment to match C++)
 	SIZE_T Size = Align(GetClass()->GetPropertiesSize(),GetClass()->GetMinAlignment());
 	Ar.CountBytes( Size, Size );
-
-#if BATMAN
-	if (Ar.IsLoading() && Ar.LicenseeVer() >= VER_BATMAN1) {
-		warnf(NAME_Warning, TEXT("Loading object '%s'"), *GetFullName());
-	}
-#endif
 }
 
 

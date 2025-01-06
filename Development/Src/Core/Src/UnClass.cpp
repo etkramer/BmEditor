@@ -1199,7 +1199,11 @@ void UStruct::Serialize( FArchive& Ar )
 		INT iCode = 0;
 		INT const BytecodeStartOffset = Ar.Tell();
 
+#if BATMAN
+		if (Ar.IsPersistent() && Ar.GetLinker() && Ar.LicenseeVer() != VER_BATMAN1)
+#else
 		if (Ar.IsPersistent() && Ar.GetLinker())
+#endif
 		{
 			if (Ar.IsLoading())
 			{
@@ -1260,7 +1264,13 @@ void UStruct::Serialize( FArchive& Ar )
 			}
 		}
 		else
-		{	
+		{
+#if BATMAN
+			if (Ar.Ver() == 576)
+			{
+				warnf(TEXT("%s"), *GetFullName());
+			}
+#endif
 			while( iCode < ScriptBytecodeSize )
 			{	
 				SerializeExpr( iCode, Ar );
@@ -1321,6 +1331,11 @@ void UStruct::Serialize( FArchive& Ar )
 		if( !IsDisregardedForGC() )
 		{
 			FArchiveObjectReferenceCollector ObjectReferenceCollector( &ScriptObjectReferences );
+#if BATMAN
+			ObjectReferenceCollector.SetVer(Ar.Ver());
+			ObjectReferenceCollector.SetLicenseeVer(Ar.LicenseeVer());
+#endif
+
 			INT iCode2 = 0;
 			while( iCode2 < Script.Num() )
 			{	
@@ -2260,7 +2275,16 @@ void UClass::Serialize( FArchive& Ar )
 			Ar << DontSortCategories;
 		}
 
+#if BATMAN
+		Ar << HideCategories << AutoExpandCategories;
+		// https://github.com/EliotVU/Unreal-Library/blob/f7e45802bf69b89ce979af7c2dd8011f8ac6f4a8/src/Core/Classes/UClass.cs#L387
+		if (Ar.Ver() > 670)
+		{
+			Ar << AutoCollapseCategories;
+		}
+#else
 		Ar << HideCategories << AutoExpandCategories << AutoCollapseCategories;
+#endif
 
 		if( Ar.Ver() >= VER_FORCE_SCRIPT_DEFINED_ORDER_PER_CLASS )
 		{
@@ -2277,8 +2301,8 @@ void UClass::Serialize( FArchive& Ar )
 		}
 
 #if BATMAN
-		// Added some time after 629
-		if (Ar.LicenseeVer() < VER_BATMAN1 || Ar.Ver() > 629)
+		// https://github.com/EliotVU/Unreal-Library/blob/f7e45802bf69b89ce979af7c2dd8011f8ac6f4a8/src/Core/Classes/UClass.cs#L460
+		if (Ar.Ver() >= 813)
 #endif
 		{
 			Ar << ClassHeaderFilename;
@@ -2286,6 +2310,15 @@ void UClass::Serialize( FArchive& Ar )
 	}
 #endif //DEDICATED_SERVER
 #endif //!CONSOLE
+
+#if BATMAN
+	// https://github.com/EliotVU/Unreal-Library/blob/f7e45802bf69b89ce979af7c2dd8011f8ac6f4a8/src/Core/Classes/UClass.cs#L470
+	if (Ar.Ver() > 575 && Ar.Ver() < 673)
+	{
+		INT Unk = 0;
+		Ar << Unk;
+	}
+#endif
 
 	if( Ar.Ver() >= VER_SCRIPT_BIND_DLL_FUNCTIONS )
 	{

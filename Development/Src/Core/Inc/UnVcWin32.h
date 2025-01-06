@@ -903,6 +903,29 @@ FORCEINLINE void* appSPtrToPointer(ScriptPointerType Value)
 #endif
 }
 
+#if GAMENAME==BMGAME
+/**
+ * Support functions for overlaying an object/name pointer onto an index (like in script code
+ */
+inline DWORD appPointerToDWORD(void* Pointer)
+{
+#if SERIAL_POINTER_INDEX
+	return SerialPointerIndex(Pointer);
+#else
+	return (DWORD)Pointer;
+#endif
+}
+
+inline void* appDWORDToPointer(DWORD Value)
+{
+#if SERIAL_POINTER_INDEX
+	return GSerializedPointers[Value];
+#else
+	return (void*)Value;
+#endif
+}
+#endif
+
 /**
  * Reads the mac address for the computer
  *

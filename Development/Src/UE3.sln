@@ -51,6 +51,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BmGame", "BmGame\BmGame.vcx
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BmEditor", "BmEditor\BmEditor.vcxproj", "{B0844BA3-C28B-462E-BE78-6CA8AD91D0A2}"
+	ProjectSection(ProjectDependencies) = postProject
+		{FD7C5E1A-CFE4-4FD5-A525-1EB1599A39AC} = {FD7C5E1A-CFE4-4FD5-A525-1EB1599A39AC}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

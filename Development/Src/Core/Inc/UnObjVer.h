@@ -5,6 +5,8 @@
 
 #if GAMENAME==BMGAME
 #define BATMAN 1
+#else
+#define BATMAN 0
 #endif
 
 // Prevents incorrect files from being loaded.
