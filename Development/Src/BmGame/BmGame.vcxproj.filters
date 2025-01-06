@@ -1,3 +1,38 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClInclude Include="Inc\BmGame.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\BmGameClasses.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Classes\RPlayerController.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\RGameInfo.uc">
+      <Filter>Classes</Filter>
+    </None>
+    <None Include="Classes\RPawn.uc">
+      <Filter>Classes</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Src">
+      <UniqueIdentifier>{44102b36-ea6c-462d-8bd5-2ca04b2c0e36}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Inc">
+      <UniqueIdentifier>{23d10f1e-a892-4746-9c83-a66054682e82}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Classes">
+      <UniqueIdentifier>{911a3459-cc6e-47c4-981b-deba1c5f1d7f}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Src\BmGame.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+  </ItemGroup>
 </Project>

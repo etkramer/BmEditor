@@ -4631,9 +4631,6 @@ FArchive& ULinkerLoad::operator<<( FName& Name )
 
 	if( !NameMap.IsValidIndex(NameIndex) )
 	{
-#if BATMAN
-		appDumpCallStackToLog(0);
-#endif
 		appErrorf( TEXT("Bad name index %i/%i"), NameIndex, NameMap.Num() );
 	}
 

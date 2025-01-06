@@ -237,12 +237,6 @@
 	// Get expr token.
 	XFER(BYTE);
 	Expr = (EExprToken)Script(iCode-1);
-#if BATMAN
-	if (Ar.Ver() < 600)
-	{
-		warnf(TEXT("'%s': Serialize script pos %d (expr %d)"), *GetFullName(), (INT)iCode, (INT)(BYTE)Expr);
-	}
-#endif
 	if( Expr >= EX_FirstNative )
 	{
 		// Native final function with id 1-127.

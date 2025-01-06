@@ -355,9 +355,6 @@ void InvalidParameterHandler(const TCHAR* Expression,
 							 UINT Line, 
 							 uintptr_t Reserved)
 {
-#if BATMAN
-	appDumpCallStackToLog(3);
-#endif
 	appErrorf(TEXT("SECURE CRT: Invalid parameter detected.\nExpression: %s Function: %s. File: %s Line: %d\n"), 
 		Expression ? Expression : TEXT("Unknown"), 
 		Function ? Function : TEXT("Unknown"), 

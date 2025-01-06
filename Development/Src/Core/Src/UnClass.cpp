@@ -1218,31 +1218,11 @@ void UStruct::Serialize( FArchive& Ar )
 				FMemoryReader MemReader(TempScript, Ar.IsPersistent());
 				LinkerLoad->Loader = &MemReader;
 
-#if BATMAN
-				if (Ar.Ver() < 600)
-				{
-					warnf(TEXT("'%s': Begin script bytecode (1)"), *GetFullName());
-				}
-#endif
-
 				// now, use the linker to load the byte code, but reading from memory
 				while( iCode < ScriptBytecodeSize )
 				{	
-#if BATMAN
-					if (Ar.Ver() < 600)
-					{
-						warnf(TEXT("'%s': Read script pos %d/%d"), *GetFullName(), (INT)iCode, (INT)ScriptBytecodeSize);
-					}
-#endif
 					SerializeExpr( iCode, Ar );
 				}
-
-#if BATMAN
-				if (Ar.Ver() < 600)
-				{
-					warnf(TEXT("'%s': End script bytecode (1)"), *GetFullName());
-				}
-#endif
 
 				// restore the loader
 				LinkerLoad->Loader = SavedLoader;
@@ -1281,28 +1261,10 @@ void UStruct::Serialize( FArchive& Ar )
 		}
 		else
 		{	
-#if BATMAN
-			if (Ar.Ver() < 600)
-			{
-				warnf(TEXT("'%s': Begin script bytecode (2)"), *GetFullName());
-			}
-#endif
 			while( iCode < ScriptBytecodeSize )
 			{	
-#if BATMAN
-				if (Ar.Ver() < 600)
-				{
-					warnf(TEXT("'%s': Read script pos %d"), *GetFullName(), (INT)iCode);
-				}
-#endif
 				SerializeExpr( iCode, Ar );
 			}
-#if BATMAN
-			if (Ar.Ver() < 600)
-			{
-				warnf(TEXT("'%s': End script bytecode (2)"), *GetFullName());
-			}
-#endif
 		}
 
 		if( iCode != ScriptBytecodeSize )
@@ -1358,12 +1320,6 @@ void UStruct::Serialize( FArchive& Ar )
 		ScriptObjectReferences.Empty();
 		if( !IsDisregardedForGC() )
 		{
-#if BATMAN
-			if (Ar.Ver() < 600)
-			{
-				warnf(TEXT("'%s': Begin script bytecode (3)"), *GetFullName());
-			}
-#endif
 			FArchiveObjectReferenceCollector ObjectReferenceCollector( &ScriptObjectReferences );
 			INT iCode2 = 0;
 			while( iCode2 < Script.Num() )
@@ -1371,12 +1327,6 @@ void UStruct::Serialize( FArchive& Ar )
 				SerializeExpr( iCode2, ObjectReferenceCollector );
 			}
 		}
-#if BATMAN
-		if (Ar.Ver() < 600)
-		{
-			warnf(TEXT("'%s': End script bytecode (3)"), *GetFullName());
-		}
-#endif
 		// Link the properties.
 		Link( Ar, TRUE );
 	}
