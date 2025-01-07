@@ -81,6 +81,13 @@ static void PackQuaternionToStream(
 		const FQuatFloat32NoW QuatFloat32NoW( Quat );
 		AC_UnalignedWriteToStream( &QuatFloat32NoW, sizeof(FQuatFloat32NoW) );
 	}
+#if BATMAN
+	else if (TargetRotationFormat == ACF_Fixed48Max)
+	{
+		const FQuatFixed48Max QuatFixed48Max(Quat);
+		AC_UnalignedWriteToStream(&QuatFixed48Max, sizeof(FQuatFixed48Max));
+	}
+#endif
 }
 
 /**

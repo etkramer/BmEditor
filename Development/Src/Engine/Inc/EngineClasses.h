@@ -17309,6 +17309,93 @@ public:
 										class UMaterial* Material, TArray<class UMaterialExpression*>& OutNewExpressions, TArray<class UMaterialExpression*>& OutNewComments);
 };
 
+class UMaterialExpressionLightingDiffuseLambert : public UMaterialExpression
+{
+public:
+    //## BEGIN PROPS MaterialExpressionLightingDiffuseLambert
+    FExpressionInput Power;
+    FExpressionInput PowerMin;
+    FExpressionInput PowerMax;
+    FExpressionInput FresnelStraight;
+    FExpressionInput FresnelGlancing;
+    FExpressionInput FresnelPower;
+    FExpressionInput Colour;
+    class UTexture* Lookup;
+    //## END PROPS MaterialExpressionLightingDiffuseLambert
+
+    DECLARE_CLASS(UMaterialExpressionLightingDiffuseLambert,UMaterialExpression,0,Engine)
+	virtual INT Compile(FMaterialCompiler* Compiler);
+	virtual FString GetCaption() const;
+};
+
+class UMaterialExpressionLightingSpecularBlinnPhong : public UMaterialExpression
+{
+public:
+    //## BEGIN PROPS MaterialExpressionLightingSpecularBlinnPhong
+    FExpressionInput Power;
+    FExpressionInput PowerMin;
+    FExpressionInput PowerMax;
+    FExpressionInput FresnelPower;
+    FExpressionInput FresnelStraight;
+    FExpressionInput FresnelGlancing;
+    FExpressionInput FalloffPower;
+    FExpressionInput FalloffStraight;
+    FExpressionInput FalloffGlancing;
+    FExpressionInput Colour;
+    class UTexture* Lookup;
+    //## END PROPS MaterialExpressionLightingSpecularBlinnPhong
+
+    DECLARE_CLASS(UMaterialExpressionLightingSpecularBlinnPhong,UMaterialExpression,0,Engine)
+	virtual INT Compile(FMaterialCompiler* Compiler);
+	virtual FString GetCaption() const;
+};
+
+class UMaterialExpressionLightingSpecularHeidrichSeidel : public UMaterialExpression
+{
+public:
+    //## BEGIN PROPS MaterialExpressionLightingSpecularHeidrichSeidel
+    FExpressionInput Power;
+    FExpressionInput PowerMin;
+    FExpressionInput PowerMax;
+    FExpressionInput FresnelPower;
+    FExpressionInput FresnelStraight;
+    FExpressionInput FresnelGlancing;
+    FExpressionInput FalloffPower;
+    FExpressionInput FalloffStraight;
+    FExpressionInput FalloffGlancing;
+    FExpressionInput Colour;
+    class UTexture* Lookup;
+    BITFIELD UseAccurateTangent:1;
+    SCRIPT_ALIGN;
+    //## END PROPS MaterialExpressionLightingSpecularHeidrichSeidel
+
+    DECLARE_CLASS(UMaterialExpressionLightingSpecularHeidrichSeidel,UMaterialExpression,0,Engine)
+	virtual INT Compile(FMaterialCompiler* Compiler);
+	virtual FString GetCaption() const;
+};
+
+class UMaterialExpressionLightingSpecularPhong : public UMaterialExpression
+{
+public:
+    //## BEGIN PROPS MaterialExpressionLightingSpecularPhong
+    FExpressionInput Power;
+    FExpressionInput PowerMin;
+    FExpressionInput PowerMax;
+    FExpressionInput FresnelPower;
+    FExpressionInput FresnelStraight;
+    FExpressionInput FresnelGlancing;
+    FExpressionInput FalloffPower;
+    FExpressionInput FalloffStraight;
+    FExpressionInput FalloffGlancing;
+    FExpressionInput Colour;
+    class UTexture* Lookup;
+    //## END PROPS MaterialExpressionLightingSpecularPhong
+
+    DECLARE_CLASS(UMaterialExpressionLightingSpecularPhong,UMaterialExpression,0,Engine)
+	virtual INT Compile(FMaterialCompiler* Compiler);
+	virtual FString GetCaption() const;
+};
+
 struct FMusicTrackStruct
 {
     class USoundCue* TheSoundCue;
@@ -20225,6 +20312,10 @@ AUTOGENERATE_FUNCTION(UUIManager,-1,execGetUIManager);
 	ULightmassPrimitiveSettingsObject::StaticClass(); \
 	UMapInfo::StaticClass(); \
 	UMaterialExpression::StaticClass(); \
+	UMaterialExpressionLightingDiffuseLambert::StaticClass(); \
+	UMaterialExpressionLightingSpecularBlinnPhong::StaticClass(); \
+	UMaterialExpressionLightingSpecularHeidrichSeidel::StaticClass(); \
+	UMaterialExpressionLightingSpecularPhong::StaticClass(); \
 	UModel::StaticClass(); \
 	UMusicTrackDataStructures::StaticClass(); \
 	UNavigationMeshBase::StaticClass(); \
@@ -21677,6 +21768,18 @@ VERIFY_CLASS_SIZE_NODIE(UMapInfo)
 VERIFY_CLASS_OFFSET_NODIE(UMaterialExpression,MaterialExpression,EditorX_DEPRECATED)
 VERIFY_CLASS_OFFSET_NODIE(UMaterialExpression,MaterialExpression,MenuCategories)
 VERIFY_CLASS_SIZE_NODIE(UMaterialExpression)
+VERIFY_CLASS_OFFSET_NODIE(UMaterialExpressionLightingDiffuseLambert,MaterialExpressionLightingDiffuseLambert,Power)
+VERIFY_CLASS_OFFSET_NODIE(UMaterialExpressionLightingDiffuseLambert,MaterialExpressionLightingDiffuseLambert,Lookup)
+VERIFY_CLASS_SIZE_NODIE(UMaterialExpressionLightingDiffuseLambert)
+VERIFY_CLASS_OFFSET_NODIE(UMaterialExpressionLightingSpecularBlinnPhong,MaterialExpressionLightingSpecularBlinnPhong,Power)
+VERIFY_CLASS_OFFSET_NODIE(UMaterialExpressionLightingSpecularBlinnPhong,MaterialExpressionLightingSpecularBlinnPhong,Lookup)
+VERIFY_CLASS_SIZE_NODIE(UMaterialExpressionLightingSpecularBlinnPhong)
+VERIFY_CLASS_OFFSET_NODIE(UMaterialExpressionLightingSpecularHeidrichSeidel,MaterialExpressionLightingSpecularHeidrichSeidel,Power)
+VERIFY_CLASS_OFFSET_NODIE(UMaterialExpressionLightingSpecularHeidrichSeidel,MaterialExpressionLightingSpecularHeidrichSeidel,Lookup)
+VERIFY_CLASS_SIZE_NODIE(UMaterialExpressionLightingSpecularHeidrichSeidel)
+VERIFY_CLASS_OFFSET_NODIE(UMaterialExpressionLightingSpecularPhong,MaterialExpressionLightingSpecularPhong,Power)
+VERIFY_CLASS_OFFSET_NODIE(UMaterialExpressionLightingSpecularPhong,MaterialExpressionLightingSpecularPhong,Lookup)
+VERIFY_CLASS_SIZE_NODIE(UMaterialExpressionLightingSpecularPhong)
 VERIFY_CLASS_SIZE_NODIE(UMusicTrackDataStructures)
 VERIFY_CLASS_OFFSET_NODIE(UObjectReferencer,ObjectReferencer,ReferencedObjects)
 VERIFY_CLASS_SIZE_NODIE(UObjectReferencer)

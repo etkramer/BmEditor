@@ -7963,5 +7963,17 @@
     <None Include="..\..\External\PhysX\APEX\NxParameterized\public\NxSerializer.inl">
       <Filter>NvidiaApex\NxParameterized</Filter>
     </None>
+    <None Include="Classes\MaterialExpressionLightingDiffuseLambert.uc">
+      <Filter>Classes\Materials</Filter>
+    </None>
+    <None Include="Classes\MaterialExpressionLightingSpecularBlinnPhong.uc">
+      <Filter>Classes\Materials</Filter>
+    </None>
+    <None Include="Classes\MaterialExpressionLightingSpecularHeidrichSeidel.uc">
+      <Filter>Classes\Materials</Filter>
+    </None>
+    <None Include="Classes\MaterialExpressionLightingSpecularPhong.uc">
+      <Filter>Classes\Materials</Filter>
+    </None>
   </ItemGroup>
 </Project>

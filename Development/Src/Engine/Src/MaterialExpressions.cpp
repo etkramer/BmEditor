@@ -69,6 +69,12 @@ IMPLEMENT_CLASS(UMaterialExpressionLensFlareOcclusion);
 IMPLEMENT_CLASS(UMaterialExpressionLensFlareRadialDistance);
 IMPLEMENT_CLASS(UMaterialExpressionLensFlareRayDistance);
 IMPLEMENT_CLASS(UMaterialExpressionLensFlareSourceDistance);
+#if BATMAN
+IMPLEMENT_CLASS(UMaterialExpressionLightingDiffuseLambert);
+IMPLEMENT_CLASS(UMaterialExpressionLightingSpecularBlinnPhong);
+IMPLEMENT_CLASS(UMaterialExpressionLightingSpecularHeidrichSeidel);
+IMPLEMENT_CLASS(UMaterialExpressionLightingSpecularPhong);
+#endif
 IMPLEMENT_CLASS(UMaterialExpressionLightVector);
 IMPLEMENT_CLASS(UMaterialExpressionScreenPosition);
 IMPLEMENT_CLASS(UMaterialExpressionPixelDepth);
@@ -1049,10 +1055,60 @@ INT UMaterialExpressionFlipBookSample::Compile(FMaterialCompiler* Compiler)
 	}
 }
 
+#if BATMAN
 FString UMaterialExpressionFlipBookSample::GetCaption() const
 {
     return TEXT("FlipBook");
 }
+
+INT UMaterialExpressionLightingDiffuseLambert::Compile(FMaterialCompiler* Compiler)
+{
+	// TODO
+	return Compiler->Constant3(0, 0, 0);
+}
+
+FString UMaterialExpressionLightingDiffuseLambert::GetCaption() const
+{
+	// TODO
+	return TEXT("LightingDiffuseLambert");
+}
+
+INT UMaterialExpressionLightingSpecularBlinnPhong::Compile(FMaterialCompiler* Compiler)
+{
+	// TODO
+	return Compiler->Constant3(0, 0, 0);
+}
+
+FString UMaterialExpressionLightingSpecularBlinnPhong::GetCaption() const
+{
+	// TODO
+	return TEXT("LightingSpecularBlinnPhong");
+}
+
+INT UMaterialExpressionLightingSpecularHeidrichSeidel::Compile(FMaterialCompiler* Compiler)
+{
+	// TODO
+	return Compiler->Constant3(0, 0, 0);
+}
+
+FString UMaterialExpressionLightingSpecularHeidrichSeidel::GetCaption() const
+{
+	// TODO
+	return TEXT("LightingSpecularHeidrichSeidel");
+}
+
+INT UMaterialExpressionLightingSpecularPhong::Compile(FMaterialCompiler* Compiler)
+{
+	// TODO
+	return Compiler->Constant3(0, 0, 0);
+}
+
+FString UMaterialExpressionLightingSpecularPhong::GetCaption() const
+{
+	// TODO
+	return TEXT("LightingSpecularPhong");
+}
+#endif
 
 //
 //	UMaterialExpressionAdd::Compile

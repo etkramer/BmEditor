@@ -2180,6 +2180,10 @@ FString FAnimationUtils::GetAnimationCompressionFormatString(AnimationCompressio
 		return FString(TEXT("ACF_Float32NoW"));
 	case ACF_Identity:
 		return FString(TEXT("ACF_Identity"));
+#if BATMAN
+	case ACF_Fixed48Max:
+		return FString(TEXT("ACF_Fixed48Max"));
+#endif
 	default:
 		warnf( TEXT("AnimationCompressionFormat was not found:  %i"), static_cast<INT>(InFormat) );
 	}

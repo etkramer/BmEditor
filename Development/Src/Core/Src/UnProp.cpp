@@ -152,6 +152,16 @@ void UProperty::Serialize( FArchive& Ar )
 
 	// Archive the basic info.
 	Ar << ArrayDim << PropertyFlags;
+#if BATMAN
+	if (Ar.LicenseeVer() >= VER_BATMAN2)
+	{
+		// https://github.com/EliotVU/Unreal-Library/blob/f7e45802bf69b89ce979af7c2dd8011f8ac6f4a8/src/Core/Classes/Props/UProperty.cs#L130
+		if (Ar.IsLoading())
+		{
+			PropertyFlags = (PropertyFlags & 0xFFFF0000) >> 24;
+		}
+	}
+#endif
 #if !CONSOLE
 	UBOOL const bIsCookedForConsole = IsPackageCookedForConsole(Ar);
 	if ( !bIsCookedForConsole && (!Ar.IsSaving() || !GIsCooking || !(GCookingTarget & UE3::PLATFORM_Console)) )

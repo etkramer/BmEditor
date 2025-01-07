@@ -1785,6 +1785,10 @@
     <None Include="Classes\MaterialExpressionLensFlareRadialDistance.uc" />
     <None Include="Classes\MaterialExpressionLensFlareRayDistance.uc" />
     <None Include="Classes\MaterialExpressionLensFlareSourceDistance.uc" />
+    <None Include="Classes\MaterialExpressionLightingDiffuseLambert.uc" />
+    <None Include="Classes\MaterialExpressionLightingSpecularBlinnPhong.uc" />
+    <None Include="Classes\MaterialExpressionLightingSpecularHeidrichSeidel.uc" />
+    <None Include="Classes\MaterialExpressionLightingSpecularPhong.uc" />
     <None Include="Classes\MaterialExpressionLightmapUVs.uc" />
     <None Include="Classes\MaterialExpressionLightmassReplace.uc" />
     <None Include="Classes\MaterialExpressionLightVector.uc" />
