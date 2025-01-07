@@ -1200,7 +1200,7 @@ void UStruct::Serialize( FArchive& Ar )
 		INT const BytecodeStartOffset = Ar.Tell();
 
 #if BATMAN
-		if (Ar.IsPersistent() && Ar.GetLinker() && Ar.LicenseeVer() != VER_BATMAN1)
+		if (Ar.IsPersistent() && Ar.GetLinker() && Ar.LicenseeVer() < VER_BATMAN1)
 #else
 		if (Ar.IsPersistent() && Ar.GetLinker())
 #endif
@@ -1265,12 +1265,6 @@ void UStruct::Serialize( FArchive& Ar )
 		}
 		else
 		{
-#if BATMAN
-			if (Ar.Ver() == 576)
-			{
-				warnf(TEXT("%s"), *GetFullName());
-			}
-#endif
 			while( iCode < ScriptBytecodeSize )
 			{	
 				SerializeExpr( iCode, Ar );
