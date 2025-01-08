@@ -575,12 +575,15 @@ void UTexture::Compress()
 	RGBE = (CompressionSettings == TC_HighDynamicRange);
 
 	// better this would be data driven, also TextureMipGenSettings::TMGS_None should be introduced
+#if BATMAN
+#else
 	if(LODGroup == TEXTUREGROUP_ColorLookupTable)
 	{
 		MipGenSettings = TMGS_NoMipmaps;
 		SRGB = FALSE;
 		RGBE = FALSE;
 	}
+#endif
 }
 
 /** Defines an image's data. */
@@ -1188,11 +1191,14 @@ static UBOOL GenerateMipChainBaseFromRaw(
 			FColor* Color = (FColor*)OutMipChain.Mips(0).Buffer;
 			FImageUtils::AdjustImageColors( Color, SrcWidth, SrcHeight, Texture.SRGB, ColorAdjustParams );
 
+#if BATMAN
+#else
 			if(Texture.LODGroup == TEXTUREGROUP_Bokeh)
 			{
 				// To get the occlusion in the BokehDOF shader working for all Bokeh textures.
 				FImageUtils::ComputeBokehAlpha(Color, SrcWidth, SrcHeight, Texture.SRGB);
 			}
+#endif
 		}
 
 		if(Texture.CompressionSettings == TC_OneBitAlpha)
@@ -1339,6 +1345,8 @@ static void CompressMipChainToTexture(UTexture2D &Texture, IntermediateMipChain 
 	UBOOL bNoCompression = Texture.CompressionNone;
 
 	// this would be better data driven
+#if BATMAN
+#else
 	if(Texture.LODGroup == TEXTUREGROUP_ColorLookupTable)
 	{
 		bNoCompression = TRUE;
@@ -1349,6 +1357,7 @@ static void CompressMipChainToTexture(UTexture2D &Texture, IntermediateMipChain 
 	{
 		bNoCompression = TRUE;
 	}
+#endif
 
 	if(Texture.CompressionSettings == TC_Displacementmap)
 	{
@@ -1391,12 +1400,16 @@ static void CompressMipChainToTexture(UTexture2D &Texture, IntermediateMipChain 
 		const FImageData &SrcMip = InMipChain.Mips(0);
 		UBOOL bOpaque = TRUE;
 
+#if BATMAN
+		if (FALSE) {}
+#else
 		if (Texture.LODGroup == TEXTUREGROUP_ImageBasedReflection)
 		{
 			// Textures used for image reflections all need to be the same format since they are used in a texture array,
 			// So don't treat the texture as opaque even if all the alpha values are 255.
 			bOpaque = FALSE;
 		}
+#endif
 		// Artists sometimes have alpha channel in source art though don't want to use it.
 		else if(!(Texture.CompressionNoAlpha || Texture.CompressionSettings == TC_Normalmap || 
 			Texture.CompressionSettings == TC_NormalmapBC5 || Texture.CompressionSettings == TC_OneBitAlpha))

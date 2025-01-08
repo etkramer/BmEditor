@@ -230,8 +230,8 @@ IDICON_UDKEditor        ICON                    "UDKUEditor.ico"
 IDICON_DemoGame         ICON                    "Demogame.ico"
 IDICON_DemoEditor       ICON                    "DemoEditor.ico"
 #elif GAMENAME==BMGAME
-IDICON_DemoGame         ICON                    "Demogame.ico"
-IDICON_DemoEditor       ICON                    "DemoEditor.ico"
+IDICON_DemoGame         ICON                    "BmGame.ico"
+IDICON_DemoEditor       ICON                    "BmGame.ico"
 #elif GAMENAME==NANOGAME
 IDICON_NanoGame         ICON                    "NanoGame.ico"
 IDICON_NanoEditor       ICON                    "NanoEditor.ico"

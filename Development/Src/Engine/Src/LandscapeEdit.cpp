@@ -1326,7 +1326,7 @@ void ALandscape::Import(INT VertsX, INT VertsY, INT InComponentSizeQuads, INT In
 			HeightmapInfo.HeightmapTexture->SRGB = FALSE;
 			HeightmapInfo.HeightmapTexture->CompressionNone = TRUE;
 			HeightmapInfo.HeightmapTexture->MipGenSettings = TMGS_LeaveExistingMips;
-			HeightmapInfo.HeightmapTexture->LODGroup = TEXTUREGROUP_Terrain_Heightmap;
+			HeightmapInfo.HeightmapTexture->LODGroup = /*TEXTUREGROUP_Terrain_Heightmap*/TEXTUREGROUP_World; // BATMAN
 			HeightmapInfo.HeightmapTexture->AddressX = TA_Clamp;
 			HeightmapInfo.HeightmapTexture->AddressY = TA_Clamp;
 
@@ -1624,7 +1624,7 @@ void ALandscape::Import(INT VertsX, INT VertsY, INT InComponentSizeQuads, INT In
 					WeightmapTexture->MipGenSettings = TMGS_LeaveExistingMips;
 					WeightmapTexture->AddressX = TA_Clamp;
 					WeightmapTexture->AddressY = TA_Clamp;
-					WeightmapTexture->LODGroup = TEXTUREGROUP_Terrain_Weightmap;
+					WeightmapTexture->LODGroup = /*TEXTUREGROUP_Terrain_Weightmap*/ TEXTUREGROUP_World; // BATMAN
 					FColor* MipData = (FColor*)WeightmapTexture->Mips(0).Data.Lock(LOCK_READ_WRITE);
 
 					INT ThisAllocationLayers = Min<INT>(RemainingLayers,4);
@@ -2465,7 +2465,7 @@ void ULandscapeComponent::ReallocateWeightmaps(FLandscapeEditDataInterface* Data
 			CurrentWeightmapTexture->MipGenSettings = TMGS_LeaveExistingMips;
 			CurrentWeightmapTexture->AddressX = TA_Clamp;
 			CurrentWeightmapTexture->AddressY = TA_Clamp;
-			CurrentWeightmapTexture->LODGroup = TEXTUREGROUP_Terrain_Weightmap;
+			CurrentWeightmapTexture->LODGroup = /*TEXTUREGROUP_Terrain_Weightmap*/ TEXTUREGROUP_World; // BATMAN
 			// Alloc dummy mips
 			CreateEmptyWeightmapMips(CurrentWeightmapTexture);
 			CurrentWeightmapTexture->UpdateResource();
@@ -2647,7 +2647,7 @@ void ULandscapeComponent::InitHeightmapData(TArray<FColor>& Heights)
 	HeightmapTexture->SRGB = FALSE;
 	HeightmapTexture->CompressionNone = TRUE;
 	HeightmapTexture->MipGenSettings = TMGS_LeaveExistingMips;
-	HeightmapTexture->LODGroup = TEXTUREGROUP_Terrain_Heightmap;
+	HeightmapTexture->LODGroup = /*TEXTUREGROUP_Terrain_Heightmap*/TEXTUREGROUP_World; // BATMAN
 	HeightmapTexture->AddressX = TA_Clamp;
 	HeightmapTexture->AddressY = TA_Clamp;
 

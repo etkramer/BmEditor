@@ -444,4 +444,9 @@
       <Filter>Resources</Filter>
     </ResourceCompile>
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="Resources\BmGame.ico">
+      <Filter>Resources</Filter>
+    </Image>
+  </ItemGroup>
 </Project>

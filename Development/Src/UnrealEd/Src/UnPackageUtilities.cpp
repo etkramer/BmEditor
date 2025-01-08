@@ -3968,11 +3968,14 @@ struct SetTextureLODGroupFunctor
 			if( ( TextureName.InStr( TEXT("LUT_") ) != INDEX_NONE ) // check to see if it is in a  <package>.LUT_.<texture>
 				||  ( TextureName.InStr( TEXT("_LUT") ) != INDEX_NONE ))
 			{
+#if BATMAN
+#else
 				if( ( Texture2D->LODGroup != TEXTUREGROUP_ColorLookupTable ) )
 				{
 					Texture2D->LODGroup = TEXTUREGROUP_ColorLookupTable;
 					bDirty = TRUE; 
 				}
+#endif
 
 				// we are in a named subgroup (i.e. effects)
 				bIsInASubGroup = TRUE;

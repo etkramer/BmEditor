@@ -188,6 +188,9 @@
   <ItemGroup>
     <ResourceCompile Include="Resources\PCLaunch.rc" />
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="Resources\BmGame.ico" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

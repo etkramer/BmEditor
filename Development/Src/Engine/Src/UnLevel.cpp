@@ -1547,7 +1547,7 @@ void ULevel::BuildStreamingData(UWorld* World, ULevel* TargetLevel/*=NULL*/, UTe
 		for ( TMap<UTexture2D*,TArray<FStreamableTextureInstance> >::TIterator It(Level->TextureToInstancesMap); It; ++It )
 		{
 			UTexture2D* Texture2D = TargetTexture ? TargetTexture : It.Key();
-			if ( Texture2D->LODGroup == TEXTUREGROUP_Lightmap || Texture2D->LODGroup == TEXTUREGROUP_Shadowmap )
+			if ( Texture2D->LODGroup == /*TEXTUREGROUP_Lightmap || Texture2D->LODGroup == TEXTUREGROUP_Shadowmap*/ TEXTUREGROUP_LightAndShadowMap) // BATMAN
 			{
 				TArray<FStreamableTextureInstance>& TextureInstances = It.Value();
 
@@ -1631,9 +1631,12 @@ ABrush* ULevel::GetBrush() const
 {
 	checkMsg( Actors.Num() >= 2, *GetName() );
 	ABrush* DefaultBrush = Cast<ABrush>( Actors(1) );
+#if BATMAN
+#else
 	checkMsg( DefaultBrush != NULL, *GetName() );
 	checkMsg( DefaultBrush->BrushComponent, *GetName() );
 	checkMsg( DefaultBrush->Brush != NULL, *GetName() );
+#endif
 	return DefaultBrush;
 }
 

@@ -6278,7 +6278,7 @@ UObject* UTextureFactory::FactoryCreateBinary
 		Texture->CompressionNone = 1;
 		Texture->Filter		= GUseBilinearLightmaps ? TF_Linear : TF_Nearest;
 		Texture->Format		= GAllowLightmapCompression ? PF_DXT1 : PF_A8R8G8B8;
-		Texture->LODGroup	= TEXTUREGROUP_Lightmap;
+		Texture->LODGroup	= /*TEXTUREGROUP_Lightmap*/ TEXTUREGROUP_LightAndShadowMap; // BATMAN
 	}
 
 	// Restore user set options

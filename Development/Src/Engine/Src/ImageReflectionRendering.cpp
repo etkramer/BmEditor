@@ -167,7 +167,7 @@ void GenerateImageReflectionTexture(AImageReflectionSceneCapture* Reflection, UT
 	FinalTexture->SRGB = TRUE;
 	FinalTexture->CompressionSettings = TC_Default;
 	FinalTexture->DeferCompression= FALSE;
-	FinalTexture->LODGroup = TEXTUREGROUP_ImageBasedReflection;
+	FinalTexture->LODGroup = /*TEXTUREGROUP_ImageBasedReflection*/ TEXTUREGROUP_Effects; // BATMAN
 
 	FinalTexture->PostEditChange();
 
@@ -281,6 +281,8 @@ void UImageBasedReflectionComponent::Attach()
 {
 	Super::Attach();
 
+#if BATMAN
+#else
 	// Add the image reflection to the scene if it is valid
 	if (ReflectionTexture && ReflectionTexture->LODGroup == TEXTUREGROUP_ImageBasedReflection)
 	{
@@ -292,12 +294,15 @@ void UImageBasedReflectionComponent::Attach()
 		}
 		Scene->AddImageReflection(this, ReflectionTexture, 1.0f, ReflectionColor * ReflectionColor.A * ColorRange * Scale, bTwoSided, bEnabled);
 	}
+#endif
 }
 
 void UImageBasedReflectionComponent::UpdateTransform()
 {
 	Super::UpdateTransform();
 
+#if BATMAN
+#else
 	if (ReflectionTexture && ReflectionTexture->LODGroup == TEXTUREGROUP_ImageBasedReflection)
 	{
 		FLOAT ColorRange = 1.0f;
@@ -308,6 +313,7 @@ void UImageBasedReflectionComponent::UpdateTransform()
 		}
 		Scene->UpdateImageReflection(this, ReflectionTexture, 1.0f, ReflectionColor * ReflectionColor.A * ColorRange * Scale, bTwoSided, bEnabled);
 	}
+#endif
 }
 
 void UImageBasedReflectionComponent::Detach( UBOOL bWillReattach )
@@ -371,10 +377,13 @@ void UImageBasedReflectionComponent::PostEditChangeProperty(FPropertyChangedEven
 				}
 			}
 
+#if BATMAN
+#else
 			if (ReflectionTexture->LODGroup != TEXTUREGROUP_ImageBasedReflection)
 			{
 				appMsgf(AMT_OK, *LocalizeUnrealEd("Error_ReflectionTextureInvalid"));
 			}
+#endif
 		}
 	}
 }

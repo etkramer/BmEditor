@@ -115,8 +115,12 @@ void UTexture::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEven
 			checkSlow(GPreBackupTexturePointer == this);
 			
 			// from or to TEXTUREGROUP_ColorLookupTable/TEXTUREGROUP_Bokeh
-			if(LODGroup == TEXTUREGROUP_ColorLookupTable || GPreBackupLODGroup == TEXTUREGROUP_ColorLookupTable
-			|| LODGroup == TEXTUREGROUP_Bokeh || GPreBackupLODGroup == TEXTUREGROUP_Bokeh)
+#if BATMAN
+			if(LODGroup == TEXTUREGROUP_Effects || GPreBackupLODGroup == TEXTUREGROUP_Effects)
+#else
+			if (LODGroup == TEXTUREGROUP_ColorLookupTable || GPreBackupLODGroup == TEXTUREGROUP_ColorLookupTable
+				|| LODGroup == TEXTUREGROUP_Bokeh || GPreBackupLODGroup == TEXTUREGROUP_Bokeh)
+#endif
 			{
 				RequiresRecompression = TRUE;
 			}

@@ -567,7 +567,11 @@ void WxSceneManager::PopulateCombo(const TArray<ULevel*>& Levels)
 				AActor* Actor = Level->Actors(ActorIndex);
 
 				// Ignore world info and builder brush actors
+#if BATMAN
+				if( Actor )
+#else
 				if( Actor && !Actor->IsABuilderBrush() && Actor->GetClass() != AWorldInfo::StaticClass() )
+#endif
 				{
 					ClassList.AddUniqueItem( *Actor->GetClass()->GetName() );
 				}

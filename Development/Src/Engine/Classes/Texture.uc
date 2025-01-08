@@ -38,6 +38,7 @@ enum TextureAddress
 	TA_Mirror<DisplayName=Mirror>
 };
 
+/*
 // @warning: if this is changed
 //     update BaseEngine.ini SystemSettings
 //     update BaseCompat.ini AppCompatBucket 1 2 3
@@ -115,6 +116,84 @@ struct native TextureGroupContainer
 	var()	const bool	TEXTUREGROUP_Terrain_Weightmap;
 	var()	const bool	TEXTUREGROUP_ImageBasedReflection;
 	var()	const bool	TEXTUREGROUP_Bokeh;
+};
+*/
+
+// BATMAN
+// @warning: if this is changed
+//     update BaseEngine.ini SystemSettings
+//     update BaseCompat.ini AppCompatBucket 1 2 3
+//     update Game's DefaultEngine.ini SystemSettings
+//     update Game's BaseCompat.ini AppCompatBucket 1 2 3
+//	   update Texture.uc TextureGroupContainer
+//     order and actual name can never change (order is important!)
+//
+// TEXTUREGROUP_Cinematic:  should be used for Cinematics which will be baked out and want to have the highest settings
+enum TextureGroup
+{
+    TEXTUREGROUP_World,
+    TEXTUREGROUP_WorldNormalMap,
+    TEXTUREGROUP_WorldSpecular,
+    TEXTUREGROUP_Character,
+    TEXTUREGROUP_CharacterNormalMap,
+    TEXTUREGROUP_CharacterSpecular,
+    TEXTUREGROUP_Weapon,
+    TEXTUREGROUP_WeaponNormalMap,
+    TEXTUREGROUP_WeaponSpecular,
+    TEXTUREGROUP_Weapon3P,
+    TEXTUREGROUP_Weapon3PNormalMap,
+    TEXTUREGROUP_Weapon3PSpecular,
+    TEXTUREGROUP_Vehicle,
+    TEXTUREGROUP_VehicleNormalMap,
+    TEXTUREGROUP_VehicleSpecular,
+    TEXTUREGROUP_Cinematic,
+    TEXTUREGROUP_Effects,
+    TEXTUREGROUP_EffectsNotFiltered,
+    TEXTUREGROUP_Skybox,
+    TEXTUREGROUP_UI,
+    TEXTUREGROUP_LightAndShadowMap,
+    TEXTUREGROUP_RenderTarget,
+    TEXTUREGROUP_World_Hi,
+    TEXTUREGROUP_WorldNormalMap_Hi,
+    TEXTUREGROUP_WorldSpecular_Hi,
+    TEXTUREGROUP_Effects_Hi
+};
+
+// BATMAN
+// Helper struct to be able to select multiple texture groups in the UI.
+// 
+// @warning: Must match the TextureGroup enum and must fit 32 bits.
+/**
+ * Select texture group(s)
+ */
+struct native TextureGroupContainer
+{
+	var()	const bool	TEXTUREGROUP_World;
+	var()	const bool	TEXTUREGROUP_WorldNormalMap;
+	var()	const bool	TEXTUREGROUP_WorldSpecular;
+	var()	const bool	TEXTUREGROUP_Character;
+	var()	const bool	TEXTUREGROUP_CharacterNormalMap;
+	var()	const bool	TEXTUREGROUP_CharacterSpecular;
+	var()	const bool	TEXTUREGROUP_Weapon;
+	var()	const bool	TEXTUREGROUP_WeaponNormalMap;
+	var()	const bool	TEXTUREGROUP_WeaponSpecular;
+	var()	const bool	TEXTUREGROUP_Weapon3P;
+	var()	const bool	TEXTUREGROUP_Weapon3PNormalMap;
+	var()	const bool	TEXTUREGROUP_Weapon3PSpecular;
+	var()	const bool	TEXTUREGROUP_Vehicle;
+	var()	const bool	TEXTUREGROUP_VehicleNormalMap;
+	var()	const bool	TEXTUREGROUP_VehicleSpecular;
+	var()	const bool	TEXTUREGROUP_Cinematic;
+	var()	const bool	TEXTUREGROUP_Effects;
+	var()	const bool	TEXTUREGROUP_EffectsNotFiltered;
+	var()	const bool	TEXTUREGROUP_Skybox;
+	var()	const bool	TEXTUREGROUP_UI;
+	var()	const bool	TEXTUREGROUP_LightAndShadowMap;
+	var()	const bool	TEXTUREGROUP_RenderTarget;
+	var()	const bool	TEXTUREGROUP_World_Hi;
+	var()	const bool	TEXTUREGROUP_WorldNormalMap_Hi;
+	var()	const bool	TEXTUREGROUP_WorldSpecular_Hi;
+	var()	const bool	TEXTUREGROUP_Effects_Hi;
 };
 
 enum TextureMipGenSettings

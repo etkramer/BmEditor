@@ -40,7 +40,7 @@ void UShadowMapTexture2D::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
 
-	LODGroup = TEXTUREGROUP_Shadowmap;
+	LODGroup = /*TEXTUREGROUP_Shadowmap*/ TEXTUREGROUP_LightAndShadowMap; // BATMAN
 }
 
 // Editor thumbnail viewer interface. Unfortunately this is duplicated across all UTexture implementations.
@@ -557,7 +557,7 @@ void UShadowMap2D::EncodeTextures( UBOOL bLightingSuccessful )
 			// Shadow factor textures benefit from being stored in gamma space, since they need more precision near 0 to avoid banding in the darks.
 			// Signed distance field textures get stored in linear space, since they need more precision near .5.
 			Texture->SRGB			= PendingTexture.bShadowFactorData ? TRUE : FALSE;
-			Texture->LODGroup		= TEXTUREGROUP_Shadowmap;
+			Texture->LODGroup		= /*TEXTUREGROUP_Shadowmap*/ TEXTUREGROUP_LightAndShadowMap; // BATMAN
 			Texture->ShadowmapFlags	= PendingTexture.ShadowmapFlags;
 			Texture->GenerateTextureFileCacheGUID(TRUE);
 

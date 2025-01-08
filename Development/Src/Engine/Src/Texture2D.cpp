@@ -5,6 +5,8 @@
 
 #include "EnginePrivate.h"
 
+#include "CorePrivate.h"
+
 #if PS3
 #include "FFileManagerPS3.h"
 #include "PS3DownloadableContent.h"
@@ -1205,7 +1207,11 @@ UBOOL UTexture2D::UpdateStreamingStatus( UBOOL bWaitForMipFading /*= FALSE*/ )
 		{
 			// Don't finalize if we're currently fading out the mips slowly.
 			UBOOL bFinalizeNow;
+#if BATMAN
+			EMipFadeSettings MipFadeSetting = (LODGroup == TEXTUREGROUP_LightAndShadowMap) ? MipFade_Slow : MipFade_Normal;
+#else
 			EMipFadeSettings MipFadeSetting = (LODGroup == TEXTUREGROUP_Lightmap || LODGroup == TEXTUREGROUP_Shadowmap) ? MipFade_Slow : MipFade_Normal;
+#endif
 			if ( bWaitForMipFading && RequestedMips < ResidentMips && MipFadeSetting == MipFade_Slow && Texture2DResource->MipBiasFade.IsFading() )
 			{
 				bFinalizeNow = FALSE;
@@ -1800,6 +1806,20 @@ FTextureResource* UTexture2D::CreateResource()
 		ResidentMips	= RequestedMips;
 	}
 
+#if BATMAN
+	// TEMPORARY HACK
+	// Until we figure out why the engine won't load mips from the .TFC, let's just only use ones that are local
+	for (INT i = 0; i < RequestedMips; i++)
+	{
+		if (Mips(Mips.Num() - 1 - i).Data.IsStoredInSeparateFile())
+		{
+			RequestedMips = i;
+			ResidentMips = RequestedMips;
+			break;
+		}
+	}
+#endif
+
 	if( GUsingMobileRHI )
 	{
 		for (INT EmptyIdx = 0; EmptyIdx < (Mips.Num() - ResidentMips); EmptyIdx++)
@@ -2080,7 +2100,7 @@ FTexture2DResource::FTexture2DResource( UTexture2D* InOwner, INT InitialMipCount
 	check(FirstMip<=Owner->MipTailBaseIdx);
 
 	// Can't discard the bulk data memory for image reflection textures, as the texture array may need to access that at any time
-	const UBOOL bDiscardInternalCopy = Owner->LODGroup != TEXTUREGROUP_ImageBasedReflection;
+	const UBOOL bDiscardInternalCopy = /*Owner->LODGroup != TEXTUREGROUP_ImageBasedReflection*/TRUE; // BATMAN
 
 	// Retrieve initial bulk data.
 	for( INT MipIndex=0; MipIndex<ARRAY_COUNT(MipData); MipIndex++ )
@@ -2281,7 +2301,11 @@ void FTexture2DResource::InitRHI()
 	bGreyScaleFormat = (Owner->Format == PF_G8);
 
 	// Update mip-level fading.
+#if BATMAN
+	EMipFadeSettings MipFadeSetting = Owner->LODGroup == TEXTUREGROUP_LightAndShadowMap ? MipFade_Slow : MipFade_Normal;
+#else
 	EMipFadeSettings MipFadeSetting = (Owner->LODGroup == TEXTUREGROUP_Lightmap || Owner->LODGroup == TEXTUREGROUP_Shadowmap) ? MipFade_Slow : MipFade_Normal;
+#endif
 	MipBiasFade.SetNewMipCount( Owner->RequestedMips, Owner->RequestedMips, LastRenderTime, MipFadeSetting );
 
 	// We're done with initialization.
@@ -2709,6 +2733,9 @@ void FTexture2DResource::LoadMipData()
 			// Load and decompress async.
 			if( MipMap.Data.IsStoredCompressedOnDisk() )
 			{
+#if BATMAN
+				warnf(TEXT("%s"), *Filename);
+#endif
 				IORequestIndices[IORequestCount++] = IO->LoadCompressedData( 
 					Filename,											// filename
 					MipMap.Data.GetBulkDataOffsetInFile(),				// offset
@@ -2739,7 +2766,11 @@ void FTexture2DResource::LoadMipData()
 		if ( Owner->RequestedMips < Owner->ResidentMips )
 		{
 			// Set up MipBiasFade to start fading out mip-levels (start at 0, increase mip-bias over time).
+#if BATMAN
+			EMipFadeSettings MipFadeSetting = (Owner->LODGroup == TEXTUREGROUP_LightAndShadowMap) ? MipFade_Slow : MipFade_Normal;
+#else
 			EMipFadeSettings MipFadeSetting = (Owner->LODGroup == TEXTUREGROUP_Lightmap || Owner->LODGroup == TEXTUREGROUP_Shadowmap) ? MipFade_Slow : MipFade_Normal;
+#endif
 			MipBiasFade.SetNewMipCount( Owner->ResidentMips, Owner->RequestedMips, LastRenderTime, MipFadeSetting );
 		}
 
@@ -2810,7 +2841,11 @@ void FTexture2DResource::FinalizeMipCount()
 			Texture2DRHI	= IntermediateTextureRHI;
 
 			// Update mip-level fading.
+#if BATMAN
+			EMipFadeSettings MipFadeSetting = (Owner->LODGroup == TEXTUREGROUP_LightAndShadowMap) ? MipFade_Slow : MipFade_Normal;
+#else
 			EMipFadeSettings MipFadeSetting = (Owner->LODGroup == TEXTUREGROUP_Lightmap || Owner->LODGroup == TEXTUREGROUP_Shadowmap) ? MipFade_Slow : MipFade_Normal;
+#endif
 			MipBiasFade.SetNewMipCount( Owner->RequestedMips, Owner->RequestedMips, LastRenderTime, MipFadeSetting );
 
 #if STATS
@@ -2838,7 +2873,11 @@ void FTexture2DResource::FinalizeMipCount()
 		else
 		{
 			// Update mip-level fading.
+#if BATMAN
+			EMipFadeSettings MipFadeSetting = (Owner->LODGroup == TEXTUREGROUP_LightAndShadowMap) ? MipFade_Slow : MipFade_Normal;
+#else
 			EMipFadeSettings MipFadeSetting = (Owner->LODGroup == TEXTUREGROUP_Lightmap || Owner->LODGroup == TEXTUREGROUP_Shadowmap) ? MipFade_Slow : MipFade_Normal;
+#endif
 			MipBiasFade.SetNewMipCount( Owner->ResidentMips, Owner->ResidentMips, LastRenderTime, MipFadeSetting );
 
 			DEC_DWORD_STAT_BY( STAT_TextureMemory, IntermediateTextureSize );
@@ -2905,7 +2944,11 @@ UBOOL FTexture2DResource::TryReallocate( INT OldMipCount, INT NewMipCount )
 		TextureRHI = NewTextureRHI;
 
 		// Update mip-level fading.
+#if BATMAN
+		EMipFadeSettings MipFadeSetting = (Owner->LODGroup == TEXTUREGROUP_LightAndShadowMap) ? MipFade_Slow : MipFade_Normal;
+#else
 		EMipFadeSettings MipFadeSetting = (Owner->LODGroup == TEXTUREGROUP_Lightmap || Owner->LODGroup == TEXTUREGROUP_Shadowmap) ? MipFade_Slow : MipFade_Normal;
+#endif
 		MipBiasFade.SetNewMipCount( NewMipCount, NewMipCount, LastRenderTime, MipFadeSetting );
 
 #if STATS

@@ -6587,12 +6587,16 @@ void UAnalyzeCookedTextureDXT5UsageCommandlet::GenerateDXT5TextureList(const UPe
 			const FString& TextureName = It.Key();
 			const FCookedTextureUsageInfo& UsageInfo = It.Value();
 			// Ignore various textures we don't care about
+#if BATMAN
+			if (UsageInfo.LODGroup != TEXTUREGROUP_LightAndShadowMap)
+#else
 			if ((UsageInfo.LODGroup != TEXTUREGROUP_Lightmap) &&
 				(UsageInfo.LODGroup != TEXTUREGROUP_RenderTarget) &&
 				(UsageInfo.LODGroup != TEXTUREGROUP_MobileFlattened) &&
 				(UsageInfo.LODGroup != TEXTUREGROUP_ProcBuilding_Face) &&
 				(UsageInfo.LODGroup != TEXTUREGROUP_ProcBuilding_LightMap) &&
 				(UsageInfo.LODGroup != TEXTUREGROUP_Shadowmap))
+#endif
 			{
 				if (EPixelFormat(UsageInfo.Format) == PF_DXT5)
 				{
@@ -6849,6 +6853,9 @@ void UAnalyzeCookedTextureSingleUsageCommandlet::GenerateSingleUseTextureList(co
 			const FCookedTextureUsageInfo& UsageInfo = It.Value();
 			if (UsageInfo.PackageNames.Num() == 1)
 			{
+#if BATMAN
+				if (UsageInfo.LODGroup != TEXTUREGROUP_LightAndShadowMap)
+#else
 				// Ignore various textures we don't care about
 				if ((UsageInfo.LODGroup != TEXTUREGROUP_Lightmap) &&
 					(UsageInfo.LODGroup != TEXTUREGROUP_RenderTarget) &&
@@ -6856,6 +6863,7 @@ void UAnalyzeCookedTextureSingleUsageCommandlet::GenerateSingleUseTextureList(co
 					(UsageInfo.LODGroup != TEXTUREGROUP_ProcBuilding_Face) &&
 					(UsageInfo.LODGroup != TEXTUREGROUP_ProcBuilding_LightMap) &&
 					(UsageInfo.LODGroup != TEXTUREGROUP_Shadowmap))
+#endif
 				{
 					// Insert the texture in the Package to SingleTextures map for processing
 					// later. (This is so that the package only has to be loaded once, and

@@ -3093,6 +3093,11 @@ void UEditorEngine::SelectByPropertyColoration()
  */
 UBOOL UEditorEngine::Map_Check(const TCHAR* Str, FOutputDevice& Ar, UBOOL bCheckDeprecatedOnly, UBOOL bClearExistingMessages, UBOOL bDisplayResultDialog/*=TRUE*/)
 {
+#if BATMAN
+	// This wasn't even hooked up in GOW UE3, so...
+	return TRUE;
+#endif
+
 	const FString CheckMapLocString(LocalizeUnrealEd(TEXT("CheckingMap")));
 	GWarn->BeginSlowTask( *CheckMapLocString, FALSE);
 	

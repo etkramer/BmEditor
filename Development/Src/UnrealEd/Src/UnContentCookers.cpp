@@ -1347,7 +1347,7 @@ UBOOL UCookPackagesCommandlet::ShouldBeANeverStreamTexture( UTexture2D* Texture2
 	UShadowMapTexture2D* ShadowmapTexture = Cast<UShadowMapTexture2D>( Texture2D );
 	const UBOOL bIsNonStreamingLightmap = LightmapTexture && !(LightmapTexture->LightmapFlags & LMF_Streamed);
 	const UBOOL bIsNonStreamingShadowmap = ShadowmapTexture && !(ShadowmapTexture->ShadowmapFlags & SMF_Streamed);
-	const UBOOL bIsMobileFlattenedTexture = Texture2D->LODGroup == TEXTUREGROUP_MobileFlattened;
+	const UBOOL bIsMobileFlattenedTexture = /*Texture2D->LODGroup == TEXTUREGROUP_MobileFlattened*/false; // BATMAN
 
 	const UBOOL bIsInSeekFreeWithoutTFC = bIsSavedInSeekFreePackage && !bUseTextureFileCache;
 
@@ -4580,6 +4580,14 @@ void UCookPackagesCommandlet::CookStaticLightActors( UPackage* Package )
 					{
 						LightCollector = CreateComponentCollector<AStaticLightCollectionActor>(Package, World);
 					}
+
+#if BATMAN
+					// NOTE: Problem with lighting build is LightActor->LightComponent is NULL. This is because
+					// LightActor is (often) a AStaticLightCollectionActor, which sets "LightComponents" instead.
+
+					// NOTE 2: Looks like we probably aren't actually missing any lights,
+					// just GI because lightmaps aren't loading - possibly caused by the same TFC problem.
+#endif
 
 					// remove it from the Light actor.
 					LightActor->DetachComponent(Component);
@@ -10732,11 +10740,14 @@ INT UCookPackagesCommandlet::Main( const FString& Params )
 							It->ClearFlags(RF_MarkedByCooker);
 
 							UTexture2D* Texture = Cast<UTexture2D>(*It);
+#if BATMAN
+#else
 							if( Texture && Texture->LODGroup == TEXTUREGROUP_MobileFlattened && (Platform & PLATFORM_Mobile) == 0 )
 							{
 								// Skip any flattened textures in startup packages when not cooking for mobile platforms
 								continue;
 							}
+#endif
 
 							// reference it so SavePackage will save it
 							CombinedStartupReferencer->ReferencedObjects.AddItem(*It);
