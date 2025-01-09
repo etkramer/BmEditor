@@ -199,13 +199,6 @@ FArchive& operator<<( FArchive& Ar, FObjectExport& E )
 	Ar << E.OuterIndex;
 	Ar << E.ObjectName;
 	Ar << E.ArchetypeIndex;
-#if BATMAN
-	if (Ar.LicenseeVer() >= VER_BATMAN2)
-	{
-		INT Unknown = 0;
-		Ar << Unknown;
-	}
-#endif
 	Ar << E.ObjectFlags;
 
 	Ar << E.SerialSize;
@@ -3546,15 +3539,6 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 	{
 		check(Export.ObjectName!=NAME_None || !(Export.ObjectFlags&RF_Public));
 		check(GObjBeginLoadCount>0);
-
-#if BATMAN
-		// Don't load classes from BM packages
-		if (LicenseeVer() >= VER_BATMAN1 && Export.ClassIndex == UCLASS_INDEX)
-		{
-			//warnf(TEXT("Skipped class export %d"), Index);
-			return NULL;
-		}
-#endif
 		
 #if BATMAN
 		// Load cooked packages as normal
@@ -3611,6 +3595,14 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 
 			// return the object we just found (or NULL if we didn't)
 			return OriginalLinkerObject;
+		}
+#endif
+
+#if BATMAN
+		// Don't load classes from BM packages
+		if (LicenseeVer() >= VER_BATMAN1 && Export.ClassIndex == UCLASS_INDEX)
+		{
+			return NULL;
 		}
 #endif
 
@@ -3986,6 +3978,9 @@ UObject* ULinkerLoad::CreateImport( INT Index )
 #if SUPPORTS_SCRIPTPATCH_CREATION
 		//@script patcher
 		||	GIsScriptPatcherActive
+#endif
+#if BATMAN
+		|| LicenseeVer() >= VER_BATMAN1
 #endif
 			)
 		{

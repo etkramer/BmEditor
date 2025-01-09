@@ -636,53 +636,6 @@ void UStruct::SerializeBinEx( FArchive& Ar, BYTE* Data, BYTE* DefaultData, INT D
 	}
 }
 
-#if BATMAN
-struct FPropertyTagBat2
-{
-	SWORD		Type;				// property type - used int16 instead of FName, 0 = end of property table
-	WORD		Offset;				// property offset in serialized class
-	// following fields are used when the property is serialized by name similar to original FPropertyTag
-	FName		PropertyName;
-	INT			DataSize;
-	INT			ArrayIndex;
-	BYTE		BoolValue;
-
-	friend FArchive& operator<<(FArchive& Ar, FPropertyTagBat2& Tag)
-	{
-		Ar << Tag.Type;
-		if (!Tag.Type)
-		{
-			return Ar;
-		}
-
-		Ar << Tag.Offset;
-
-		if (Tag.Type == NAME_IntProperty ||
-			Tag.Type == NAME_FloatProperty ||
-			Tag.Type == NAME_NameProperty ||
-			Tag.Type == NAME_VectorProperty ||
-			Tag.Type == NAME_RotatorProperty ||
-			Tag.Type == NAME_StrProperty ||
-			Tag.Type == 16)
-		{
-			// property serialized by offset
-			Tag.PropertyName = NAME_None;
-			Tag.DataSize = Tag.ArrayIndex = 0;
-			return Ar;
-		}
-
-		// property serialized by name
-		Ar << Tag.PropertyName << Tag.DataSize << Tag.ArrayIndex;
-		if (Tag.Type == NAME_BoolProperty)
-		{
-			Ar << Tag.BoolValue;
-		}
-
-		return Ar;
-	}
-};
-#endif
-
 void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* DefaultsStruct, BYTE* Defaults, INT DefaultsCount/*=0*/ ) const
 {
 	FName PropertyName(NAME_None);
@@ -706,20 +659,6 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 		// Load all stored properties, potentially skipping unknown ones.
 		while( 1 )
 		{
-#if BATMAN
-			if (Ar.LicenseeVer() >= VER_BATMAN2)
-			{
-				FPropertyTagBat2 TagBat;
-				Ar << TagBat;
-				if (!TagBat.Type)
-				{
-					break;
-				}
-
-				break;
-			}
-#endif
-
 			FPropertyTag Tag;
 			Ar << Tag;
 			if( Tag.Name == NAME_None )
