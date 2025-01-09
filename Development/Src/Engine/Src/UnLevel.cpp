@@ -13,6 +13,9 @@
 #include "EngineDecalClasses.h"
 #include "EngineProcBuildingClasses.h"
 #include "EngineAnimClasses.h"
+#if BATMAN
+#include "EngineLightClasses.h"
+#endif
 #include "UnOctree.h"
 #include "UnTerrain.h"
 #include "ScenePrivate.h"
@@ -724,6 +727,89 @@ void ULevel::PostLoad()
 			}
 		}
 	}
+
+#if BATMAN
+	// Expand AStaticLightCollectionActors on load
+	if (GIsEditor)
+	{
+		for (INT ActorIndex = 0; ActorIndex < Actors.Num(); ActorIndex++)
+		{
+			AActor* Actor = Actors(ActorIndex);
+			if (Actor && Actor->IsA(AStaticLightCollectionActor::StaticClass()))
+			{
+				AStaticLightCollectionActor* LightCollection = (AStaticLightCollectionActor*)Actor;
+
+				for (INT CompIndex = 0; CompIndex < LightCollection->Components.Num(); CompIndex++)
+				{
+					ULightComponent* LightComp = (ULightComponent*)LightCollection->Components(CompIndex);
+					AActor* LightActor = NULL;
+
+					// Choose actor class
+					if (LightComp->IsA(UPointLightComponent::StaticClass()))
+					{
+						LightActor = ConstructObject<AActor>(APointLight::StaticClass(), this, LightComp->GetFName());
+					}
+					else if (LightComp->IsA(UDirectionalLightComponent::StaticClass()))
+					{
+						LightActor = ConstructObject<AActor>(ADirectionalLight::StaticClass(), this, LightComp->GetFName());
+					}
+					else if (LightComp->IsA(USpotLightComponent::StaticClass()))
+					{
+						LightActor = ConstructObject<AActor>(ASpotLight::StaticClass(), this, LightComp->GetFName());
+					}
+					else if (LightComp->IsA(USkyLightComponent::StaticClass()))
+					{
+						LightActor = ConstructObject<AActor>(ASkyLight::StaticClass(), this, LightComp->GetFName());
+					}
+					else
+					{
+						warnf(NAME_Warning, TEXT("Unknown ULightComponent type '%s'"), *LightComp->GetClass()->GetFullName());
+					}
+
+					// Get transform from component
+					FMatrix LightToWorld = FMatrix::Identity;
+					if (LightComp->IsA(UPointLightComponent::StaticClass()))
+					{
+						LightToWorld = ((UPointLightComponent*)LightComp)->CachedParentToWorld;
+					}
+					else
+					{
+						// ULightComponent::SetParentToWorld multiplies the ParentToWorld by a matrix which flips the X and Z
+						// axis values, so in order for the component's final LightToWorld to remain the same, we'll need to
+						// flip the current value here so that when it's flipped in SetParentToWorld it ends up the correct value.
+						static FMatrix ReverseZAxisMat =
+							FMatrix(
+								FPlane(+0, +0, +1, +0),
+								FPlane(+0, +1, +0, +0),
+								FPlane(+1, +0, +0, +0),
+								FPlane(+0, +0, +0, +1)
+							);
+
+						LightToWorld = ReverseZAxisMat * LightComp->LightToWorld;
+					}
+
+					// Add actor to level
+					if (LightActor)
+					{
+						Actors.AddItem(LightActor);
+						LightActor->WorldInfo = GetWorldInfo();
+						LightActor->Location = LightToWorld.GetOrigin();
+						LightActor->Rotation = LightToWorld.Rotator();
+
+						LightComp->Rename(NULL, LightActor, REN_ForceNoResetLoaders);
+						LightActor->Components.AddItem(LightComp);
+						LightCollection->Components.Remove(CompIndex--);
+					}
+				}
+
+				if (!LightCollection->Components.Num())
+				{
+					Actors.RemoveItem(LightCollection);
+				}
+			}
+		}
+	}
+#endif
 
 	// reattach decals to receivers after level has been fully loaded
 	GEngine->IssueDecalUpdateRequest();
