@@ -660,7 +660,33 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 		while( 1 )
 		{
 			FPropertyTag Tag;
+#if BATMAN
+			if (Ar.LicenseeVer() >= VER_BATMAN2)
+			{
+				FPropertyTagBat2 TagBat;
+				Ar << TagBat;
+
+				if (TagBat.Type != 0 && TagBat.Name == NAME_None)
+				{
+					TagBat.Name = TagBat.GetHardcodedName(DefaultsStruct);
+				}
+
+				Tag.Type = FName((EName)TagBat.Type);
+				Tag.BoolVal = TagBat.BoolVal;
+				Tag.Name = TagBat.Name;
+				Tag.StructName = NAME_None;
+				Tag.EnumName = NAME_None;
+				Tag.Size = TagBat.Size;
+				Tag.ArrayIndex = TagBat.ArrayIndex;
+				Tag.SizeOffset = 0;
+			}
+			else
+			{
+#endif
 			Ar << Tag;
+#if BATMAN
+			}
+#endif
 			if( Tag.Name == NAME_None )
 				break;
 			PropertyName = Tag.Name;
@@ -868,7 +894,12 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 			{
 				debugf( NAME_Warning, TEXT("Type mismatch in %s of %s - Previous (%s) Current(%s) for package:  %s"), *Tag.Name.ToString(), *GetName(), *Tag.Type.ToString(), *Property->GetID().ToString(), *Ar.GetArchiveName() );
 			}
+#if BATMAN
+			// https://github.com/gildor2/UEViewer/blob/a0bfb468d42be831b126632fd8a0ae6b3614f981/Unreal/UnObject.cpp#L1285
+			else if (Tag.Type == NAME_StructProperty && Tag.StructName != CastChecked<UStructProperty>(Property)->Struct->GetFName() && Tag.StructName != NAME_Name )
+#else
 			else if( Tag.Type==NAME_StructProperty && Tag.StructName!=CastChecked<UStructProperty>(Property)->Struct->GetFName() )
+#endif
 			{
 				debugf( NAME_Warning, TEXT("Property %s of %s struct type mismatch %s/%s for package:  %s"), *Tag.Name.ToString(), *GetName(), *Tag.StructName.ToString(), *CastChecked<UStructProperty>(Property)->Struct->GetName(), *Ar.GetArchiveName() );
 			}

@@ -1724,6 +1724,15 @@ struct FMeshBone
 	
 	friend FArchive &operator<<( FArchive& Ar, FMeshBone& F)
 	{
+#if BATMAN
+		// https://github.com/gildor2/UEViewer/blob/a0bfb468d42be831b126632fd8a0ae6b3614f981/Unreal/UnrealMesh/UnMesh.h#L136
+		if (Ar.LicenseeVer() >= VER_BATMAN2)
+		{
+			Ar << F.BonePos << F.Name << F.ParentIndex << F.BoneColor;
+			return Ar;
+		}
+#endif
+
 		Ar << F.Name << F.Flags << F.BonePos << F.NumChildren << F.ParentIndex;
 
 		if( Ar.IsLoading() && Ar.Ver() < VER_SKELMESH_DRAWSKELTREEMANAGER )

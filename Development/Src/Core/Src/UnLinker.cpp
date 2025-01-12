@@ -199,6 +199,14 @@ FArchive& operator<<( FArchive& Ar, FObjectExport& E )
 	Ar << E.OuterIndex;
 	Ar << E.ObjectName;
 	Ar << E.ArchetypeIndex;
+#if BATMAN
+	// https://github.com/gildor2/UEViewer/blob/a0bfb468d42be831b126632fd8a0ae6b3614f981/Unreal/UnrealPackage/UnPackage3.cpp#L360
+	if (Ar.LicenseeVer() >= VER_BATMAN2)
+	{
+		int unk18 = 0;
+		Ar << unk18;
+	}
+#endif
 	Ar << E.ObjectFlags;
 
 	Ar << E.SerialSize;
@@ -1409,7 +1417,11 @@ UBOOL ULinkerLoad::SerializeNameMap()
 	{
 		Seek( Summary.NameOffset );
 		// Make sure there is something to precache first.
+#if BATMAN
+		if( Summary.TotalHeaderSize > 0 && LicenseeVer() < VER_BATMAN2 )
+#else
 		if( Summary.TotalHeaderSize > 0 )
+#endif
 		{
 			// Precache name, import and export map.
 			bFinishedPrecaching = Loader->Precache( Summary.NameOffset, Summary.TotalHeaderSize - Summary.NameOffset );
@@ -1421,7 +1433,7 @@ UBOOL ULinkerLoad::SerializeNameMap()
 		}
 	}
 
-	while( bFinishedPrecaching && NameMapIndex < Summary.NameCount && !IsTimeLimitExceeded(TEXT("serializing name map"),100) )
+	while( bFinishedPrecaching && NameMapIndex < Summary.NameCount && !IsTimeLimitExceeded(TEXT("serializing name map"), 100))
 	{
 		// Read the name entry from the file.
 		FNameEntry NameEntry(ENAME_LinkerConstructor);
@@ -3535,7 +3547,11 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 	FObjectExport& Export = ExportMap( Index );
 
 	// Check whether we already loaded the object and if not whether the context flags allow loading it.
+#if BATMAN
+	if (!Export._Object && ((Export.ObjectFlags & _ContextFlags) || LicenseeVer() >= VER_BATMAN2) )
+#else
 	if( !Export._Object && (Export.ObjectFlags & _ContextFlags) )
+#endif
 	{
 		check(Export.ObjectName!=NAME_None || !(Export.ObjectFlags&RF_Public));
 		check(GObjBeginLoadCount>0);
@@ -3907,6 +3923,14 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 			LoadFlags | (GIsInitialLoad ? (RF_RootSet | RF_DisregardForGC) : 0),
 			Template
 		);
+
+#if BATMAN
+		if (LicenseeVer() >= VER_BATMAN2)
+		{
+			Export.ObjectFlags = (QWORD)(DWORD)Export.ObjectFlags;
+			warnf(TEXT("Constructed object '%s'"), *Export._Object->GetFullName());
+		}
+#endif
 		
 		if( Export._Object )
 		{

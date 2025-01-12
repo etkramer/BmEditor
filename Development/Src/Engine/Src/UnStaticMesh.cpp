@@ -989,11 +989,26 @@ void FStaticMeshVertexBuffer::ConvertToFullPrecisionUVs()
 	}
 }
 
+#if BATMAN
+// TODO: IMPLEMENT
+static BOOL GStripStaticNormals = FALSE;
+#endif
+
 /** Serializer. */
 FArchive& operator<<(FArchive& Ar,FStaticMeshVertexBuffer& VertexBuffer)
 {
 	Ar << VertexBuffer.NumTexCoords << VertexBuffer.Stride << VertexBuffer.NumVertices;
-	Ar << VertexBuffer.bUseFullPrecisionUVs;								
+	Ar << VertexBuffer.bUseFullPrecisionUVs;
+
+#if BATMAN
+	BOOL HasNormals = TRUE;
+	if (Ar.LicenseeVer() >= VER_BATMAN2 && Ar.LicenseeVer() <= VER_BATMAN4)
+	{
+		Ar << HasNormals;
+	}
+
+	GStripStaticNormals = !HasNormals;
+#endif
 
 	if( Ar.IsLoading() )
 	{

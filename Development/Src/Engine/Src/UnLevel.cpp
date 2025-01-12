@@ -742,24 +742,24 @@ void ULevel::PostLoad()
 				for (INT CompIndex = 0; CompIndex < LightCollection->Components.Num(); CompIndex++)
 				{
 					ULightComponent* LightComp = (ULightComponent*)LightCollection->Components(CompIndex);
-					AActor* LightActor = NULL;
+					ALight* LightActor = NULL;
 
 					// Choose actor class
 					if (LightComp->IsA(UPointLightComponent::StaticClass()))
 					{
-						LightActor = ConstructObject<AActor>(APointLight::StaticClass(), this, LightComp->GetFName());
+						LightActor = ConstructObject<APointLight>(APointLight::StaticClass(), this, LightComp->GetFName());
 					}
 					else if (LightComp->IsA(UDirectionalLightComponent::StaticClass()))
 					{
-						LightActor = ConstructObject<AActor>(ADirectionalLight::StaticClass(), this, LightComp->GetFName());
+						LightActor = ConstructObject<ADirectionalLight>(ADirectionalLight::StaticClass(), this, LightComp->GetFName());
 					}
 					else if (LightComp->IsA(USpotLightComponent::StaticClass()))
 					{
-						LightActor = ConstructObject<AActor>(ASpotLight::StaticClass(), this, LightComp->GetFName());
+						LightActor = ConstructObject<ASpotLight>(ASpotLight::StaticClass(), this, LightComp->GetFName());
 					}
 					else if (LightComp->IsA(USkyLightComponent::StaticClass()))
 					{
-						LightActor = ConstructObject<AActor>(ASkyLight::StaticClass(), this, LightComp->GetFName());
+						LightActor = ConstructObject<ASkyLight>(ASkyLight::StaticClass(), this, LightComp->GetFName());
 					}
 					else
 					{
@@ -791,20 +791,73 @@ void ULevel::PostLoad()
 					// Add actor to level
 					if (LightActor)
 					{
+						// Destroy default component for newly-created actor
+						LightActor->Components.Remove(0);
+
 						Actors.AddItem(LightActor);
 						LightActor->WorldInfo = GetWorldInfo();
 						LightActor->Location = LightToWorld.GetOrigin();
 						LightActor->Rotation = LightToWorld.Rotator();
 
-						LightComp->Rename(NULL, LightActor, REN_ForceNoResetLoaders);
-						LightActor->Components.AddItem(LightComp);
+						// Copy light properties from original
+						LightActor->LightComponent->LightGuid = LightComp->LightGuid;
+						LightActor->LightComponent->LightmapGuid = LightComp->LightmapGuid;
+						LightActor->LightComponent->CastShadows = LightComp->CastShadows;
+						LightActor->LightComponent->CastStaticShadows = LightComp->CastStaticShadows;
+						LightActor->LightComponent->CastDynamicShadows = LightComp->CastDynamicShadows;
+
+						// TODO: 10 isn't based on anything, what's the real reason lights are so bright otherwise?
+						LightActor->LightComponent->SetLightProperties(LightComp->Brightness / 10, LightComp->LightColor, LightComp->Function);
+						LightActor->LightComponent->SetEnabled(LightComp->bEnabled);
+
 						LightCollection->Components.Remove(CompIndex--);
 					}
 				}
 
-				if (!LightCollection->Components.Num())
+				if (LightCollection->Components.Num())
 				{
-					Actors.RemoveItem(LightCollection);
+					warnf(NAME_Warning, TEXT("AStaticLightCollectionActor destroyed with %d components still attached"), LightCollection->Components.Num());
+				}
+
+				LightCollection->Components.Empty();
+				Actors.Remove(ActorIndex--);
+			}
+		}
+	}
+
+	// Expand AStaticMeshCollectionActors on load
+	if (GIsEditor)
+	{
+		for (INT ActorIndex = 0; ActorIndex < Actors.Num(); ActorIndex++)
+		{
+			AActor* Actor = Actors(ActorIndex);
+			if (Actor && Actor->IsA(AStaticMeshCollectionActor::StaticClass()))
+			{
+				AStaticMeshCollectionActor* MeshCollection = (AStaticMeshCollectionActor*)Actor;
+
+				for (INT CompIndex = 0; CompIndex < MeshCollection->Components.Num(); CompIndex++)
+				{
+					UStaticMeshComponent* MeshComp = (UStaticMeshComponent*)MeshCollection->Components(CompIndex);
+					if (!MeshComp)
+					{
+						continue;
+					}
+
+					AStaticMeshActor* MeshActor = ConstructObject<AStaticMeshActor>(AStaticMeshActor::StaticClass(), this, MeshComp->GetFName());
+
+					Actors.AddItem(MeshActor);
+					MeshActor->WorldInfo = GetWorldInfo();
+					MeshActor->Location = MeshComp->CachedParentToWorld.GetOrigin();
+					MeshActor->Rotation = MeshComp->CachedParentToWorld.Rotator();
+
+					MeshComp->Rename(NULL, MeshActor, REN_ForceNoResetLoaders);
+					MeshActor->Components.AddItem(MeshComp);
+					MeshCollection->Components.Remove(CompIndex--);
+				}
+
+				if (!MeshCollection->Components.Num())
+				{
+					Actors.RemoveItem(MeshCollection);
 				}
 			}
 		}

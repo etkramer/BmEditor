@@ -376,6 +376,14 @@ public:
 			Ar << E.Fragments;
 		}
 
+#if BATMAN
+		if (Ar.LicenseeVer() >= VER_BATMAN2)
+		{
+			UObject* unk4;
+			Ar << unk4;
+		}
+#endif
+
 		if (Ar.Ver() >= VER_ADDED_PLATFORMMESHDATA)
 		{
 			if (Ar.IsLoading())
