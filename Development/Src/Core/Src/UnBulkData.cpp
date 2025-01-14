@@ -640,14 +640,6 @@ void FUntypedBulkData::Serialize( FArchive& Ar, UObject* Owner, INT Idx )
 			// Offset in file.
 			Ar << BulkDataOffsetInFile;
 
-#if BATMAN
-			if (Ar.LicenseeVer() >= VER_BATMAN2)
-			{
-				warnf(TEXT("Ar.Tell(): %d"), Ar.Tell());
-				warnf(TEXT("Ar.TotalSize(): %d"), Ar.TotalSize());
-			}
-#endif
-
 			// Skip serialization of bulk data if it's stored in a separate file
 			if( !(BulkDataFlags & BULKDATA_StoreInSeparateFile) )
 			{

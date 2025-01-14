@@ -645,6 +645,13 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 	UClass* DefaultsClass = Cast<UClass>(DefaultsStruct);
 	UScriptStruct* DefaultsScriptStruct = Cast<UScriptStruct>(DefaultsStruct);
 
+#if BATMAN
+	if (Ar.LicenseeVer() >= VER_BATMAN2)
+	{
+		//warnf(TEXT("Serializing props for struct '%s'"), *GetFullName());
+	}
+#endif
+
 	if( Ar.IsLoading() )
 	{
 		// Load tagged properties.
@@ -661,6 +668,7 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 		{
 			FPropertyTag Tag;
 #if BATMAN
+			FPropertyTagBat2 TagBat;
 			if (Ar.LicenseeVer() >= VER_BATMAN2)
 			{
 				FPropertyTagBat2 TagBat;
@@ -675,7 +683,7 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 				Tag.BoolVal = TagBat.BoolVal;
 				Tag.Name = TagBat.Name;
 				Tag.StructName = NAME_None;
-				Tag.EnumName = NAME_None;
+				Tag.EnumName = TagBat.EnumName;
 				Tag.Size = TagBat.Size;
 				Tag.ArrayIndex = TagBat.ArrayIndex;
 				Tag.SizeOffset = 0;
@@ -890,6 +898,37 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 				AdvanceProperty = TRUE;
 				continue;
 			}
+#if BATMAN
+			// Handle ByteProperty (enum)
+			else if (Ar.LicenseeVer() >= VER_BATMAN2 && Tag.Type == NAME_ByteProperty)
+			{
+				// Non-enum ByteProperties allowed, just not
+				// yet implemented.
+				check(Tag.EnumName != NAME_None);
+
+				UByteProperty* ByteProperty = (UByteProperty*)Property;
+				UEnum* Enum = ByteProperty->Enum;
+				Ar.Preload(Enum);
+
+				INT EnumValue = Enum->FindEnumIndex(Tag.EnumName);
+
+				*(BYTE*)(Data + Property->Offset + Tag.ArrayIndex * Property->ElementSize) = EnumValue;
+				AdvanceProperty = TRUE;
+				continue;
+			}
+#endif
+#if BATMAN
+			// Handle NAME_GUIDProperty
+			else if (Ar.LicenseeVer() >= VER_BATMAN2 && Tag.Type == NAME_GUIDProperty)
+			{
+				FGuid GuidValue;
+				Ar << GuidValue;
+
+				*(FGuid*)(Data + Property->Offset + Tag.ArrayIndex * Property->ElementSize) = GuidValue;
+				AdvanceProperty = TRUE;
+				continue;
+			}
+#endif
 			else if( Tag.Type!=Property->GetID() )
 			{
 				debugf( NAME_Warning, TEXT("Type mismatch in %s of %s - Previous (%s) Current(%s) for package:  %s"), *Tag.Name.ToString(), *GetName(), *Tag.Type.ToString(), *Property->GetID().ToString(), *Ar.GetArchiveName() );

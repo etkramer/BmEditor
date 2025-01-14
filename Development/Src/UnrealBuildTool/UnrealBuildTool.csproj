@@ -5,6 +5,7 @@
     <TargetFramework>net7.0</TargetFramework>
     <OutputPath>../../Intermediate/UnrealBuildTool/$(Configuration)</OutputPath>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <DefineConstants>$(DefineConstants);BATMAN</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>

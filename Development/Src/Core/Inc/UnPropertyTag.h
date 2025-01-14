@@ -130,6 +130,7 @@ struct FPropertyTag
 };
 
 #if BATMAN
+// FCookedPropertyTag
 struct FPropertyTagBat2
 {
 	// Variables.
@@ -139,10 +140,18 @@ struct FPropertyTagBat2
 	FName	Name;		// Name of property.
 	INT		Size;       // Property size.
 	INT		ArrayIndex;	// Index if an array; else 0.
+	FName	EnumName;	// Enum name if UByteProperty
 
 	// Constructors.
 	FPropertyTagBat2()
 	{
+		Type = 0;
+		Offset = 0;
+		BoolVal = 0;
+		Name = NAME_None;
+		Size = 0;
+		ArrayIndex = 0;
+		EnumName = NAME_None;
 	}
 
 	// Serializer.
@@ -151,11 +160,10 @@ struct FPropertyTagBat2
 		Ar << Tag.Type;
 		if (!Tag.Type)
 		{
-			Tag.Name = NAME_None;
 			return Ar;
 		}
 
-		check(Tag.Type <= 16);
+		check(Tag.Type <= 17);
 
 		Ar << Tag.Offset;
 
@@ -165,44 +173,53 @@ struct FPropertyTagBat2
 			Tag.Type == NAME_VectorProperty ||
 			Tag.Type == NAME_RotatorProperty ||
 			Tag.Type == NAME_StrProperty ||
-			Tag.Type == 16)
+			Tag.Type == NAME_ObjectNCRProperty)
 		{
-			if (Tag.Type == NAME_VectorProperty || Tag.Type == NAME_RotatorProperty)
-			{
-				Tag.Size = sizeof(FVector);
-			}
-			else if (Tag.Type == NAME_IntProperty || Tag.Type == NAME_FloatProperty || Tag.Type == NAME_StructProperty)
+			//warnf(TEXT("Offset tag '%d' of type %d"), Tag.Offset, Tag.Type);
+
+			if (Tag.Type == NAME_IntProperty || Tag.Type == NAME_FloatProperty/* || Tag.Type == NAME_StructProperty*/)
 			{
 				Tag.Size = sizeof(INT);
 			}
 			else if (Tag.Type == NAME_NameProperty)
 			{
-				Tag.Size = sizeof(INT);
+				Tag.Size = sizeof(INT) + sizeof(INT);
 			}
-			else if (Tag.Type == 16)
+			else if (Tag.Type == NAME_VectorProperty || Tag.Type == NAME_RotatorProperty)
+			{
+				Tag.Size = sizeof(FVector);
+			}
+			else if (Tag.Type == NAME_StrProperty)
+			{
+				INT Pos = Ar.Tell();
+				FString Str;
+				Ar << Str;
+				Tag.Size = Ar.Tell() - Pos;
+				Ar.Seek(Pos);
+			}
+			else if (Tag.Type == NAME_ObjectNCRProperty)
 			{
 				Tag.Size = sizeof(INT);
 			}
-			/*else if (Tag.Type == NAME_StrProperty)
-			{
-				// TODO
-			}*/
 			else
 			{
 				warnf(TEXT("Unknown size for property type %d"), Tag.Type);
-				Tag.Size = 0;
 			}
 
-			Tag.Name = NAME_None;
-			Tag.ArrayIndex = 0;
 			return Ar;
 		}
 
 		Ar << Tag.Name << Tag.Size << Tag.ArrayIndex;
+		//warnf(TEXT("Named tag '%s' of type %d"), *Tag.Name.ToString(), Tag.Type);
 
 		if (Tag.Type == NAME_BoolProperty)
 		{
 			Ar << Tag.BoolVal;
+		}
+		else if (Tag.Type == NAME_ByteProperty)
+		{
+			Ar << Tag.EnumName;
+			Tag.Size = 0;
 		}
 
 		return Ar;
@@ -219,6 +236,9 @@ struct FPropertyTagBat2
 			HARDCODE_NAME("SizeY", 0xE4);
 			HARDCODE_NAME("OriginalSizeX", 0xE8);
 			HARDCODE_NAME("OriginalSizeY", 0xEC);
+			HARDCODE_NAME("AutoLODSizeX", 0xF0);
+			HARDCODE_NAME("AutoLODSizeY", 0xF4);
+			HARDCODE_NAME("Format", 0xF8); // Theirs is a ByteProperty, and ours is an IntProperty. Likely cause of overreading in Texture2D objects.
 			HARDCODE_NAME("TextureFileCacheName", 0x104);
 		HARDCODE_END()
 
@@ -265,7 +285,8 @@ struct FPropertyTagBat2
 			HARDCODE_NAME("RelativeScale", 0x54);
 		HARDCODE_END()
 
-		return FName(*FString::Printf(TEXT("Prop%d"), Offset));
+		//warnf(NAME_Warning, TEXT("Found property with unknown name at %s:%d"), *Struct->GetName(), Offset);
+		return FName(*FString::Printf(TEXT("Prop_%d"), Offset));
 	}
 };
 #endif

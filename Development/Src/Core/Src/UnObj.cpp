@@ -7012,6 +7012,10 @@ UPackage* UObject::LoadPackage( UPackage* InOuter, const TCHAR* Filename, DWORD 
     if( *Filename == '\0' )
         return NULL;
 
+#if BATMAN
+	warnf(TEXT("Begin load package '%s'"), Filename);
+#endif
+
 	// Try to load.
 	BeginLoad();
 #if !EXCEPTIONS_DISABLED

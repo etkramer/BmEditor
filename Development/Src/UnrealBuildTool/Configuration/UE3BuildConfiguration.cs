@@ -41,7 +41,11 @@ namespace UnrealBuildTool
 		public static bool bForceLive = Utils.GetEnvironmentVariable( "ue3.bForceLive", false );
 
         /** Whether to include FaceFX support */
+#if BATMAN
+        public static bool bCompileFaceFX = Utils.GetEnvironmentVariable("ue3.bCompileFaceFX", false);
+#else
         public static bool bCompileFaceFX = Utils.GetEnvironmentVariable("ue3.bCompileFaceFX", true);
+#endif
 
         /** Whether we should compile FaceFX studio or not. Done in UBT as we need to disregard project. */
         public static bool bCompileFaceFXStudio = Utils.GetEnvironmentVariable("ue3.bCompileFaceFXStudio", true);

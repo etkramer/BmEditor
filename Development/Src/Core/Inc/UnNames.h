@@ -45,6 +45,10 @@ REGISTER_NAME(  12, RotatorProperty  )
 REGISTER_NAME(  13, StrProperty      )
 REGISTER_NAME(  14, MapProperty      )
 REGISTER_NAME(	15,	InterfaceProperty)
+#if GAMENAME==BMGAME
+REGISTER_NAME(	16, ObjectNCRProperty)
+REGISTER_NAME(	17,	GUIDProperty     )
+#endif
 
 // Packages.
 REGISTER_NAME(  20, Core			 )
