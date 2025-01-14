@@ -137,12 +137,11 @@ enum TextureGroup
     TEXTUREGROUP_Character,
     TEXTUREGROUP_CharacterNormalMap,
     TEXTUREGROUP_CharacterSpecular,
+    TEXTUREGROUP_CharacterSpecPower,
     TEXTUREGROUP_Weapon,
     TEXTUREGROUP_WeaponNormalMap,
     TEXTUREGROUP_WeaponSpecular,
-    TEXTUREGROUP_Weapon3P,
-    TEXTUREGROUP_Weapon3PNormalMap,
-    TEXTUREGROUP_Weapon3PSpecular,
+    TEXTUREGROUP_World_Low,
     TEXTUREGROUP_Vehicle,
     TEXTUREGROUP_VehicleNormalMap,
     TEXTUREGROUP_VehicleSpecular,
@@ -151,12 +150,19 @@ enum TextureGroup
     TEXTUREGROUP_EffectsNotFiltered,
     TEXTUREGROUP_Skybox,
     TEXTUREGROUP_UI,
-    TEXTUREGROUP_LightAndShadowMap,
+    TEXTUREGROUP_Lightmap,
     TEXTUREGROUP_RenderTarget,
     TEXTUREGROUP_World_Hi,
     TEXTUREGROUP_WorldNormalMap_Hi,
     TEXTUREGROUP_WorldSpecular_Hi,
-    TEXTUREGROUP_Effects_Hi
+    TEXTUREGROUP_MobileFlattened,
+    TEXTUREGROUP_ProcBuilding_Face,
+    TEXTUREGROUP_ProcBuilding_LightMap,
+    TEXTUREGROUP_Shadowmap,
+    TEXTUREGROUP_ColorLookupTable,
+    TEXTUREGROUP_Terrain_Heightmap,
+    TEXTUREGROUP_Terrain_Weightmap,
+    TEXTUREGROUP_ImageBasedReflection,
 };
 
 // BATMAN
@@ -174,12 +180,11 @@ struct native TextureGroupContainer
 	var()	const bool	TEXTUREGROUP_Character;
 	var()	const bool	TEXTUREGROUP_CharacterNormalMap;
 	var()	const bool	TEXTUREGROUP_CharacterSpecular;
+    var()	const bool	TEXTUREGROUP_CharacterSpecPower;
 	var()	const bool	TEXTUREGROUP_Weapon;
 	var()	const bool	TEXTUREGROUP_WeaponNormalMap;
 	var()	const bool	TEXTUREGROUP_WeaponSpecular;
-	var()	const bool	TEXTUREGROUP_Weapon3P;
-	var()	const bool	TEXTUREGROUP_Weapon3PNormalMap;
-	var()	const bool	TEXTUREGROUP_Weapon3PSpecular;
+    var()	const bool	TEXTUREGROUP_World_Low;
 	var()	const bool	TEXTUREGROUP_Vehicle;
 	var()	const bool	TEXTUREGROUP_VehicleNormalMap;
 	var()	const bool	TEXTUREGROUP_VehicleSpecular;
@@ -188,12 +193,19 @@ struct native TextureGroupContainer
 	var()	const bool	TEXTUREGROUP_EffectsNotFiltered;
 	var()	const bool	TEXTUREGROUP_Skybox;
 	var()	const bool	TEXTUREGROUP_UI;
-	var()	const bool	TEXTUREGROUP_LightAndShadowMap;
+	var()	const bool	TEXTUREGROUP_Lightmap;
 	var()	const bool	TEXTUREGROUP_RenderTarget;
 	var()	const bool	TEXTUREGROUP_World_Hi;
 	var()	const bool	TEXTUREGROUP_WorldNormalMap_Hi;
 	var()	const bool	TEXTUREGROUP_WorldSpecular_Hi;
-	var()	const bool	TEXTUREGROUP_Effects_Hi;
+	var()	const bool	TEXTUREGROUP_MobileFlattened;
+    var()	const bool	TEXTUREGROUP_ProcBuilding_Face;
+    var()	const bool	TEXTUREGROUP_ProcBuilding_LightMap;
+    var()	const bool	TEXTUREGROUP_Shadowmap;
+    var()	const bool	TEXTUREGROUP_ColorLookupTable;
+    var()	const bool	TEXTUREGROUP_Terrain_Heightmap;
+    var()	const bool	TEXTUREGROUP_Terrain_Weightmap;
+    var()	const bool	TEXTUREGROUP_ImageBasedReflection;
 };
 
 enum TextureMipGenSettings

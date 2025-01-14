@@ -134,7 +134,7 @@ void ULightMapTexture2D::Serialize(FArchive& Ar)
 		} 
 	}
 
-	LODGroup = /*TEXTUREGROUP_Lightmap*/TEXTUREGROUP_LightAndShadowMap; // BATMAN
+	LODGroup = TEXTUREGROUP_Lightmap;
 }
 
 /** 
@@ -813,7 +813,7 @@ void FLightMapPendingTexture::StartEncoding()
 		Texture->SizeY		= GetSizeY();
 		Texture->Filter		= GUseBilinearLightmaps ? TF_Linear : TF_Nearest;
 		Texture->Format		= GAllowLightmapCompression ? PF_DXT1 : PF_A8R8G8B8;
-		Texture->LODGroup	= /*TEXTUREGROUP_Lightmap*/TEXTUREGROUP_LightAndShadowMap; // BATMAN
+		Texture->LODGroup	= TEXTUREGROUP_Lightmap;
 		DWORD SimpleLightmapFlag = (CoefficientIndex == SIMPLE_LIGHTMAP_COEF_INDEX) ? LMF_SimpleLightmap : LMF_None;
 		Texture->LightmapFlags = ELightMapFlags( SimpleLightmapFlag | LightmapFlags );
 		Texture->GenerateTextureFileCacheGUID(TRUE);

@@ -575,15 +575,12 @@ void UTexture::Compress()
 	RGBE = (CompressionSettings == TC_HighDynamicRange);
 
 	// better this would be data driven, also TextureMipGenSettings::TMGS_None should be introduced
-#if BATMAN
-#else
 	if(LODGroup == TEXTUREGROUP_ColorLookupTable)
 	{
 		MipGenSettings = TMGS_NoMipmaps;
 		SRGB = FALSE;
 		RGBE = FALSE;
 	}
-#endif
 }
 
 /** Defines an image's data. */
@@ -1345,13 +1342,13 @@ static void CompressMipChainToTexture(UTexture2D &Texture, IntermediateMipChain 
 	UBOOL bNoCompression = Texture.CompressionNone;
 
 	// this would be better data driven
-#if BATMAN
-#else
 	if(Texture.LODGroup == TEXTUREGROUP_ColorLookupTable)
 	{
 		bNoCompression = TRUE;
 	}
 
+#if BATMAN
+#else
 	// this would be better data driven
 	if(Texture.LODGroup == TEXTUREGROUP_Bokeh)
 	{
@@ -1400,16 +1397,12 @@ static void CompressMipChainToTexture(UTexture2D &Texture, IntermediateMipChain 
 		const FImageData &SrcMip = InMipChain.Mips(0);
 		UBOOL bOpaque = TRUE;
 
-#if BATMAN
-		if (FALSE) {}
-#else
 		if (Texture.LODGroup == TEXTUREGROUP_ImageBasedReflection)
 		{
 			// Textures used for image reflections all need to be the same format since they are used in a texture array,
 			// So don't treat the texture as opaque even if all the alpha values are 255.
 			bOpaque = FALSE;
 		}
-#endif
 		// Artists sometimes have alpha channel in source art though don't want to use it.
 		else if(!(Texture.CompressionNoAlpha || Texture.CompressionSettings == TC_Normalmap || 
 			Texture.CompressionSettings == TC_NormalmapBC5 || Texture.CompressionSettings == TC_OneBitAlpha))

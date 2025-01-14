@@ -82,27 +82,33 @@ enum TextureGroup
     TEXTUREGROUP_Character  =3,
     TEXTUREGROUP_CharacterNormalMap=4,
     TEXTUREGROUP_CharacterSpecular=5,
-    TEXTUREGROUP_Weapon     =6,
-    TEXTUREGROUP_WeaponNormalMap=7,
-    TEXTUREGROUP_WeaponSpecular=8,
-    TEXTUREGROUP_Weapon3P   =9,
-    TEXTUREGROUP_Weapon3PNormalMap=10,
-    TEXTUREGROUP_Weapon3PSpecular=11,
-    TEXTUREGROUP_Vehicle    =12,
-    TEXTUREGROUP_VehicleNormalMap=13,
-    TEXTUREGROUP_VehicleSpecular=14,
-    TEXTUREGROUP_Cinematic  =15,
-    TEXTUREGROUP_Effects    =16,
-    TEXTUREGROUP_EffectsNotFiltered=17,
-    TEXTUREGROUP_Skybox     =18,
-    TEXTUREGROUP_UI         =19,
-    TEXTUREGROUP_LightAndShadowMap=20,
-    TEXTUREGROUP_RenderTarget=21,
-    TEXTUREGROUP_World_Hi   =22,
-    TEXTUREGROUP_WorldNormalMap_Hi=23,
-    TEXTUREGROUP_WorldSpecular_Hi=24,
-    TEXTUREGROUP_Effects_Hi =25,
-    TEXTUREGROUP_MAX        =26,
+    TEXTUREGROUP_CharacterSpecPower=6,
+    TEXTUREGROUP_Weapon     =7,
+    TEXTUREGROUP_WeaponNormalMap=8,
+    TEXTUREGROUP_WeaponSpecular=9,
+    TEXTUREGROUP_World_Low  =10,
+    TEXTUREGROUP_Vehicle    =11,
+    TEXTUREGROUP_VehicleNormalMap=12,
+    TEXTUREGROUP_VehicleSpecular=13,
+    TEXTUREGROUP_Cinematic  =14,
+    TEXTUREGROUP_Effects    =15,
+    TEXTUREGROUP_EffectsNotFiltered=16,
+    TEXTUREGROUP_Skybox     =17,
+    TEXTUREGROUP_UI         =18,
+    TEXTUREGROUP_Lightmap   =19,
+    TEXTUREGROUP_RenderTarget=20,
+    TEXTUREGROUP_World_Hi   =21,
+    TEXTUREGROUP_WorldNormalMap_Hi=22,
+    TEXTUREGROUP_WorldSpecular_Hi=23,
+    TEXTUREGROUP_MobileFlattened=24,
+    TEXTUREGROUP_ProcBuilding_Face=25,
+    TEXTUREGROUP_ProcBuilding_LightMap=26,
+    TEXTUREGROUP_Shadowmap  =27,
+    TEXTUREGROUP_ColorLookupTable=28,
+    TEXTUREGROUP_Terrain_Heightmap=29,
+    TEXTUREGROUP_Terrain_Weightmap=30,
+    TEXTUREGROUP_ImageBasedReflection=31,
+    TEXTUREGROUP_MAX        =32,
 };
 #define FOREACH_ENUM_TEXTUREGROUP(op) \
     op(TEXTUREGROUP_World) \
@@ -111,12 +117,11 @@ enum TextureGroup
     op(TEXTUREGROUP_Character) \
     op(TEXTUREGROUP_CharacterNormalMap) \
     op(TEXTUREGROUP_CharacterSpecular) \
+    op(TEXTUREGROUP_CharacterSpecPower) \
     op(TEXTUREGROUP_Weapon) \
     op(TEXTUREGROUP_WeaponNormalMap) \
     op(TEXTUREGROUP_WeaponSpecular) \
-    op(TEXTUREGROUP_Weapon3P) \
-    op(TEXTUREGROUP_Weapon3PNormalMap) \
-    op(TEXTUREGROUP_Weapon3PSpecular) \
+    op(TEXTUREGROUP_World_Low) \
     op(TEXTUREGROUP_Vehicle) \
     op(TEXTUREGROUP_VehicleNormalMap) \
     op(TEXTUREGROUP_VehicleSpecular) \
@@ -125,12 +130,19 @@ enum TextureGroup
     op(TEXTUREGROUP_EffectsNotFiltered) \
     op(TEXTUREGROUP_Skybox) \
     op(TEXTUREGROUP_UI) \
-    op(TEXTUREGROUP_LightAndShadowMap) \
+    op(TEXTUREGROUP_Lightmap) \
     op(TEXTUREGROUP_RenderTarget) \
     op(TEXTUREGROUP_World_Hi) \
     op(TEXTUREGROUP_WorldNormalMap_Hi) \
     op(TEXTUREGROUP_WorldSpecular_Hi) \
-    op(TEXTUREGROUP_Effects_Hi) 
+    op(TEXTUREGROUP_MobileFlattened) \
+    op(TEXTUREGROUP_ProcBuilding_Face) \
+    op(TEXTUREGROUP_ProcBuilding_LightMap) \
+    op(TEXTUREGROUP_Shadowmap) \
+    op(TEXTUREGROUP_ColorLookupTable) \
+    op(TEXTUREGROUP_Terrain_Heightmap) \
+    op(TEXTUREGROUP_Terrain_Weightmap) \
+    op(TEXTUREGROUP_ImageBasedReflection) 
 enum TextureAddress
 {
     TA_Wrap                 =0,
@@ -300,12 +312,11 @@ struct FTextureGroupContainer
     BITFIELD TEXTUREGROUP_Character:1;
     BITFIELD TEXTUREGROUP_CharacterNormalMap:1;
     BITFIELD TEXTUREGROUP_CharacterSpecular:1;
+    BITFIELD TEXTUREGROUP_CharacterSpecPower:1;
     BITFIELD TEXTUREGROUP_Weapon:1;
     BITFIELD TEXTUREGROUP_WeaponNormalMap:1;
     BITFIELD TEXTUREGROUP_WeaponSpecular:1;
-    BITFIELD TEXTUREGROUP_Weapon3P:1;
-    BITFIELD TEXTUREGROUP_Weapon3PNormalMap:1;
-    BITFIELD TEXTUREGROUP_Weapon3PSpecular:1;
+    BITFIELD TEXTUREGROUP_World_Low:1;
     BITFIELD TEXTUREGROUP_Vehicle:1;
     BITFIELD TEXTUREGROUP_VehicleNormalMap:1;
     BITFIELD TEXTUREGROUP_VehicleSpecular:1;
@@ -314,12 +325,19 @@ struct FTextureGroupContainer
     BITFIELD TEXTUREGROUP_EffectsNotFiltered:1;
     BITFIELD TEXTUREGROUP_Skybox:1;
     BITFIELD TEXTUREGROUP_UI:1;
-    BITFIELD TEXTUREGROUP_LightAndShadowMap:1;
+    BITFIELD TEXTUREGROUP_Lightmap:1;
     BITFIELD TEXTUREGROUP_RenderTarget:1;
     BITFIELD TEXTUREGROUP_World_Hi:1;
     BITFIELD TEXTUREGROUP_WorldNormalMap_Hi:1;
     BITFIELD TEXTUREGROUP_WorldSpecular_Hi:1;
-    BITFIELD TEXTUREGROUP_Effects_Hi:1;
+    BITFIELD TEXTUREGROUP_MobileFlattened:1;
+    BITFIELD TEXTUREGROUP_ProcBuilding_Face:1;
+    BITFIELD TEXTUREGROUP_ProcBuilding_LightMap:1;
+    BITFIELD TEXTUREGROUP_Shadowmap:1;
+    BITFIELD TEXTUREGROUP_ColorLookupTable:1;
+    BITFIELD TEXTUREGROUP_Terrain_Heightmap:1;
+    BITFIELD TEXTUREGROUP_Terrain_Weightmap:1;
+    BITFIELD TEXTUREGROUP_ImageBasedReflection:1;
     SCRIPT_ALIGN;
 
     /** Constructors */

@@ -3572,17 +3572,6 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 	{
 		check(Export.ObjectName!=NAME_None || !(Export.ObjectFlags&RF_Public));
 		check(GObjBeginLoadCount>0);
-
-#if BATMAN
-		if (LicenseeVer() == VER_BATMAN1)
-		{
-			warnf(TEXT("BM1 ObjectFlags: %d"), Export.ObjectFlags);
-		}
-		else if (LicenseeVer() == VER_BATMAN2)
-		{
-			warnf(TEXT("BM2 ObjectFlags: %d"), Export.ObjectFlags);
-		}
-#endif
 		
 #if BATMAN
 		// Load cooked packages as normal
@@ -3952,7 +3941,7 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 			Template
 		);
 
-#if BATMAN
+#if BATMAN && 0
 		if (LicenseeVer() >= VER_BATMAN1)
 		{
 			Export.ObjectFlags = (QWORD)(DWORD)Export.ObjectFlags;

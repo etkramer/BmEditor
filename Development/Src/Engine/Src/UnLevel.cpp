@@ -1686,7 +1686,7 @@ void ULevel::BuildStreamingData(UWorld* World, ULevel* TargetLevel/*=NULL*/, UTe
 		for ( TMap<UTexture2D*,TArray<FStreamableTextureInstance> >::TIterator It(Level->TextureToInstancesMap); It; ++It )
 		{
 			UTexture2D* Texture2D = TargetTexture ? TargetTexture : It.Key();
-			if ( Texture2D->LODGroup == /*TEXTUREGROUP_Lightmap || Texture2D->LODGroup == TEXTUREGROUP_Shadowmap*/ TEXTUREGROUP_LightAndShadowMap) // BATMAN
+			if ( Texture2D->LODGroup == TEXTUREGROUP_Lightmap || Texture2D->LODGroup == TEXTUREGROUP_Shadowmap )
 			{
 				TArray<FStreamableTextureInstance>& TextureInstances = It.Value();
 

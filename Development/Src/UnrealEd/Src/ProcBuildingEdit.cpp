@@ -364,11 +364,11 @@ public:
 		Params.bWantSourceArt = FALSE;
 		Params.CompressionSettings = TC_OneBitAlpha;
 		UTexture2D* FinalTexture = FImageUtils::CreateTexture2D(DiffuseTexWidth, DiffuseTexHeight, BaseColorBuffer, LowLODMesh->GetOutermost(), FString::Printf(TEXT("%s_Faces"), *LowLODMesh->GetName()), 0, Params);
-		FinalTexture->LODGroup = /*TEXTUREGROUP_ProcBuilding_Face*/TEXTUREGROUP_World; // BATMAN
+		FinalTexture->LODGroup = TEXTUREGROUP_ProcBuilding_Face;
 
 		Params.CompressionSettings = TC_Default;
 		UTexture2D* LightTexture = FImageUtils::CreateTexture2D(LightTexWidth, LightTexHeight, LightColorBuffer, LowLODMesh->GetOutermost(), FString::Printf(TEXT("%s_Light"), *LowLODMesh->GetName()), 0, Params);
-		LightTexture->LODGroup = /*TEXTUREGROUP_ProcBuilding_LightMap*/TEXTUREGROUP_LightAndShadowMap; // BATMAN
+		LightTexture->LODGroup = TEXTUREGROUP_ProcBuilding_LightMap;
 
 		UMaterialInstanceConstant* SimpleMIC = Cast<UMaterialInstanceConstant>(LowLODMesh->LODModels(0).Elements(0).Material);
 		check(SimpleMIC);

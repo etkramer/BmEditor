@@ -2396,7 +2396,7 @@ public:
 					HeightmapTexture->SRGB = FALSE;
 					HeightmapTexture->CompressionNone = TRUE;
 					HeightmapTexture->MipGenSettings = TMGS_LeaveExistingMips;
-					HeightmapTexture->LODGroup = /*TEXTUREGROUP_Terrain_Heightmap*/TEXTUREGROUP_World; // BATMAN
+					HeightmapTexture->LODGroup = TEXTUREGROUP_Terrain_Heightmap;
 					HeightmapTexture->AddressX = TA_Clamp;
 					HeightmapTexture->AddressY = TA_Clamp;
 
@@ -2562,7 +2562,7 @@ public:
 							CurrentWeightmapTexture->MipGenSettings = TMGS_LeaveExistingMips;
 							CurrentWeightmapTexture->AddressX = TA_Clamp;
 							CurrentWeightmapTexture->AddressY = TA_Clamp;
-							CurrentWeightmapTexture->LODGroup = /*TEXTUREGROUP_Terrain_Weightmap*/ TEXTUREGROUP_World; // BATMAN
+							CurrentWeightmapTexture->LODGroup = TEXTUREGROUP_Terrain_Weightmap;
 							// Alloc dummy mips
 							Comp->CreateEmptyWeightmapMips(CurrentWeightmapTexture);
 							CurrentWeightmapTexture->UpdateResource();

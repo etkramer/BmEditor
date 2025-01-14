@@ -602,7 +602,7 @@ void ConditionalFlattenMaterial(UMaterialInterface* MaterialInterface, UBOOL bRe
 			FlattenedName, RF_Public, ConstructTextureFlags);
 
 		// flattened textures go into new mobile group
-		FlattenedTexture->LODGroup = /*TEXTUREGROUP_MobileFlattened*/ TEXTUREGROUP_World; // BATMAN
+		FlattenedTexture->LODGroup = TEXTUREGROUP_MobileFlattened;
 
 		// assign this texture to be the dominant texture for this material
 		MaterialInterface->MobileBaseTexture = FlattenedTexture;

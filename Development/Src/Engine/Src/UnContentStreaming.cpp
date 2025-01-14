@@ -4316,18 +4316,12 @@ void FStreamingManagerTexture::InvestigateTexture( const FString& InvestigateTex
 			FLOAT ScreenSizeFactor;
 			switch ( StreamingTexture.LODGroup )
 			{
-#if BATMAN
-				case TEXTUREGROUP_LightAndShadowMap:
-					ScreenSizeFactor = GLightmapStreamingFactor;
-					break;
-#else
 				case TEXTUREGROUP_Lightmap:
 					ScreenSizeFactor = GLightmapStreamingFactor;
 					break;
 				case TEXTUREGROUP_Shadowmap:
 					ScreenSizeFactor = GShadowmapStreamingFactor;
 					break;
-#endif
 				default:
 					ScreenSizeFactor = 1.0f;
 			}
@@ -4415,18 +4409,12 @@ void FStreamingManagerTexture::DumpTextureInstances( const UPrimitiveComponent* 
 			FLOAT ScreenSizeFactor;
 			switch ( StreamingTexture.LODGroup )
 			{
-#if BATMAN
-				case TEXTUREGROUP_LightAndShadowMap:
-					ScreenSizeFactor = GLightmapStreamingFactor;
-					break;
-#else
 				case TEXTUREGROUP_Lightmap:
 					ScreenSizeFactor = GLightmapStreamingFactor;
 					break;
 				case TEXTUREGROUP_Shadowmap:
 					ScreenSizeFactor = GShadowmapStreamingFactor;
 					break;
-#endif
 				default:
 					ScreenSizeFactor = 1.0f;
 			}
@@ -4517,18 +4505,12 @@ INT FStreamingHandlerTextureStatic::GetWantedMips( FStreamingManagerTexture& Str
 		FLOAT ScreenSizeFactor;
 		switch ( StreamingTexture.LODGroup )
 		{
-#if BATMAN
-		case TEXTUREGROUP_LightAndShadowMap:
-			ScreenSizeFactor = GLightmapStreamingFactor;
-			break;
-#else
 			case TEXTUREGROUP_Lightmap:
 				ScreenSizeFactor = GLightmapStreamingFactor;
 				break;
 			case TEXTUREGROUP_Shadowmap:
 				ScreenSizeFactor = GShadowmapStreamingFactor;
 				break;
-#endif
 			default:
 				ScreenSizeFactor = 1.0f;
 		}
@@ -4554,11 +4536,7 @@ INT FStreamingHandlerTextureStatic::GetWantedMips( FStreamingManagerTexture& Str
 
 				UBOOL bDebug = FALSE;
 				FSphere DebugSphere;
-#if BATMAN
-				if (StreamingTexture.LODGroup == TEXTUREGROUP_LightAndShadowMap)
-#else
 				if ( StreamingTexture.LODGroup == TEXTUREGROUP_Lightmap || StreamingTexture.LODGroup == TEXTUREGROUP_Shadowmap )
-#endif
 				{
 					STAT( StreamingManager.NumStreamingLightmapInstances += TextureInstances->Num() );
 #ifdef _DEBUG
@@ -4664,18 +4642,12 @@ INT FStreamingHandlerTextureStatic::GetWantedMips2( FStreamingManagerTexture& St
 		FLOAT ScreenSizeFactor;
 		switch ( StreamingTexture.LODGroup )
 		{
-#if BATMAN
-			case TEXTUREGROUP_LightAndShadowMap:
-				ScreenSizeFactor = GLightmapStreamingFactor;
-				break;
-#else
 			case TEXTUREGROUP_Lightmap:
 				ScreenSizeFactor = GLightmapStreamingFactor;
 				break;
 			case TEXTUREGROUP_Shadowmap:
 				ScreenSizeFactor = GShadowmapStreamingFactor;
 				break;
-#endif
 			default:
 				ScreenSizeFactor = 1.0f;
 		}
@@ -4813,18 +4785,12 @@ void FStreamingManagerTexture::CalcDynamicWantedMips()
 						FLOAT ScreenSizeFactor = 1.0f;
 						switch ( StreamingTexture.LODGroup )
 						{
-#if BATMAN
-						case TEXTUREGROUP_LightAndShadowMap:
-							ScreenSizeFactor = GLightmapStreamingFactor;
-							break;
-#else
 							case TEXTUREGROUP_Lightmap:
 								ScreenSizeFactor = GLightmapStreamingFactor;
 								break;
 							case TEXTUREGROUP_Shadowmap:
 								ScreenSizeFactor = GShadowmapStreamingFactor;
 								break;
-#endif
 						}
 
 						ScreenSizeFactor *= StreamingTexture.BoostFactor;
