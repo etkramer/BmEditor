@@ -203,8 +203,8 @@ FArchive& operator<<( FArchive& Ar, FObjectExport& E )
 	// https://github.com/gildor2/UEViewer/blob/a0bfb468d42be831b126632fd8a0ae6b3614f981/Unreal/UnrealPackage/UnPackage3.cpp#L360
 	if (Ar.LicenseeVer() >= VER_BATMAN2)
 	{
-		int unk18 = 0;
-		Ar << unk18;
+		INT ReferencedObjects;
+		Ar << ReferencedObjects;
 	}
 #endif
 	Ar << E.ObjectFlags;
@@ -1433,7 +1433,7 @@ UBOOL ULinkerLoad::SerializeNameMap()
 		}
 	}
 
-	while( bFinishedPrecaching && NameMapIndex < Summary.NameCount && !IsTimeLimitExceeded(TEXT("serializing name map"), 100))
+	while( bFinishedPrecaching && NameMapIndex < Summary.NameCount && !IsTimeLimitExceeded(TEXT("serializing name map"),100) )
 	{
 		// Read the name entry from the file.
 		FNameEntry NameEntry(ENAME_LinkerConstructor);
@@ -3129,6 +3129,22 @@ void ULinkerLoad::LoadAllObjects( UBOOL bForcePreload )
 	{
 		LinkerRoot->MarkAsFullyLoaded();
 	}
+
+#if BATMAN
+	if (LicenseeVer() >= VER_BATMAN2)
+	{
+		for (INT i = 0; i < ExportMap.Num(); i++)
+		{
+			UObject* Object = ExportMap(i)._Object;
+
+			// BM2 packages don't want to show in the editor because of a missing RF_Public flag, so add it back manually.
+			if (Object != NULL)
+			{
+				Object->SetFlags(RF_Public);
+			}
+		}
+	}
+#endif
 }
 
 /**
@@ -3548,13 +3564,25 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 
 	// Check whether we already loaded the object and if not whether the context flags allow loading it.
 #if BATMAN
-	if (!Export._Object && ((Export.ObjectFlags & _ContextFlags) || LicenseeVer() >= VER_BATMAN2) )
+	// NOTE: Basically forces the object to be loaded if it's from Batman2. But why is _ContextFlags not set to begin with?
+	if( !Export._Object && ((Export.ObjectFlags & _ContextFlags) || LicenseeVer() >= VER_BATMAN2 ))
 #else
 	if( !Export._Object && (Export.ObjectFlags & _ContextFlags) )
 #endif
 	{
 		check(Export.ObjectName!=NAME_None || !(Export.ObjectFlags&RF_Public));
 		check(GObjBeginLoadCount>0);
+
+#if BATMAN
+		if (LicenseeVer() == VER_BATMAN1)
+		{
+			warnf(TEXT("BM1 ObjectFlags: %d"), Export.ObjectFlags);
+		}
+		else if (LicenseeVer() == VER_BATMAN2)
+		{
+			warnf(TEXT("BM2 ObjectFlags: %d"), Export.ObjectFlags);
+		}
+#endif
 		
 #if BATMAN
 		// Load cooked packages as normal
@@ -3925,7 +3953,7 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 		);
 
 #if BATMAN
-		if (LicenseeVer() >= VER_BATMAN2)
+		if (LicenseeVer() >= VER_BATMAN1)
 		{
 			Export.ObjectFlags = (QWORD)(DWORD)Export.ObjectFlags;
 			warnf(TEXT("Constructed object '%s'"), *Export._Object->GetFullName());

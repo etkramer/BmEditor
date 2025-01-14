@@ -183,7 +183,7 @@ struct FPropertyTagBat2
 			}
 			else if (Tag.Type == NAME_NameProperty)
 			{
-				Tag.Size = sizeof(INT) + sizeof(INT);
+				Tag.Size = sizeof(FName);
 			}
 			else if (Tag.Type == NAME_VectorProperty || Tag.Type == NAME_RotatorProperty)
 			{
