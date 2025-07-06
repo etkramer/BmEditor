@@ -658,7 +658,6 @@ void UEngine::Init()
 	}
 #endif
 
-
 	debugf( NAME_Init, TEXT("UEngine initialized") );
 }
 

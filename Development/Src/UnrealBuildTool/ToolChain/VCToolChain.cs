@@ -47,8 +47,8 @@ namespace UnrealBuildTool
 			// Disable "The file contains a character that cannot be represented in the current code page" warning for non-US windows.
 			Result += " /wd4819";
 
-			// Handle Common Language Runtime support (C++/CLI)
-			if( CompileEnvironment.CLRMode == CPPCLRMode.CLREnabled )
+            // Handle Common Language Runtime support (C++/CLI)
+            if ( CompileEnvironment.CLRMode == CPPCLRMode.CLREnabled )
 			{
 				Result += " /clr";
 			}
@@ -222,13 +222,13 @@ namespace UnrealBuildTool
 				Result += " /GR-";
 			}
 
-			// Treat warnings as errors.
-			Result += " /WX";
+            // Treat warnings as errors.
+            // Result += " /WX";
 
-			// Level 4 warnings.
-			Result += " /W4";
+            // Level 4 warnings.
+            Result += " /W4";
 
-			return Result;
+            return Result;
 		}
 		
 		static string GetCLArguments_C()
@@ -949,7 +949,7 @@ namespace UnrealBuildTool
 				
 				// Retrieve the Windows SDK path from the registry. This is needed as Visual Studio 2008 no longer includes
 				// the Platform/ Windows SDK but rather installs it.
-				var ExpectedWindowsSDKVersion = "v7.0A";
+				var ExpectedWindowsSDKVersion = "v7.1A";
 				RegistryKey Key = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Microsoft SDKs\\Windows\\" + ExpectedWindowsSDKVersion);
 				if (Key == null)
 				{

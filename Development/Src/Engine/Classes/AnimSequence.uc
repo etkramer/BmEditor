@@ -287,7 +287,7 @@ struct native AnimTag
  * Animation tag for stat system: This is temporary until we can add content tag to animation
  * Currently it auto tags based on "contains" - Check DefaultEngine.ini for modification
  */
-var config editoronly array<AnimTag> AnimTags;	
+var config editoronly array<AnimTag> AnimTags; 
 
 cpptext
 {

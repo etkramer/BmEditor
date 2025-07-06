@@ -20,6 +20,6 @@ THE WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR ANY PURPOSE.
 **********************************************************************/
 
 // DEPRECATED
-class FlashMovie extends SwfMovie
+class GFxMovieInfo extends SwfMovie
 	native
 	editinlinenew;

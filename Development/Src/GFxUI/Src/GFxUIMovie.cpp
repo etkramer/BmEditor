@@ -51,7 +51,7 @@ IMPLEMENT_CLASS(UGFxObject);
 IMPLEMENT_CLASS(UGFxFSCmdHandler);
 IMPLEMENT_CLASS(UGFxRawData);
 IMPLEMENT_CLASS(USwfMovie);
-IMPLEMENT_CLASS(UFlashMovie);
+IMPLEMENT_CLASS(UGFxMovieInfo);
 
 void UGFxRawData::SetRawData(const BYTE *data, UINT size)
 {
@@ -2375,7 +2375,7 @@ IMPLEMENT_CLASS(UGFxObject);
 IMPLEMENT_CLASS(UGFxFSCmdHandler);
 IMPLEMENT_CLASS(UGFxRawData);
 IMPLEMENT_CLASS(USwfMovie);
-IMPLEMENT_CLASS(UFlashMovie);
+IMPLEMENT_CLASS(UGFxMovieInfo);
 
 void UGFxRawData::SetRawData(const BYTE *data, UINT size){}
 

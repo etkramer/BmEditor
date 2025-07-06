@@ -6195,11 +6195,11 @@ void UObject::ProcessEvent( UFunction* Function, void* Parms, void* UnusedResult
 
 	// Reject.
 	if
-	(	(!(Function->FunctionFlags & (FUNC_Native | FUNC_Defined)))
+	(	(!(Function->FunctionFlags & (FUNC_Native | FUNC_Defined))) // (ETK: Skip if both non-native and non-defined)
 	||	!IsProbing( Function->GetFName() )
 	||	IsPendingKill()
-	||	Function->iNative
-	||	((Function->FunctionFlags & FUNC_Native) && ProcessRemoteFunction( Function, Parms, NULL )) )
+	||	Function->iNative // (ETK: Skip if there's a native index)
+	||	((Function->FunctionFlags & FUNC_Native) && ProcessRemoteFunction( Function, Parms, NULL )) ) // (ETK: Skip if this is a remote function)
 		return;
 	checkSlow(Function->ParmsSize==0 || Parms!=NULL);
 

@@ -1565,14 +1565,14 @@ public:
 	virtual void PostLoad( void );
 };
 
-class UFlashMovie : public USwfMovie
+class UGFxMovieInfo : public USwfMovie
 {
 public:
-    //## BEGIN PROPS FlashMovie
-    //## END PROPS FlashMovie
+    //## BEGIN PROPS GFxMovieInfo
+    //## END PROPS GFxMovieInfo
 
-    DECLARE_CLASS(UFlashMovie,USwfMovie,0,GFxUI)
-    NO_DEFAULT_CONSTRUCTOR(UFlashMovie)
+    DECLARE_CLASS(UGFxMovieInfo,USwfMovie,0,GFxUI)
+    NO_DEFAULT_CONSTRUCTOR(UGFxMovieInfo)
 };
 
 #undef DECLARE_CLASS
@@ -1726,7 +1726,7 @@ AUTOGENERATE_FUNCTION(UGFxObject,-1,execGet);
 	GNativeLookupFuncs.Set(FName("GFxObject"), GGFxUIUGFxObjectNatives); \
 	UGFxRawData::StaticClass(); \
 	USwfMovie::StaticClass(); \
-	UFlashMovie::StaticClass(); \
+	UGFxMovieInfo::StaticClass(); \
 
 #endif // GFXUI_NATIVE_DEFS
 
@@ -1891,7 +1891,7 @@ VERIFY_CLASS_SIZE_NODIE(UGFxRawData)
 VERIFY_CLASS_OFFSET_NODIE(USwfMovie,SwfMovie,SourceFile)
 VERIFY_CLASS_OFFSET_NODIE(USwfMovie,SwfMovie,ImportTimeStamp)
 VERIFY_CLASS_SIZE_NODIE(USwfMovie)
-VERIFY_CLASS_SIZE_NODIE(UFlashMovie)
+VERIFY_CLASS_SIZE_NODIE(UGFxMovieInfo)
 #endif // VERIFY_CLASS_SIZES
 #endif // !ENUMS_ONLY
 

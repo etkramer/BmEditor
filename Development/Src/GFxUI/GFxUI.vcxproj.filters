@@ -12,9 +12,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Classes\FlashMovie.uc">
-      <Filter>Classes</Filter>
-    </None>
     <None Include="Classes\GFxAction_CloseMovie.uc">
       <Filter>Classes</Filter>
     </None>
@@ -66,6 +63,7 @@
     <None Include="Classes\SwfMovie.uc">
       <Filter>Classes</Filter>
     </None>
+    <None Include="Classes\GFxMovieInfo.uc" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Inc\GFxUI.h">
