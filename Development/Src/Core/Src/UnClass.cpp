@@ -645,13 +645,6 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 	UClass* DefaultsClass = Cast<UClass>(DefaultsStruct);
 	UScriptStruct* DefaultsScriptStruct = Cast<UScriptStruct>(DefaultsStruct);
 
-#if BATMAN
-	if (Ar.LicenseeVer() >= VER_BATMAN2)
-	{
-		//warnf(TEXT("Serializing props for struct '%s'"), *GetFullName());
-	}
-#endif
-
 	if( Ar.IsLoading() )
 	{
 		// Load tagged properties.
@@ -668,17 +661,10 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 		{
 			FPropertyTag Tag;
 #if BATMAN
-			FPropertyTagBat2 TagBat;
 			if (Ar.LicenseeVer() >= VER_BATMAN2)
 			{
 				FPropertyTagBat2 TagBat;
 				Ar << TagBat;
-
-				if (TagBat.Type != 0 && TagBat.Name == NAME_None)
-				{
-					TagBat.Name = TagBat.GetHardcodedName(DefaultsStruct);
-				}
-
 				Tag.Type = FName((EName)TagBat.Type);
 				Tag.BoolVal = TagBat.BoolVal;
 				Tag.Name = TagBat.Name;
@@ -935,7 +921,7 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 			}
 #if BATMAN
 			// https://github.com/gildor2/UEViewer/blob/a0bfb468d42be831b126632fd8a0ae6b3614f981/Unreal/UnObject.cpp#L1285
-			else if (Tag.Type == NAME_StructProperty && Tag.StructName != CastChecked<UStructProperty>(Property)->Struct->GetFName() && Tag.StructName != NAME_Name )
+			else if (Tag.Type == NAME_StructProperty && Tag.StructName != CastChecked<UStructProperty>(Property)->Struct->GetFName() && Tag.StructName != NAME_None )
 #else
 			else if( Tag.Type==NAME_StructProperty && Tag.StructName!=CastChecked<UStructProperty>(Property)->Struct->GetFName() )
 #endif

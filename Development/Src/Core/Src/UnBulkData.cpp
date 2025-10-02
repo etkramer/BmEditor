@@ -641,7 +641,11 @@ void FUntypedBulkData::Serialize( FArchive& Ar, UObject* Owner, INT Idx )
 			Ar << BulkDataOffsetInFile;
 
 			// Skip serialization of bulk data if it's stored in a separate file
+#if BATMAN
+            if ( !(BulkDataFlags & BULKDATA_StoreInSeparateFile) && (BulkDataOffsetInFile != INDEX_NONE) )
+#else
 			if( !(BulkDataFlags & BULKDATA_StoreInSeparateFile) )
+#endif
 			{
 				checkf( BulkDataOffsetInFile == Ar.Tell(), TEXT("Bad offset for %s"), *Owner->GetFullName() );
 			

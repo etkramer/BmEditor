@@ -1417,11 +1417,7 @@ UBOOL ULinkerLoad::SerializeNameMap()
 	{
 		Seek( Summary.NameOffset );
 		// Make sure there is something to precache first.
-#if BATMAN
-		if( Summary.TotalHeaderSize > 0 && LicenseeVer() < VER_BATMAN2 )
-#else
 		if( Summary.TotalHeaderSize > 0 )
-#endif
 		{
 			// Precache name, import and export map.
 			bFinishedPrecaching = Loader->Precache( Summary.NameOffset, Summary.TotalHeaderSize - Summary.NameOffset );
@@ -3650,6 +3646,35 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 			LoadClass = UClass::StaticClass();
 		}
 
+#if BATMAN
+        // Skip currently unsupported types from BM packages
+        if (LicenseeVer() >= VER_BATMAN2 && (
+            // These load but don't render properly (needs new BM2 compression).
+            LoadClass->GetName() == "AnimSet" ||
+            LoadClass->GetName() == "AnimSequence" ||
+
+            // These load but don't render properly (needs RefShaderCache compat).
+            // Ignoring for now so we fall back to the prettier default mat.
+            LoadClass->GetName() == "Material" ||
+
+            // Don't load levels until we've got at least meshes working
+            LoadClass->GetName() == "Level" ||
+            LoadClass->GetName() == "World" ||
+
+            // TEMP!
+            LoadClass->GetName() == "SkeletalMesh" ||
+            LoadClass->GetName() == "StaticMesh" ||
+
+            LoadClass->GetName() == "PhysicsAsset" ||
+            LoadClass->GetName() == "RB_BodySetup" ||
+            LoadClass->GetName() == "FaceFxAnimSet" ||
+            LoadClass->GetName() == "FracturedStaticMesh"
+            ))
+        {
+            return NULL;
+        }
+#endif
+
 #if SUPPORTS_SCRIPTPATCH_CREATION
 		//@script patcher: when running the patch commandlet, we'll have multiple versions of native classes in memory, but only the first will
 		// receive the correct ClassConstructor, so if we're about to create a class that already exists in memory (in another package), copy its class
@@ -3940,14 +3965,6 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 			LoadFlags | (GIsInitialLoad ? (RF_RootSet | RF_DisregardForGC) : 0),
 			Template
 		);
-
-#if BATMAN && 0
-		if (LicenseeVer() >= VER_BATMAN1)
-		{
-			Export.ObjectFlags = (QWORD)(DWORD)Export.ObjectFlags;
-			warnf(TEXT("Constructed object '%s'"), *Export._Object->GetFullName());
-		}
-#endif
 		
 		if( Export._Object )
 		{

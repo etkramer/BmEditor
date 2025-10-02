@@ -11,7 +11,11 @@
  * Warning: Incrementing this effectively requires a content resave!
  * Do not use this version for native serialization backwards compatibility, instead use VER_LATEST_ENGINE/VER_LATEST_ENGINE_LICENSEE.
  */
+#if BATMAN
+#define STATICMESH_VERSION 19
+#else
 #define STATICMESH_VERSION 18
+#endif
 
 /**
  * FStaticMeshTriangle
@@ -375,14 +379,6 @@ public:
 		{
 			Ar << E.Fragments;
 		}
-
-#if BATMAN
-		if (Ar.LicenseeVer() >= VER_BATMAN2)
-		{
-			UObject* unk4;
-			Ar << unk4;
-		}
-#endif
 
 		if (Ar.Ver() >= VER_ADDED_PLATFORMMESHDATA)
 		{

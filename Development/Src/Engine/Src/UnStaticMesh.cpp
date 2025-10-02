@@ -303,15 +303,6 @@ FArchive& operator<<(FArchive& Ar,FPositionVertexBuffer& VertexBuffer)
 {
 	Ar << VertexBuffer.Stride << VertexBuffer.NumVertices;
 
-#if BATMAN
-	// https://github.com/gildor2/UEViewer/blob/a0bfb468d42be831b126632fd8a0ae6b3614f981/Unreal/UnrealMesh/UnMesh3.cpp#L2677
-	if (Ar.LicenseeVer() >= VER_BATMAN1)
-	{
-		INT Unk18 = 1;
-		Ar << Unk18;
-	}
-#endif
-
 	if(Ar.IsLoading())
 	{
 		// Allocate the vertex data storage type.
@@ -989,26 +980,11 @@ void FStaticMeshVertexBuffer::ConvertToFullPrecisionUVs()
 	}
 }
 
-#if BATMAN
-// TODO: IMPLEMENT
-static BOOL GStripStaticNormals = FALSE;
-#endif
-
 /** Serializer. */
 FArchive& operator<<(FArchive& Ar,FStaticMeshVertexBuffer& VertexBuffer)
 {
 	Ar << VertexBuffer.NumTexCoords << VertexBuffer.Stride << VertexBuffer.NumVertices;
 	Ar << VertexBuffer.bUseFullPrecisionUVs;
-
-#if BATMAN
-	BOOL HasNormals = TRUE;
-	if (Ar.LicenseeVer() >= VER_BATMAN2 && Ar.LicenseeVer() <= VER_BATMAN4)
-	{
-		Ar << HasNormals;
-	}
-
-	GStripStaticNormals = !HasNormals;
-#endif
 
 	if( Ar.IsLoading() )
 	{

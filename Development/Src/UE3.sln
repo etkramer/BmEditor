@@ -35,7 +35,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OnlineSubsystemPC", "Online
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "XAudio2", "XAudio2\XAudio2.vcxproj", "{59496D24-4556-4DF9-814A-157366C784E6}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Studio", "..\External\FaceFX\Studio\Studio_vs9.vcxproj", "{CB870BCA-E5E6-467F-AA38-CE5DF837D968}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Studio_vs9", "..\External\FaceFX\Studio\Studio_vs9.vcxproj", "{CB870BCA-E5E6-467F-AA38-CE5DF837D968}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OnlineSubsystemSteamworks", "OnlineSubsystemSteamworks\OnlineSubsystemSteamworks.vcxproj", "{EC63BC3B-61DC-4831-A12E-A1E5441D4A8B}"
 EndProject
@@ -98,7 +98,7 @@ Global
 		{FD7C5E1A-CFE4-4FD5-A525-1EB1599A39AC}.Debug (Unreal)|Xbox 360.ActiveCfg = Debug|Any CPU
 		{FD7C5E1A-CFE4-4FD5-A525-1EB1599A39AC}.Debug|Mixed platforms.ActiveCfg = Release|Any CPU
 		{FD7C5E1A-CFE4-4FD5-A525-1EB1599A39AC}.Debug|Mixed platforms.Build.0 = Release|Any CPU
-		{FD7C5E1A-CFE4-4FD5-A525-1EB1599A39AC}.Debug|Win32.ActiveCfg = Debug|Any CPU
+		{FD7C5E1A-CFE4-4FD5-A525-1EB1599A39AC}.Debug|Win32.ActiveCfg = Release|Any CPU
 		{FD7C5E1A-CFE4-4FD5-A525-1EB1599A39AC}.Debug|x64.ActiveCfg = Debug|Any CPU
 		{FD7C5E1A-CFE4-4FD5-A525-1EB1599A39AC}.Debug|Xbox 360.ActiveCfg = Debug|Any CPU
 		{FD7C5E1A-CFE4-4FD5-A525-1EB1599A39AC}.PS3 Debug|Mixed platforms.ActiveCfg = Debug|Any CPU

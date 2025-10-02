@@ -698,8 +698,7 @@ enum ELicenseeVersion
 {
 	VER_BATMAN1 = 21,
 	VER_BATMAN2 = 101,
-	VER_BATMAN3 = 103,
-	VER_BATMAN4 = 227
+    VER_BATMAN3 = 138
 };
 #endif
 

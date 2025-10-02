@@ -32,7 +32,13 @@ public:
 	*/
 	UBOOL GetShowAtStartup() const
 	{
+#if BATMAN
+        // BM: Disabled for now because it's a bit annoying
+        // and the checkbox doesn't work.
+        return FALSE;
+#else
 		return CheckStartupShow->GetValue();
+#endif
 	}
 
 private:
