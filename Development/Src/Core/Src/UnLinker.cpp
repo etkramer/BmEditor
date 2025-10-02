@@ -224,6 +224,15 @@ FArchive& operator<<( FArchive& Ar, FObjectExport& E )
 	Ar << E.PackageGuid;
 	Ar << E.PackageFlags;
 
+#if BATMAN
+    // BM3 packages report 807, but are missing most changes from VER_DWORD_SKELETAL_MESH_INDICES.
+    // For now, let's force these to be interpreted as 805.
+    if (Ar.Ver() == 807 && Ar.LicenseeVer() == VER_BATMAN3)
+    {
+        Ar.SetVer(805);
+    }
+#endif
+
 	return Ar;
 }
 
@@ -3661,8 +3670,7 @@ UObject* ULinkerLoad::CreateExport( INT Index )
             LoadClass->GetName() == "Level" ||
             LoadClass->GetName() == "World" ||
 
-            // TEMP!
-            LoadClass->GetName() == "SkeletalMesh" ||
+            // Don't load static meshes for now
             LoadClass->GetName() == "StaticMesh" ||
 
             LoadClass->GetName() == "PhysicsAsset" ||

@@ -1054,6 +1054,13 @@ FArchive& operator<<(FArchive& Ar, FMultiSizeIndexContainer& Buffer)
 	{
 		Buffer.NeedsCPUAccess = TRUE;
 		Buffer.DataTypeSize = sizeof(WORD);
+
+#if BATMAN
+        if (Ar.LicenseeVer() == VER_BATMAN3)
+        {
+            Ar << Buffer.NeedsCPUAccess;
+        }
+#endif
 	}
 	else
 	{

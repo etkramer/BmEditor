@@ -11,11 +11,7 @@
  * Warning: Incrementing this effectively requires a content resave!
  * Do not use this version for native serialization backwards compatibility, instead use VER_LATEST_ENGINE/VER_LATEST_ENGINE_LICENSEE.
  */
-#if BATMAN
-#define STATICMESH_VERSION 19
-#else
 #define STATICMESH_VERSION 18
-#endif
 
 /**
  * FStaticMeshTriangle
