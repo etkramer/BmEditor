@@ -1876,7 +1876,7 @@ struct FBoneBounds
 		return Ar << B.BoneIndex << B.Min << B.Max;
 	}
 };
-#endif // BATMAN
+#endif
 
 /** 
 * Serialize 

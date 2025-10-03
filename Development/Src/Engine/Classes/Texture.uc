@@ -56,9 +56,11 @@ enum TextureGroup
 	TEXTUREGROUP_Character<DisplayName=Character>,
 	TEXTUREGROUP_CharacterNormalMap<DisplayName=CharacterNormalMap>,
 	TEXTUREGROUP_CharacterSpecular<DisplayName=CharacterSpecular>,
+    TEXTUREGROUP_CharacterSpecularPower<DisplayName=CharacterSpecularPower>,
 	TEXTUREGROUP_Weapon<DisplayName=Weapon>,
 	TEXTUREGROUP_WeaponNormalMap<DisplayName=WeaponNormalMap>,
 	TEXTUREGROUP_WeaponSpecular<DisplayName=WeaponSpecular>,
+    TEXTUREGROUP_World_Low<DisplayName=World_Low>,
 	TEXTUREGROUP_Vehicle<DisplayName=Vehicle>,
 	TEXTUREGROUP_VehicleNormalMap<DisplayName=VehicleNormalMap>,
 	TEXTUREGROUP_VehicleSpecular<DisplayName=VehicleSpecular>,
@@ -69,6 +71,9 @@ enum TextureGroup
 	TEXTUREGROUP_UI<DisplayName=UI>,
 	TEXTUREGROUP_Lightmap<DisplayName=Lightmap>,
 	TEXTUREGROUP_RenderTarget<DisplayName=RenderTarget>,
+    TEXTUREGROUP_World_Hi<DisplayName=World_Hi>,
+    TEXTUREGROUP_WorldNormalMap_Hi<DisplayName=WorldNormalMap_Hi>,
+    TEXTUREGROUP_WorldSpecular_Hi<DisplayName=WorldSpecular_Hi>,
 	TEXTUREGROUP_MobileFlattened<DisplayName=MobileFlattened>,
 	TEXTUREGROUP_ProcBuilding_Face<DisplayName=ProcBuilding_Face>,
 	TEXTUREGROUP_ProcBuilding_LightMap<DisplayName=ProcBuilding_LightMap>,
@@ -77,7 +82,6 @@ enum TextureGroup
 	TEXTUREGROUP_Terrain_Heightmap<DisplayName=Terrain_Heightmap>,
 	TEXTUREGROUP_Terrain_Weightmap<DisplayName=Terrain_Weightmap>,
 	TEXTUREGROUP_ImageBasedReflection<DisplayName=ImageBasedReflection>,
-	TEXTUREGROUP_Bokeh<DisplayName=Bokeh>,
 };
 
 // Helper struct to be able to select multiple texture groups in the UI.
@@ -94,9 +98,11 @@ struct native TextureGroupContainer
 	var()	const bool	TEXTUREGROUP_Character;
 	var()	const bool	TEXTUREGROUP_CharacterNormalMap;
 	var()	const bool	TEXTUREGROUP_CharacterSpecular;
+    var()	const bool	TEXTUREGROUP_CharacterSpecPower;
 	var()	const bool	TEXTUREGROUP_Weapon;
 	var()	const bool	TEXTUREGROUP_WeaponNormalMap;
 	var()	const bool	TEXTUREGROUP_WeaponSpecular;
+    ar()	const bool	TEXTUREGROUP_World_Low;
 	var()	const bool	TEXTUREGROUP_Vehicle;
 	var()	const bool	TEXTUREGROUP_VehicleNormalMap;
 	var()	const bool	TEXTUREGROUP_VehicleSpecular;
@@ -107,6 +113,9 @@ struct native TextureGroupContainer
 	var()	const bool	TEXTUREGROUP_UI;
 	var()	const bool	TEXTUREGROUP_Lightmap;
 	var()	const bool	TEXTUREGROUP_RenderTarget;
+    var()	const bool	TEXTUREGROUP_World_Hi;
+    var()	const bool	TEXTUREGROUP_WorldNormalMap_Hi;
+    var()	const bool	TEXTUREGROUP_WorldSpecular_Hi;
 	var()	const bool	TEXTUREGROUP_MobileFlattened;
 	var()	const bool	TEXTUREGROUP_ProcBuilding_Face;
 	var()	const bool	TEXTUREGROUP_ProcBuilding_LightMap;
@@ -115,11 +124,10 @@ struct native TextureGroupContainer
 	var()	const bool	TEXTUREGROUP_Terrain_Heightmap;
 	var()	const bool	TEXTUREGROUP_Terrain_Weightmap;
 	var()	const bool	TEXTUREGROUP_ImageBasedReflection;
-	var()	const bool	TEXTUREGROUP_Bokeh;
 };
 */
 
-// BATMAN
+// BM
 // @warning: if this is changed
 //     update BaseEngine.ini SystemSettings
 //     update BaseCompat.ini AppCompatBucket 1 2 3
@@ -165,7 +173,7 @@ enum TextureGroup
     TEXTUREGROUP_ImageBasedReflection,
 };
 
-// BATMAN
+// BM
 // Helper struct to be able to select multiple texture groups in the UI.
 // 
 // @warning: Must match the TextureGroup enum and must fit 32 bits.
