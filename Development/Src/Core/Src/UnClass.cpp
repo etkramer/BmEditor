@@ -915,6 +915,18 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 				continue;
 			}
 #endif
+#if BATMAN
+            // Handle NAME_VectorProperty and NAME_RotatorProperty
+            else if (Ar.LicenseeVer() == VER_BATMAN3 && ((Tag.Type == NAME_VectorProperty) || (Tag.Type == NAME_RotatorProperty)))
+            {
+                FVector VectorValue;
+                Ar << VectorValue;
+
+                *(FVector*)(Data + Property->Offset + Tag.ArrayIndex * Property->ElementSize) = VectorValue;
+                AdvanceProperty = TRUE;
+                continue;
+            }
+#endif
 			else if( Tag.Type!=Property->GetID() )
 			{
 				debugf( NAME_Warning, TEXT("Type mismatch in %s of %s - Previous (%s) Current(%s) for package:  %s"), *Tag.Name.ToString(), *GetName(), *Tag.Type.ToString(), *Property->GetID().ToString(), *Ar.GetArchiveName() );
