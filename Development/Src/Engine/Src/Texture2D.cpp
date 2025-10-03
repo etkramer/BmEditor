@@ -632,6 +632,50 @@ void UTexture2D::Serialize(FArchive& Ar)
 	Super::Serialize(Ar);
 	LegacySerialize(Ar);
 
+#if BATMAN
+	// BM3: Fully load mips from .TFC
+	if (GIsEditor && TextureFileCacheName != NAME_None)
+	{
+		// Figure out TFC path
+		FString TextureCacheString = TextureFileCacheName.ToString() + TEXT(".") + GSys->TextureFileCacheExtension;
+		FString	PlatformName = TEXT("PCConsole");
+		FString Filename = appGameDir() + TEXT("Cooked") + PlatformName * TextureCacheString;
+
+		// Open TFC for reading
+		FArchive* FileReader = GFileManager->CreateFileReader(*Filename);
+		check(FileReader);
+
+		// Unset TextureFileCacheName
+		TextureFileCacheName = NAME_None;
+
+		for (INT i = 0; i < Mips.Num(); i++)
+		{
+			FTexture2DMipMap& MipMap = Mips(i);
+
+			// Skip resident/non-streamed mips
+			if (!MipMap.Data.IsStoredInSeparateFile() || MipMap.Data.GetBulkDataOffsetInFile() == INDEX_NONE)
+			{
+				continue;
+			}
+
+			// Read raw bytes from disk
+			TArray<BYTE> RawData(MipMap.Data.GetBulkDataSize());
+			FileReader->Seek(MipMap.Data.GetBulkDataOffsetInFile());
+			FileReader->SerializeCompressed(RawData.GetData(), MipMap.Data.GetBulkDataSizeOnDisk(), MipMap.Data.GetDecompressionFlags());
+
+			// Copy raw bytes to new bulk data
+			FTextureMipBulkData NewBulkData;
+			NewBulkData.Lock(LOCK_READ_WRITE);
+			appMemcpy(NewBulkData.Realloc(MipMap.Data.GetBulkDataSize()), RawData.GetData(), MipMap.Data.GetBulkDataSize());
+			NewBulkData.Unlock();
+
+			// Use this new bulk data
+			MipMap.Data.ClearBulkDataFlags(BULKDATA_StoreInSeparateFile);
+			MipMap.Data = NewBulkData;
+		}
+	}
+#endif
+
 	// Keep track of the fact that we have been loaded from a persistent archive as it's a prerequisite of
 	// being streamable.
 	if( Ar.IsLoading() && Ar.IsPersistent() )
@@ -992,7 +1036,11 @@ void UTexture2D::SetLinker( ULinkerLoad* LinkerLoad, INT LinkerIndex )
 {
 	// We never change linkers in the case of seekfree loading though will reset them/ set them to NULL
 	// and don't want to load the texture data in this case.
+#if BATMAN
+	if( GetLinker() && GetLinker()->IsBmCooked() )
+#else
 	if( GUseSeekFreeLoading )
+#endif
 	{
 		// Route the call to change the linker.
 		Super::SetLinker( LinkerLoad, LinkerIndex );
@@ -1801,20 +1849,6 @@ FTextureResource* UTexture2D::CreateResource()
 		RequestedMips	= Max( RequestedMips, 1 );
 		ResidentMips	= RequestedMips;
 	}
-
-#if BATMAN
-	// TEMPORARY HACK
-	// Until we figure out why the engine won't load mips from the .TFC, let's just only use ones that are local
-	for (INT i = 0; i < RequestedMips; i++)
-	{
-		if (Mips(Mips.Num() - 1 - i).Data.IsStoredInSeparateFile())
-		{
-			RequestedMips = i;
-			ResidentMips = RequestedMips;
-			break;
-		}
-	}
-#endif
 
 	if( GUsingMobileRHI )
 	{
