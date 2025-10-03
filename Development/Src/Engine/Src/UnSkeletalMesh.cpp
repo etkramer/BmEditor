@@ -1056,7 +1056,7 @@ FArchive& operator<<(FArchive& Ar, FMultiSizeIndexContainer& Buffer)
 		Buffer.DataTypeSize = sizeof(WORD);
 
 #if BATMAN
-        if (Ar.LicenseeVer() == VER_BATMAN3)
+        if (Ar.IsBmCooked())
         {
             Ar << Buffer.NeedsCPUAccess;
         }
@@ -1888,7 +1888,7 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 	Ar << Bounds;
 #if BATMAN
 	// https://github.com/gildor2/UEViewer/blob/a0bfb468d42be831b126632fd8a0ae6b3614f981/Unreal/UnrealMesh/UnMesh3.cpp#L1978
-	if (Ar.LicenseeVer() >= VER_BATMAN1)
+	if (Ar.IsBmCooked())
     {
 		float ConservativeBounds;
 		TArray<FBoneBounds> PerBoneBounds;

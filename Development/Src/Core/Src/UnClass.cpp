@@ -661,7 +661,7 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 		{
 			FPropertyTag Tag;
 #if BATMAN
-			if (Ar.LicenseeVer() >= VER_BATMAN2)
+			if (Ar.IsBmCooked())
 			{
 				FPropertyTagBat2 TagBat;
 				Ar << TagBat;
@@ -886,7 +886,7 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 			}
 #if BATMAN
             // Found ByteProperty, read as value or as enum name
-			else if (Ar.LicenseeVer() >= VER_BATMAN2 && Tag.Type == NAME_ByteProperty)
+			else if (Ar.IsBmCooked() && Tag.Type == NAME_ByteProperty)
 			{
                 check(Tag.Size == 1 || Tag.Size == 8);
 
@@ -920,7 +920,7 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 #endif
 #if BATMAN
             // Found GUIDProperty, read as plain FGuid
-			else if (Ar.LicenseeVer() >= VER_BATMAN2 && Tag.Type == NAME_GUIDProperty)
+			else if (Ar.IsBmCooked() && Tag.Type == NAME_GUIDProperty)
 			{
 				FGuid GuidValue;
 				Ar << GuidValue;
@@ -932,7 +932,7 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 #endif
 #if BATMAN
             // Found ObjectNCRProperty, read as plain object reference
-            else if (Ar.LicenseeVer() >= VER_BATMAN2 && Tag.Type == NAME_ObjectNCRProperty)
+            else if (Ar.IsBmCooked() && Tag.Type == NAME_ObjectNCRProperty)
             {
                 UObject* ObjValue;
                 Ar << ObjValue;
@@ -944,7 +944,7 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 #endif
 #if BATMAN
             // Found RotatorProperty/VectorProperty, read manually if engine was expecting a StructProperty
-            else if (Ar.LicenseeVer() == VER_BATMAN3 && ((Tag.Type == NAME_VectorProperty) || (Tag.Type == NAME_RotatorProperty)))
+            else if (Ar.IsBmCooked() && ((Tag.Type == NAME_VectorProperty) || (Tag.Type == NAME_RotatorProperty)))
             {
                 // Same size as FRotator
                 FVector VectorValue;
@@ -1291,7 +1291,7 @@ void UStruct::Serialize( FArchive& Ar )
 		INT const BytecodeStartOffset = Ar.Tell();
 
 #if BATMAN
-		if (Ar.IsPersistent() && Ar.GetLinker() && Ar.LicenseeVer() < VER_BATMAN1)
+		if (Ar.IsPersistent() && Ar.GetLinker() && !Ar.IsBmCooked())
 #else
 		if (Ar.IsPersistent() && Ar.GetLinker())
 #endif

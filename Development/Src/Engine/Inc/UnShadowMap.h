@@ -651,18 +651,6 @@ struct FMeshEdge
 
 	friend FArchive& operator<<(FArchive& Ar,FMeshEdge& E)
 	{
-#if BATMAN
-		// https://github.com/gildor2/UEViewer/blob/a0bfb468d42be831b126632fd8a0ae6b3614f981/Unreal/UnrealMesh/UnMesh3.cpp#L1978
-		if (Ar.LicenseeVer() == VER_BATMAN1) {
-			SHORT Vertices[2], Faces[2];
-			Ar << Vertices[0] << Vertices[1] << Faces[0] << Faces[1];
-			E.Vertices[0] = Vertices[0];
-			E.Vertices[1] = Vertices[1];
-			E.Faces[0] = Faces[0];
-			E.Faces[1] = Faces[1];
-			return Ar;
-		}
-#endif
 		return Ar << E.Vertices[0] << E.Vertices[1] << E.Faces[0] << E.Faces[1];
 	}
 };

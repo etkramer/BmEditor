@@ -696,7 +696,6 @@ enum EUnrealEngineObjectVersion
 #if BATMAN
 enum ELicenseeVersion
 {
-	VER_BATMAN1 = 21,
 	VER_BATMAN2 = 101,
     VER_BATMAN3 = 138
 };

@@ -201,7 +201,7 @@ FArchive& operator<<( FArchive& Ar, FObjectExport& E )
 	Ar << E.ArchetypeIndex;
 #if BATMAN
 	// https://github.com/gildor2/UEViewer/blob/a0bfb468d42be831b126632fd8a0ae6b3614f981/Unreal/UnrealPackage/UnPackage3.cpp#L360
-	if (Ar.LicenseeVer() >= VER_BATMAN2)
+	if (Ar.IsBmCooked())
 	{
 		INT ReferencedObjects;
 		Ar << ReferencedObjects;
@@ -3136,7 +3136,7 @@ void ULinkerLoad::LoadAllObjects( UBOOL bForcePreload )
 	}
 
 #if BATMAN
-	if (LicenseeVer() >= VER_BATMAN2)
+	if (IsBmCooked())
 	{
 		for (INT i = 0; i < ExportMap.Num(); i++)
 		{
@@ -3570,7 +3570,7 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 	// Check whether we already loaded the object and if not whether the context flags allow loading it.
 #if BATMAN
 	// NOTE: Basically forces the object to be loaded if it's from Batman2. But why is _ContextFlags not set to begin with?
-	if( !Export._Object && ((Export.ObjectFlags & _ContextFlags) || LicenseeVer() >= VER_BATMAN2 ))
+	if( !Export._Object && ((Export.ObjectFlags & _ContextFlags) || IsBmCooked() ))
 #else
 	if( !Export._Object && (Export.ObjectFlags & _ContextFlags) )
 #endif
@@ -3638,7 +3638,7 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 
 #if BATMAN
 		// Don't load classes from BM packages
-		if (LicenseeVer() >= VER_BATMAN1 && Export.ClassIndex == UCLASS_INDEX)
+		if (IsBmCooked() && Export.ClassIndex == UCLASS_INDEX)
 		{
 			return NULL;
 		}
@@ -3657,7 +3657,7 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 
 #if BATMAN
         // Skip currently unsupported types from BM packages
-        if (LicenseeVer() >= VER_BATMAN2 && (
+        if (IsBmCooked() && (
             // These load but don't render properly (needs new BM2 compression).
             LoadClass->GetName() == "AnimSet" ||
             LoadClass->GetName() == "AnimSequence" ||
@@ -3779,7 +3779,7 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 			if ( GIsEditor && !GIsUCC )
 			{
 #if BATMAN
-				if (LicenseeVer() >= VER_BATMAN1)
+				if (IsBmCooked())
 				{
 					// We expect this to happen a lot, and EdLoadErrorf is very slow...
 				}
@@ -4047,7 +4047,7 @@ UObject* ULinkerLoad::CreateImport( INT Index )
 		||	GIsScriptPatcherActive
 #endif
 #if BATMAN
-		|| LicenseeVer() >= VER_BATMAN1
+		|| IsBmCooked()
 #endif
 			)
 		{

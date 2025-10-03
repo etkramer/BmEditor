@@ -305,6 +305,12 @@ public:
 	FORCEINLINE UBOOL IsFinalPackageSave()					const	{return ArIsFinalPackageSave;}
 	FORCEINLINE INT GetMaxSerializeSize()					const	{return ArMaxSerializeSize;}
 
+    // BM
+    UBOOL IsBmCooked() const
+    {
+        return (LicenseeVer() == VER_BATMAN3) && (BOOL)ArContainsCookedData;
+    }
+
 	/**
 	 * Sets the archive version number. Used by the code that makes sure that ULinkerLoad's internal 
 	 * archive versions match the file reader it creates.
