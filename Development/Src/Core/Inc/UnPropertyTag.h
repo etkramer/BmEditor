@@ -131,7 +131,9 @@ struct FPropertyTag
 };
 
 #if BATMAN
-// FCookedPropertyTag
+// BM3 TODO: Modify original FPropertyTag serialization instead, moving as much logic as possible from UStruct::SerializeTaggedProperties()
+// to FPropertyTagBat2::SerializeTaggedProperty(). We also need this to de-duplicate save/load logic.
+
 struct FPropertyTagBat2
 {
 	// Variables.

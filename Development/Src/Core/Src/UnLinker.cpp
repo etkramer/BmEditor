@@ -3666,12 +3666,9 @@ UObject* ULinkerLoad::CreateExport( INT Index )
             // Ignoring for now so we fall back to the prettier default mat.
             LoadClass->GetName() == "Material" ||
 
-            // Don't load levels until we've got at least meshes working
+            // Don't load levels for now
             LoadClass->GetName() == "Level" ||
             LoadClass->GetName() == "World" ||
-
-            // Don't load static meshes for now
-            LoadClass->GetName() == "StaticMesh" ||
 
             LoadClass->GetName() == "LightMapTexture2D" ||
             LoadClass->GetName() == "PhysicsAsset" ||

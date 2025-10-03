@@ -301,7 +301,32 @@ void FPositionVertexBuffer::RemoveLegacyShadowVolumeVertices(UINT InNumVertices)
 /** Serializer. */
 FArchive& operator<<(FArchive& Ar,FPositionVertexBuffer& VertexBuffer)
 {
+#if BATMAN
+	// https://github.com/gildor2/UEViewer/blob/a0bfb468d42be831b126632fd8a0ae6b3614f981/Unreal/UnrealMesh/UnMesh3.cpp#L2677
+	BYTE PositionFormat = 0; // 0 -> FVector, 1 -> half[3], 2 -> half[4]
+	if (Ar.IsBmCooked())
+	{
+		Ar << PositionFormat;
+	}
+#endif
+
 	Ar << VertexBuffer.Stride << VertexBuffer.NumVertices;
+
+#if BATMAN
+	if (Ar.IsBmCooked())
+	{
+		UBOOL bNeedsCPUAccess = TRUE;
+		Ar << bNeedsCPUAccess;
+	}
+#endif
+
+#if BATMAN
+	if (Ar.IsBmCooked())
+	{
+		// TODO: Implement 1/2
+		check(PositionFormat == 0);
+	}
+#endif
 
 	if(Ar.IsLoading())
 	{
@@ -317,6 +342,14 @@ FArchive& operator<<(FArchive& Ar,FPositionVertexBuffer& VertexBuffer)
 		// Make a copy of the vertex data pointer.
 		VertexBuffer.Data = VertexBuffer.VertexData->GetDataPointer();
 	}
+
+#if BATMAN
+	if (Ar.IsBmCooked())
+	{
+		TArray<FVector2D> UVData;
+		Ar << UVData;
+	}
+#endif
 
 	return Ar;
 }
@@ -985,6 +1018,14 @@ FArchive& operator<<(FArchive& Ar,FStaticMeshVertexBuffer& VertexBuffer)
 {
 	Ar << VertexBuffer.NumTexCoords << VertexBuffer.Stride << VertexBuffer.NumVertices;
 	Ar << VertexBuffer.bUseFullPrecisionUVs;
+
+#if BATMAN
+	if (Ar.IsBmCooked())
+	{
+		UBOOL HasNormalsAndTangents = TRUE;
+		Ar << HasNormalsAndTangents;
+	}
+#endif
 
 	if( Ar.IsLoading() )
 	{
@@ -1884,6 +1925,14 @@ void UStaticMesh::Serialize(FArchive& Ar)
 		Ar << HighResSourceMeshName;
 		Ar << HighResSourceMeshCRC;
 	}
+
+#if BATMAN
+	if (Ar.IsBmCooked())
+	{
+		UBOOL ForceShadowVolumes = FALSE;
+		Ar << ForceShadowVolumes;
+	}
+#endif
 
 	// serialize the lighting guid if it's there
 	if (Ar.Ver() >= VER_INTEGRATED_LIGHTMASS)

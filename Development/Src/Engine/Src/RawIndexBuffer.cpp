@@ -310,6 +310,14 @@ void FRawStaticIndexBuffer::InitRHI()
 */
 FArchive& operator<<(FArchive& Ar,FRawStaticIndexBuffer& I)
 {
+#if BATMAN
+	if (Ar.IsBmCooked())
+	{
+		UBOOL NeedsCPUAccess = TRUE;
+		Ar << NeedsCPUAccess;
+	}
+#endif
+
 	I.Indices.BulkSerialize( Ar );
 	if (Ar.IsLoading())
 	{

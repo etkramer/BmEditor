@@ -376,6 +376,14 @@ public:
 			Ar << E.Fragments;
 		}
 
+#if BATMAN
+		if (Ar.IsBmCooked())
+		{
+			UMaterialInstance* XRayMaterial = NULL;
+			Ar << XRayMaterial;
+		}
+#endif
+
 		if (Ar.Ver() >= VER_ADDED_PLATFORMMESHDATA)
 		{
 			if (Ar.IsLoading())
