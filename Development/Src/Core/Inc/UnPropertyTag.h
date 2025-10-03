@@ -138,11 +138,10 @@ struct FPropertyTagBat2
 {
 	// Variables.
 	SHORT	Type;		// Type of property
-	BYTE	BoolVal;	// a boolean property's value (never need to serialize data for bool properties except here)
 	FName	Name;		// Name of property.
 	INT		Size;       // Property size.
 	INT		ArrayIndex;	// Index if an array; else 0.
-	FName	EnumName;	// Enum name if UByteProperty
+	BYTE	BoolVal;	// a boolean property's value (never need to serialize data for bool properties except here)
     INT		SizeOffset;	// location in stream of tag size member
 
 	// Constructors.
@@ -153,7 +152,6 @@ struct FPropertyTagBat2
 		Name = NAME_None;
 		Size = 0;
 		ArrayIndex = 0;
-		EnumName = NAME_None;
 	}
 
 	// Serializer.

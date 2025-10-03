@@ -665,11 +665,12 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 			{
 				FPropertyTagBat2 TagBat;
 				Ar << TagBat;
+
 				Tag.Type = FName((EName)TagBat.Type);
 				Tag.BoolVal = TagBat.BoolVal;
 				Tag.Name = TagBat.Name;
 				Tag.StructName = NAME_None;
-				Tag.EnumName = TagBat.EnumName;
+				Tag.EnumName = NAME_None;
 				Tag.Size = TagBat.Size;
 				Tag.ArrayIndex = TagBat.ArrayIndex;
 				Tag.SizeOffset = TagBat.SizeOffset;
@@ -792,7 +793,7 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 			//@}
 
 #if BATMAN
-            // BM: Get struct type from property
+            // BM: Get struct type from property. This might not be needed for correct serialization.
             if (Ar.IsBmCooked() && Tag.Type == NAME_StructProperty && Cast<UStructProperty>(Property, CLASS_IsAUStructProperty) && Tag.StructName == NAME_None)
             {
                 FName StructName = ((UStructProperty*)Property)->Struct->GetFName();
