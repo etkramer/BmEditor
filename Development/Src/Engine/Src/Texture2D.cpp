@@ -1147,6 +1147,15 @@ FString UTexture2D::GetDesc()
 
 	GSystemSettings.TextureLODSettings.ComputeInGameMaxResolution(LODBiasRegular, *this, EffectiveSizeX, EffectiveSizeY);
 
+#if BATMAN
+	// BM3: Make labels less verbose
+	return FString::Printf(TEXT("%s %dx%d [%s%s]"),
+		NeverStream ? TEXT("NeverStreamed") : TEXT("Streamed"),
+		SizeX,
+		SizeY,
+		GPixelFormats[Format].Name,
+		DeferCompression ? TEXT("*") : TEXT(""));
+#else
 	return FString::Printf( TEXT("%s %dx%d -> %dx%d[%s%s]"), 
 		NeverStream ? TEXT("NeverStreamed") : TEXT("Streamed"), 
 		SizeX, 
@@ -1155,6 +1164,7 @@ FString UTexture2D::GetDesc()
 		EffectiveSizeY,
 		GPixelFormats[Format].Name, 
 		DeferCompression ? TEXT("*") : TEXT(""));
+#endif
 }
 
 /** 
