@@ -3673,6 +3673,7 @@ UObject* ULinkerLoad::CreateExport( INT Index )
             // Don't load static meshes for now
             LoadClass->GetName() == "StaticMesh" ||
 
+            LoadClass->GetName() == "LightMapTexture2D" ||
             LoadClass->GetName() == "PhysicsAsset" ||
             LoadClass->GetName() == "RB_BodySetup" ||
             LoadClass->GetName() == "FaceFxAnimSet" ||

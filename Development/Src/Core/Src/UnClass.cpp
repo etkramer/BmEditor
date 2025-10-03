@@ -885,20 +885,6 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 				continue;
 			}
 #if BATMAN
-            // Found StructProperty, SKIP for now. TODO: this needs to be done correctly!
-            else if (Ar.LicenseeVer() >= VER_BATMAN2 && Tag.Type == NAME_StructProperty)
-            {
-                // TODO: Don't skip over.
-                INT Size = Tag.Size;
-                Ar.Seek(Ar.Tell() + Size);
-
-                //warnf(TEXT("Skipped %d struct bytes from %d to %d"), Tag.Size, Ar.Tell() - Size, Ar.Tell());
-
-                AdvanceProperty = TRUE;
-                continue;
-            }
-#endif
-#if BATMAN
             // Found ByteProperty, read as value or as enum name
 			else if (Ar.LicenseeVer() >= VER_BATMAN2 && Tag.Type == NAME_ByteProperty)
 			{
@@ -958,10 +944,10 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 #endif
 #if BATMAN
             // Found RotatorProperty/VectorProperty, read manually if engine was expecting a StructProperty
-            // Handle NAME_VectorProperty and NAME_RotatorProperty
-            else if (Ar.LicenseeVer() == VER_BATMAN3 && ((Tag.Type == NAME_VectorProperty) || (Tag.Type == NAME_RotatorProperty)) && Property->IsA(UStructProperty::StaticClass()))
+            else if (Ar.LicenseeVer() == VER_BATMAN3 && ((Tag.Type == NAME_VectorProperty) || (Tag.Type == NAME_RotatorProperty)))
             {
-                FVector VectorValue;  // Same size as FRotator
+                // Same size as FRotator
+                FVector VectorValue;
                 Ar << VectorValue;
 
                 *(FVector*)(Data + Property->Offset + Tag.ArrayIndex * Property->ElementSize) = VectorValue;
@@ -973,12 +959,7 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 			{
 				debugf( NAME_Warning, TEXT("Type mismatch in %s of %s - Previous (%s) Current(%s) for package:  %s"), *Tag.Name.ToString(), *GetName(), *Tag.Type.ToString(), *Property->GetID().ToString(), *Ar.GetArchiveName() );
 			}
-#if BATMAN
-			// https://github.com/gildor2/UEViewer/blob/a0bfb468d42be831b126632fd8a0ae6b3614f981/Unreal/UnObject.cpp#L1285
-			else if (Tag.Type == NAME_StructProperty && Tag.StructName != CastChecked<UStructProperty>(Property)->Struct->GetFName() && Tag.StructName != NAME_None )
-#else
 			else if( Tag.Type==NAME_StructProperty && Tag.StructName!=CastChecked<UStructProperty>(Property)->Struct->GetFName() )
-#endif
 			{
 				debugf( NAME_Warning, TEXT("Property %s of %s struct type mismatch %s/%s for package:  %s"), *Tag.Name.ToString(), *GetName(), *Tag.StructName.ToString(), *CastChecked<UStructProperty>(Property)->Struct->GetName(), *Ar.GetArchiveName() );
 			}
