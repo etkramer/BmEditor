@@ -442,6 +442,12 @@ private:
 		return CurrentNumNetObjects;
 	}
 
+#if BATMAN
+	UBOOL IsBmCooked() const;
+	UPackage* GetBasePackage() const;
+	ULinkerLoad* GetBaseLinker() const;
+#endif
+
 	/**
 	 * Looks up all exports in the Linker's ExportGuidsAwaitingLookup map, and fills out ExportGuids
 	 * 

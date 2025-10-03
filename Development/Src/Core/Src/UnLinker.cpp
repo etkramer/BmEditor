@@ -3127,6 +3127,18 @@ void ULinkerLoad::LoadAllObjects( UBOOL bForcePreload )
 		{
 			Preload(Object);
 		}
+
+#if BATMAN
+		// BM: Make sure forceexported sub-packages are marked as cooked too.
+		if (IsBmCooked() && ContainsCookedData())
+		{
+			UPackage* PackageObject = Cast<UPackage>(Object);
+			if (PackageObject)
+			{
+				PackageObject->PackageFlags |= PKG_Cooked;
+			}
+		}
+#endif
 	}
 
 	// Mark package as having been fully loaded.

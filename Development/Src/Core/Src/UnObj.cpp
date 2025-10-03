@@ -6408,6 +6408,18 @@ ULinkerLoad* UObject::GetPackageLinker
 		}
 	}
 
+#if BATMAN
+	// BM: Return base linker where possible
+	if (InOuter && InOuter->IsBmCooked())
+	{
+		ULinkerLoad* BaseLinker = InOuter->GetBaseLinker();
+		if (BaseLinker)
+		{
+			return BaseLinker;
+		}
+	}
+#endif
+
 	// Try to load the linker.
 #if !EXCEPTIONS_DISABLED
 	try
@@ -6517,8 +6529,12 @@ ULinkerLoad* UObject::GetPackageLinker
 		// Create new linker.
 		if( !Result )
 		{
+#if BATMAN
+			// BM: This happens sometimes when called from UPackage::GetBaseLinker(). For now, it seems ignorable.
+#else
 			//@script patcher: moved from top of function
 			check(GObjBeginLoadCount);
+#endif
 
 			// we will already have found the filename above
 			check(NewFilename.Len() > 0);
@@ -7032,6 +7048,14 @@ UPackage* UObject::LoadPackage( UPackage* InOuter, const TCHAR* Filename, DWORD 
 			EndLoad();
             return( NULL );
 		}
+
+#if BATMAN
+		// Log when BM3 packages are loaded, so we can notice if they've been misdetected.
+		if (Linker->IsBmCooked())
+		{
+			warnf(NAME_Warning, TEXT("Loading BM3 package %s"), Filename);
+		}
+#endif
 
 		// is there a script SHA hash for this package?
 		BYTE SavedScriptSHA[20];

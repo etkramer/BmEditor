@@ -5355,6 +5355,15 @@ void WxGBLeftContainer::UpdateTreeViewPackageItem(const wxTreeItemId &Item)
 
 	Package = Package->GetOuter() == NULL ? Package : Package->GetOutermost();
 
+#if BATMAN
+	// BM3: Show lock icon on cooked packages
+	if (Package->PackageFlags & PKG_Cooked)
+	{
+		TreeCtrl->SetItemImage(Item, GBTCI_SCC_ReadOnly, wxTreeItemIcon_Normal);
+		TreeCtrl->SetItemImage(Item, GBTCI_SCC_ReadOnly, wxTreeItemIcon_Selected);
+	}
+#endif
+
 	TreeCtrl->SetItemText(Item, *PackageName);
 
 	// Mark any packages the user has checked out in bold.

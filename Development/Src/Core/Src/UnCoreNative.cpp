@@ -735,6 +735,14 @@ void UPackage::StaticConstructor()
  */
 void UPackage::SetDirtyFlag( UBOOL bIsDirty )
 {
+#if BATMAN
+	// BM: Never allow cooked packages to be marked dirty
+	if (PackageFlags & PKG_Cooked)
+	{
+		return;
+	}
+#endif
+
 	if ( GetOutermost() != GetTransientPackage() )
 	{
 		if ( GUndo != NULL
@@ -871,6 +879,64 @@ void UPackage::PatchNetObjectList( INT NewNumNetObjects )
 		GenerationNetObjectCount.Last() += NumToAdd;
 	}
 }
+
+#if BATMAN
+
+// BM
+UBOOL UPackage::IsBmCooked() const
+{
+	ULinkerLoad* Linker = GetBaseLinker();
+	if (Linker)
+	{
+		return Linker->IsBmCooked();
+	}
+
+	return FALSE;
+}
+
+// BM
+UPackage* UPackage::GetBasePackage() const
+{
+	ULinkerLoad* Linker = GetBaseLinker();
+	if (Linker)
+	{
+		return Linker->LinkerRoot;
+	}
+
+	return NULL;
+}
+
+// BM
+ULinkerLoad* UPackage::GetBaseLinker() const
+{
+	FName BasePackageName = ForcedExportBasePackageName;
+
+	// Map/script packages don't set ForcedExportBasePackageName.
+	if ((ContainsMap() || (PackageFlags & PKG_ContainsScript)) && BasePackageName == NAME_None)
+	{
+		BasePackageName = GetFName();
+	}
+
+	if (BasePackageName != NAME_None)
+	{
+		UPackage* BasePackage = FindObject<UPackage>(NULL, *BasePackageName.ToString());
+
+		// BM: If the package hasn't been loaded, it certainly won't have a linker.
+		// GetPackageLinker() will create new linkers when one doesn't already exist, which has unintended side effects.
+		if (BasePackage != NULL)
+		{
+			ULinkerLoad* Linker = UObject::GetPackageLinker(NULL, *BasePackageName.ToString(), LOAD_Quiet | LOAD_NoWarn | LOAD_NoVerify, NULL, NULL);
+			if (Linker)
+			{
+				return Linker;
+			}
+		}
+	}
+
+	return GetLinker();
+}
+
+#endif
 
 
 /** adds an object to the NetObjects list
