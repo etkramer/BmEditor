@@ -3673,8 +3673,7 @@ UObject* ULinkerLoad::CreateExport( INT Index )
             LoadClass->GetName() == "LightMapTexture2D" ||
             LoadClass->GetName() == "PhysicsAsset" ||
             LoadClass->GetName() == "RB_BodySetup" ||
-            LoadClass->GetName() == "FaceFxAnimSet" ||
-            LoadClass->GetName() == "FracturedStaticMesh"
+            LoadClass->GetName() == "FaceFxAnimSet"
             ))
         {
             return NULL;
