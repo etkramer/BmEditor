@@ -3142,7 +3142,7 @@ void ULinkerLoad::LoadAllObjects( UBOOL bForcePreload )
 		{
 			UObject* Object = ExportMap(i)._Object;
 
-			// BM2 packages don't want to show in the editor because of a missing RF_Public flag, so add it back manually.
+			// BM3 packages don't want to show in the editor because of a missing RF_Public flag, so add it back manually.
 			if (Object != NULL)
 			{
 				Object->SetFlags(RF_Public);

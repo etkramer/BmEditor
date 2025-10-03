@@ -62,6 +62,7 @@ struct FPropertyTag
 		}
 
 		Ar << Tag.Type;
+
 		if ( Ar.IsSaving() )
 		{
 			// remember the offset of the Size variable - UStruct::SerializeTaggedProperties will update it after the
@@ -140,6 +141,7 @@ struct FPropertyTagBat2
 	INT		Size;       // Property size.
 	INT		ArrayIndex;	// Index if an array; else 0.
 	FName	EnumName;	// Enum name if UByteProperty
+    INT		SizeOffset;	// location in stream of tag size member
 
 	// Constructors.
 	FPropertyTagBat2()
@@ -153,25 +155,34 @@ struct FPropertyTagBat2
 	}
 
 	// Serializer.
-	friend FArchive& operator<<(FArchive& Ar, FPropertyTagBat2& Tag)
+	friend FArchive& operator<<(FArchive& Ar, FPropertyTagBat2& TagBat)
 	{
-		Ar << Tag.Type;
-		if (!Tag.Type)
+		Ar << TagBat.Type;
+		if (!TagBat.Type)
 		{
 			return Ar;
 		}
 
-		check(Tag.Type <= 17);
+		check(TagBat.Type <= 17);
 
-		Ar << Tag.Name << Tag.Size << Tag.ArrayIndex;
+        Ar << TagBat.Name;
 
-		if (Tag.Type == NAME_BoolProperty)
+        check(TagBat.Name.IsValid());
+
+        if (Ar.IsSaving())
+        {
+            TagBat.SizeOffset = Ar.Tell();
+        }
+
+        Ar << TagBat.Size << TagBat.ArrayIndex;
+
+        // only need to serialize this for bools
+		if (TagBat.Type == NAME_BoolProperty)
 		{
-			Ar << Tag.BoolVal;
+			Ar << TagBat.BoolVal;
 		}
 
 		return Ar;
 	}
 };
 #endif
-

@@ -672,7 +672,7 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 				Tag.EnumName = TagBat.EnumName;
 				Tag.Size = TagBat.Size;
 				Tag.ArrayIndex = TagBat.ArrayIndex;
-				Tag.SizeOffset = 0;
+				Tag.SizeOffset = TagBat.SizeOffset;
 			}
 			else
 			{
@@ -791,6 +791,14 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 			}
 			//@}
 
+#if BATMAN
+            // BM: Get struct type from property
+            if (Ar.IsBmCooked() && Tag.Type == NAME_StructProperty && Cast<UStructProperty>(Property, CLASS_IsAUStructProperty) && Tag.StructName == NAME_None)
+            {
+                FName StructName = ((UStructProperty*)Property)->Struct->GetFName();
+                Tag.StructName = StructName;
+            }
+#endif
 
 			UBOOL bSkipSkipWarning = FALSE;
 
@@ -897,10 +905,9 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
                 {
                     Ar << ByteValue;
                 }
-                // Enum value as FName (already read)
+                // Enum value as FName
                 else if (Tag.Size == 8)
                 {
-                    //check(Tag.EnumName != NAME_None);
                     check(Property->IsA(UByteProperty::StaticClass()));
 
                     UByteProperty* ByteProperty = (UByteProperty*)Property;
