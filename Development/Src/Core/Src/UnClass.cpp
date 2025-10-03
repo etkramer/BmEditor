@@ -885,26 +885,55 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 				continue;
 			}
 #if BATMAN
-			// Handle ByteProperty (enum)
-			else if (Ar.LicenseeVer() >= VER_BATMAN2 && Tag.Type == NAME_ByteProperty)
-			{
-				// Non-enum ByteProperties allowed, just not
-				// yet implemented.
-				check(Tag.EnumName != NAME_None);
+            // Found StructProperty, SKIP for now. TODO: this needs to be done correctly!
+            else if (Ar.LicenseeVer() >= VER_BATMAN2 && Tag.Type == NAME_StructProperty)
+            {
+                // TODO: Don't skip over.
+                INT Size = Tag.Size;
+                Ar.Seek(Ar.Tell() + Size);
 
-				UByteProperty* ByteProperty = (UByteProperty*)Property;
-				UEnum* Enum = ByteProperty->Enum;
-				Ar.Preload(Enum);
+                //warnf(TEXT("Skipped %d struct bytes from %d to %d"), Tag.Size, Ar.Tell() - Size, Ar.Tell());
 
-				INT EnumValue = Enum->FindEnumIndex(Tag.EnumName);
-
-				*(BYTE*)(Data + Property->Offset + Tag.ArrayIndex * Property->ElementSize) = EnumValue;
-				AdvanceProperty = TRUE;
-				continue;
-			}
+                AdvanceProperty = TRUE;
+                continue;
+            }
 #endif
 #if BATMAN
-			// Handle NAME_GUIDProperty
+            // Found ByteProperty, read as value or as enum name
+			else if (Ar.LicenseeVer() >= VER_BATMAN2 && Tag.Type == NAME_ByteProperty)
+			{
+                check(Tag.Size == 1 || Tag.Size == 8);
+
+                BYTE ByteValue = 0;
+
+                // Value as byte
+                if (Tag.Size == 1)
+                {
+                    Ar << ByteValue;
+                }
+                // Enum value as FName (already read)
+                else if (Tag.Size == 8)
+                {
+                    //check(Tag.EnumName != NAME_None);
+                    check(Property->IsA(UByteProperty::StaticClass()));
+
+                    UByteProperty* ByteProperty = (UByteProperty*)Property;
+                    UEnum* Enum = ByteProperty->Enum;
+
+                    FName ItemName;
+                    Ar << ItemName;
+
+                    Ar.Preload(Enum);
+                    ByteValue = (BYTE)Enum->FindEnumIndex(ItemName);
+                }
+
+                *(BYTE*)(Data + Property->Offset + Tag.ArrayIndex * Property->ElementSize) = ByteValue;
+                AdvanceProperty = TRUE;
+                continue;
+            }
+#endif
+#if BATMAN
+            // Found GUIDProperty, read as plain FGuid
 			else if (Ar.LicenseeVer() >= VER_BATMAN2 && Tag.Type == NAME_GUIDProperty)
 			{
 				FGuid GuidValue;
@@ -916,10 +945,23 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 			}
 #endif
 #if BATMAN
-            // Handle NAME_VectorProperty and NAME_RotatorProperty
-            else if (Ar.LicenseeVer() == VER_BATMAN3 && ((Tag.Type == NAME_VectorProperty) || (Tag.Type == NAME_RotatorProperty)))
+            // Found ObjectNCRProperty, read as plain object reference
+            else if (Ar.LicenseeVer() >= VER_BATMAN2 && Tag.Type == NAME_ObjectNCRProperty)
             {
-                FVector VectorValue;
+                UObject* ObjValue;
+                Ar << ObjValue;
+
+                *(UObject**)(Data + Property->Offset + Tag.ArrayIndex * Property->ElementSize) = ObjValue;
+                AdvanceProperty = TRUE;
+                continue;
+            }
+#endif
+#if BATMAN
+            // Found RotatorProperty/VectorProperty, read manually if engine was expecting a StructProperty
+            // Handle NAME_VectorProperty and NAME_RotatorProperty
+            else if (Ar.LicenseeVer() == VER_BATMAN3 && ((Tag.Type == NAME_VectorProperty) || (Tag.Type == NAME_RotatorProperty)) && Property->IsA(UStructProperty::StaticClass()))
+            {
+                FVector VectorValue;  // Same size as FRotator
                 Ar << VectorValue;
 
                 *(FVector*)(Data + Property->Offset + Tag.ArrayIndex * Property->ElementSize) = VectorValue;

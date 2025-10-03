@@ -169,11 +169,6 @@ struct FPropertyTagBat2
 		{
 			Ar << Tag.BoolVal;
 		}
-		else if (Tag.Type == NAME_ByteProperty)
-		{
-			Ar << Tag.EnumName;
-			Tag.Size = 0;
-		}
 
 		return Ar;
 	}
