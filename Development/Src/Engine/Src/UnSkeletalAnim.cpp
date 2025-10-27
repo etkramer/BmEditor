@@ -193,6 +193,27 @@ static void LoadOldCompressedTrack(FArchive& Ar, FCompressedTrack& Dst, INT Byte
 
 #if BATMAN
 
+enum EAnimZipRotationCodec
+{
+	AZRC_QuatMax_48,
+	AZRC_QuatMax_40,
+	AZRC_QuatRelative_32,
+	AZRC_QuatRelative_24,
+	AZRC_QuatRelative_16,
+	AZRC_FixedAxis_16,
+	AZRC_FixedAxis_8,
+	AZRC_MAX,
+};
+
+enum EAnimZipTranslationScaleCodec
+{
+	AZTSC_Float_128,
+	AZTSC_NoScale_Float_96,
+	AZTSC_NoScale_Interval_Fixed_48,
+	AZTSC_NoScale_Interval_Fixed_24,
+	AZTSC_MAX,
+};
+
 struct FAnimZipHeader
 {
 	int SingleRotationOffset;
@@ -204,12 +225,14 @@ struct FAnimZipHeader
 
 	friend FArchive& operator<<(FArchive& Ar, FAnimZipHeader& H)
 	{
-		return Ar << H.SingleRotationOffset
-			<< H.SingleTranslationOffset
-			<< H.RotationCount
-			<< H.RotationOffset
-			<< H.TranslationCount
-			<< H.TranslationOffset;
+		Ar << H.SingleRotationOffset;
+		Ar << H.SingleTranslationOffset;
+		Ar << H.RotationCount;
+		Ar << H.RotationOffset;
+		Ar << H.TranslationCount;
+		Ar << H.TranslationOffset;
+
+		return Ar;
 	}
 };
 
@@ -230,7 +253,6 @@ struct FAnimZipTrack
 
 	friend FArchive& operator<<(FArchive& Ar, FAnimZipTrack& T)
 	{
-		T.NumBones = 0;
 		Ar << T.Codec;
 		Ar << T.NumBones;
 		Ar << T.NumKeys;
@@ -268,18 +290,6 @@ INT FindTrack(INT Bone, FArchive& Ar, FAnimZipTrack& T, INT Pos, INT Count, UAni
 
 	return TrackIndex;
 }
-
-enum EAnimZipRotationCodec
-{
-	AZRC_QuatMax_48,
-	AZRC_QuatMax_40,
-	AZRC_QuatRelative_32,
-	AZRC_QuatRelative_24,
-	AZRC_QuatRelative_16,
-	AZRC_FixedAxis_16,
-	AZRC_FixedAxis_8,
-	AZRC_MAX,
-};
 
 FQuat FinishQuatMax(int Shift, int H, int M, int L, int S)
 {
@@ -332,7 +342,7 @@ static FQuat FinishQuatRelative(int Shift, unsigned X, unsigned Y, unsigned Z, c
 	return Base;
 }
 
-static FQuat FinishQuatFixedAxis(int Shift, unsigned Value, byte* Interval)
+FQuat FinishQuatFixedAxis(int Shift, unsigned Value, byte* Interval)
 {
 	FQuat r(0, 0, 0, 0);
 	switch (Interval[0])
@@ -496,15 +506,6 @@ INT FindAndDecodeRotation(INT Bone, FArchive& Ar, FRawAnimSequenceTrack& RawAnim
 
 	return T.Codec;
 }
-
-enum EAnimZipTranslationScaleCodec
-{
-	AZTSC_Float_128,
-	AZTSC_NoScale_Float_96,
-	AZTSC_NoScale_Interval_Fixed_48,
-	AZTSC_NoScale_Interval_Fixed_24,
-	AZTSC_MAX,
-};
 
 INT FindAndDecodeTranslation(INT Bone, FArchive& Ar, FRawAnimSequenceTrack& RawAnimTrack, INT Pos, INT Count, UAnimSet* Owner)
 {
