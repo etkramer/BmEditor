@@ -557,6 +557,24 @@ REGISTER_NAME( 1143, Landscape_RedMask )
 REGISTER_NAME( 1144, Landscape_GreenMask )
 REGISTER_NAME( 1145, Landscape_BlueMask )
 
+// BM: Bone names
+REGISTER_NAME( 1146, Bip01_RThighTwist )
+REGISTER_NAME( 1147, Bip01_RCalfTwist )
+REGISTER_NAME( 1148, Bip01_LThighTwist )
+REGISTER_NAME( 1149, Bip01_LCalfTwist )
+REGISTER_NAME( 1150, Bip01_RUpArmTwist )
+REGISTER_NAME( 1151, Bip01_R_Foretwist )
+REGISTER_NAME( 1152, Bip01_LUpArmTwist )
+REGISTER_NAME( 1153, Bip01_L_Foretwist )
+REGISTER_NAME( 1154, Bip01_R_Thigh)
+REGISTER_NAME( 1155, Bip01_R_Calf )
+REGISTER_NAME( 1156, Bip01_L_Thigh )
+REGISTER_NAME( 1157, Bip01_L_Calf )
+REGISTER_NAME( 1158, Bip01_R_UpperArm )
+REGISTER_NAME( 1159, Bip01_R_Forearm )
+REGISTER_NAME( 1160, Bip01_L_UpperArm )
+REGISTER_NAME( 1161, Bip01_L_Forearm )
+
 /*-----------------------------------------------------------------------------
 	Special engine-generated probe messages.
 -----------------------------------------------------------------------------*/

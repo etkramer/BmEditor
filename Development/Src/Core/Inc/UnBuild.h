@@ -440,7 +440,11 @@
  * Enables/disables UE3 networking support
  */
 #ifndef WITH_UE3_NETWORKING
+#if GAMENAME==BMGAME
+	#define WITH_UE3_NETWORKING	0
+#else
     #define WITH_UE3_NETWORKING	(!UE3_LEAN_AND_MEAN)
+#endif
 #endif	// #ifndef WITH_UE3_NETWORKING
 
 /**

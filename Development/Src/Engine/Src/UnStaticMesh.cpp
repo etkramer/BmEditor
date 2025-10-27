@@ -4137,7 +4137,10 @@ void UStaticMeshComponent::Serialize(FArchive& Ar)
 		{
 			INT Dummy = -1;
 			Ar << Dummy;
+#if BATMAN
+#else
 			check( GIsCooking || !GIsEditor || Dummy == VertexPositionVersionNumber );
+#endif
 		}
 		else
 		{

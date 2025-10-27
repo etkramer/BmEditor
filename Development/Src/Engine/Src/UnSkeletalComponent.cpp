@@ -2275,6 +2275,17 @@ void USkeletalMeshComponent::ApplyControllersForBoneIndex(INT BoneIndex, UBOOL b
 	}
 }
 
+FBonePair FixerBonePairs[8] =
+{
+	{ NAME_Bip01_RThighTwist, NAME_Bip01_R_Thigh },
+	{ NAME_Bip01_RCalfTwist, NAME_Bip01_R_Calf },
+	{ NAME_Bip01_LThighTwist, NAME_Bip01_L_Thigh },
+	{ NAME_Bip01_LCalfTwist, NAME_Bip01_L_Calf },
+	{ NAME_Bip01_RUpArmTwist, NAME_Bip01_R_UpperArm },
+	{ NAME_Bip01_R_Foretwist, NAME_Bip01_R_Forearm },
+	{ NAME_Bip01_LUpArmTwist, NAME_Bip01_L_UpperArm },
+	{ NAME_Bip01_L_Foretwist, NAME_Bip01_L_Forearm },
+};
 
 /**
  * Take the LocalAtoms array (translation vector, rotation quaternion and scale vector) and update the array of component-space bone transformation matrices (SpaceBases).
@@ -2368,6 +2379,52 @@ void USkeletalMeshComponent::ComposeSkeleton()
 		checkSlow( SpaceBases(BoneIndex).IsRotationNormalized() );
 		checkSlow( !SpaceBases(BoneIndex).ContainsNaN() );
 	}
+
+#if BATMAN
+	// BM: Process twist bones
+	// TODO: This is entirely a hack! Let's rewrite this to be more performant later
+	for (INT i = 0; i < sizeof(FixerBonePairs) / sizeof(FBonePair); i++)
+	{
+		FBonePair& FixerPair = FixerBonePairs[i];
+		FName TwistName = FixerPair.Bones[0];
+		FName ParentName = FixerPair.Bones[1];
+
+		// Find bone indices
+		INT TwistIdx = SkeletalMesh->MatchRefBone(TwistName);
+		INT ParentIdx = SkeletalMesh->MatchRefBone(ParentName);
+
+		// If we don't have the right bones for this fixer, skip
+		if (TwistIdx == INDEX_NONE || ParentIdx == INDEX_NONE)
+		{
+			continue;
+		}
+
+		// Parent twist bone to new parent
+		SpaceBases(TwistIdx) = SpaceBases(ParentIdx);
+
+		// Handle direct children of twist bones
+		for (INT ChildIdx = 0; ChildIdx < ComposeOrderedRequiredBones.Num(); ChildIdx++)
+		{
+			if (SkeletalMesh->RefSkeleton(ChildIdx).ParentIndex != TwistIdx)
+			{
+				continue;
+			}
+
+			FBoneAtom::Multiply(SpaceBasesData + ChildIdx, LocalTransformsData + ChildIdx, SpaceBasesData + TwistIdx);
+
+			// TEMP/HACK: Handle 2 levels of children
+			for (INT ChildIdx2 = 0; ChildIdx2 < ComposeOrderedRequiredBones.Num(); ChildIdx2++)
+			{
+				if (SkeletalMesh->RefSkeleton(ChildIdx2).ParentIndex != ChildIdx)
+				{
+					continue;
+				}
+
+				FBoneAtom::Multiply(SpaceBasesData + ChildIdx2, LocalTransformsData + ChildIdx2, SpaceBasesData + ChildIdx);
+			}
+		}
+	}
+#endif
 
 	{
 		// for invisible bones, I'll still need to update the transform, so that rendering can use it for skinning
