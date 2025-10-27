@@ -190,6 +190,405 @@ static void LoadOldCompressedTrack(FArchive& Ar, FCompressedTrack& Dst, INT Byte
 	Ar << Dst.Mins[0] << Dst.Mins[1] << Dst.Mins[2];
 	Ar << Dst.Ranges[0] << Dst.Ranges[1] << Dst.Ranges[2];
 }
+
+#if BATMAN
+
+struct FAnimZipHeader
+{
+	int SingleRotationOffset;
+	int SingleTranslationOffset;
+	int RotationCount;
+	int RotationOffset;
+	int TranslationCount;
+	int TranslationOffset;
+
+	friend FArchive& operator<<(FArchive& Ar, FAnimZipHeader& H)
+	{
+		return Ar << H.SingleRotationOffset
+			<< H.SingleTranslationOffset
+			<< H.RotationCount
+			<< H.RotationOffset
+			<< H.TranslationCount
+			<< H.TranslationOffset;
+	}
+};
+
+struct FAnimZipTrack
+{
+	BYTE NumBones;
+	SHORT NumKeys;
+	INT BoneInfoOffset;
+	INT CompressedDataOffset;
+	BYTE Codec;
+
+	/** Constructors */
+	FAnimZipTrack() {}
+	FAnimZipTrack(EEventParm)
+	{
+		appMemzero(this, sizeof(FAnimZipTrack));
+	}
+
+	friend FArchive& operator<<(FArchive& Ar, FAnimZipTrack& T)
+	{
+		T.NumBones = 0;
+		Ar << T.Codec;
+		Ar << T.NumBones;
+		Ar << T.NumKeys;
+		Ar << T.BoneInfoOffset;
+		Ar << T.CompressedDataOffset;
+
+		return Ar;
+	}
+};
+
+INT FindTrack(INT Bone, FArchive& Ar, FAnimZipTrack& T, INT Pos, INT Count, UAnimSet* Owner)
+{
+	INT TrackIndex = -1;
+	for (INT i = 0; (i < Count) && (TrackIndex < 0); i++)
+	{
+		// read header
+		Ar.Seek(Pos);
+		Ar << T;
+		Pos = Ar.Tell();
+		// find bone
+		Ar.Seek(T.BoneInfoOffset);
+
+		// find bone in byte array
+		for (INT b = 0; b < T.NumBones; b++)
+		{
+			BYTE b0;
+			Ar << b0;
+			if (b0 == Bone)
+			{
+				TrackIndex = b;
+				break;
+			}
+		}
+	}
+
+	return TrackIndex;
+}
+
+enum EAnimZipRotationCodec
+{
+	AZRC_QuatMax_48,
+	AZRC_QuatMax_40,
+	AZRC_QuatRelative_32,
+	AZRC_QuatRelative_24,
+	AZRC_QuatRelative_16,
+	AZRC_FixedAxis_16,
+	AZRC_FixedAxis_8,
+	AZRC_MAX,
+};
+
+FQuat FinishQuatMax(int Shift, int H, int M, int L, int S)
+{
+	float scale0 = 1.0f / ((1 << Shift) - 1);
+	static const float shift = 0.70710678118f;		// sqrt(0.5)
+	static const float scale = 1.41421356237f;		// sqrt(0.5)*2
+	scale0 *= scale;
+	float l = L * scale0 - shift;
+	float m = M * scale0 - shift;
+	float h = H * scale0 - shift;
+	float a = sqrt(1.0f - (l * l + m * m + h * h));
+
+	FQuat r;
+	switch (S)			// choose where to place "a"
+	{
+	case 0:
+		r = FQuat(a, m, h, l);
+		break;
+	case 1:
+		r = FQuat(m, a, h, l);
+		break;
+	case 2:
+		r = FQuat(m, h, a, l);
+		break;
+	default:
+		r = FQuat(m, h, l, a);
+		break;
+	}
+	return r;
+}
+
+static FQuat FinishQuatRelative(int Shift, unsigned X, unsigned Y, unsigned Z, char* Interval)
+{
+	FQuat Base, Delta;
+
+	Base.X = Interval[0] / 127.0f;
+	Base.Y = Interval[1] / 127.0f;
+	Base.Z = Interval[2] / 127.0f;
+	Base.W = Interval[3] / 127.0f;
+	Base.Normalize();
+
+	float Scale = 1.0f / ((1 << Shift) - 1);
+	Delta.X = X * Scale * ((byte)Interval[7]) / 127.5f + Interval[4] / 127.0f;
+	Delta.Y = Y * Scale * ((byte)Interval[8]) / 127.5f + Interval[5] / 127.0f;
+	Delta.Z = Z * Scale * ((byte)Interval[9]) / 127.5f + Interval[6] / 127.0f;
+	float wSq = 1.0f - (Delta.X * Delta.X + Delta.Y * Delta.Y + Delta.Z * Delta.Z);
+	Delta.W = (wSq > 0) ? sqrt(wSq) : 0;
+
+	Base *= Delta;
+	return Base;
+}
+
+static FQuat FinishQuatFixedAxis(int Shift, unsigned Value, byte* Interval)
+{
+	FQuat r(0, 0, 0, 0);
+	switch (Interval[0])
+	{
+	case 0:
+		r.X = 1;
+		break;
+	case 1:
+		r.Y = 1;
+		break;
+	default:
+		//	case 2:
+		r.Z = 1;
+		break;
+	}
+	static const float Scale = PI * 2 / 255;
+	float Angle = (Interval[1] * Scale + Value * Interval[2] * Scale / ((1 << Shift) - 1)) * 0.5f;
+	float AngleSin = sin(Angle);
+
+	r.X *= AngleSin;
+	r.Y *= AngleSin;
+	r.Z *= AngleSin;
+	r.W = cos(Angle);
+	return r;
+}
+
+INT FindAndDecodeRotation(INT Bone, FArchive& Ar, FRawAnimSequenceTrack& RawAnimTrack, INT Pos, INT Count, UAnimSet* Owner)
+{
+	FAnimZipTrack T;
+	INT TrackIndex = FindTrack(Bone, Ar, T, Pos, Count, Owner);
+	if (TrackIndex < 0)
+	{
+		return -1;
+	}
+
+	INT IntervalDataOffset;
+	IntervalDataOffset = T.BoneInfoOffset + T.NumBones;		// bone index is byte
+
+	switch (T.Codec)
+	{
+		case AZRC_QuatMax_48:
+		{
+			for (int i = 0; i < T.NumKeys; i++)
+			{
+				Ar.Seek(T.CompressedDataOffset + (TrackIndex + T.NumBones * i) * 6);
+				byte b[6];
+				Ar.Serialize(b, 6);
+				FQuat q = FinishQuatMax(
+					15,
+					((b[2] << 8) | b[3]) & 0x7FFF,			// 2nd 2 bytes, big-endian
+					((b[0] << 8) | b[1]) & 0x7FFF,			// 1st 2 bytes, big-endian
+					((b[4] << 8) | b[5]) & 0x7FFF,			// last 2 bytes
+					((b[2] >> 6) & 2) | (b[4] >> 7)
+				);
+				RawAnimTrack.RotKeys.AddItem(q);
+			}
+		}
+		break;
+
+		case AZRC_QuatMax_40:
+		{
+			for (int i = 0; i < T.NumKeys; i++)
+			{
+				Ar.Seek(T.CompressedDataOffset + (TrackIndex + T.NumBones * i) * 5);
+				byte b[5];
+				Ar.Serialize(b, 5);							// AAB.BCC.DDE.E
+				FQuat q = FinishQuatMax(
+					12,
+					((b[1] << 8) | b[2]) & 0xFFF,			// BCC
+					(((b[0] << 8) | b[1]) >> 4) & 0xFFF,	// AAB
+					(((b[3] << 8) | b[4]) >> 4) & 0xFFF,	// DDE
+					b[4] & 3								// E
+				);
+				RawAnimTrack.RotKeys.AddItem(q);
+			}
+		}
+		break;
+
+		case AZRC_QuatRelative_32:
+		{
+			Ar.Seek(IntervalDataOffset + 10 * TrackIndex);
+			char Interval[10];		// signed
+			Ar.Serialize(Interval, 10);
+			for (int i = 0; i < T.NumKeys; i++)
+			{
+				Ar.Seek(T.CompressedDataOffset + (TrackIndex + T.NumBones * i) * 4);
+				byte b[4];
+				Ar.Serialize(b, 4);
+				unsigned val32 = (b[0] << 24) | (b[1] << 16) | (b[2] << 8) | b[3];
+				FQuat q = FinishQuatRelative(10, (val32 >> 20) & 0x3FF, (val32 >> 10) & 0x3FF, val32 & 0x3FF, Interval);
+				RawAnimTrack.RotKeys.AddItem(q);
+			}
+		}
+		break;
+
+		case AZRC_QuatRelative_24:
+		{
+			Ar.Seek(IntervalDataOffset + 10 * TrackIndex);
+			char Interval[10];		// signed
+			Ar.Serialize(Interval, 10);
+			for (int i = 0; i < T.NumKeys; i++)
+			{
+				Ar.Seek(T.CompressedDataOffset + (TrackIndex + T.NumBones * i) * 3);
+				byte b[3];
+				Ar.Serialize(b, 3);
+				FQuat q = FinishQuatRelative(8, b[0], b[1], b[2], Interval);
+				RawAnimTrack.RotKeys.AddItem(q);
+			}
+		}
+		break;
+
+		case AZRC_QuatRelative_16:
+		{
+			Ar.Seek(IntervalDataOffset + 10 * TrackIndex);
+			char Interval[10];		// signed
+			Ar.Serialize(Interval, 10);
+			for (int i = 0; i < T.NumKeys; i++)
+			{
+				Ar.Seek(T.CompressedDataOffset + (TrackIndex + T.NumBones * i) * 2);
+				byte b[2];
+				Ar.Serialize(b, 2);
+				unsigned val32 = (b[0] << 8) | b[1];
+				FQuat q = FinishQuatRelative(5, (val32 >> 10) & 0x1F, (val32 >> 5) & 0x1F, val32 & 0x1F, Interval);
+				RawAnimTrack.RotKeys.AddItem(q);
+			}
+		}
+		break;
+
+		case AZRC_FixedAxis_16:
+		{
+			Ar.Seek(IntervalDataOffset + 3 * TrackIndex);
+			byte Interval[3];
+			Ar.Serialize(Interval, 3);
+			for (int i = 0; i < T.NumKeys; i++)
+			{
+				Ar.Seek(T.CompressedDataOffset + (TrackIndex + T.NumBones * i) * 2);
+				USHORT w;
+				Ar << w;
+				FQuat q = FinishQuatFixedAxis(16, w, Interval);
+				RawAnimTrack.RotKeys.AddItem(q);
+			}
+		}
+		break;
+
+		case AZRC_FixedAxis_8:
+		{
+			Ar.Seek(IntervalDataOffset + 3 * TrackIndex);
+			byte Interval[3];
+			Ar.Serialize(Interval, 3);
+			for (int i = 0; i < T.NumKeys; i++)
+			{
+				Ar.Seek(T.CompressedDataOffset + (TrackIndex + T.NumBones * i) * 1);
+				byte b;
+				Ar << b;
+				FQuat q = FinishQuatFixedAxis(8, b, Interval);
+				RawAnimTrack.RotKeys.AddItem(q);
+			}
+		}
+		break;
+	}
+
+	return T.Codec;
+}
+
+enum EAnimZipTranslationScaleCodec
+{
+	AZTSC_Float_128,
+	AZTSC_NoScale_Float_96,
+	AZTSC_NoScale_Interval_Fixed_48,
+	AZTSC_NoScale_Interval_Fixed_24,
+	AZTSC_MAX,
+};
+
+INT FindAndDecodeTranslation(INT Bone, FArchive& Ar, FRawAnimSequenceTrack& RawAnimTrack, INT Pos, INT Count, UAnimSet* Owner)
+{
+	FAnimZipTrack T;
+	int TrackIndex = FindTrack(Bone, Ar, T, Pos, Count, Owner);
+	if (TrackIndex < 0) return -1;
+
+	int IntervalDataOffset;
+	IntervalDataOffset = T.BoneInfoOffset + T.NumBones;		// bone index is byte
+
+	switch (T.Codec)
+	{
+	case AZTSC_Float_128:
+	{
+		for (int i = 0; i < T.NumKeys; i++)
+		{
+			Ar.Seek(T.CompressedDataOffset + (TrackIndex + T.NumBones * i) * 16);
+			FVector v;
+			float	f;
+			Ar << v << f;
+			RawAnimTrack.PosKeys.AddItem(v);
+		}
+	}
+	break;
+
+	case AZTSC_NoScale_Float_96:
+	{
+		for (int i = 0; i < T.NumKeys; i++)
+		{
+			Ar.Seek(T.CompressedDataOffset + (TrackIndex + T.NumBones * i) * 12);
+			FVector v;
+			Ar << v;
+			RawAnimTrack.PosKeys.AddItem(v);
+		}
+	}
+	break;
+
+	case AZTSC_NoScale_Interval_Fixed_48:
+	{
+		// read interval
+		Ar.Seek(IntervalDataOffset + TrackIndex * 12 * 2);
+		FVector Mins, Ranges;
+		Ar << Mins << Ranges;
+		// read track
+		for (int i = 0; i < T.NumKeys; i++)
+		{
+			Ar.Seek(T.CompressedDataOffset + (TrackIndex + T.NumBones * i) * 6);
+			SHORT vi[3];		// signed
+			Ar << vi[0] << vi[1] << vi[2];
+			FVector v;
+			v.X = vi[0] / 32767.0f * Ranges.X + Mins.X;
+			v.Y = vi[1] / 32767.0f * Ranges.Y + Mins.Y;
+			v.Z = vi[2] / 32767.0f * Ranges.Z + Mins.Z;
+			RawAnimTrack.PosKeys.AddItem(v);
+		}
+	}
+	break;
+
+	case AZTSC_NoScale_Interval_Fixed_24:
+	{
+		// read interval
+		Ar.Seek(IntervalDataOffset + TrackIndex * 12 * 2);
+		FVector Mins, Ranges;
+		Ar << Mins << Ranges;
+		// read track
+		for (int i = 0; i < T.NumKeys; i++)
+		{
+			Ar.Seek(T.CompressedDataOffset + (TrackIndex + T.NumBones * i) * 3);
+			char vi[3];			// signed
+			Ar << vi[0] << vi[1] << vi[2];
+			FVector v;
+			v.X = vi[0] / 127.0f * Ranges.X + Mins.X;
+			v.Y = vi[1] / 127.0f * Ranges.Y + Mins.Y;
+			v.Z = vi[2] / 127.0f * Ranges.Z + Mins.Z;
+			RawAnimTrack.PosKeys.AddItem(v);
+		}
+	}
+	break;
+	}
+
+	return T.Codec;
+}
+
+#endif
 	
 void UAnimSequence::Serialize(FArchive& Ar)
 {
@@ -228,6 +627,13 @@ void UAnimSequence::Serialize(FArchive& Ar)
 
 		// we must know the proper codecs to use
 		AnimationFormat_SetInterfaceLinks(*this);
+
+#if BATMAN
+		if (Ar.IsBmCooked())
+		{
+			Ar << AnimZip_Data;
+		}
+#endif
 
 		// and then use the codecs to byte swap
 		check( RotationCodec != NULL );
@@ -309,6 +715,51 @@ void UAnimSequence::PostLoad()
 {
 	UBOOL bMarkDirty = FALSE;
 	Super::PostLoad();
+
+#if BATMAN
+	// BM: Unpack AnimZip on load
+	if (AnimZip_Data.Num())
+	{
+		FMemoryReader AnimZip_Reader(AnimZip_Data, TRUE);
+
+		// Read in AnimZip
+		FAnimZipHeader Hdr;
+		AnimZip_Reader << Hdr;
+
+		UAnimSet* Owner = GetAnimSet();
+		INT NumTracks = Owner->TrackBoneNames.Num();
+
+		// Build RawAnimationData
+		RawAnimationData.Empty(NumTracks);
+		for (INT BoneIdx = 0; BoneIdx < NumTracks; BoneIdx++)
+		{
+			FRawAnimSequenceTrack RawAnimTrack;
+			INT RotationCodecNum = FindAndDecodeRotation(BoneIdx, AnimZip_Reader, RawAnimTrack, Hdr.RotationOffset, Hdr.RotationCount, Owner);
+			INT TranslationCodecNum = FindAndDecodeTranslation(BoneIdx, AnimZip_Reader, RawAnimTrack, Hdr.TranslationOffset, Hdr.TranslationCount, Owner);
+
+			if (!RawAnimTrack.RotKeys.Num())
+			{
+				RawAnimTrack.RotKeys.AddItem(FQuat::Identity);
+			}
+			if (!RawAnimTrack.PosKeys.Num())
+			{
+				RawAnimTrack.PosKeys.AddItem(FVector::ZeroVector);
+			}
+
+			// Fix quaternions
+			if (BoneIdx > 0)
+			{
+				for (INT i = 0; i < RawAnimTrack.RotKeys.Num(); i++)
+				{
+					FQuat& RotKey = RawAnimTrack.RotKeys(i);
+					RotKey = FQuat(-RotKey.X, -RotKey.Y, -RotKey.Z, RotKey.W);
+				}
+			}
+
+			RawAnimationData.AddItem(RawAnimTrack);
+		}
+	}
+#endif
 
 #if !CONSOLE
 	// Convert to new base pose for additive animations if needed
@@ -471,7 +922,10 @@ void UAnimSequence::PostLoad()
 		// Never compress on consoles.
 		appErrorf( TEXT("No animation compression exists for sequence %s (%s)"), *SequenceName.ToString(), (GetOuter() ? *GetOuter()->GetFullName() : *GetFullName()) );
 #else
+#if BATMAN
+#else
 		warnf( TEXT("No animation compression exists for sequence %s (%s)"), *SequenceName.ToString(), (GetOuter() ? *GetOuter()->GetFullName() : *GetFullName()) );
+#endif
 		// No animation compression, recompress using default settings.
 		FAnimationUtils::CompressAnimSequence(this, NULL, FALSE, FALSE);
 #endif // CONSOLE
@@ -1129,7 +1583,11 @@ UBOOL UAnimSequence::CompressRawAnimSequenceTrack(FRawAnimSequenceTrack& RawTrac
 	UBOOL const bPosTrackIsValid = (RawTrack.PosKeys.Num() == 1 || RawTrack.PosKeys.Num() == NumFrames);
 	if( !bPosTrackIsValid )
 	{
+#if BATMAN
+		// TEMP
+#else
 		warnf(TEXT("Found non valid position track for %s, %d frames, instead of %d. Chopping!"), *SequenceName.ToString(), RawTrack.PosKeys.Num(), NumFrames);
+#endif
 		bRemovedKeys = TRUE;
 		RawTrack.PosKeys.Remove(1, RawTrack.PosKeys.Num()- 1);
 		RawTrack.PosKeys.Shrink();
@@ -1139,7 +1597,11 @@ UBOOL UAnimSequence::CompressRawAnimSequenceTrack(FRawAnimSequenceTrack& RawTrac
 	UBOOL const bRotTrackIsValid = (RawTrack.RotKeys.Num() == 1 || RawTrack.RotKeys.Num() == NumFrames);
 	if( !bRotTrackIsValid )
 	{
+#if BATMAN
+		// TEMP
+#else
 		warnf(TEXT("Found non valid rotation track for %s, %d frames, instead of %d. Chopping!"), *SequenceName.ToString(), RawTrack.RotKeys.Num(), NumFrames);
+#endif
 		bRemovedKeys = TRUE;
 		RawTrack.RotKeys.Remove(1, RawTrack.RotKeys.Num()- 1);
 		RawTrack.RotKeys.Shrink();

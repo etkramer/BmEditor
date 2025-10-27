@@ -839,7 +839,10 @@ void FAnimationUtils::CompressAnimSequenceExplicit(
 			{
 				if (bFirstRecompressUsingCurrentOrDefault)
 				{
+#if BATMAN
+#else
 					warnf(TEXT("FAnimationUtils::CompressAnimSequence %s (%s) SkelMesh not valid, reverting default compression scheme to Bitwise compression!"), *AnimSeq->SequenceName.ToString(), *AnimSet->GetFullName());
+#endif
 				}
 				OriginalCompressionAlgorithm = ConstructObject<UAnimationCompressionAlgorithm_BitwiseCompressOnly>( UAnimationCompressionAlgorithm_BitwiseCompressOnly::StaticClass() );
 				OriginalCompressionAlgorithm->RotationCompressionFormat = ACF_Float96NoW;
@@ -870,7 +873,10 @@ void FAnimationUtils::CompressAnimSequenceExplicit(
 		{
 			if( !DefaultSkeletalMesh )
 			{
+#if BATMAN
+#else
 				warnf(TEXT("%s %s couldn't be compressed! Default Mesh is NULL! PreviewSkelMeshName: %s"), *AnimSet->GetFullName(), *AnimSeq->SequenceName.ToString(), *AnimSet->PreviewSkelMeshName.ToString());
+#endif
 			}
 			else
 			{

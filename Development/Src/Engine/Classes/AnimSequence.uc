@@ -213,6 +213,11 @@ var			array<int>		CompressedTrackOffsets;
  */
 var native	array<byte>		CompressedByteStream;
 
+// BM
+var native	array<byte>		AnimZip_Data;
+var private transient native Vector	AnimZip_LinearOrigin;
+var private transient native Vector	AnimZip_LinearSpan;
+
 /**
  * Indicates animation data compression format.
  */

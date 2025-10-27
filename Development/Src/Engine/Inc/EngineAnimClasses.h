@@ -674,6 +674,9 @@ public:
     BYTE KeyEncodingFormat;
     TArrayNoInit<INT> CompressedTrackOffsets;
     TArrayNoInit<BYTE> CompressedByteStream;
+    TArrayNoInit<BYTE> AnimZip_Data;
+    FVector AnimZip_LinearOrigin;
+    FVector AnimZip_LinearSpan;
     FPointer TranslationCodec;
     FPointer RotationCodec;
     TArrayNoInit<FBoneAtom> AdditiveRefPose_DEPRECATED;

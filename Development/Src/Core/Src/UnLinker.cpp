@@ -3670,10 +3670,6 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 #if BATMAN
         // Skip currently unsupported types from BM packages
         if (IsBmCooked() && (
-            // These load but don't render properly (needs new BM2 compression).
-            LoadClass->GetName() == "AnimSet" ||
-            LoadClass->GetName() == "AnimSequence" ||
-
             // These load but don't render properly (needs RefShaderCache compat).
             // Ignoring for now so we fall back to the prettier default mat.
             LoadClass->GetName() == "Material" ||
