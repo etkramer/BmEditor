@@ -221,6 +221,14 @@ void UModel::Serialize( FArchive& Ar )
 		CalculateUniqueVertCount();
 	}
 
+#if BATMAN
+	if (Ar.IsBmCooked())
+	{
+		UBOOL ForceShadowVolumes = FALSE;
+		Ar << ForceShadowVolumes;
+	}
+#endif
+
 	// serialize the lighting guid if it's there
 	if (Ar.Ver() >= VER_INTEGRATED_LIGHTMASS)
 	{
