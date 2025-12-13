@@ -589,6 +589,270 @@ INT FindAndDecodeTranslation(INT Bone, FArchive& Ar, FRawAnimSequenceTrack& RawA
 	return T.Codec;
 }
 
+// AnimZip encoding functions for writing
+
+void EncodeQuatMax48(const FQuat& q, BYTE* b)
+{
+	// Determine which component has the largest magnitude
+	INT MaxComponent = 0;
+	FLOAT MaxValue = Abs(q.X);
+	if (Abs(q.Y) > MaxValue) { MaxComponent = 1; MaxValue = Abs(q.Y); }
+	if (Abs(q.Z) > MaxValue) { MaxComponent = 2; MaxValue = Abs(q.Z); }
+	if (Abs(q.W) > MaxValue) { MaxComponent = 3; MaxValue = Abs(q.W); }
+
+	// Ensure the largest component is positive
+	FQuat qNorm = q;
+	FLOAT sign = 1.0f;
+	switch (MaxComponent)
+	{
+	case 0: sign = (q.X < 0) ? -1.0f : 1.0f; break;
+	case 1: sign = (q.Y < 0) ? -1.0f : 1.0f; break;
+	case 2: sign = (q.Z < 0) ? -1.0f : 1.0f; break;
+	case 3: sign = (q.W < 0) ? -1.0f : 1.0f; break;
+	}
+	qNorm = FQuat(q.X * sign, q.Y * sign, q.Z * sign, q.W * sign);
+
+	// Get the three components (excluding the largest)
+	FLOAT l, m, h;
+	switch (MaxComponent)
+	{
+	case 0:	// X is largest, encode Y, Z, W
+		m = qNorm.Y;
+		h = qNorm.Z;
+		l = qNorm.W;
+		break;
+	case 1:	// Y is largest, encode X, Z, W
+		m = qNorm.X;
+		h = qNorm.Z;
+		l = qNorm.W;
+		break;
+	case 2:	// Z is largest, encode X, Y, W
+		m = qNorm.X;
+		h = qNorm.Y;
+		l = qNorm.W;
+		break;
+	default: // W is largest, encode X, Y, Z
+		m = qNorm.X;
+		h = qNorm.Y;
+		l = qNorm.Z;
+		break;
+	}
+
+	// Encode using the QuatMax_48 format
+	static const FLOAT shift = 0.70710678118f;		// sqrt(0.5)
+	static const FLOAT scale = 1.41421356237f;		// sqrt(2)
+	FLOAT scale0 = ((1 << 15) - 1) / scale;
+
+	INT lVal = Clamp<INT>((l + shift) * scale0 + 0.5f, 0, 32767);
+	INT mVal = Clamp<INT>((m + shift) * scale0 + 0.5f, 0, 32767);
+	INT hVal = Clamp<INT>((h + shift) * scale0 + 0.5f, 0, 32767);
+
+	// Pack into 6 bytes: AAA.ABB.BBC.CCS
+	// A = mVal (15 bits), B = hVal (15 bits), C = lVal (15 bits), S = MaxComponent (2 bits)
+	// Layout: [mVal high byte] [mVal low | hVal high 7 bits] [hVal middle 8 bits]
+	//         [hVal low | lVal high 7 bits] [lVal middle 8 bits] [lVal low 8 bits]
+
+	// Actual Batman format appears to be:
+	// bytes[0-1]: 1st value (big-endian, 15 bits)
+	// bytes[2-3]: 2nd value (big-endian, 15 bits) with top 2 bits used for S
+	// bytes[4-5]: 3rd value (15 bits) with top bit used for S
+
+	b[0] = (mVal >> 8) & 0xFF;
+	b[1] = mVal & 0xFF;
+	b[2] = ((hVal >> 8) & 0x3F) | ((MaxComponent & 2) << 6);
+	b[3] = hVal & 0xFF;
+	b[4] = ((lVal >> 8) & 0x7F) | ((MaxComponent & 1) << 7);
+	b[5] = lVal & 0xFF;
+}
+
+void EncodeRotationTrack(const TArray<FQuat>& RotKeys, INT BoneIdx, INT NumKeys, FArchive& Ar,
+	TArray<FAnimZipTrack>& Tracks, TArray<BYTE>& BoneIndices, TArray<BYTE>& CompressedData)
+{
+	FAnimZipTrack Track;
+	Track.Codec = AZRC_QuatMax_48;
+	Track.NumBones = 1;
+	Track.NumKeys = NumKeys;
+	Track.BoneInfoOffset = 0;  // Will be set later
+	Track.CompressedDataOffset = 0;  // Will be set later
+
+	// Add bone index
+	BoneIndices.AddItem((BYTE)BoneIdx);
+
+	// Encode all keys for this bone
+	for (INT KeyIdx = 0; KeyIdx < RotKeys.Num(); KeyIdx++)
+	{
+		BYTE encoded[6];
+
+		FQuat q = RotKeys(KeyIdx);
+		// Fix quaternion for non-root bones (reverse the fix from PostLoad)
+		if (BoneIdx > 0)
+		{
+			q = FQuat(-q.X, -q.Y, -q.Z, q.W);
+		}
+
+		EncodeQuatMax48(q, encoded);
+		CompressedData.Append(encoded, 6);
+	}
+
+	Tracks.AddItem(Track);
+}
+
+void EncodeTranslationTrack(const TArray<FVector>& PosKeys, INT BoneIdx, INT NumKeys, FArchive& Ar,
+	TArray<FAnimZipTrack>& Tracks, TArray<BYTE>& BoneIndices, TArray<BYTE>& CompressedData)
+{
+	FAnimZipTrack Track;
+	Track.Codec = AZTSC_NoScale_Float_96;
+	Track.NumBones = 1;
+	Track.NumKeys = NumKeys;
+	Track.BoneInfoOffset = 0;  // Will be set later
+	Track.CompressedDataOffset = 0;  // Will be set later
+
+	// Add bone index
+	BoneIndices.AddItem((BYTE)BoneIdx);
+
+	// Encode all keys for this bone - serialize each FVector properly
+	TArray<BYTE> TempBuffer;
+	FMemoryWriter TempWriter(TempBuffer, TRUE);
+	for (INT KeyIdx = 0; KeyIdx < PosKeys.Num(); KeyIdx++)
+	{
+		FVector v = PosKeys(KeyIdx);
+		TempWriter << v;
+	}
+
+	// Append to compressed data
+	CompressedData.Append(TempBuffer);
+
+	Tracks.AddItem(Track);
+}
+
+void PackAnimZip(UAnimSequence* Seq)
+{
+	if (!Seq->RawAnimationData.Num())
+	{
+		return;  // Nothing to pack
+	}
+
+	UAnimSet* Owner = Seq->GetAnimSet();
+	if (!Owner)
+	{
+		return;
+	}
+
+	INT NumTracks = Seq->RawAnimationData.Num();
+	INT NumKeys = Seq->NumFrames;
+
+	// Build rotation and translation tracks
+	TArray<FAnimZipTrack> RotationTracks;
+	TArray<BYTE> RotationBoneIndices;
+	TArray<BYTE> RotationCompressedData;
+
+	TArray<FAnimZipTrack> TranslationTracks;
+	TArray<BYTE> TranslationBoneIndices;
+	TArray<BYTE> TranslationCompressedData;
+
+	// Process each bone
+	for (INT BoneIdx = 0; BoneIdx < NumTracks; BoneIdx++)
+	{
+		const FRawAnimSequenceTrack& Track = Seq->RawAnimationData(BoneIdx);
+
+		// Only add track if it has actual data
+		if (Track.RotKeys.Num() > 0)
+		{
+			EncodeRotationTrack(Track.RotKeys, BoneIdx, NumKeys,
+				FMemoryWriter(Seq->AnimZip_Data, TRUE),
+				RotationTracks, RotationBoneIndices, RotationCompressedData);
+		}
+
+		if (Track.PosKeys.Num() > 0)
+		{
+			EncodeTranslationTrack(Track.PosKeys, BoneIdx, NumKeys,
+				FMemoryWriter(Seq->AnimZip_Data, TRUE),
+				TranslationTracks, TranslationBoneIndices, TranslationCompressedData);
+		}
+	}
+
+	// Now build the final AnimZip_Data buffer
+	Seq->AnimZip_Data.Empty();
+	FMemoryWriter Writer(Seq->AnimZip_Data, TRUE);
+
+	// Calculate offsets
+	FAnimZipHeader Header;
+	Header.SingleRotationOffset = 0;  // Not used in simple implementation
+	Header.SingleTranslationOffset = 0;  // Not used
+	Header.RotationCount = RotationTracks.Num();
+	Header.TranslationCount = TranslationTracks.Num();
+
+	// FAnimZipHeader serializes as 6 INTs = 24 bytes
+	// FAnimZipTrack serializes as BYTE + BYTE + SHORT + INT + INT = 12 bytes
+	const INT ANIMZIP_HEADER_SIZE = 24;
+	const INT ANIMZIP_TRACK_SIZE = 12;
+
+	INT CurrentOffset = ANIMZIP_HEADER_SIZE;
+
+	// Rotation track headers
+	Header.RotationOffset = CurrentOffset;
+	CurrentOffset += RotationTracks.Num() * ANIMZIP_TRACK_SIZE;
+
+	// Translation track headers
+	Header.TranslationOffset = CurrentOffset;
+	CurrentOffset += TranslationTracks.Num() * ANIMZIP_TRACK_SIZE;
+
+	// Set bone info offsets for rotation tracks
+	for (INT i = 0; i < RotationTracks.Num(); i++)
+	{
+		RotationTracks(i).BoneInfoOffset = CurrentOffset;
+		CurrentOffset += RotationTracks(i).NumBones;  // 1 byte per bone
+	}
+
+	// Set bone info offsets for translation tracks
+	for (INT i = 0; i < TranslationTracks.Num(); i++)
+	{
+		TranslationTracks(i).BoneInfoOffset = CurrentOffset;
+		CurrentOffset += TranslationTracks(i).NumBones;  // 1 byte per bone
+	}
+
+	// Set compressed data offset for rotation tracks
+	for (INT i = 0; i < RotationTracks.Num(); i++)
+	{
+		RotationTracks(i).CompressedDataOffset = CurrentOffset;
+		CurrentOffset += RotationTracks(i).NumBones * RotationTracks(i).NumKeys * 6;  // 6 bytes per key for QuatMax_48
+	}
+
+	// Set compressed data offset for translation tracks
+	for (INT i = 0; i < TranslationTracks.Num(); i++)
+	{
+		TranslationTracks(i).CompressedDataOffset = CurrentOffset;
+		CurrentOffset += TranslationTracks(i).NumBones * TranslationTracks(i).NumKeys * 12;  // 12 bytes per key for Float_96
+	}
+
+	// Write header
+	Writer << Header;
+
+	// Write rotation track headers
+	for (INT i = 0; i < RotationTracks.Num(); i++)
+	{
+		Writer << RotationTracks(i);
+	}
+
+	// Write translation track headers
+	for (INT i = 0; i < TranslationTracks.Num(); i++)
+	{
+		Writer << TranslationTracks(i);
+	}
+
+	// Write rotation bone indices
+	Writer.Serialize(RotationBoneIndices.GetData(), RotationBoneIndices.Num());
+
+	// Write translation bone indices
+	Writer.Serialize(TranslationBoneIndices.GetData(), TranslationBoneIndices.Num());
+
+	// Write rotation compressed data
+	Writer.Serialize(RotationCompressedData.GetData(), RotationCompressedData.Num());
+
+	// Write translation compressed data
+	Writer.Serialize(TranslationCompressedData.GetData(), TranslationCompressedData.Num());
+}
+
 #endif
 	
 void UAnimSequence::Serialize(FArchive& Ar)
@@ -659,6 +923,18 @@ void UAnimSequence::Serialize(FArchive& Ar)
 		INT Num = SerializedData.Num();
 		Ar << Num;
 		Ar.Serialize( SerializedData.GetData(), SerializedData.Num() );
+
+#if BATMAN
+		// Pack and write AnimZip data for BmCooked format
+		if (Ar.IsBmCooked())
+		{
+			// Pack RawAnimationData into AnimZip format
+			PackAnimZip(this);
+
+			// Write AnimZip_Data
+			Ar << AnimZip_Data;
+		}
+#endif
 
 		// Count compressed data.
 		Ar.CountBytes( SerializedData.Num(), SerializedData.Num() );
