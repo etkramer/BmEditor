@@ -925,8 +925,8 @@ void UAnimSequence::Serialize(FArchive& Ar)
 		Ar.Serialize( SerializedData.GetData(), SerializedData.Num() );
 
 #if BATMAN
-		// Pack and write AnimZip data for BmCooked format
-		if (Ar.IsBmCooked())
+		// Pack and write AnimZip data (can't use IsBmCooked() here because we want to include saving from editor)
+		// if (Ar.IsBmCooked())
 		{
 			// Pack RawAnimationData into AnimZip format
 			PackAnimZip(this);
