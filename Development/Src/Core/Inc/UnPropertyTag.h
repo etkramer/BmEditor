@@ -22,6 +22,14 @@ struct FPropertyTag
 
 	// Constructors.
 	FPropertyTag()
+	:	Type		(NAME_None)
+	,	BoolVal		(0)
+	,	Name		(NAME_None)
+	,	StructName	(NAME_None)
+	,	EnumName	(NAME_None)
+	,	Size		(0)
+	,	ArrayIndex	(0)
+	,	SizeOffset	(INDEX_NONE)
 	{}
 	FPropertyTag( FArchive& InSaveAr, UProperty* Property, INT InIndex, BYTE* Value, BYTE* Defaults )
 	:	Type		(Property->GetID())

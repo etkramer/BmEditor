@@ -756,6 +756,7 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 
 #if BATMAN
 			// Batman3 SP format doesn't serialize StructName/EnumName - fill from property metadata
+			// Also normalize Batman-specific property types to standard UE3 types
 			if (Ar.IsBmCooked() && Property != NULL)
 			{
 				if (Tag.Type == NAME_StructProperty)
@@ -772,6 +773,44 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 					if (ByteProp && ByteProp->Enum)
 					{
 						Tag.EnumName = ByteProp->Enum->GetFName();
+					}
+				}
+				// VectorProperty (11) -> StructProperty with struct "Vector"
+				else if (Tag.Type == NAME_VectorProperty)
+				{
+					UStructProperty* StructProp = Cast<UStructProperty>(Property, CLASS_IsAUStructProperty);
+					if (StructProp && StructProp->Struct && StructProp->Struct->GetFName() == NAME_Vector)
+					{
+						Tag.Type = NAME_StructProperty;
+						Tag.StructName = NAME_Vector;
+					}
+				}
+				// RotatorProperty (12) -> StructProperty with struct "Rotator"
+				else if (Tag.Type == NAME_RotatorProperty)
+				{
+					UStructProperty* StructProp = Cast<UStructProperty>(Property, CLASS_IsAUStructProperty);
+					if (StructProp && StructProp->Struct && StructProp->Struct->GetFName() == NAME_Rotator)
+					{
+						Tag.Type = NAME_StructProperty;
+						Tag.StructName = NAME_Rotator;
+					}
+				}
+				// ObjectNCRProperty (16) -> ObjectProperty
+				else if (Tag.Type == NAME_ObjectNCRProperty)
+				{
+					if (Property->GetID() == NAME_ObjectProperty)
+					{
+						Tag.Type = NAME_ObjectProperty;
+					}
+				}
+				// GUIDProperty (17) -> StructProperty with struct "Guid"
+				else if (Tag.Type == NAME_GUIDProperty)
+				{
+					UStructProperty* StructProp = Cast<UStructProperty>(Property, CLASS_IsAUStructProperty);
+					if (StructProp && StructProp->Struct && StructProp->Struct->GetFName() == NAME_Guid)
+					{
+						Tag.Type = NAME_StructProperty;
+						Tag.StructName = NAME_Guid;
 					}
 				}
 			}
