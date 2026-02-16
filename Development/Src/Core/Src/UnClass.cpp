@@ -754,6 +754,28 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 				RemainingArrayDim = Property ? Property->ArrayDim : 0;
 			}
 
+#if BATMAN
+			// Batman3 SP format doesn't serialize StructName/EnumName - fill from property metadata
+			if (Ar.IsBmCooked() && Property != NULL)
+			{
+				if (Tag.Type == NAME_StructProperty)
+				{
+					UStructProperty* StructProp = Cast<UStructProperty>(Property, CLASS_IsAUStructProperty);
+					if (StructProp && StructProp->Struct)
+					{
+						Tag.StructName = StructProp->Struct->GetFName();
+					}
+				}
+				else if (Tag.Type == NAME_ByteProperty)
+				{
+					UByteProperty* ByteProp = ExactCast<UByteProperty>(Property);
+					if (ByteProp && ByteProp->Enum)
+					{
+						Tag.EnumName = ByteProp->Enum->GetFName();
+					}
+				}
+			}
+#endif
 
 			//@{
 			//@compatibility

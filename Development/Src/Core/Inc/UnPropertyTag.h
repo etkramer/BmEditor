@@ -54,6 +54,40 @@ struct FPropertyTag
 	// Serializer.
 	friend FArchive& operator<<( FArchive& Ar, FPropertyTag& Tag )
 	{
+#if BATMAN
+		// Batman3 SP cooked content uses compact property tag format
+		// Format: int16 Type, FName PropertyName, int Size, int ArrayIndex, [byte BoolVal]
+		if (Ar.IsLoading() && Ar.IsBmCooked())
+		{
+			// Read type code first (int16, 0 = end of properties)
+			SHORT TypeCode;
+			Ar << TypeCode;
+			if (TypeCode == 0)
+			{
+				Tag.Name = NAME_None;
+				return Ar;
+			}
+
+			// Convert type code to FName using EName enum (indices match UnNames.h)
+			Tag.Type = FName((EName)TypeCode);
+
+			// Read property name (full name, not offset-based like Batman2/4)
+			Ar << Tag.Name;
+			Ar << Tag.Size << Tag.ArrayIndex;
+
+			// Bool value for BoolProperty only
+			if (Tag.Type == NAME_BoolProperty)
+			{
+				Ar << Tag.BoolVal;
+			}
+
+			// Note: StructName/EnumName not serialized in this format
+			// They will be filled in from property metadata in SerializeTaggedProperties
+			return Ar;
+		}
+#endif
+
+		// Standard UE3 format
 		// Name.
 		Ar << Tag.Name;
 		if( Tag.Name == NAME_None )
