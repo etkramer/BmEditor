@@ -72,11 +72,15 @@ struct FPropertyTag
 					return Ar;
 				}
 
+				// Validate type range
+				check(TypeIndex <= NAME_GUIDProperty);
+
 				// Convert int16 type index to FName (indices match NAME_ enum)
 				Tag.Type = FName((EName)TypeIndex);
 
 				// Read property name, size, array index
 				Ar << Tag.Name;
+				check(Tag.Name.IsValid());
 				Ar << Tag.Size << Tag.ArrayIndex;
 
 				// Bool properties store value in tag
