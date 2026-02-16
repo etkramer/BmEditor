@@ -660,28 +660,7 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 		while( 1 )
 		{
 			FPropertyTag Tag;
-#if BATMAN
-			if (Ar.IsBmCooked())
-			{
-				FPropertyTagBat2 TagBat;
-				Ar << TagBat;
-
-				Tag.Type = FName((EName)TagBat.Type);
-				Tag.BoolVal = TagBat.BoolVal;
-				Tag.Name = TagBat.Name;
-				Tag.StructName = NAME_None;
-				Tag.EnumName = NAME_None;
-				Tag.Size = TagBat.Size;
-				Tag.ArrayIndex = TagBat.ArrayIndex;
-				Tag.SizeOffset = TagBat.SizeOffset;
-			}
-			else
-			{
-#endif
 			Ar << Tag;
-#if BATMAN
-			}
-#endif
 			if( Tag.Name == NAME_None )
 				break;
 			PropertyName = Tag.Name;
@@ -792,15 +771,6 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 			}
 			//@}
 
-#if BATMAN
-            // BM: Get struct type from property. This might not be needed for correct serialization.
-            if (Ar.IsBmCooked() && Tag.Type == NAME_StructProperty && Cast<UStructProperty>(Property, CLASS_IsAUStructProperty) && Tag.StructName == NAME_None)
-            {
-                FName StructName = ((UStructProperty*)Property)->Struct->GetFName();
-                Tag.StructName = StructName;
-            }
-#endif
-
 			UBOOL bSkipSkipWarning = FALSE;
 
 			if( !Property )
@@ -893,76 +863,6 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 				AdvanceProperty = TRUE;
 				continue;
 			}
-#if BATMAN
-            // Found ByteProperty, read as value or as enum name
-			else if (Ar.IsBmCooked() && Tag.Type == NAME_ByteProperty)
-			{
-                check(Tag.Size == 1 || Tag.Size == 8);
-
-                BYTE ByteValue = 0;
-
-                // Value as byte
-                if (Tag.Size == 1)
-                {
-                    Ar << ByteValue;
-                }
-                // Enum value as FName
-                else if (Tag.Size == 8)
-                {
-                    check(Property->IsA(UByteProperty::StaticClass()));
-
-                    UByteProperty* ByteProperty = (UByteProperty*)Property;
-                    UEnum* Enum = ByteProperty->Enum;
-
-                    FName ItemName;
-                    Ar << ItemName;
-
-                    Ar.Preload(Enum);
-                    ByteValue = (BYTE)Enum->FindEnumIndex(ItemName);
-                }
-
-                *(BYTE*)(Data + Property->Offset + Tag.ArrayIndex * Property->ElementSize) = ByteValue;
-                AdvanceProperty = TRUE;
-                continue;
-            }
-#endif
-#if BATMAN
-            // Found GUIDProperty, read as plain FGuid
-			else if (Ar.IsBmCooked() && Tag.Type == NAME_GUIDProperty)
-			{
-				FGuid GuidValue;
-				Ar << GuidValue;
-
-				*(FGuid*)(Data + Property->Offset + Tag.ArrayIndex * Property->ElementSize) = GuidValue;
-				AdvanceProperty = TRUE;
-				continue;
-			}
-#endif
-#if BATMAN
-            // Found ObjectNCRProperty, read as plain object reference
-            else if (Ar.IsBmCooked() && Tag.Type == NAME_ObjectNCRProperty)
-            {
-                UObject* ObjValue;
-                Ar << ObjValue;
-
-                *(UObject**)(Data + Property->Offset + Tag.ArrayIndex * Property->ElementSize) = ObjValue;
-                AdvanceProperty = TRUE;
-                continue;
-            }
-#endif
-#if BATMAN
-            // Found RotatorProperty/VectorProperty, read manually if engine was expecting a StructProperty
-            else if (Ar.IsBmCooked() && ((Tag.Type == NAME_VectorProperty) || (Tag.Type == NAME_RotatorProperty)))
-            {
-                // Same size as FRotator
-                FVector VectorValue;
-                Ar << VectorValue;
-
-                *(FVector*)(Data + Property->Offset + Tag.ArrayIndex * Property->ElementSize) = VectorValue;
-                AdvanceProperty = TRUE;
-                continue;
-            }
-#endif
 			else if( Tag.Type!=Property->GetID() )
 			{
 				debugf( NAME_Warning, TEXT("Type mismatch in %s of %s - Previous (%s) Current(%s) for package:  %s"), *Tag.Name.ToString(), *GetName(), *Tag.Type.ToString(), *Property->GetID().ToString(), *Ar.GetArchiveName() );
@@ -1298,11 +1198,7 @@ void UStruct::Serialize( FArchive& Ar )
 		INT iCode = 0;
 		INT const BytecodeStartOffset = Ar.Tell();
 
-#if BATMAN
-		if (Ar.IsPersistent() && Ar.GetLinker() && !Ar.IsBmCooked())
-#else
 		if (Ar.IsPersistent() && Ar.GetLinker())
-#endif
 		{
 			if (Ar.IsLoading())
 			{
