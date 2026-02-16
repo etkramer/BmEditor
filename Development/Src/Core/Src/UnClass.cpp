@@ -1153,8 +1153,19 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 				}
 			}
 		}
-		FName Temp(NAME_None);
-		Ar << Temp;
+#if BATMAN
+		if (Ar.IsBmCooked())
+		{
+			// Batman3: Write INT16 zero as end marker
+			SWORD EndMarker = 0;
+			Ar << EndMarker;
+		}
+		else
+#endif
+		{
+			FName Temp(NAME_None);
+			Ar << Temp;
+		}
 	}
 }
 void UStruct::FinishDestroy()
