@@ -660,28 +660,7 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 		while( 1 )
 		{
 			FPropertyTag Tag;
-#if BATMAN
-			if (Ar.IsBmCooked())
-			{
-				FPropertyTagBat2 TagBat;
-				Ar << TagBat;
-
-				Tag.Type = FName((EName)TagBat.Type);
-				Tag.BoolVal = TagBat.BoolVal;
-				Tag.Name = TagBat.Name;
-				Tag.StructName = NAME_None;
-				Tag.EnumName = NAME_None;
-				Tag.Size = TagBat.Size;
-				Tag.ArrayIndex = TagBat.ArrayIndex;
-				Tag.SizeOffset = TagBat.SizeOffset;
-			}
-			else
-			{
-#endif
 			Ar << Tag;
-#if BATMAN
-			}
-#endif
 			if( Tag.Name == NAME_None )
 				break;
 			PropertyName = Tag.Name;
