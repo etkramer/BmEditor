@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "soqPgaB1zJI=",
+  "dgSpecHash": "ZA06c7cDhUI=",
   "success": true,
   "projectFilePath": "I:\\UnrealEngine3\\Development\\Src\\UnrealBuildTool\\UnrealBuildTool.csproj",
   "expectedPackageFiles": [
@@ -9,8 +9,6 @@
     "C:\\Users\\elitk\\.nuget\\packages\\runtime.win-x64.runtime.native.system.data.sqlclient.sni\\4.4.0\\runtime.win-x64.runtime.native.system.data.sqlclient.sni.4.4.0.nupkg.sha512",
     "C:\\Users\\elitk\\.nuget\\packages\\runtime.win-x86.runtime.native.system.data.sqlclient.sni\\4.4.0\\runtime.win-x86.runtime.native.system.data.sqlclient.sni.4.4.0.nupkg.sha512",
     "C:\\Users\\elitk\\.nuget\\packages\\system.data.sqlclient\\4.9.0\\system.data.sqlclient.4.9.0.nupkg.sha512",
-    "C:\\Users\\elitk\\.nuget\\packages\\system.memory\\4.5.5\\system.memory.4.5.5.nupkg.sha512",
-    "C:\\Users\\elitk\\.nuget\\packages\\system.runtime.compilerservices.unsafe\\6.0.0\\system.runtime.compilerservices.unsafe.6.0.0.nupkg.sha512",
     "C:\\Users\\elitk\\.nuget\\packages\\system.text.encoding.codepages\\9.0.0\\system.text.encoding.codepages.9.0.0.nupkg.sha512",
     "C:\\Users\\elitk\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\7.0.20\\microsoft.windowsdesktop.app.ref.7.0.20.nupkg.sha512",
     "C:\\Users\\elitk\\.nuget\\packages\\microsoft.netcore.app.ref\\7.0.20\\microsoft.netcore.app.ref.7.0.20.nupkg.sha512",

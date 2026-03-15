@@ -99,6 +99,7 @@ Global
 		{FD7C5E1A-CFE4-4FD5-A525-1EB1599A39AC}.Debug|Mixed platforms.ActiveCfg = Release|Any CPU
 		{FD7C5E1A-CFE4-4FD5-A525-1EB1599A39AC}.Debug|Mixed platforms.Build.0 = Release|Any CPU
 		{FD7C5E1A-CFE4-4FD5-A525-1EB1599A39AC}.Debug|Win32.ActiveCfg = Release|Any CPU
+		{FD7C5E1A-CFE4-4FD5-A525-1EB1599A39AC}.Debug|Win32.Build.0 = Release|Any CPU
 		{FD7C5E1A-CFE4-4FD5-A525-1EB1599A39AC}.Debug|x64.ActiveCfg = Debug|Any CPU
 		{FD7C5E1A-CFE4-4FD5-A525-1EB1599A39AC}.Debug|Xbox 360.ActiveCfg = Debug|Any CPU
 		{FD7C5E1A-CFE4-4FD5-A525-1EB1599A39AC}.PS3 Debug|Mixed platforms.ActiveCfg = Debug|Any CPU
