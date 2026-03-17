@@ -218,6 +218,28 @@ var native	array<byte>		AnimZip_Data;
 var private transient native Vector	AnimZip_LinearOrigin;
 var private transient native Vector	AnimZip_LinearSpan;
 
+var() bool bUseSimpleForwardYaw;
+var() bool bUseSimpleFloorHeight;
+var() bool bUseSimpleRootMotionXY;
+var() bool DisableProportionalMotionDuringBlendOut;
+var() bool AllowCheekyBlendIn;
+var() bool AllowCheekyBlendOut;
+var(Info) editconst bool WeaponSwitchPointEnabled;
+var(Compression) bool Compression_UseLinearInterpolation;
+var(Compression) bool Compression_RelativeToReferencePose;
+var(Compression) editconst bool Compression_UsingTemporaryCompression;
+var(Info) editconst float BlendInPoint;
+var(Info) editconst float BlendOutPoint;
+var(Info) editconst float ClippedStart;
+var(Info) editconst float ClippedLength;
+var(Info) editconst float CanCancelBeforeHerePoint;
+var(Info) editconst float CanCancelAfterHerePoint;
+var(Info) editconst float CanCorrectAfterHerePoint;
+var(Info) editconst float ClipRootMotionInPoint;
+var(Info) editconst float ClipRootMotionOutPoint;
+var(Info) editconst float CollisionOptionsOutPoint;
+var(Info) editconst float WeaponSwitchPoint;
+
 /**
  * Indicates animation data compression format.
  */
@@ -292,7 +314,7 @@ struct native AnimTag
  * Animation tag for stat system: This is temporary until we can add content tag to animation
  * Currently it auto tags based on "contains" - Check DefaultEngine.ini for modification
  */
-var config editoronly array<AnimTag> AnimTags;	
+var config editoronly array<AnimTag> AnimTags;
 
 cpptext
 {
