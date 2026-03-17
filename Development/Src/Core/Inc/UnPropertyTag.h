@@ -54,6 +54,80 @@ struct FPropertyTag
 	// Serializer.
 	friend FArchive& operator<<( FArchive& Ar, FPropertyTag& Tag )
 	{
+#if BATMAN
+		// Batman3 SP (807.138) uses different property tag format:
+		// INT16 Type, FName Name, INT Size, INT ArrayIndex, [BYTE BoolVal]
+		if (Ar.IsBmCooked())
+		{
+			if (Ar.IsLoading())
+			{
+				// Read INT16 Type first (0 = end marker)
+				SWORD TypeIndex = 0;
+				Ar << TypeIndex;
+
+				if (TypeIndex == 0)
+				{
+					Tag.Name = NAME_None;
+					Tag.Type = NAME_None;
+					return Ar;
+				}
+
+				// Validate type range
+				check(TypeIndex <= NAME_GUIDProperty);
+
+				// Convert int16 type index to FName (indices match NAME_ enum)
+				Tag.Type = FName((EName)TypeIndex);
+
+				// Read property name, size, array index
+				Ar << Tag.Name;
+				check(Tag.Name.IsValid());
+				Ar << Tag.Size << Tag.ArrayIndex;
+
+				// Bool properties store value in tag
+				if (TypeIndex == NAME_BoolProperty)
+				{
+					Ar << Tag.BoolVal;
+				}
+
+				// Initialize to NAME_None - recovered from property defs later
+				Tag.StructName = NAME_None;
+				Tag.EnumName = NAME_None;
+			}
+			else // Saving
+			{
+				if (Tag.Name == NAME_None)
+				{
+					// Write end marker
+					SWORD EndMarker = 0;
+					Ar << EndMarker;
+					return Ar;
+				}
+
+				// Write INT16 Type
+				SWORD TypeIndex = (SWORD)Tag.Type.GetIndex();
+				Ar << TypeIndex;
+
+				// Write property name
+				Ar << Tag.Name;
+
+				// Remember size offset for later update
+				Tag.SizeOffset = Ar.Tell();
+
+				// Write size and array index
+				Ar << Tag.Size << Tag.ArrayIndex;
+
+				// Bool properties store value in tag
+				if (TypeIndex == NAME_BoolProperty)
+				{
+					Ar << Tag.BoolVal;
+				}
+				// Note: StructName and EnumName are NOT serialized in Batman3 format
+			}
+			return Ar;
+		}
+#endif
+
+		// Standard UE3 format
 		// Name.
 		Ar << Tag.Name;
 		if( Tag.Name == NAME_None )
@@ -130,59 +204,3 @@ struct FPropertyTag
 	}
 };
 
-#if BATMAN
-// BM3 TODO: Modify original FPropertyTag serialization instead, moving as much logic as possible from UStruct::SerializeTaggedProperties()
-// to FPropertyTagBat2::SerializeTaggedProperty(). We also need this to de-duplicate save/load logic.
-
-struct FPropertyTagBat2
-{
-	// Variables.
-	SHORT	Type;		// Type of property
-	FName	Name;		// Name of property.
-	INT		Size;       // Property size.
-	INT		ArrayIndex;	// Index if an array; else 0.
-	BYTE	BoolVal;	// a boolean property's value (never need to serialize data for bool properties except here)
-    INT		SizeOffset;	// location in stream of tag size member
-
-	// Constructors.
-	FPropertyTagBat2()
-	{
-		Type = 0;
-		BoolVal = 0;
-		Name = NAME_None;
-		Size = 0;
-		ArrayIndex = 0;
-	}
-
-	// Serializer.
-	friend FArchive& operator<<(FArchive& Ar, FPropertyTagBat2& TagBat)
-	{
-		Ar << TagBat.Type;
-		if (!TagBat.Type)
-		{
-			return Ar;
-		}
-
-		check(TagBat.Type <= 17);
-
-        Ar << TagBat.Name;
-
-        check(TagBat.Name.IsValid());
-
-        if (Ar.IsSaving())
-        {
-            TagBat.SizeOffset = Ar.Tell();
-        }
-
-        Ar << TagBat.Size << TagBat.ArrayIndex;
-
-        // only need to serialize this for bools
-		if (TagBat.Type == NAME_BoolProperty)
-		{
-			Ar << TagBat.BoolVal;
-		}
-
-		return Ar;
-	}
-};
-#endif

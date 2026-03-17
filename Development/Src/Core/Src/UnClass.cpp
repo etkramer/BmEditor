@@ -660,28 +660,7 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 		while( 1 )
 		{
 			FPropertyTag Tag;
-#if BATMAN
-			if (Ar.IsBmCooked())
-			{
-				FPropertyTagBat2 TagBat;
-				Ar << TagBat;
-
-				Tag.Type = FName((EName)TagBat.Type);
-				Tag.BoolVal = TagBat.BoolVal;
-				Tag.Name = TagBat.Name;
-				Tag.StructName = NAME_None;
-				Tag.EnumName = NAME_None;
-				Tag.Size = TagBat.Size;
-				Tag.ArrayIndex = TagBat.ArrayIndex;
-				Tag.SizeOffset = TagBat.SizeOffset;
-			}
-			else
-			{
-#endif
 			Ar << Tag;
-#if BATMAN
-			}
-#endif
 			if( Tag.Name == NAME_None )
 				break;
 			PropertyName = Tag.Name;
@@ -930,10 +909,20 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
             // Found GUIDProperty, read as plain FGuid
 			else if (Ar.IsBmCooked() && Tag.Type == NAME_GUIDProperty)
 			{
+				INT StartPos = Ar.Tell();
+
 				FGuid GuidValue;
 				Ar << GuidValue;
 
 				*(FGuid*)(Data + Property->Offset + Tag.ArrayIndex * Property->ElementSize) = GuidValue;
+
+				// Ensure we consumed exactly Tag.Size bytes to prevent stream misalignment
+				INT BytesRead = Ar.Tell() - StartPos;
+				if (BytesRead < Tag.Size)
+				{
+					Ar.Seek(StartPos + Tag.Size);
+				}
+
 				AdvanceProperty = TRUE;
 				continue;
 			}
@@ -942,10 +931,20 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
             // Found ObjectNCRProperty, read as plain object reference
             else if (Ar.IsBmCooked() && Tag.Type == NAME_ObjectNCRProperty)
             {
+                INT StartPos = Ar.Tell();
+
                 UObject* ObjValue;
                 Ar << ObjValue;
 
                 *(UObject**)(Data + Property->Offset + Tag.ArrayIndex * Property->ElementSize) = ObjValue;
+
+                // Ensure we consumed exactly Tag.Size bytes to prevent stream misalignment
+                INT BytesRead = Ar.Tell() - StartPos;
+                if (BytesRead < Tag.Size)
+                {
+                    Ar.Seek(StartPos + Tag.Size);
+                }
+
                 AdvanceProperty = TRUE;
                 continue;
             }
@@ -954,11 +953,21 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
             // Found RotatorProperty/VectorProperty, read manually if engine was expecting a StructProperty
             else if (Ar.IsBmCooked() && ((Tag.Type == NAME_VectorProperty) || (Tag.Type == NAME_RotatorProperty)))
             {
+                INT StartPos = Ar.Tell();
+
                 // Same size as FRotator
                 FVector VectorValue;
                 Ar << VectorValue;
 
                 *(FVector*)(Data + Property->Offset + Tag.ArrayIndex * Property->ElementSize) = VectorValue;
+
+                // Ensure we consumed exactly Tag.Size bytes to prevent stream misalignment
+                INT BytesRead = Ar.Tell() - StartPos;
+                if (BytesRead < Tag.Size)
+                {
+                    Ar.Seek(StartPos + Tag.Size);
+                }
+
                 AdvanceProperty = TRUE;
                 continue;
             }
@@ -1174,8 +1183,19 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 				}
 			}
 		}
-		FName Temp(NAME_None);
-		Ar << Temp;
+#if BATMAN
+		if (Ar.IsBmCooked())
+		{
+			// Batman3: Write INT16 zero as end marker
+			SWORD EndMarker = 0;
+			Ar << EndMarker;
+		}
+		else
+#endif
+		{
+			FName Temp(NAME_None);
+			Ar << Temp;
+		}
 	}
 }
 void UStruct::FinishDestroy()
