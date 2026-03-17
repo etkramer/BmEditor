@@ -691,7 +691,8 @@ void EncodeRotationTrack(const TArray<FQuat>& RotKeys, INT BoneIdx, INT NumKeys,
 		}
 
 		EncodeQuatMax48(q, encoded);
-		CompressedData.Append(encoded, 6);
+		INT Offset = CompressedData.Add(6);
+		appMemcpy(&CompressedData(Offset), encoded, 6);
 	}
 
 	Tracks.AddItem(Track);
@@ -758,15 +759,17 @@ void PackAnimZip(UAnimSequence* Seq)
 		// Only add track if it has actual data
 		if (Track.RotKeys.Num() > 0)
 		{
+			FMemoryWriter RotWriter(Seq->AnimZip_Data, TRUE);
 			EncodeRotationTrack(Track.RotKeys, BoneIdx, NumKeys,
-				FMemoryWriter(Seq->AnimZip_Data, TRUE),
+				RotWriter,
 				RotationTracks, RotationBoneIndices, RotationCompressedData);
 		}
 
 		if (Track.PosKeys.Num() > 0)
 		{
+			FMemoryWriter PosWriter(Seq->AnimZip_Data, TRUE);
 			EncodeTranslationTrack(Track.PosKeys, BoneIdx, NumKeys,
-				FMemoryWriter(Seq->AnimZip_Data, TRUE),
+				PosWriter,
 				TranslationTracks, TranslationBoneIndices, TranslationCompressedData);
 		}
 	}
@@ -925,8 +928,8 @@ void UAnimSequence::Serialize(FArchive& Ar)
 		Ar.Serialize( SerializedData.GetData(), SerializedData.Num() );
 
 #if BATMAN
-		// Pack and write AnimZip data (can't use IsBmCooked() here because we want to include saving from editor)
-		// if (Ar.IsBmCooked())
+		// Pack and write AnimZip data
+		if (Ar.IsBmCooked(TRUE))
 		{
 			// Pack RawAnimationData into AnimZip format
 			PackAnimZip(this);
