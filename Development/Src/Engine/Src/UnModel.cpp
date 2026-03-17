@@ -222,7 +222,7 @@ void UModel::Serialize( FArchive& Ar )
 	}
 
 #if BATMAN
-	if (Ar.IsBmCooked())
+	if (Ar.IsBmCooked(TRUE))
 	{
 		UBOOL ForceShadowVolumes = FALSE;
 		Ar << ForceShadowVolumes;

@@ -773,7 +773,7 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 
 #if BATMAN
             // BM: Get struct type from property. This might not be needed for correct serialization.
-            if (Ar.IsBmCooked() && Tag.Type == NAME_StructProperty && Cast<UStructProperty>(Property, CLASS_IsAUStructProperty) && Tag.StructName == NAME_None)
+            if (Ar.IsBmCooked(TRUE) && Tag.Type == NAME_StructProperty && Cast<UStructProperty>(Property, CLASS_IsAUStructProperty) && Tag.StructName == NAME_None)
             {
                 FName StructName = ((UStructProperty*)Property)->Struct->GetFName();
                 Tag.StructName = StructName;
@@ -874,7 +874,7 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 			}
 #if BATMAN
             // Found ByteProperty, read as value or as enum name
-			else if (Ar.IsBmCooked() && Tag.Type == NAME_ByteProperty)
+			else if (Ar.IsBmCooked(TRUE) && Tag.Type == NAME_ByteProperty)
 			{
                 check(Tag.Size == 1 || Tag.Size == 8);
 
@@ -907,7 +907,7 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 #endif
 #if BATMAN
             // Found GUIDProperty, read as plain FGuid
-			else if (Ar.IsBmCooked() && Tag.Type == NAME_GUIDProperty)
+			else if (Ar.IsBmCooked(TRUE) && Tag.Type == NAME_GUIDProperty)
 			{
 				INT StartPos = Ar.Tell();
 
@@ -929,7 +929,7 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 #endif
 #if BATMAN
             // Found ObjectNCRProperty, read as plain object reference
-            else if (Ar.IsBmCooked() && Tag.Type == NAME_ObjectNCRProperty)
+            else if (Ar.IsBmCooked(TRUE) && Tag.Type == NAME_ObjectNCRProperty)
             {
                 INT StartPos = Ar.Tell();
 
@@ -951,7 +951,7 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 #endif
 #if BATMAN
             // Found RotatorProperty/VectorProperty, read manually if engine was expecting a StructProperty
-            else if (Ar.IsBmCooked() && ((Tag.Type == NAME_VectorProperty) || (Tag.Type == NAME_RotatorProperty)))
+            else if (Ar.IsBmCooked(TRUE) && ((Tag.Type == NAME_VectorProperty) || (Tag.Type == NAME_RotatorProperty)))
             {
                 INT StartPos = Ar.Tell();
 
@@ -1184,7 +1184,7 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 			}
 		}
 #if BATMAN
-		if (Ar.IsBmCooked())
+		if (Ar.IsBmCooked(TRUE))
 		{
 			// Batman3: Write INT16 zero as end marker
 			SWORD EndMarker = 0;
@@ -1319,7 +1319,7 @@ void UStruct::Serialize( FArchive& Ar )
 		INT const BytecodeStartOffset = Ar.Tell();
 
 #if BATMAN
-		if (Ar.IsPersistent() && Ar.GetLinker() && !Ar.IsBmCooked())
+		if (Ar.IsPersistent() && Ar.GetLinker() && !Ar.IsBmCooked(TRUE))
 #else
 		if (Ar.IsPersistent() && Ar.GetLinker())
 #endif

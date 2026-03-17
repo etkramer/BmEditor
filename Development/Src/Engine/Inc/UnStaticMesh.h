@@ -377,7 +377,7 @@ public:
 		}
 
 #if BATMAN
-		if (Ar.IsBmCooked())
+		if (Ar.IsBmCooked(TRUE))
 		{
 			UMaterialInstance* XRayMaterial = NULL;
 			Ar << XRayMaterial;

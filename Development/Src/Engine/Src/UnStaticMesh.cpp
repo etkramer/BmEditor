@@ -304,7 +304,7 @@ FArchive& operator<<(FArchive& Ar,FPositionVertexBuffer& VertexBuffer)
 #if BATMAN
 	// https://github.com/gildor2/UEViewer/blob/a0bfb468d42be831b126632fd8a0ae6b3614f981/Unreal/UnrealMesh/UnMesh3.cpp#L2677
 	BYTE PositionFormat = 0; // 0 -> FVector, 1 -> half[3], 2 -> half[4]
-	if (Ar.IsBmCooked())
+	if (Ar.IsBmCooked(TRUE))
 	{
 		Ar << PositionFormat;
 	}
@@ -313,7 +313,7 @@ FArchive& operator<<(FArchive& Ar,FPositionVertexBuffer& VertexBuffer)
 	Ar << VertexBuffer.Stride << VertexBuffer.NumVertices;
 
 #if BATMAN
-	if (Ar.IsBmCooked())
+	if (Ar.IsBmCooked(TRUE))
 	{
 		UBOOL bNeedsCPUAccess = TRUE;
 		Ar << bNeedsCPUAccess;
@@ -321,7 +321,7 @@ FArchive& operator<<(FArchive& Ar,FPositionVertexBuffer& VertexBuffer)
 #endif
 
 #if BATMAN
-	if (Ar.IsBmCooked())
+	if (Ar.IsBmCooked(TRUE))
 	{
 		// TODO: Implement 1/2
 		check(PositionFormat == 0);
@@ -344,7 +344,7 @@ FArchive& operator<<(FArchive& Ar,FPositionVertexBuffer& VertexBuffer)
 	}
 
 #if BATMAN
-	if (Ar.IsBmCooked())
+	if (Ar.IsBmCooked(TRUE))
 	{
 		TArray<FVector2D> UVData;
 		Ar << UVData;
@@ -1020,7 +1020,7 @@ FArchive& operator<<(FArchive& Ar,FStaticMeshVertexBuffer& VertexBuffer)
 	Ar << VertexBuffer.bUseFullPrecisionUVs;
 
 #if BATMAN
-	if (Ar.IsBmCooked())
+	if (Ar.IsBmCooked(TRUE))
 	{
 		UBOOL HasNormalsAndTangents = TRUE;
 		Ar << HasNormalsAndTangents;
@@ -1927,7 +1927,7 @@ void UStaticMesh::Serialize(FArchive& Ar)
 	}
 
 #if BATMAN
-	if (Ar.IsBmCooked())
+	if (Ar.IsBmCooked(TRUE))
 	{
 		UBOOL ForceShadowVolumes = FALSE;
 		Ar << ForceShadowVolumes;

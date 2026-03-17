@@ -57,7 +57,7 @@ struct FPropertyTag
 #if BATMAN
 		// Batman3 SP (807.138) uses different property tag format:
 		// INT16 Type, FName Name, INT Size, INT ArrayIndex, [BYTE BoolVal]
-		if (Ar.IsBmCooked())
+		if (Ar.IsBmCooked(TRUE))
 		{
 			if (Ar.IsLoading())
 			{

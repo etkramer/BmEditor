@@ -201,9 +201,9 @@ FArchive& operator<<( FArchive& Ar, FObjectExport& E )
 	Ar << E.ArchetypeIndex;
 #if BATMAN
 	// https://github.com/gildor2/UEViewer/blob/a0bfb468d42be831b126632fd8a0ae6b3614f981/Unreal/UnrealPackage/UnPackage3.cpp#L360
-	if (Ar.IsBmCooked())
+	if (Ar.IsBmCooked(TRUE))
 	{
-		INT ReferencedObjects;
+		INT ReferencedObjects = 0;
 		Ar << ReferencedObjects;
 	}
 #endif

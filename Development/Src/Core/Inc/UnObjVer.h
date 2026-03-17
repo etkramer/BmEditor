@@ -696,8 +696,12 @@ enum EUnrealEngineObjectVersion
 #if BATMAN
 enum ELicenseeVersion
 {
+	// - BM2 release
 	VER_BATMAN2 = 101,
-    VER_BATMAN3 = 138
+	// - BM3 release
+    VER_BATMAN3 = 138,
+	// - Fake/unused version for packages produced by the editor
+	VER_BATMAN_EDITOR = 137
 };
 #endif
 
@@ -711,7 +715,7 @@ enum ELicenseeVersion
 // !!
 #define VER_LATEST_ENGINE									(PREPROCESSOR_ENUM_PROTECT(VER_AUTOMATIC_VERSION_PLUS_ONE) - 1)
 
-#define VER_LATEST_ENGINE_LICENSEE							0
+#define VER_LATEST_ENGINE_LICENSEE							(PREPROCESSOR_ENUM_PROTECT(VER_BATMAN_EDITOR))
 
 // Cooked packages loaded with an older package version are recooked
 #define VER_LATEST_COOKED_PACKAGE							129
