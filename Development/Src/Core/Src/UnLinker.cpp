@@ -3679,8 +3679,6 @@ UObject* ULinkerLoad::CreateExport( INT Index )
             LoadClass->GetName() == "World" ||
 
             LoadClass->GetName() == "LightMapTexture2D" ||
-            LoadClass->GetName() == "PhysicsAsset" ||
-            LoadClass->GetName() == "RB_BodySetup" ||
             LoadClass->GetName() == "FaceFxAnimSet"
             ))
         {
