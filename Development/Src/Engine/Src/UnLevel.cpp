@@ -318,6 +318,14 @@ void ULevel::Serialize( FArchive& Ar )
 
 	Ar << GameSequences;
 
+#if BATMAN
+	if (Ar.IsBmCooked(TRUE))
+	{
+		TArray<FSphere> BoundingSpheres;
+		Ar << BoundingSpheres;
+	}
+#endif
+
 	if( !Ar.IsTransacting() )
 	{
 		Ar << TextureToInstancesMap;
