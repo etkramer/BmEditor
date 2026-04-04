@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd:*)",
+      "Bash(xargs grep:*)",
+      "Bash(grep -rn \"UObject\\\\* VARARGS StaticConstructObject\\\\|UObject\\\\* StaticConstructObject\" I:/UnrealEngine3/Development/Src/Core/ --include=*.h)",
+      "Bash(find I:/UnrealEngine3-gears2 -name *.natvis -o -name .vs -type d)",
+      "Bash(find I:/UnrealEngine3-gears2 -name launch.json -o -name *.props -o -name *.vcxproj.user)",
+      "Bash(find I:/UnrealEngine3-gears2 -name *.vscode -type d)",
+      "Bash(find I:/UnrealEngine3-gears2 -path */.vscode/*)",
+      "Bash(find I:/UnrealEngine3-gears2 -name natvisfile -o -name *.natstepfilter -o -name *.natstepfilter)",
+      "Bash(find I:/UnrealEngine3-gears2 -maxdepth 3 -name *.xml)",
+      "Bash(grep -rn \"natvis\\\\|Natvis\" I:/UnrealEngine3-gears2/Development/Src/ --include=*.vcxproj)",
+      "Bash(grep -r \"struct FPropertyTag\\\\|class FPropertyTag\" /I/UnrealEngine3/Development/Src/Core/Inc/*.h)",
+      "Bash(grep -rn ShouldSerializeValue /I/UnrealEngine3/Development/Src/Core/Inc/*.h)",
+      "Bash(find \"I:\\\\UnrealEngine3\\\\Development\\\\Src\\\\Core\\\\Inc\" -name \"*.h\" -type f -exec grep -l \"enum.*NAME_\\\\|NAME_None\\\\|NAME_BoolProperty\" {})",
+      "Bash(grep -n \"void.*ViewportClient::Draw\\\\|void.*::Draw\\(FViewport\" \"/I/UnrealEngine3/Development/Src/Engine/Src\"/*.cpp)",
+      "Bash(grep -rn \"PlayerIndex.*Origin\\\\|PlayerIndex.*Size\" \"/I/UnrealEngine3/Development/Src/Engine/Src\"/*.cpp)",
+      "Bash(grep -rn \"\\\\.Origin\\\\s*=\\\\|\\\\.Size\\\\s*=\" \"/I/UnrealEngine3/Development/Src/Engine/Src\"/*.cpp)",
+      "Bash(grep -E \"\\\\.\\(cpp|h\\)$\")",
+      "Bash(wc:*)",
+      "Bash(grep -v \"//\")",
+      "Bash(curl -s \"https://raw.githubusercontent.com/gildor2/UEViewer/master/Unreal/UnrealMesh/UnMesh3.cpp\" -o /tmp/UnMesh3.cpp)",
+      "Read(//tmp/**)"
+    ]
+  }
+}

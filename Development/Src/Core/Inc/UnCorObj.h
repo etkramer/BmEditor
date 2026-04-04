@@ -443,7 +443,7 @@ private:
 	}
 
 #if BATMAN
-	UBOOL IsBmCooked() const;
+	UBOOL IsBmCooked(BOOL IncludeEditor = FALSE) const;
 	UPackage* GetBasePackage() const;
 	ULinkerLoad* GetBaseLinker() const;
 #endif

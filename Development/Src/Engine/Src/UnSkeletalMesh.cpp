@@ -1050,16 +1050,16 @@ void FMultiSizeIndexContainer::CopyIndexBuffer(const TArray<DWORD>& NewArray)
 
 FArchive& operator<<(FArchive& Ar, FMultiSizeIndexContainer& Buffer)
 {
-	if (Ar.IsLoading() && (Ar.Ver() < VER_DWORD_SKELETAL_MESH_INDICES))
+	if (Ar.IsLoading() && ((Ar.Ver() < VER_DWORD_SKELETAL_MESH_INDICES) || Ar.IsBmCooked(TRUE)))
 	{
 		Buffer.NeedsCPUAccess = TRUE;
 		Buffer.DataTypeSize = sizeof(WORD);
 
 #if BATMAN
-        if (Ar.IsBmCooked(TRUE))
-        {
-            Ar << Buffer.NeedsCPUAccess;
-        }
+		if (Ar.IsBmCooked(TRUE))
+		{
+			Ar << Buffer.NeedsCPUAccess;
+		}
 #endif
 	}
 	else
@@ -1164,7 +1164,7 @@ void FStaticLODModel::Serialize( FArchive& Ar, UObject* Owner, INT Idx )
 	}
 	Ar << RequiredBones;
 
-	if( Ar.IsLoading() && Ar.Ver() < VER_DWORD_SKELETAL_MESH_INDICES )
+	if( Ar.IsLoading() && (Ar.Ver() < VER_DWORD_SKELETAL_MESH_INDICES || Ar.IsBmCooked(TRUE)) )
 	{
 		LegacyRawPointIndices.Serialize( Ar, Owner );
 		WORD* Src = (WORD*)LegacyRawPointIndices.Lock(LOCK_READ_ONLY);
@@ -1606,6 +1606,15 @@ FLOAT USkeletalMesh::GetStreamingTextureFactor( INT RequestedUVIndex )
 
 			FStaticLODModel& LODModel = LODModels(0);
 			INT NumTotalTriangles = LODModel.GetTotalFaces();
+			const UINT NumVertices = LODModel.VertexBufferGPUSkin.GetNumVertices();
+			TArray<DWORD> Indices;
+
+			if (!LODModel.MultiSizeIndexContainer.IsIndexBufferValid() || NumVertices == 0)
+			{
+				return 0.0f;
+			}
+
+			LODModel.MultiSizeIndexContainer.GetIndexBuffer( Indices );
 
 			TArray<FLOAT> TexelRatios[MAX_TEXCOORDS];
 			FLOAT MaxTexelRatio = 0.0f;
@@ -1617,8 +1626,11 @@ FLOAT USkeletalMesh::GetStreamingTextureFactor( INT RequestedUVIndex )
 			for( INT SectionIndex = 0; SectionIndex < LODModel.Sections.Num();SectionIndex++ )
 			{
 				FSkelMeshSection& Section = LODModel.Sections(SectionIndex);
-				TArray<DWORD> Indices;
-				LODModel.MultiSizeIndexContainer.GetIndexBuffer( Indices );
+				const DWORD NumSectionIndices = Section.NumTriangles * 3;
+				if (Section.BaseIndex > (DWORD)Indices.Num() || NumSectionIndices > (DWORD)Indices.Num() - Section.BaseIndex)
+				{
+					continue;
+				}
 
 				const DWORD* SrcIndices = Indices.GetData() + Section.BaseIndex;
 				DWORD NumTriangles = Section.NumTriangles;
@@ -1630,6 +1642,11 @@ FLOAT USkeletalMesh::GetStreamingTextureFactor( INT RequestedUVIndex )
 					DWORD Index0 = SrcIndices[TriangleIndex*3];
 					DWORD Index1 = SrcIndices[TriangleIndex*3+1];
 					DWORD Index2 = SrcIndices[TriangleIndex*3+2];
+
+					if (Index0 >= NumVertices || Index1 >= NumVertices || Index2 >= NumVertices)
+					{
+						continue;
+					}
 
 					const FVector Pos0 = LODModel.VertexBufferGPUSkin.GetVertexPosition(Index0);
 					const FVector Pos1 = LODModel.VertexBufferGPUSkin.GetVertexPosition(Index1);
@@ -4178,4 +4195,3 @@ UBOOL USkeletalMeshComponent::ExtractRootMotionCurve( FName AnimName, FLOAT Samp
 
 	return FALSE;
 }
-

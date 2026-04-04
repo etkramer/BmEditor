@@ -883,12 +883,12 @@ void UPackage::PatchNetObjectList( INT NewNumNetObjects )
 #if BATMAN
 
 // BM
-UBOOL UPackage::IsBmCooked() const
+UBOOL UPackage::IsBmCooked(BOOL IncludeEditor) const
 {
 	ULinkerLoad* Linker = GetBaseLinker();
 	if (Linker)
 	{
-		return Linker->IsBmCooked();
+		return Linker->IsBmCooked(IncludeEditor);
 	}
 
 	return FALSE;
