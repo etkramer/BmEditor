@@ -21,7 +21,9 @@
       "Bash(wc:*)",
       "Bash(grep -v \"//\")",
       "Bash(curl -s \"https://raw.githubusercontent.com/gildor2/UEViewer/master/Unreal/UnrealMesh/UnMesh3.cpp\" -o /tmp/UnMesh3.cpp)",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(grep -n \"W \\\\*=\" \"I:/UEViewer/Unreal/UnrealMesh/UnAnim\"*)",
+      "Bash(grep:*)"
     ]
   }
 }

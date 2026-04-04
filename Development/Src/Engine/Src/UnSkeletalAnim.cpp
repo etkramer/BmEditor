@@ -300,7 +300,8 @@ FQuat FinishQuatMax(int Shift, int H, int M, int L, int S)
 	float l = L * scale0 - shift;
 	float m = M * scale0 - shift;
 	float h = H * scale0 - shift;
-	float a = sqrt(1.0f - (l * l + m * m + h * h));
+	float wSq = 1.0f - (l * l + m * m + h * h);
+	float a = (wSq > 0) ? sqrt(wSq) : 0;
 
 	FQuat r;
 	switch (S)			// choose where to place "a"
@@ -684,7 +685,8 @@ void EncodeRotationTrack(const TArray<FQuat>& RotKeys, INT BoneIdx, INT NumKeys,
 		BYTE encoded[6];
 
 		FQuat q = RotKeys(KeyIdx);
-		// Fix quaternion for non-root bones (reverse the fix from PostLoad)
+
+		// Undo the conjugation applied during decode (convert back to AnimZip convention)
 		if (BoneIdx > 0)
 		{
 			q = FQuat(-q.X, -q.Y, -q.Z, q.W);
@@ -1009,6 +1011,15 @@ void UAnimSequence::PostLoad()
 		UAnimSet* Owner = GetAnimSet();
 		INT NumTracks = Owner->TrackBoneNames.Num();
 
+		// Load the SkeletalMesh to get reference pose for bones without AnimZip data.
+		// The game's AnimZip_Sample pre-fills Out_Bones with GetReferencePose();
+		// bones without AnimZip tracks keep the reference pose rather than getting Identity.
+		USkeletalMesh* SkelMesh = NULL;
+		if (Owner->PreviewSkelMeshName != NAME_None)
+		{
+			SkelMesh = LoadObject<USkeletalMesh>(NULL, *Owner->PreviewSkelMeshName.ToString(), NULL, LOAD_None, NULL);
+		}
+
 		// Build RawAnimationData
 		RawAnimationData.Empty(NumTracks);
 		for (INT BoneIdx = 0; BoneIdx < NumTracks; BoneIdx++)
@@ -1017,16 +1028,98 @@ void UAnimSequence::PostLoad()
 			INT RotationCodecNum = FindAndDecodeRotation(BoneIdx, AnimZip_Reader, RawAnimTrack, Hdr.RotationOffset, Hdr.RotationCount, Owner);
 			INT TranslationCodecNum = FindAndDecodeTranslation(BoneIdx, AnimZip_Reader, RawAnimTrack, Hdr.TranslationOffset, Hdr.TranslationCount, Owner);
 
+			// Resample rotation keys to NumFrames if needed
+			// AnimZip can store fewer keys than NumFrames (equally spaced); UE3 requires exactly 1 or NumFrames.
+			if (RawAnimTrack.RotKeys.Num() > 1 && RawAnimTrack.RotKeys.Num() != NumFrames)
+			{
+				TArray<FQuat> SrcKeys = RawAnimTrack.RotKeys;
+				INT SrcNum = SrcKeys.Num();
+				RawAnimTrack.RotKeys.Empty(NumFrames);
+				for (INT i = 0; i < NumFrames; i++)
+				{
+					FLOAT SrcPos = (FLOAT)i * (SrcNum - 1) / (FLOAT)(NumFrames - 1);
+					INT Idx0 = Clamp<INT>(appFloor(SrcPos), 0, SrcNum - 1);
+					INT Idx1 = Min(Idx0 + 1, SrcNum - 1);
+					FLOAT Alpha = SrcPos - (FLOAT)Idx0;
+					FQuat Q0 = SrcKeys(Idx0);
+					FQuat Q1 = SrcKeys(Idx1);
+					// Ensure shortest arc
+					if ((Q0 | Q1) < 0.f)
+					{
+						Q1 = FQuat(-Q1.X, -Q1.Y, -Q1.Z, -Q1.W);
+					}
+					FQuat Blended = Q0 * (1.f - Alpha) + Q1 * Alpha;
+					Blended.Normalize();
+					RawAnimTrack.RotKeys.AddItem(Blended);
+				}
+			}
+
+			// Resample position keys to NumFrames if needed
+			if (RawAnimTrack.PosKeys.Num() > 1 && RawAnimTrack.PosKeys.Num() != NumFrames)
+			{
+				TArray<FVector> SrcKeys = RawAnimTrack.PosKeys;
+				INT SrcNum = SrcKeys.Num();
+				RawAnimTrack.PosKeys.Empty(NumFrames);
+				for (INT i = 0; i < NumFrames; i++)
+				{
+					FLOAT SrcPos = (FLOAT)i * (SrcNum - 1) / (FLOAT)(NumFrames - 1);
+					INT Idx0 = Clamp<INT>(appFloor(SrcPos), 0, SrcNum - 1);
+					INT Idx1 = Min(Idx0 + 1, SrcNum - 1);
+					FLOAT Alpha = SrcPos - (FLOAT)Idx0;
+					RawAnimTrack.PosKeys.AddItem(Lerp(SrcKeys(Idx0), SrcKeys(Idx1), Alpha));
+				}
+			}
+
+			// For bones without AnimZip data, use the reference pose instead of Identity.
+			// The game pre-fills Out_Bones with GetReferencePose(); bones without AnimZip
+			// tracks keep that reference pose. Using Identity here would override it.
 			if (!RawAnimTrack.RotKeys.Num())
 			{
-				RawAnimTrack.RotKeys.AddItem(FQuat::Identity);
+				if (SkelMesh)
+				{
+					// Find this bone in the RefSkeleton by name
+					FName BoneName = Owner->TrackBoneNames(BoneIdx);
+					INT RefIdx = SkelMesh->MatchRefBone(BoneName);
+					if (RefIdx != INDEX_NONE)
+					{
+						RawAnimTrack.RotKeys.AddItem(SkelMesh->RefSkeleton(RefIdx).BonePos.Orientation);
+					}
+					else
+					{
+						RawAnimTrack.RotKeys.AddItem(FQuat::Identity);
+					}
+				}
+				else
+				{
+					RawAnimTrack.RotKeys.AddItem(FQuat::Identity);
+				}
 			}
 			if (!RawAnimTrack.PosKeys.Num())
 			{
-				RawAnimTrack.PosKeys.AddItem(FVector::ZeroVector);
+				if (SkelMesh)
+				{
+					FName BoneName = Owner->TrackBoneNames(BoneIdx);
+					INT RefIdx = SkelMesh->MatchRefBone(BoneName);
+					if (RefIdx != INDEX_NONE)
+					{
+						RawAnimTrack.PosKeys.AddItem(SkelMesh->RefSkeleton(RefIdx).BonePos.Position);
+					}
+					else
+					{
+						RawAnimTrack.PosKeys.AddItem(FVector::ZeroVector);
+					}
+				}
+				else
+				{
+					RawAnimTrack.PosKeys.AddItem(FVector::ZeroVector);
+				}
 			}
 
-			// Fix quaternions
+			// AnimZip stores absolute quaternions in "natural" convention.
+			// UE3's standard anim pipeline applies FlipSignOfRotationW (W *= -1)
+			// for non-root bones at runtime, so we must conjugate to pre-negate W.
+			// This also correctly handles reference pose quaternions inserted above,
+			// since those are also in natural convention.
 			if (BoneIdx > 0)
 			{
 				for (INT i = 0; i < RawAnimTrack.RotKeys.Num(); i++)
