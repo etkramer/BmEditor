@@ -1062,6 +1062,14 @@ FArchive& operator<<(FArchive& Ar, FMultiSizeIndexContainer& Buffer)
 		}
 #endif
 	}
+#if BATMAN
+	else if (Ar.IsBmCooked(TRUE))
+	{
+		// BM3 format only serializes NeedsCPUAccess; DataTypeSize is implicitly WORD
+		Ar << Buffer.NeedsCPUAccess;
+		Buffer.DataTypeSize = sizeof(WORD);
+	}
+#endif
 	else
 	{
 		Ar << Buffer.NeedsCPUAccess;
@@ -1178,6 +1186,26 @@ void FStaticLODModel::Serialize( FArchive& Ar, UObject* Owner, INT Idx )
 		LegacyRawPointIndices.Unlock();
 		RawPointIndices.Unlock();
 	}
+#if BATMAN
+	else if (Ar.IsBmCooked(TRUE))
+	{
+		// Saving BM3 format: write as WORD bulk data to match what BM3 expects on load
+		INT ElementCount = RawPointIndices.GetElementCount();
+		LegacyRawPointIndices.Lock(LOCK_READ_WRITE);
+		WORD* Dest = (WORD*)LegacyRawPointIndices.Realloc(ElementCount);
+		if (ElementCount > 0)
+		{
+			INT* Src = (INT*)RawPointIndices.Lock(LOCK_READ_ONLY);
+			for (INT I = 0; I < ElementCount; ++I)
+			{
+				Dest[I] = (WORD)Src[I];
+			}
+			RawPointIndices.Unlock();
+		}
+		LegacyRawPointIndices.Unlock();
+		LegacyRawPointIndices.Serialize(Ar, Owner);
+	}
+#endif
 	else
 	{
 		RawPointIndices.Serialize( Ar, Owner );
