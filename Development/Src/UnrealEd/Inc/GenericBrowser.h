@@ -975,6 +975,13 @@ public:
 	UBOOL SaveAsSelectedPackages();
 
 	/**
+	 * Saves selected packages in cooked format with VER_BATMAN3 licensee version.
+	 *
+	 * @return		TRUE if all selected packages were successfully saved, FALSE otherwise.
+	 */
+	UBOOL SaveAsCookedSelectedPackages();
+
+	/**
 	 * Returns whether saving the specified package is allowed
 	 */
 	UBOOL AllowPackageSave( UPackage* PackageToSave );
@@ -1069,6 +1076,7 @@ private:
 	void OnFileOpenPackages( wxCommandEvent& In );
 	void OnFileSave( wxCommandEvent& In );
 	void OnFileSaveAs( wxCommandEvent& In );
+	void OnFileSaveAsCooked( wxCommandEvent& In );
 	void OnFileFullyLoad( wxCommandEvent& In );
 	void OnFileNew( wxCommandEvent& In );
 	void OnFileImport( wxCommandEvent& In );

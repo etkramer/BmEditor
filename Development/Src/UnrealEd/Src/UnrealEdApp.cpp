@@ -722,6 +722,7 @@ bool WxUnrealEdApp::OnInit()
 	GApp->LastDir[LD_GENERIC_EXPORT]		= GConfig->GetStr( TEXT("Directories2"), TEXT("GenericExport"),		GEditorUserSettingsIni );
 	GApp->LastDir[LD_GENERIC_OPEN]			= GConfig->GetStr( TEXT("Directories2"), TEXT("GenericOpen"),		GEditorUserSettingsIni );
 	GApp->LastDir[LD_GENERIC_SAVE]			= GConfig->GetStr( TEXT("Directories2"), TEXT("GenericSave"),		GEditorUserSettingsIni );
+	GApp->LastDir[LD_GENERIC_SAVE_COOKED]	= GConfig->GetStr( TEXT("Directories2"), TEXT("GenericSaveCooked"),	GEditorUserSettingsIni );
 	GApp->LastDir[LD_MESH_IMPORT_EXPORT]	= GConfig->GetStr( TEXT("Directories2"), TEXT("MeshImportExport"),	GEditorUserSettingsIni );
 
 	// Remap editor directories to the user directory in shipped builds.
@@ -1057,6 +1058,7 @@ int WxUnrealEdApp::OnExit()
 	GConfig->SetString( TEXT("Directories2"), TEXT("GenericExport"),	*GApp->LastDir[LD_GENERIC_EXPORT],		GEditorUserSettingsIni );
 	GConfig->SetString( TEXT("Directories2"), TEXT("GenericOpen"),		*GApp->LastDir[LD_GENERIC_OPEN],		GEditorUserSettingsIni );
 	GConfig->SetString( TEXT("Directories2"), TEXT("GenericSave"),		*GApp->LastDir[LD_GENERIC_SAVE],		GEditorUserSettingsIni );
+	GConfig->SetString( TEXT("Directories2"), TEXT("GenericSaveCooked"),	*GApp->LastDir[LD_GENERIC_SAVE_COOKED],	GEditorUserSettingsIni );
 	GConfig->SetString( TEXT("Directories2"), TEXT("MeshImportExport"),	*GApp->LastDir[LD_MESH_IMPORT_EXPORT],	GEditorUserSettingsIni );
 
 	// Unregister all events

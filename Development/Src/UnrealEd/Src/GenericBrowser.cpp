@@ -951,6 +951,7 @@ public:
 		FileMenu->AppendSeparator();
 		FileMenu->Append( IDMN_FileSave, *LocalizeUnrealEd("SaveE"), TEXT("") );
 		FileMenu->Append( IDMN_FileSaveAs, *LocalizeUnrealEd("SaveAsE"), *LocalizeUnrealEd("ToolTip_83") );
+		FileMenu->Append( IDMN_FileSaveAsCooked, TEXT("Save as Cooked..."), TEXT("") );
 		FileMenu->AppendSeparator();
 		FileMenu->Append( IDM_IMPORT, *LocalizeUnrealEd("ImportE"), TEXT("") );
 		FileMenu->Append( IDM_EXPORT, *LocalizeUnrealEd("ExportE"), TEXT("") );
@@ -1003,6 +1004,7 @@ BEGIN_EVENT_TABLE( WxGenericBrowser, WxBrowser )
 	EVT_MENU( IDMN_FileOpenPackages, WxGenericBrowser::OnFileOpenPackages )
 	EVT_MENU( IDMN_FileSave, WxGenericBrowser::OnFileSave )
 	EVT_MENU( IDMN_FileSaveAs, WxGenericBrowser::OnFileSaveAs )
+	EVT_MENU( IDMN_FileSaveAsCooked, WxGenericBrowser::OnFileSaveAsCooked )
 	EVT_MENU( IDMN_FileFullyLoad, WxGenericBrowser::OnFileFullyLoad )
 	EVT_MENU( IDM_NEW, WxGenericBrowser::OnFileNew )
 	EVT_MENU( IDM_IMPORT, WxGenericBrowser::OnFileImport )
@@ -2066,6 +2068,104 @@ UBOOL WxGenericBrowser::SaveAsSelectedPackages()
 	return bAllPackagesWereSaved;
 }
 
+UBOOL WxGenericBrowser::SaveAsCookedSelectedPackages()
+{
+	// Generate a list of unique packages.
+	TArray<UPackage*> WkPackages;
+	LeftContainer->GetSelectedPackages(&WkPackages);
+
+	// Get outermost packages, in case groups were selected.
+	TArray<UPackage*> Packages;
+	for( INT PackageIndex = 0 ; PackageIndex < WkPackages.Num() ; ++PackageIndex )
+	{
+		UPackage* Package = WkPackages(PackageIndex);
+		Packages.AddUniqueItem( Package->GetOutermost() ? (UPackage*)Package->GetOutermost() : Package );
+	}
+
+	// Packages must be fully loaded before they can be saved.
+	if( !HandleFullyLoadingPackages( Packages, TEXT("Save") ) )
+	{
+		return FALSE;
+	}
+
+	UBOOL bAllPackagesWereSaved = TRUE;
+
+	FString FileTypes( TEXT("Unreal Packages (*.upk)|*.upk|All Files|*.*") );
+
+	GWarn->BeginSlowTask( *LocalizeUnrealEd(TEXT("SavingPackage")), TRUE );
+	for(INT i=0; i<Packages.Num(); i++)
+	{
+		UPackage* Package = Packages(i);
+		GWarn->StatusUpdatef( i, Packages.Num(), *FString::Printf( LocalizeSecure(LocalizeUnrealEd("SavingPackagef"), *Package->GetName() )) );
+
+		// Prevent level packages from being saved via the Generic Browser.
+		if( FindObject<UWorld>( Package, TEXT("TheWorld") ) )
+		{
+			appMsgf( AMT_OK, LocalizeSecure(LocalizeUnrealEd("Error_CantSaveMapViaGB"), *Package->GetName()) );
+			bAllPackagesWereSaved = FALSE;
+			continue;
+		}
+
+		FString File = FString::Printf( TEXT("%s.upk"), *Package->GetName() );
+
+		WxFileDialog SaveFileDialog( this,
+			TEXT("Save Cooked Package"),
+			*GApp->LastDir[LD_GENERIC_SAVE_COOKED],
+			*File,
+			*FileTypes,
+			wxSAVE,
+			wxDefaultPosition);
+
+		if( SaveFileDialog.ShowModal() == wxID_OK )
+		{
+			const FScopedBusyCursor BusyCursor;
+			GApp->LastDir[LD_GENERIC_SAVE_COOKED] = SaveFileDialog.GetDirectory();
+			FString SaveFileName = FString( SaveFileDialog.GetPath() );
+
+			if( SaveFileName.Len() > 0 && FFilename( SaveFileName ).GetExtension().Len() == 0 )
+			{
+				SaveFileName += TEXT( ".upk" );
+			}
+
+			if( GFileManager->IsReadOnly( *SaveFileName ) )
+			{
+				appMsgf( AMT_OK, *FString::Printf( LocalizeSecure(LocalizeUnrealEd("Error_CouldntWriteToFile_F"), *SaveFileName)) );
+				bAllPackagesWereSaved = FALSE;
+			}
+			else
+			{
+				// Temporarily set cooked flags and licensee version for saving
+				const DWORD OldPackageFlags = Package->PackageFlags;
+				const INT OldLicenseeVersion = GPackageFileLicenseeVersion;
+
+				Package->PackageFlags |= PKG_Cooked;
+				GPackageFileLicenseeVersion = VER_BATMAN3;
+
+				UBOOL bSaved = UObject::SavePackage( Package, NULL, RF_Standalone, *SaveFileName, GError );
+
+				// Restore original state
+				Package->PackageFlags = OldPackageFlags;
+				GPackageFileLicenseeVersion = OldLicenseeVersion;
+
+				if( !bSaved )
+				{
+					appMsgf( AMT_OK, *LocalizeUnrealEd("Error_CouldntSavePackage") );
+					bAllPackagesWereSaved = FALSE;
+				}
+			}
+		}
+		else
+		{
+			bAllPackagesWereSaved = FALSE;
+		}
+	}
+
+	GWarn->EndSlowTask();
+	Update();
+
+	return bAllPackagesWereSaved;
+}
+
 void WxGenericBrowser::OnFileSave( wxCommandEvent& In )
 {
 	SaveSelectedPackages();
@@ -2074,6 +2174,11 @@ void WxGenericBrowser::OnFileSave( wxCommandEvent& In )
 void WxGenericBrowser::OnFileSaveAs( wxCommandEvent& In )
 {
 	SaveAsSelectedPackages();
+}
+
+void WxGenericBrowser::OnFileSaveAsCooked( wxCommandEvent& In )
+{
+	SaveAsCookedSelectedPackages();
 }
 
 void WxGenericBrowser::OnFileFullyLoad( wxCommandEvent& In )
@@ -4763,6 +4868,7 @@ public:
 	wxGBLeftContainerMenu()
 	{
 		Append( IDMN_FileSave, *LocalizeUnrealEd("SaveE"), TEXT("") );
+		Append( IDMN_FileSaveAsCooked, TEXT("Save as Cooked..."), TEXT("") );
 		Append( IDMN_FileFullyLoad, *LocalizeUnrealEd("FullyLoadE"), TEXT("") );
 		Append( IDM_GenericBrowser_UnloadPackage, *LocalizeUnrealEd("UnloadE"), TEXT("") );
 		Append( IDM_IMPORT, *LocalizeUnrealEd("ImportE"), TEXT("") );

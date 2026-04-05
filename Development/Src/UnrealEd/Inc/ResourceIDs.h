@@ -2083,6 +2083,7 @@ enum
 	IDMENU_ActorPopupProperties,
 	ID_SurfPopupReset,
 	IDMN_FileSaveAs,
+	IDMN_FileSaveAsCooked,
 
 	ID_BackdropPopupGrid1,
 	ID_BackdropPopupGrid1024 = ID_BackdropPopupGrid1 + 10,
