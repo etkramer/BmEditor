@@ -176,7 +176,43 @@ struct FStaticMeshFullVertex
 	}
 };
 
-/** 
+/**
+* 16 bit UV version of static mesh vertex (UVs only, no tangent basis)
+*/
+template<UINT NumTexCoords>
+struct TStaticMeshVertexFloat16UVs
+{
+	FVector2DHalf UVs[NumTexCoords];
+
+	friend FArchive& operator<<(FArchive& Ar,TStaticMeshVertexFloat16UVs& Vertex)
+	{
+		for(UINT UVIndex = 0;UVIndex < NumTexCoords;UVIndex++)
+		{
+			Ar << Vertex.UVs[UVIndex];
+		}
+		return Ar;
+	}
+};
+
+/**
+* 32 bit UV version of static mesh vertex (UVs only, no tangent basis)
+*/
+template<UINT NumTexCoords>
+struct TStaticMeshVertexFloat32UVs
+{
+	FVector2D UVs[NumTexCoords];
+
+	friend FArchive& operator<<(FArchive& Ar,TStaticMeshVertexFloat32UVs& Vertex)
+	{
+		for(UINT UVIndex = 0;UVIndex < NumTexCoords;UVIndex++)
+		{
+			Ar << Vertex.UVs[UVIndex];
+		}
+		return Ar;
+	}
+};
+
+/**
 * 16 bit UV version of static mesh vertex
 */
 template<UINT NumTexCoords>
@@ -938,12 +974,15 @@ private:
 	/** Corresponds to UStaticMesh::UseFullPrecisionUVs. if TRUE then 32 bit UVs are used */
 	UBOOL bUseFullPrecisionUVs;
 
+	/** Whether vertex data includes tangent basis (TangentX/TangentZ). FALSE for BM3 meshes that store only UVs. */
+	UBOOL bHasNormalsAndTangents;
+
 	/** Allocates the vertex data storage type. */
 	void AllocateData();
 };
 
-/** 
-* A vertex that stores a shadow volume extrusion info. 
+/**
+* A vertex that stores a shadow volume extrusion info.
 */
 struct FLegacyShadowExtrusionVertex
 {

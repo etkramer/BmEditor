@@ -3673,6 +3673,8 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 			LoadClass->GetName() == "RB_BodySetup" ||
 
             LoadClass->GetName() == "LightMapTexture2D" ||
+			LoadClass->GetName() == "TextureCube" ||
+			LoadClass->GetName() == "TextureRenderTarget2D" ||
             LoadClass->GetName() == "FaceFxAnimSet"
             ))
         {

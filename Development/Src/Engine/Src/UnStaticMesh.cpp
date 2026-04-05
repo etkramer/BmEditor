@@ -912,7 +912,8 @@ FStaticMeshVertexBuffer::FStaticMeshVertexBuffer():
 	Data(NULL),
 	Stride(0),
 	NumVertices(0),
-	bUseFullPrecisionUVs(FALSE)
+	bUseFullPrecisionUVs(FALSE),
+	bHasNormalsAndTangents(TRUE)
 {}
 
 FStaticMeshVertexBuffer::~FStaticMeshVertexBuffer()
@@ -1022,8 +1023,7 @@ FArchive& operator<<(FArchive& Ar,FStaticMeshVertexBuffer& VertexBuffer)
 #if BATMAN
 	if (Ar.IsBmCooked(TRUE))
 	{
-		UBOOL HasNormalsAndTangents = TRUE;
-		Ar << HasNormalsAndTangents;
+		Ar << VertexBuffer.bHasNormalsAndTangents;
 	}
 #endif
 
@@ -1110,6 +1110,36 @@ void FStaticMeshVertexBuffer::AllocateData()
 	CleanUp();
 
 	const UBOOL bNeedsCPUAccess=TRUE;
+
+#if BATMAN
+	if( !bHasNormalsAndTangents )
+	{
+		// BM3 vertex data without tangent basis - UVs only
+		if( !bUseFullPrecisionUVs )
+		{
+			switch(NumTexCoords)
+			{
+			case 1: VertexData = new TStaticMeshVertexData< TStaticMeshVertexFloat16UVs<1> >(bNeedsCPUAccess); break;
+			case 2: VertexData = new TStaticMeshVertexData< TStaticMeshVertexFloat16UVs<2> >(bNeedsCPUAccess); break;
+			case 3: VertexData = new TStaticMeshVertexData< TStaticMeshVertexFloat16UVs<3> >(bNeedsCPUAccess); break;
+			case 4: VertexData = new TStaticMeshVertexData< TStaticMeshVertexFloat16UVs<4> >(bNeedsCPUAccess); break;
+			default: appErrorf(TEXT("Invalid number of texture coordinates"));
+			};
+		}
+		else
+		{
+			switch(NumTexCoords)
+			{
+			case 1: VertexData = new TStaticMeshVertexData< TStaticMeshVertexFloat32UVs<1> >(bNeedsCPUAccess); break;
+			case 2: VertexData = new TStaticMeshVertexData< TStaticMeshVertexFloat32UVs<2> >(bNeedsCPUAccess); break;
+			case 3: VertexData = new TStaticMeshVertexData< TStaticMeshVertexFloat32UVs<3> >(bNeedsCPUAccess); break;
+			case 4: VertexData = new TStaticMeshVertexData< TStaticMeshVertexFloat32UVs<4> >(bNeedsCPUAccess); break;
+			default: appErrorf(TEXT("Invalid number of texture coordinates"));
+			};
+		}
+	}
+	else
+#endif
 	if( !bUseFullPrecisionUVs )
 	{
 		switch(NumTexCoords)
@@ -1119,7 +1149,7 @@ void FStaticMeshVertexBuffer::AllocateData()
 		case 3: VertexData = new TStaticMeshVertexData< TStaticMeshFullVertexFloat16UVs<3> >(bNeedsCPUAccess); break;
 		case 4: VertexData = new TStaticMeshVertexData< TStaticMeshFullVertexFloat16UVs<4> >(bNeedsCPUAccess); break;
 		default: appErrorf(TEXT("Invalid number of texture coordinates"));
-		};		
+		};
 	}
 	else
 	{
@@ -1130,8 +1160,8 @@ void FStaticMeshVertexBuffer::AllocateData()
 		case 3: VertexData = new TStaticMeshVertexData< TStaticMeshFullVertexFloat32UVs<3> >(bNeedsCPUAccess); break;
 		case 4: VertexData = new TStaticMeshVertexData< TStaticMeshFullVertexFloat32UVs<4> >(bNeedsCPUAccess); break;
 		default: appErrorf(TEXT("Invalid number of texture coordinates"));
-		};		
-	}	
+		};
+	}
 
 	// Calculate the vertex stride.
 	Stride = VertexData->GetStride();
