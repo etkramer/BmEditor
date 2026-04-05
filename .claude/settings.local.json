@@ -23,7 +23,9 @@
       "Bash(curl -s \"https://raw.githubusercontent.com/gildor2/UEViewer/master/Unreal/UnrealMesh/UnMesh3.cpp\" -o /tmp/UnMesh3.cpp)",
       "Read(//tmp/**)",
       "Bash(grep -n \"W \\\\*=\" \"I:/UEViewer/Unreal/UnrealMesh/UnAnim\"*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Read(//f/Game Builds/Batman Arkham Origins \\(February 1, 2013\\)/**)"
     ]
   }
 }

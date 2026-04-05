@@ -2,8 +2,8 @@
   "folders": [
     {
       "name": "UE3 (820)",
-      "path": "."
-    }
+      "path": ".",
+    },
   ],
   "settings": {
     // Exclude non-code stuff from workspace.
@@ -19,7 +19,7 @@
       "**/*.cmake": true,
       "**/CMakeLists.txt": true,
       "**/makefile": true,
-      "**/makefile-inc": true
+      "**/makefile-inc": true,
     },
 
     // Exclude non-code stuff from search.
@@ -59,7 +59,7 @@
       "Engine/Localization/KOR": true,
       "Engine/Localization/POL": true,
       "Engine/Localization/RUS": true,
-      "Engine/Localization/SLO": true
+      "Engine/Localization/SLO": true,
     },
 
     // UnrealScript files
@@ -89,7 +89,7 @@
       "Development/External/zlib/Inc",
       "Development/External/FaceFx/**/Inc",
       "Development/External/PhysX/**/include",
-      "Development/External/PhysX/**/Include"
+      "Development/External/PhysX/**/Include",
     ],
     "C_Cpp.default.defines": [
       "UNICODE",
@@ -101,12 +101,52 @@
 
       "WIN32=1",
       "_MSC_VER=1400",
-      "_WIN32_WINDOWS=0x0500"
+      "_WIN32_WINDOWS=0x0500",
     ],
     "dotnet.backgroundAnalysis.analyzerDiagnosticsScope": "none",
     "files.associations": {
       "*.natvis": "xml",
-      "*.rh": "cpp"
-    }
-  }
+      "*.rh": "cpp",
+    },
+  },
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "Build Editor",
+        "type": "shell",
+        "command": "${workspaceFolder}/Development/Intermediate/UnrealBuildTool/Release/UnrealBuildTool.exe",
+        "args": ["BmGame", "Win32", "Debug"],
+        "group": {
+          "kind": "build",
+          "isDefault": true,
+        },
+        "presentation": {
+          "reveal": "always",
+          "panel": "shared",
+          "echo": false,
+          "clear": true
+        },
+        "problemMatcher": "$msCompile",
+      },
+    ],
+  },
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Launch Editor",
+        "type": "cppvsdbg",
+        "request": "launch",
+        "program": "${workspaceFolder}/Binaries/Win32/Debug-BmGame.exe",
+        "args": ["editor"],
+        "stopAtEntry": false,
+        "cwd": "${workspaceFolder}",
+        "environment": [],
+        "preLaunchTask": "Build Editor",
+        "visualizerFile": "${workspaceFolder}/UE3.natvis",
+        "internalConsoleOptions": "openOnSessionStart"
+      },
+    ],
+  },
 }
