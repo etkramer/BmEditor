@@ -3748,7 +3748,13 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 		{
 			ThisParent = IndexToObject(Export.OuterIndex);
 		}
-		else if( Export.HasAnyFlags( EF_ForcedExport ) )
+		else if( Export.HasAnyFlags( EF_ForcedExport )
+#if BATMAN
+		// BM: Treat all BM Packages as forced exports.
+		// Otherwise, Package Batman_OZ might end up with the path Playable_Batman_Std_SF.Batman_OZ.
+		|| (IsBmCooked() && LoadClass == UPackage::StaticClass())
+#endif
+		)
 		{
 			// Create the forced export in the TopLevel instead of LinkerRoot. Please note that CreatePackage
 			// will find and return an existing object if one exists and only create a new one if there doesn't.
