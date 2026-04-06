@@ -625,6 +625,57 @@ void UAnimNodeSequence::GetAnimationPose(UAnimSequence* InAnimSeq, INT& InAnimLi
 	// Never process bone indices higher than our static array size to avoid crashes for malformed assets
 	const INT DesiredBoneCount = Min( MAX_BONES, DesiredBones.Num() );
 
+#if BATMAN
+	if (!bUseRawData && DesiredBones.Num() > 0 && InAnimSeq->AnimZip_Data.Num() > 0)
+	{
+		FLOAT NormTime = (InAnimSeq->SequenceLength > 0.0f)
+			? Clamp(CurrentTime / InAnimSeq->SequenceLength, 0.0f, 1.0f) : 0.0f;
+
+		AnimZip_Sample(InAnimSeq, SkelComponent->SkeletalMesh, NormTime,
+			AnimLinkup->AnimTrackToBone, NumBones, &Atoms(0));
+
+		// NOTE: No FlipSignOfRotationW here. AnimZip stores quaternions in "natural"
+		// convention which is already correct. The standard pipeline's FlipSignOfRotationW
+		// is only needed for ActorX-exported data stored in CompressedByteStream.
+
+		// Root bone handling
+		const INT RootTrackIndex = AnimLinkup->BoneToTrackTable(0);
+		if (RootTrackIndex != INDEX_NONE)
+		{
+			if (bDoingRootMotion)
+			{
+				ExtractRootMotion(InAnimSeq, RootTrackIndex, Atoms(0), RootMotionDelta, bHasRootMotion);
+			}
+			if (bZeroRootRotation)
+			{
+				Atoms(0).SetRotation(FQuat::Identity);
+			}
+			if (bZeroRootTranslation)
+			{
+				Atoms(0).SetTranslation(FVector::ZeroVector);
+			}
+		}
+
+		// bAnimRotationOnly: override translation with ref pose for applicable bones
+		for (INT i = 0; i < DesiredBoneCount; i++)
+		{
+			const INT BoneIndex = DesiredBones(i);
+			if (BoneIndex > 0)
+			{
+				const INT TrackIndex = AnimLinkup->BoneToTrackTable(BoneIndex);
+				if (TrackIndex != INDEX_NONE && !InAnimSeq->bIsAdditive
+					&& ((bAnimRotationOnly && !AnimSet->BoneUseAnimTranslation(TrackIndex))
+						|| AnimSet->ForceUseMeshTranslation(TrackIndex)))
+				{
+					Atoms(BoneIndex).SetTranslation(RefSkel(BoneIndex).BonePos.Position);
+				}
+			}
+		}
+
+		InAnimSeq->GetCurveData(CurrentTime, bLooping, CurveKeys);
+	}
+	else
+#endif
 #if (USE_ANIMATION_CODEC_BATCH_SOLVER)
 	if (!bUseRawData && DesiredBones.Num()>0 && InAnimSeq->CompressedTrackOffsets.Num() > 0)
 	{

@@ -4612,11 +4612,21 @@ public:
 struct FAnimSetMeshLinkup
 {
     TArrayNoInit<INT> BoneToTrackTable;
+    TArrayNoInit<INT> AnimTrackToBone;
 
 		/** Reset this linkup and re-create between the provided skeletal mesh and anim set. */
 		void BuildLinkup(USkeletalMesh* InSkelMesh, UAnimSet* InAnimSet);
-	
+
 };
+
+#if BATMAN
+/** AnimZip runtime sampling: sample a single animation track at normalized time */
+void AnimZip_Sample_Track(const class UAnimSequence* Seq, INT TrackIndex, FLOAT NormalizedTime, class FBoneAtom* Out);
+
+/** AnimZip runtime sampling: batch sample all bones, pre-filling with reference pose */
+void AnimZip_Sample(const class UAnimSequence* Seq, class USkeletalMesh* SkelMesh,
+	FLOAT NormalizedTime, const TArray<INT>& AnimTrackToBone, INT NumBones, class FBoneAtom* Out_Bones);
+#endif
 
 class UAnimSet : public UObject
 {
