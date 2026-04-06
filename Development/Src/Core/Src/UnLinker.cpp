@@ -1421,6 +1421,16 @@ UBOOL ULinkerLoad::SerializeNameMap()
 		{
 			// Precache name, import and export map.
 			bFinishedPrecaching = Loader->Precache( Summary.NameOffset, Summary.TotalHeaderSize - Summary.NameOffset );
+#if BATMAN
+			// If the package uses compressed chunks, the bulk precache request may span multiple
+			// chunks and FArchiveAsync::Precache can never satisfy it (it only caches one chunk at
+			// a time). Don't gate serialization on it -- FArchiveAsync::Serialize handles per-read
+			// blocking internally, so we can proceed safely.
+			if( !bFinishedPrecaching && (Summary.PackageFlags & PKG_StoreCompressed) && IsBmCooked() )
+			{
+				bFinishedPrecaching = TRUE;
+			}
+#endif
 		}
 		// Backward compat code for VER_MOVED_EXPORTIMPORTMAPS_ADDED_TOTALHEADERSIZE.
 		else
