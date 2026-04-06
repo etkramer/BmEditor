@@ -2405,6 +2405,12 @@ void UAnimSet::PostLoad()
 		}
 	}
 
+	// BM3: Joker_Thug_3_Head doesn't exist in retail
+	if( PreviewExtraSkelMesh1Name == FName(TEXT("Joker_Thugs.Mesh.Joker_Thug_3_Head")) )
+	{
+		PreviewExtraSkelMesh1Name = FName(TEXT("Joker_Thugs.Mesh.Joker_Thug_4_Head"));
+	}
+
 	// If we're tracing animation usage, start
 	if ( GShouldTraceAnimationUsage )
 	{
