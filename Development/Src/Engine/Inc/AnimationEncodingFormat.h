@@ -711,4 +711,13 @@ FORCEINLINE_DEBUGGABLE FLOAT AnimationEncodingFormat::TimeToIndex(
 	return Alpha;
 }
 
+#if BATMAN
+/** AnimZip runtime sampling: sample a single animation track at normalized time */
+void AnimZip_Sample_Track(const class UAnimSequence* Seq, INT TrackIndex, FLOAT NormalizedTime, class FBoneAtom* Out);
+
+/** AnimZip runtime sampling: batch sample all bones, pre-filling with reference pose */
+void AnimZip_Sample(const class UAnimSequence* Seq, class USkeletalMesh* SkelMesh,
+	FLOAT NormalizedTime, const TArray<INT>& AnimTrackToBone, INT NumBones, class FBoneAtom* Out_Bones);
+#endif
+
 #endif // __ANIMATIONENCODINGFORMAT_H__

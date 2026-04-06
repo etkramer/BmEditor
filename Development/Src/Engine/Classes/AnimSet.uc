@@ -19,6 +19,7 @@ struct native AnimSetMeshLinkup
 	 * -1 indicates no track for this bone - will use reference pose instead.
 	 */
 	var array<INT> BoneToTrackTable;
+	var array<INT> AnimTrackToBone;
 
 	structcpptext
 	{
@@ -61,6 +62,8 @@ var() Array<name>		UseTranslationBoneNames;
 var() Array<Name>		ForceMeshTranslationBoneNames;
 /** In the AnimSetEditor, when you switch to this AnimSet, it sees if this skeletal mesh is loaded and if so switches to it. */
 var()	name				PreviewSkelMeshName;
+// BM
+var()	name				PreviewExtraSkelMesh1Name;
 /** Holds the name of the skeletal mesh whose reference skeleton best matches the TrackBoneName array. */
 var name				BestRatioSkelMeshName;
 

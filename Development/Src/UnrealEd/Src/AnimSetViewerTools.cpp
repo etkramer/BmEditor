@@ -346,6 +346,25 @@ void WxAnimSetViewer::SetSelectedSkelMesh(USkeletalMesh* InSkelMesh, UBOOL bClea
 	PreviewSkelCompAux3->SetSkeletalMesh(NULL);
 	PreviewSkelCompAux3->UpdateParentBoneMap();
 
+	// Auto-select extra preview mesh 1 if specified on the current AnimSet
+	if( SelectedAnimSet && SelectedAnimSet->PreviewExtraSkelMesh1Name != NAME_None )
+	{
+		USkeletalMesh* PreviewExtraMesh1 = (USkeletalMesh*)UObject::StaticFindObject( USkeletalMesh::StaticClass(), ANY_PACKAGE, *SelectedAnimSet->PreviewExtraSkelMesh1Name.ToString() );
+		if( PreviewExtraMesh1 )
+		{
+			for( UINT i = 0; i < SkelMeshAux1Combo->GetCount(); i++ )
+			{
+				if( SkelMeshAux1Combo->GetClientData(i) == PreviewExtraMesh1 )
+				{
+					SkelMeshAux1Combo->SetSelection(i);
+					PreviewSkelCompAux1->SetSkeletalMesh(PreviewExtraMesh1);
+					PreviewSkelCompAux1->UpdateParentBoneMap();
+					break;
+				}
+			}
+		}
+	}
+
 	MeshProps->SetObject( NULL, EPropertyWindowFlags::ShouldShowCategories );
 	MeshProps->SetObject( SelectedSkelMesh, EPropertyWindowFlags::ShouldShowCategories );
 
@@ -535,10 +554,30 @@ void WxAnimSetViewer::SetSelectedAnimSet(UAnimSet* InAnimSet, UBOOL bAutoSelectM
 			USkeletalMesh* PreviewSkelMesh = (USkeletalMesh*)UObject::StaticFindObject( USkeletalMesh::StaticClass(), ANY_PACKAGE, *SelectedAnimSet->PreviewSkelMeshName.ToString() );
 			if(PreviewSkelMesh)
 			{
-				// We don't need to reselect the selected anim set 
+				// We don't need to reselect the selected anim set
 				// because we just did that in this function!
 				const UBOOL bReselectAnimSet = FALSE;
 				SetSelectedSkelMesh(PreviewSkelMesh, TRUE, bReselectAnimSet);
+			}
+		}
+
+		// Auto-select extra preview mesh 1 if the primary mesh is valid
+		if( bHasValidSkelMesh && SelectedAnimSet && SelectedAnimSet->PreviewExtraSkelMesh1Name != NAME_None )
+		{
+			USkeletalMesh* PreviewExtraMesh1 = (USkeletalMesh*)UObject::StaticFindObject( USkeletalMesh::StaticClass(), ANY_PACKAGE, *SelectedAnimSet->PreviewExtraSkelMesh1Name.ToString() );
+			if( PreviewExtraMesh1 )
+			{
+				// Find and select it in the aux1 combo
+				for( UINT i = 0; i < SkelMeshAux1Combo->GetCount(); i++ )
+				{
+					if( SkelMeshAux1Combo->GetClientData(i) == PreviewExtraMesh1 )
+					{
+						SkelMeshAux1Combo->SetSelection(i);
+						PreviewSkelCompAux1->SetSkeletalMesh(PreviewExtraMesh1);
+						PreviewSkelCompAux1->UpdateParentBoneMap();
+						break;
+					}
+				}
 			}
 		}
 	}

@@ -251,6 +251,12 @@ void WxAnimSetViewer::OnAuxSkelMeshComboChanged(wxCommandEvent& In)
 		AuxComp->SetSkeletalMesh(NewMesh);
 		AuxComp->UpdateParentBoneMap();
 		ASVPreviewVC->PreviewScene.AddComponent(AuxComp,FMatrix::Identity);
+
+		// Remember aux1 mesh selection on the AnimSet
+		if( In.GetId() == IDM_ANIMSET_SKELMESHAUX1COMBO && SelectedAnimSet )
+		{
+			SelectedAnimSet->PreviewExtraSkelMesh1Name = NewMesh ? FName( *NewMesh->GetPathName() ) : NAME_None;
+		}
 	}
 }
 
@@ -508,6 +514,12 @@ void WxAnimSetViewer::OnAuxSkelMeshUse( wxCommandEvent& In )
 				{
 					AuxCombo->SetSelection(i);
 				}
+			}
+
+			// Remember aux1 mesh selection on the AnimSet
+			if( In.GetId() == IDM_ANIMSET_SKELMESH_AUX1USE && SelectedAnimSet )
+			{
+				SelectedAnimSet->PreviewExtraSkelMesh1Name = FName( *SelectedSkelMesh->GetPathName() );
 			}
 		}
 	}
