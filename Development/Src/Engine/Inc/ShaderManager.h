@@ -10,7 +10,7 @@
 class FShaderType;
 
 /** The minimum package version which stores valid compiled shaders.  This can be used to force a recompile of all shaders. */
-#define VER_MIN_SHADER	VER_INVALIDATE_SHADERCACHE3
+#define VER_MIN_SHADER	VER_SHADER_CACHE_PRIORITY
 
 /** Same as VER_MIN_SHADER, but for the licensee package version. */
 #define LICENSEE_VER_MIN_SHADER	0

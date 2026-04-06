@@ -7,11 +7,11 @@
 #include "DepthOfFieldCommon.h"				// FDepthOfFieldParams, FDOFShaderParameters
 
 /** The minimum package version to load FMaterialShaderMaps with. Bump this to force existing FMaterialShaderMaps to be discarded on load. */
-#define VER_MIN_MATERIALSHADERMAP				VER_INVALIDATE_SHADERCACHE3
+#define VER_MIN_MATERIALSHADERMAP				VER_SHADER_CACHE_PRIORITY
 /** The minimum package version to load material pixel shaders with. */
-#define VER_MIN_MATERIAL_PIXELSHADER			VER_INVALIDATE_SHADERCACHE3
+#define VER_MIN_MATERIAL_PIXELSHADER			VER_SHADER_CACHE_PRIORITY
 /** The minimum package version to load material vertex shaders with. */
-#define VER_MIN_MATERIAL_VERTEXSHADER			VER_INVALIDATE_SHADERCACHE3
+#define VER_MIN_MATERIAL_VERTEXSHADER			VER_SHADER_CACHE_PRIORITY
 
 /** Same as VER_MIN_MATERIALSHADERMAP, but for the licensee package version. */
 #define LICENSEE_VER_MIN_MATERIALSHADERMAP		0
