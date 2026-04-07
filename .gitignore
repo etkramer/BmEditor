@@ -1,8 +1,14 @@
 # Content files
 /Binaries/*
-/Engine/*
-/UDKGame/*
-/BmGame/*
+/Engine/Shaders/Binaries/*
+/Engine/Shaders/WorkingDirectory/*
+/BmGame/_CookedPCConsole/*
+/BmGame/Autosaves/*
+/BmGame/Config/Bm*
+/BmGame/Content/*
+/BmGame/CookedPCConsole/*
+/BmGame/Logs/*
+/BmGame/Logs/*
 /Development/External/GFx/*
 !**/MISSING_FILES.txt
 

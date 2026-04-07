@@ -25,7 +25,12 @@
       "Bash(grep -n \"W \\\\*=\" \"I:/UEViewer/Unreal/UnrealMesh/UnAnim\"*)",
       "Bash(grep:*)",
       "Bash(find:*)",
-      "Read(//f/Game Builds/Batman Arkham Origins \\(February 1, 2013\\)/**)"
+      "Read(//f/Game Builds/Batman Arkham Origins \\(February 1, 2013\\)/**)",
+      "Read(//i//**)",
+      "Read(//i/UnrealEngine3/**)",
+      "Bash(awk 'BEGIN {prev=0} /case 0x[0-9a-fA-F]{2}:/ {if \\(NR - prev < 10\\) count++; else {if \\(count > 30\\) print \"Found \", count, \" consecutive cases starting around line \", prev - count*5; count=0}; prev=NR}' \"E:\\\\Games\\\\BatmanArkhamCity\\\\Binaries\\\\Win32\\\\BatmanAC.exe.c\")",
+      "Bash(gh api:*)",
+      "Bash(python3:*)"
     ]
   }
 }

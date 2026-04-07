@@ -1,0 +1,152 @@
+/*=============================================================================
+	PNTriangles.usf: Shader fragments for PN triangles tessellation
+	Copyright 1998-2011 Epic Games, Inc. All Rights Reserved.
+=============================================================================*/
+
+struct FHullShaderConstantOutput
+{
+	// Tess factor for the FF HW block
+	float fTessFactor[3]    : SV_TessFactor;
+	float fInsideTessFactor : SV_InsideTessFactor;
+	
+    // Positional control points
+    float4 Position_Edge_01    : Position_Edge_01;
+    float4 Position_Edge_10    : Position_Edge_10;
+    float4 Position_Edge_12    : Position_Edge_12;
+    float4 Position_Edge_21    : Position_Edge_21;
+    float4 Position_Edge_20    : Position_Edge_20;
+    float4 Position_Edge_02    : Position_Edge_02;
+    float4 Position_Centre     : Position_Centre;
+    
+    // Normal control points
+    float4 Normal_01    : Normal_01;
+    float4 Normal_12    : Normal_12;
+    float4 Normal_20    : Normal_20;
+};
+
+#if HULLSHADER
+	FHullShaderConstantOutput HS_FlatTrianglesConstant( InputPatch<FPassSpecificVSToDS, 3> I )
+	{
+		FHullShaderConstantOutput O = (FHullShaderConstantOutput)0;
+	    
+		// $$$ TODO, add distance based and/or camera attenuation
+
+		// Calculate tessellation on edges from the material.  Average the tess factro from 2 control points per edge factor
+		//	and average all 3 control points for interior factor
+
+		float2 TessellationFactor0 = PassGetTessellationFactors(I[0]);	// X is edge tess factor, Y is inside tess factor
+		float2 TessellationFactor1 = PassGetTessellationFactors(I[1]);
+		float2 TessellationFactor2 = PassGetTessellationFactors(I[2]);
+
+		// 0->1 edge
+		O.fTessFactor[0] = GlobalTesselationFactor * (TessellationFactor0.x + TessellationFactor1.x) / 2;
+
+		// 1->2 edge
+		O.fTessFactor[1] = GlobalTesselationFactor * (TessellationFactor1.x + TessellationFactor2.x) / 2;
+		
+		// 2->0 edge
+		O.fTessFactor[2] = GlobalTesselationFactor * (TessellationFactor2.x + TessellationFactor0.x) / 2;
+
+		// inside averages all 3
+		O.fInsideTessFactor = GlobalTesselationFactor * (TessellationFactor0.y + TessellationFactor1.y + TessellationFactor2.y) / 3;
+		
+		float4 Position_0 = PassGetWorldPosition(I[0]);
+		float4 Position_1 = PassGetWorldPosition(I[1]);
+		float4 Position_2 = PassGetWorldPosition(I[2]);
+		
+		float4 Edge_01 = Position_1 - Position_0;
+		float4 Edge_12 = Position_2 - Position_1;
+		float4 Edge_20 = Position_0 - Position_2;
+		
+		float4 Normal_0 = PassGetWorldNormal(I[0]);
+		float4 Normal_1 = PassGetWorldNormal(I[1]);
+		float4 Normal_2 = PassGetWorldNormal(I[2]);
+
+		// Compute edge control points
+        O.Position_Edge_01 = ( ( 2.0f * Position_0 ) + Position_1 - ( dot( Edge_01, Normal_0 ) * Normal_0 ) ) / 3.0f;
+        O.Position_Edge_10 = ( ( 2.0f * Position_1 ) + Position_0 + ( dot( Edge_01, Normal_1 ) * Normal_1 ) ) / 3.0f;
+        O.Position_Edge_12 = ( ( 2.0f * Position_1 ) + Position_2 - ( dot( Edge_12, Normal_1 ) * Normal_1 ) ) / 3.0f;
+        O.Position_Edge_21 = ( ( 2.0f * Position_2 ) + Position_1 + ( dot( Edge_12, Normal_2 ) * Normal_2 ) ) / 3.0f;
+        O.Position_Edge_20 = ( ( 2.0f * Position_2 ) + Position_0 - ( dot( Edge_20, Normal_2 ) * Normal_2 ) ) / 3.0f;
+        O.Position_Edge_02 = ( ( 2.0f * Position_0 ) + Position_2 + ( dot( Edge_20, Normal_0 ) * Normal_0 ) ) / 3.0f;
+        
+        // Compute centre control point
+        float4 EdgeCentroid = ( O.Position_Edge_01 + O.Position_Edge_10 + O.Position_Edge_12 + O.Position_Edge_21 + O.Position_Edge_20 + O.Position_Edge_02 ) / 6.0f;
+        float4 VertexCentroid = ( Position_0 + Position_1 + Position_2 ) / 3.0f;
+        O.Position_Centre = EdgeCentroid + ( ( EdgeCentroid - VertexCentroid ) / 2.0f );
+        
+        // Compute normal control points
+        float f01 = 2.0f * dot( Edge_01, Normal_0 + Normal_1 ) / dot( Edge_01, Normal_1 - Normal_0 );
+        O.Normal_01 = normalize( Normal_0 + Normal_1 - f01 * Edge_01 );
+        
+        float f12 = 2.0f * dot( Edge_12, Normal_1 + Normal_2 ) / dot( Edge_12, Normal_2 - Normal_1 );
+        O.Normal_12 = normalize( Normal_1 + Normal_2 - f12 * Edge_12 );
+        
+        float f20 = 2.0f * dot( Edge_20, Normal_2 + Normal_0 ) / dot( Edge_20, Normal_0 - Normal_2 );
+        O.Normal_20 = normalize( Normal_2 + Normal_0 - f20 * Edge_20 );
+
+		return O;
+	}
+
+	[domain("tri")]
+	[partitioning("fractional_odd")]
+	[outputtopology("triangle_cw")]
+	[patchconstantfunc("HS_FlatTrianglesConstant")]
+	[outputcontrolpoints(3)]
+	FPassSpecificVSToDS MainHull( InputPatch<FPassSpecificVSToDS, 3> I, uint uCPID : SV_OutputControlPointID )
+	{
+		return I[uCPID];
+	}
+#endif
+
+#if DOMAINSHADER
+	[domain("tri")]
+	FPassSpecificVSToPS MainDomain(
+		FHullShaderConstantOutput HSConstantData,
+		const OutputPatch<FPassSpecificVSToDS, 3> I,
+		float3 f3BarycentricCoords : SV_DomainLocation
+		)
+	{
+		// Get the barycentric coords
+		float fU = f3BarycentricCoords.x;
+		float fV = f3BarycentricCoords.y;
+		float fW = f3BarycentricCoords.z;
+		
+		// Precompute squares and squares * 3 
+		float fUU = fU * fU;
+		float fVV = fV * fV;
+		float fWW = fW * fW;
+		float fUU3 = fUU * 3.0f;
+		float fVV3 = fVV * 3.0f;
+		float fWW3 = fWW * 3.0f;
+		
+		// Do PN triangles interpolation
+		float4 Position_0 = PassGetWorldPosition(I[0]);
+		float4 Position_1 = PassGetWorldPosition(I[1]);
+		float4 Position_2 = PassGetWorldPosition(I[2]);
+
+		// Compute position from cubic control points and barycentric coords
+		float4 WorldPosition =	Position_0 * fWW * fW +
+								Position_1 * fUU * fU +
+								Position_2 * fVV * fV +
+								HSConstantData.Position_Edge_01 * fWW3 * fU +
+								HSConstantData.Position_Edge_10 * fW * fUU3 +
+								HSConstantData.Position_Edge_02 * fWW3 * fV +
+								HSConstantData.Position_Edge_12 * fUU3 * fV +
+								HSConstantData.Position_Edge_20 * fW * fVV3 +
+								HSConstantData.Position_Edge_21 * fU * fVV3 +
+								HSConstantData.Position_Centre * 6.0f * fW * fU * fV;
+								
+		// $$$ - JJ: TBD, compute quadratically interpolated normal, and pass that thru too
+		
+		// Interp remaining attributes (construct barycentric interp from bilerp primitives)
+		// NB: the HLSL compiler resolves the 1.f to something efficient (i.e. no-op)
+		FPassSpecificVSToDS Interp = PassInterpolate(	PassInterpolate(	I[0],fW,
+																			I[1],fU
+																			), 1.f,
+																		I[2],fV
+																		);
+																	
+		return PassFinalizeTessellationOutput(Interp, WorldPosition);
+	}
+#endif

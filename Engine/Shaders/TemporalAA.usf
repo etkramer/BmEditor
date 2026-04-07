@@ -1,0 +1,63 @@
+/*=============================================================================
+	TemporalAA.usf: Shaders for temporal AA.
+	Copyright 1998-2011 Epic Games, Inc. All Rights Reserved.
+=============================================================================*/
+
+#include "Common.usf"
+
+void MainVertexShader(
+	in float4 InPosition : POSITION,
+	out float4 OutScreenPosition : TEXCOORD0,
+	out float4 OutPosition : POSITION
+	)
+{
+	OutPosition = InPosition;
+	OutScreenPosition = InPosition;
+}
+
+sampler2D PreviousFrameBackBuffer;
+
+float4x4 CurrentFrameToPreviousFrameTransform;
+
+float4 ScreenPositionToBackBufferUVScaleBias;
+
+void MainPixelShader(
+	float4 ScreenPosition : TEXCOORD0,
+	out float4 OutColor : COLOR0
+	)
+{
+	float2 CurrentFrameUV = ScreenPosition.xy * ScreenPositionScaleBias.xy + ScreenPositionScaleBias.wz;
+	float CurrentFrameW = CalcSceneDepth(CurrentFrameUV);
+	float4 CurrentFramePosition = float4(ScreenPosition.xy * CurrentFrameW,CurrentFrameW,1);
+
+	float4 PreviousFramePosition = MulMatrix(CurrentFrameToPreviousFrameTransform,CurrentFramePosition);
+	float2 PreviousFrameProjectedPosition = PreviousFramePosition.xy / PreviousFramePosition.w;
+	float2 PreviousFrameUV = 
+		  PreviousFrameProjectedPosition
+		* ScreenPositionToBackBufferUVScaleBias.xy + ScreenPositionToBackBufferUVScaleBias.zw;
+
+	FLATTEN if(all(PreviousFrameProjectedPosition > -0.99) && all(PreviousFrameProjectedPosition < 0.99))
+	{
+		float4 PreviousFrameRGBA = tex2Dlod(PreviousFrameBackBuffer,float4(PreviousFrameUV,0,0));
+
+		float3 PreviousFrameColor = PreviousFrameRGBA.rgb;
+		float PreviousFrameMask = PreviousFrameRGBA.a * 100;
+
+		OutColor = float4(PreviousFrameColor.rgb,PreviousFrameMask);
+
+		#if SM5_PROFILE
+			// D3D11 doesn't support alpha-test, so we do it in the shader.
+			if(PreviousFrameMask == 0)
+			{
+				discard;
+			}
+		#endif
+	}
+	else
+	{
+		OutColor = float4(0,0,0,0);
+		#if SM5_PROFILE
+			discard;
+		#endif
+	}
+}

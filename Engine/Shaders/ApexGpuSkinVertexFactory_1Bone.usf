@@ -1,0 +1,2 @@
+#define WITH_APEX_1BONE 1
+#include "GpuSkinVertexFactory.usf"

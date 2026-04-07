@@ -1,0 +1,373 @@
+#include "Common.usf"
+
+float2 offset;
+float2 srctexscale;
+float2 texscale;
+float4 cxadd;
+float4 cxmul;
+float4 fsize;
+float4 scolor;
+float4 scolor2;
+float4x4 cxmul1;
+float InverseGamma;
+sampler2D srctex;
+sampler2D tex;
+
+
+void FBox2InnerShadowMul(float2 tc : TEXCOORD0,
+                         out float4 fcolor : COLOR) {
+  float4 color = 0.0f;
+  float2 i = float2(-fsize.x,-fsize.y);
+  for (; i.y <= fsize.y;)
+  {    i.x++; if (i.x > fsize.x) { i.y++; i.x = -fsize.x; }           color += tex2Dlod(tex,float4( tc + (offset + i) * texscale,0, 0.0f));
+      }  fcolor = color * fsize.w;
+  float4 base = tex2Dlod(srctex,float4( tc * srctexscale,0, 0.0f));
+        fcolor = lerp(scolor, base, fcolor.a) * base.a;
+	    fcolor = fcolor * cxmul + cxadd * fcolor.a;
+  fcolor = lerp(1, fcolor, fcolor.a);
+  fcolor = RETURN_COLOR (float4(pow(saturate(fcolor.rgb), InverseGamma),fcolor.a));
+}
+
+void FBox2InnerShadowMulHighlight(float2 tc : TEXCOORD0,
+                                  out float4 fcolor : COLOR) {
+  float4 color = 0.0f;
+  float2 i = float2(-fsize.x,-fsize.y);
+  for (; i.y <= fsize.y;)
+  {    i.x++; if (i.x > fsize.x) { i.y++; i.x = -fsize.x; }           color.a += tex2Dlod(tex,float4( tc + (offset + i) * texscale,0, 0.0f)).a;
+       color.r += tex2Dlod(tex,float4( tc - (offset + i) * texscale,0, 0.0f)).a;
+      }  fcolor = color * fsize.w;
+  float4 base = tex2Dlod(srctex,float4( tc * srctexscale,0, 0.0f));
+      fcolor.ar = saturate((1.0f - fcolor.ar) - (1.0f - fcolor.ra) * 0.5f);
+    fcolor = (scolor * fcolor.a + scolor2 * fcolor.r
+              + base * (1.0f - fcolor.a - fcolor.r)) * base.a;
+    fcolor = fcolor * cxmul + cxadd * fcolor.a;
+  fcolor = lerp(1, fcolor, fcolor.a);
+  fcolor = RETURN_COLOR (float4(pow(saturate(fcolor.rgb), InverseGamma),fcolor.a));
+}
+
+void FBox2InnerShadowMulHighlightKnockout(float2 tc : TEXCOORD0,
+                                          out float4 fcolor : COLOR) {
+  float4 color = 0.0f;
+  float2 i = float2(-fsize.x,-fsize.y);
+  for (; i.y <= fsize.y;)
+  {    i.x++; if (i.x > fsize.x) { i.y++; i.x = -fsize.x; }           color.a += tex2Dlod(tex,float4( tc + (offset + i) * texscale,0, 0.0f)).a;
+       color.r += tex2Dlod(tex,float4( tc - (offset + i) * texscale,0, 0.0f)).a;
+      }  fcolor = color * fsize.w;
+  float4 base = tex2Dlod(srctex,float4( tc * srctexscale,0, 0.0f));
+      fcolor.ar = saturate((1.0f - fcolor.ar) - (1.0f - fcolor.ra) * 0.5f);
+    fcolor = (scolor * fcolor.a + scolor2 * fcolor.r
+              + base * (1.0f - fcolor.a - fcolor.r)) * base.a;
+    fcolor = fcolor * cxmul + cxadd * fcolor.a;
+  fcolor = lerp(1, fcolor, fcolor.a);
+  fcolor = RETURN_COLOR (float4(pow(saturate(fcolor.rgb), InverseGamma),fcolor.a));
+}
+
+void FBox2InnerShadowMulKnockout(float2 tc : TEXCOORD0,
+                                 out float4 fcolor : COLOR) {
+  float4 color = 0.0f;
+  float2 i = float2(-fsize.x,-fsize.y);
+  for (; i.y <= fsize.y;)
+  {    i.x++; if (i.x > fsize.x) { i.y++; i.x = -fsize.x; }           color += tex2Dlod(tex,float4( tc + (offset + i) * texscale,0, 0.0f));
+      }  fcolor = color * fsize.w;
+  float4 base = tex2Dlod(srctex,float4( tc * srctexscale,0, 0.0f));
+        fcolor = scolor * (1.0f - fcolor.a) * base.a;
+	    fcolor = fcolor * cxmul + cxadd * fcolor.a;
+  fcolor = lerp(1, fcolor, fcolor.a);
+  fcolor = RETURN_COLOR (float4(pow(saturate(fcolor.rgb), InverseGamma),fcolor.a));
+}
+
+void FBox2InnerShadow(float2 tc : TEXCOORD0,
+                      out float4 fcolor : COLOR) {
+  float4 color = 0.0f;
+  float2 i = float2(-fsize.x,-fsize.y);
+  for (; i.y <= fsize.y;)
+  {    i.x++; if (i.x > fsize.x) { i.y++; i.x = -fsize.x; }           color += tex2Dlod(tex,float4( tc + (offset + i) * texscale,0, 0.0f));
+      }  fcolor = color * fsize.w;
+  float4 base = tex2Dlod(srctex,float4( tc * srctexscale,0, 0.0f));
+        fcolor = lerp(scolor, base, fcolor.a) * base.a;
+	    fcolor = fcolor * cxmul + cxadd * fcolor.a;
+  fcolor = RETURN_COLOR (float4(pow(saturate(fcolor.rgb), InverseGamma),fcolor.a));
+}
+
+void FBox2InnerShadowHighlight(float2 tc : TEXCOORD0,
+                               out float4 fcolor : COLOR) {
+  float4 color = 0.0f;
+  float2 i = float2(-fsize.x,-fsize.y);
+  for (; i.y <= fsize.y;)
+  {    i.x++; if (i.x > fsize.x) { i.y++; i.x = -fsize.x; }           color.a += tex2Dlod(tex,float4( tc + (offset + i) * texscale,0, 0.0f)).a;
+       color.r += tex2Dlod(tex,float4( tc - (offset + i) * texscale,0, 0.0f)).a;
+      }  fcolor = color * fsize.w;
+  float4 base = tex2Dlod(srctex,float4( tc * srctexscale,0, 0.0f));
+      fcolor.ar = saturate((1.0f - fcolor.ar) - (1.0f - fcolor.ra) * 0.5f);
+    fcolor = (scolor * fcolor.a + scolor2 * fcolor.r
+              + base * (1.0f - fcolor.a - fcolor.r)) * base.a;
+    fcolor = fcolor * cxmul + cxadd * fcolor.a;
+  fcolor = RETURN_COLOR (float4(pow(saturate(fcolor.rgb), InverseGamma),fcolor.a));
+}
+
+void FBox2InnerShadowHighlightKnockout(float2 tc : TEXCOORD0,
+                                       out float4 fcolor : COLOR) {
+  float4 color = 0.0f;
+  float2 i = float2(-fsize.x,-fsize.y);
+  for (; i.y <= fsize.y;)
+  {    i.x++; if (i.x > fsize.x) { i.y++; i.x = -fsize.x; }           color.a += tex2Dlod(tex,float4( tc + (offset + i) * texscale,0, 0.0f)).a;
+       color.r += tex2Dlod(tex,float4( tc - (offset + i) * texscale,0, 0.0f)).a;
+      }  fcolor = color * fsize.w;
+  float4 base = tex2Dlod(srctex,float4( tc * srctexscale,0, 0.0f));
+      fcolor.ar = saturate((1.0f - fcolor.ar) - (1.0f - fcolor.ra) * 0.5f);
+    fcolor = (scolor * fcolor.a + scolor2 * fcolor.r
+              + base * (1.0f - fcolor.a - fcolor.r)) * base.a;
+    fcolor = fcolor * cxmul + cxadd * fcolor.a;
+  fcolor = RETURN_COLOR (float4(pow(saturate(fcolor.rgb), InverseGamma),fcolor.a));
+}
+
+void FBox2InnerShadowKnockout(float2 tc : TEXCOORD0,
+                              out float4 fcolor : COLOR) {
+  float4 color = 0.0f;
+  float2 i = float2(-fsize.x,-fsize.y);
+  for (; i.y <= fsize.y;)
+  {    i.x++; if (i.x > fsize.x) { i.y++; i.x = -fsize.x; }           color += tex2Dlod(tex,float4( tc + (offset + i) * texscale,0, 0.0f));
+      }  fcolor = color * fsize.w;
+  float4 base = tex2Dlod(srctex,float4( tc * srctexscale,0, 0.0f));
+        fcolor = scolor * (1.0f - fcolor.a) * base.a;
+	    fcolor = fcolor * cxmul + cxadd * fcolor.a;
+  fcolor = RETURN_COLOR (float4(pow(saturate(fcolor.rgb), InverseGamma),fcolor.a));
+}
+
+void FBox2ShadowMul(float2 tc : TEXCOORD0,
+                    out float4 fcolor : COLOR) {
+  float4 color = 0.0f;
+  float2 i = float2(-fsize.x,-fsize.y);
+  for (; i.y <= fsize.y;)
+  {    i.x++; if (i.x > fsize.x) { i.y++; i.x = -fsize.x; }           color += tex2Dlod(tex,float4( tc + (offset + i) * texscale,0, 0.0f));
+      }  fcolor = color * fsize.w;
+  float4 base = tex2D(srctex, tc * srctexscale);
+
+      fcolor = scolor * fcolor.a * (1.0f-base.a) + base;
+    fcolor = fcolor * cxmul + cxadd * fcolor.a;
+  fcolor = lerp(1, fcolor, fcolor.a);
+  fcolor = RETURN_COLOR (float4(pow(saturate(fcolor.rgb), InverseGamma),fcolor.a));
+}
+
+void FBox2ShadowMulHighlight(float2 tc : TEXCOORD0,
+                             out float4 fcolor : COLOR) {
+  float4 color = 0.0f;
+  float2 i = float2(-fsize.x,-fsize.y);
+  for (; i.y <= fsize.y;)
+  {    i.x++; if (i.x > fsize.x) { i.y++; i.x = -fsize.x; }           color.a += tex2Dlod(tex,float4( tc + (offset + i) * texscale,0, 0.0f)).a;
+       color.r += tex2Dlod(tex,float4( tc - (offset + i) * texscale,0, 0.0f)).a;
+      }  fcolor = color * fsize.w;
+  float4 base = tex2D(srctex, tc * srctexscale);
+
+      fcolor = (scolor * fcolor.a + scolor2 * fcolor.r) * (1.0f-base.a) + base;
+    fcolor = fcolor * cxmul + cxadd * fcolor.a;
+  fcolor = lerp(1, fcolor, fcolor.a);
+  fcolor = RETURN_COLOR (float4(pow(saturate(fcolor.rgb), InverseGamma),fcolor.a));
+}
+
+void FBox2ShadowMulHighlightKnockout(float2 tc : TEXCOORD0,
+                                     out float4 fcolor : COLOR) {
+  float4 color = 0.0f;
+  float2 i = float2(-fsize.x,-fsize.y);
+  for (; i.y <= fsize.y;)
+  {    i.x++; if (i.x > fsize.x) { i.y++; i.x = -fsize.x; }           color.a += tex2Dlod(tex,float4( tc + (offset + i) * texscale,0, 0.0f)).a;
+       color.r += tex2Dlod(tex,float4( tc - (offset + i) * texscale,0, 0.0f)).a;
+      }  fcolor = color * fsize.w;
+  float4 base = tex2D(srctex, tc * srctexscale);
+
+      fcolor = (scolor * fcolor.a + scolor2 * fcolor.r) * (1.0f-base.a) + base;
+      fcolor *= (1.0f - base.a);
+    fcolor = fcolor * cxmul + cxadd * fcolor.a;
+  fcolor = lerp(1, fcolor, fcolor.a);
+  fcolor = RETURN_COLOR (float4(pow(saturate(fcolor.rgb), InverseGamma),fcolor.a));
+}
+
+void FBox2ShadowMulKnockout(float2 tc : TEXCOORD0,
+                            out float4 fcolor : COLOR) {
+  float4 color = 0.0f;
+  float2 i = float2(-fsize.x,-fsize.y);
+  for (; i.y <= fsize.y;)
+  {    i.x++; if (i.x > fsize.x) { i.y++; i.x = -fsize.x; }           color += tex2Dlod(tex,float4( tc + (offset + i) * texscale,0, 0.0f));
+      }  fcolor = color * fsize.w;
+  float4 base = tex2D(srctex, tc * srctexscale);
+
+      fcolor = scolor * fcolor.a * (1.0f-base.a) + base;
+      fcolor *= (1.0f - base.a);
+    fcolor = fcolor * cxmul + cxadd * fcolor.a;
+  fcolor = lerp(1, fcolor, fcolor.a);
+  fcolor = RETURN_COLOR (float4(pow(saturate(fcolor.rgb), InverseGamma),fcolor.a));
+}
+
+void FBox2Shadow(float2 tc : TEXCOORD0,
+                 out float4 fcolor : COLOR) {
+  float4 color = 0.0f;
+  float2 i = float2(-fsize.x,-fsize.y);
+  for (; i.y <= fsize.y;)
+  {    i.x++; if (i.x > fsize.x) { i.y++; i.x = -fsize.x; }           color += tex2Dlod(tex,float4( tc + (offset + i) * texscale,0, 0.0f));
+      }  fcolor = color * fsize.w;
+  float4 base = tex2D(srctex, tc * srctexscale);
+
+      fcolor = scolor * fcolor.a * (1.0f-base.a) + base;
+    fcolor = fcolor * cxmul + cxadd * fcolor.a;
+  fcolor = RETURN_COLOR (float4(pow(saturate(fcolor.rgb), InverseGamma),fcolor.a));
+}
+
+void FBox2ShadowHighlight(float2 tc : TEXCOORD0,
+                          out float4 fcolor : COLOR) {
+  float4 color = 0.0f;
+  float2 i = float2(-fsize.x,-fsize.y);
+  for (; i.y <= fsize.y;)
+  {    i.x++; if (i.x > fsize.x) { i.y++; i.x = -fsize.x; }           color.a += tex2Dlod(tex,float4( tc + (offset + i) * texscale,0, 0.0f)).a;
+       color.r += tex2Dlod(tex,float4( tc - (offset + i) * texscale,0, 0.0f)).a;
+      }  fcolor = color * fsize.w;
+  float4 base = tex2D(srctex, tc * srctexscale);
+
+      fcolor = (scolor * fcolor.a + scolor2 * fcolor.r) * (1.0f-base.a) + base;
+    fcolor = fcolor * cxmul + cxadd * fcolor.a;
+  fcolor = RETURN_COLOR (float4(pow(saturate(fcolor.rgb), InverseGamma),fcolor.a));
+}
+
+void FBox2ShadowHighlightKnockout(float2 tc : TEXCOORD0,
+                                  out float4 fcolor : COLOR) {
+  float4 color = 0.0f;
+  float2 i = float2(-fsize.x,-fsize.y);
+  for (; i.y <= fsize.y;)
+  {    i.x++; if (i.x > fsize.x) { i.y++; i.x = -fsize.x; }           color.a += tex2Dlod(tex,float4( tc + (offset + i) * texscale,0, 0.0f)).a;
+       color.r += tex2Dlod(tex,float4( tc - (offset + i) * texscale,0, 0.0f)).a;
+      }  fcolor = color * fsize.w;
+  float4 base = tex2D(srctex, tc * srctexscale);
+
+      fcolor = (scolor * fcolor.a + scolor2 * fcolor.r) * (1.0f-base.a) + base;
+      fcolor *= (1.0f - base.a);
+    fcolor = fcolor * cxmul + cxadd * fcolor.a;
+  fcolor = RETURN_COLOR (float4(pow(saturate(fcolor.rgb), InverseGamma),fcolor.a));
+}
+
+void FBox2ShadowKnockout(float2 tc : TEXCOORD0,
+                         out float4 fcolor : COLOR) {
+  float4 color = 0.0f;
+  float2 i = float2(-fsize.x,-fsize.y);
+  for (; i.y <= fsize.y;)
+  {    i.x++; if (i.x > fsize.x) { i.y++; i.x = -fsize.x; }           color += tex2Dlod(tex,float4( tc + (offset + i) * texscale,0, 0.0f));
+      }  fcolor = color * fsize.w;
+  float4 base = tex2D(srctex, tc * srctexscale);
+
+      fcolor = scolor * fcolor.a * (1.0f-base.a) + base;
+      fcolor *= (1.0f - base.a);
+    fcolor = fcolor * cxmul + cxadd * fcolor.a;
+  fcolor = RETURN_COLOR (float4(pow(saturate(fcolor.rgb), InverseGamma),fcolor.a));
+}
+
+void FBox2ShadowonlyMul(float2 tc : TEXCOORD0,
+                        out float4 fcolor : COLOR) {
+  float4 color = 0.0f;
+  float2 i = float2(-fsize.x,-fsize.y);
+  for (; i.y <= fsize.y;)
+  {    i.x++; if (i.x > fsize.x) { i.y++; i.x = -fsize.x; }           color += tex2Dlod(tex,float4( tc + (offset + i) * texscale,0, 0.0f));
+      }  fcolor = color * fsize.w;
+  fcolor = scolor * fcolor.a;
+  fcolor = fcolor * cxmul + cxadd * fcolor.a;
+  fcolor = lerp(1, fcolor, fcolor.a);
+  fcolor = RETURN_COLOR (float4(pow(saturate(fcolor.rgb), InverseGamma),fcolor.a));
+}
+
+void FBox2ShadowonlyMulHighlight(float2 tc : TEXCOORD0,
+                                 out float4 fcolor : COLOR) {
+  float4 color = 0.0f;
+  float2 i = float2(-fsize.x,-fsize.y);
+  for (; i.y <= fsize.y;)
+  {    i.x++; if (i.x > fsize.x) { i.y++; i.x = -fsize.x; }           color.a += tex2Dlod(tex,float4( tc + (offset + i) * texscale,0, 0.0f)).a;
+       color.r += tex2Dlod(tex,float4( tc - (offset + i) * texscale,0, 0.0f)).a;
+      }  fcolor = color * fsize.w;
+  fcolor = scolor * fcolor.a;
+  fcolor = fcolor * cxmul + cxadd * fcolor.a;
+  fcolor = lerp(1, fcolor, fcolor.a);
+  fcolor = RETURN_COLOR (float4(pow(saturate(fcolor.rgb), InverseGamma),fcolor.a));
+}
+
+void FBox2Shadowonly(float2 tc : TEXCOORD0,
+                     out float4 fcolor : COLOR) {
+  float4 color = 0.0f;
+  float2 i = float2(-fsize.x,-fsize.y);
+  for (; i.y <= fsize.y;)
+  {    i.x++; if (i.x > fsize.x) { i.y++; i.x = -fsize.x; }           color += tex2Dlod(tex,float4( tc + (offset + i) * texscale,0, 0.0f));
+      }  fcolor = color * fsize.w;
+  fcolor = scolor * fcolor.a;
+  fcolor = fcolor * cxmul + cxadd * fcolor.a;
+  fcolor = RETURN_COLOR (float4(pow(saturate(fcolor.rgb), InverseGamma),fcolor.a));
+}
+
+void FBox2ShadowonlyHighlight(float2 tc : TEXCOORD0,
+                              out float4 fcolor : COLOR) {
+  float4 color = 0.0f;
+  float2 i = float2(-fsize.x,-fsize.y);
+  for (; i.y <= fsize.y;)
+  {    i.x++; if (i.x > fsize.x) { i.y++; i.x = -fsize.x; }           color.a += tex2Dlod(tex,float4( tc + (offset + i) * texscale,0, 0.0f)).a;
+       color.r += tex2Dlod(tex,float4( tc - (offset + i) * texscale,0, 0.0f)).a;
+      }  fcolor = color * fsize.w;
+  fcolor = scolor * fcolor.a;
+  fcolor = fcolor * cxmul + cxadd * fcolor.a;
+  fcolor = RETURN_COLOR (float4(pow(saturate(fcolor.rgb), InverseGamma),fcolor.a));
+}
+
+void FBox1BlurMul(float2 tc : TEXCOORD0,
+                  out float4 fcolor : COLOR) {
+  float4 color = 0.0f;
+  float  i = 0.0f;
+  for (i = -fsize.x; i <= fsize.x; i++)
+  {    color += tex2Dlod(tex,float4( tc + i * texscale,0, 0.0f));
+  }  fcolor = color * fsize.w;
+  fcolor = fcolor * cxmul + cxadd * fcolor.a;
+  fcolor = lerp(1, fcolor, fcolor.a);
+  fcolor = RETURN_COLOR (float4(pow(saturate(fcolor.rgb), InverseGamma),fcolor.a));
+}
+
+void FBox1Blur(float2 tc : TEXCOORD0,
+               out float4 fcolor : COLOR) {
+  float4 color = 0.0f;
+  float  i = 0.0f;
+  for (i = -fsize.x; i <= fsize.x; i++)
+  {    color += tex2Dlod(tex,float4( tc + i * texscale,0, 0.0f));
+  }  fcolor = color * fsize.w;
+  fcolor = fcolor * cxmul + cxadd * fcolor.a;
+  fcolor = RETURN_COLOR (float4(pow(saturate(fcolor.rgb), InverseGamma),fcolor.a));
+}
+
+void FBox2BlurMul(float2 tc : TEXCOORD0,
+                  out float4 fcolor : COLOR) {
+  float4 color = 0.0f;
+  float2 i = float2(-fsize.x,-fsize.y);
+  for (; i.y <= fsize.y;)
+  {    color += tex2Dlod(tex,float4( tc + i * texscale,0, 0.0f));
+    i.x++; if (i.x > fsize.x) { i.y++; i.x = -fsize.x; }  }  fcolor = color * fsize.w;
+  fcolor = fcolor * cxmul + cxadd * fcolor.a;
+  fcolor = lerp(1, fcolor, fcolor.a);
+  fcolor = RETURN_COLOR (float4(pow(saturate(fcolor.rgb), InverseGamma),fcolor.a));
+}
+
+void FBox2Blur(float2 tc : TEXCOORD0,
+               out float4 fcolor : COLOR) {
+  float4 color = 0.0f;
+  float2 i = float2(-fsize.x,-fsize.y);
+  for (; i.y <= fsize.y;)
+  {    color += tex2Dlod(tex,float4( tc + i * texscale,0, 0.0f));
+    i.x++; if (i.x > fsize.x) { i.y++; i.x = -fsize.x; }  }  fcolor = color * fsize.w;
+  fcolor = fcolor * cxmul + cxadd * fcolor.a;
+  fcolor = RETURN_COLOR (float4(pow(saturate(fcolor.rgb), InverseGamma),fcolor.a));
+}
+
+void FCMatrixMul(float2 tc : TEXCOORD0,
+                 out float4 fcolor : COLOR) {
+  float4 c = tex2D(tex, tc);
+  fcolor = mul(c,cxmul1) + cxadd * (c.a + cxadd.a);
+  fcolor = lerp(1, fcolor, fcolor.a);
+  fcolor = RETURN_COLOR (float4(pow(saturate(fcolor.rgb), InverseGamma),fcolor.a));
+}
+
+void FCMatrix(float2 tc : TEXCOORD0,
+              out float4 fcolor : COLOR) {
+  float4 c = tex2D(tex, tc);
+  fcolor = mul(c,cxmul1) + cxadd * (c.a + cxadd.a);
+  fcolor = RETURN_COLOR (float4(pow(saturate(fcolor.rgb), InverseGamma),fcolor.a));
+}
+

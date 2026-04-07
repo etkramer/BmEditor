@@ -1,0 +1,35 @@
+#include "Common.usf"
+
+float4x4 mvp;
+
+
+void VVatc(float2 atc,
+           float4 pos : POSITION,
+           out float2 tc : TEXCOORD0,
+           out float4 vpos) {
+  tc = atc;
+
+
+  vpos = mul(pos,mvp);
+}
+
+void VVatc(float2 atc,
+           float4 pos : POSITION,
+           out float2 tc : TEXCOORD0,
+           out float4 vpos) {
+  tc = atc;
+
+
+  vpos = mul(pos,mvp);
+}
+
+void VVatc(float2 atc,
+           float4 pos : POSITION,
+           out float2 tc : TEXCOORD0,
+           out float4 vpos) {
+  tc = atc;
+
+
+  vpos = mul(pos,mvp);
+}
+

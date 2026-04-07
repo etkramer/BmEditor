@@ -1,0 +1,10 @@
+/*=============================================================================
+	Tessellation.usf: Shader #include dispatch for tessellation
+	Copyright 1998-2011 Epic Games, Inc. All Rights Reserved.
+=============================================================================*/
+
+#if TESSELLATION_TYPE_FLAT
+#include "FlatTessellation.usf"
+#elif TESSELLATION_TYPE_PNTRIANGLES
+#include "PNTriangles.usf"
+#endif

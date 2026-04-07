@@ -1,0 +1,166 @@
+/*=============================================================================
+	SphericalHarmonicLightVertexShader.hlsl: Point light vertex shader.
+	Copyright 1998-2011 Epic Games, Inc. All Rights Reserved.
+=============================================================================*/
+
+#undef WORLD_COORDS
+#define WORLD_COORDS 1
+
+#include "Common.usf"
+#include "Material.usf"
+#include "VertexFactory.usf"
+
+struct FSHLightVSToPS
+{
+	FVertexFactoryInterpolantsVSToPS FactoryInterpolants;
+	
+	float4 CameraVectorOrVertexColor : TEXCOORD6;
+	float4 PixelPosition : TEXCOORD7;
+	float4 Position : POSITION;
+};
+
+#if USING_SM5_TESSELATION	
+	struct FSHLightVSToDS
+	{
+		FVertexFactoryInterpolantsVSToDS FactoryInterpolants;
+		
+		#if PER_PIXEL_CAMERA_VECTOR
+			float4 VertexColor : TEXCOORD6;
+		#endif
+
+		float4 Position : VS_To_DS_Position;
+	};
+	
+	#define FSHLightVSOutput FSHLightVSToDS
+#else
+	#define FSHLightVSOutput FSHLightVSToPS
+#endif
+
+#if USING_SM5_TESSELATION	
+	#define FPassSpecificVSToDS FSHLightVSToDS
+	#define FPassSpecificVSToPS FSHLightVSToPS
+	
+	// Hooks for tessellators to retrieve attributes from vertices
+	float4 PassGetWorldPosition(FSHLightVSToDS Vtx)
+	{
+		return Vtx.Position;
+	}
+	
+	float4 PassGetWorldNormal(FSHLightVSToDS Vtx)
+	{
+		return VertexFactoryGetWorldNormal(Vtx.FactoryInterpolants);
+	}
+
+	FSHLightVSToDS PassInterpolate(FSHLightVSToDS a, float aInterp, FSHLightVSToDS b, float bInterp)
+	{
+		FSHLightVSToDS O;
+		
+		O.FactoryInterpolants = VertexFactoryInterpolate(a.FactoryInterpolants, aInterp, b.FactoryInterpolants, bInterp);
+		
+		#if PER_PIXEL_CAMERA_VECTOR
+			TESSELLATION_INTERPOLATE_MEMBER(VertexColor);
+		#endif
+
+		return O;
+	}
+
+	// X = edge, Y = Inside
+	float2 PassGetTessellationFactors(FPassSpecificVSToDS I)
+	{
+		FMaterialTessellationParameters MaterialParameters = GetMaterialTessellationParameters(I.FactoryInterpolants, PassGetWorldPosition(I).xyz);
+		return GetMaterialTessellationFactors(MaterialParameters);
+	}
+
+	FSHLightVSToPS PassFinalizeTessellationOutput(FSHLightVSToDS Interpolants, float4 WorldPosition)
+	{
+		FSHLightVSToPS O;
+		
+		O.FactoryInterpolants = VertexFactoryAssignInterpolants(Interpolants.FactoryInterpolants);
+		
+		// Calc displacement mapping
+		FMaterialTessellationParameters MaterialParameters = GetMaterialTessellationParameters(Interpolants.FactoryInterpolants, WorldPosition.xyz);
+		float3 WorldDisplacement = GetMaterialWorldDisplacement(MaterialParameters);
+
+		WorldPosition.xyz += WorldDisplacement;
+		
+		// Apply effects of displacement
+		#if !PER_PIXEL_CAMERA_VECTOR
+			O.CameraVectorOrVertexColor = 1;
+			O.CameraVectorOrVertexColor.xyz = TransformWorldVectorToTangent(MaterialParameters.TangentToWorld,CameraPositionDS.xyz - WorldPosition.xyz * CameraPositionDS.w);
+		#else
+			O.CameraVectorOrVertexColor = Interpolants.VertexColor;
+		#endif
+
+		// Finally, transform position to clip-space
+		ISOLATE
+		{
+			O.Position = MulMatrix(ViewProjectionMatrixDS,WorldPosition);
+			O.Position = ApplyTemporalAAJitter(O.Position,TemporalAAParametersDS);
+		}
+			
+	#if WORLD_POS
+		O.PixelPosition = WorldPosition;
+	#else
+		O.PixelPosition = O.Position;
+	#endif
+		
+		return O;
+	}
+	
+	#include "Tessellation.usf"
+#endif
+
+#if VERTEXSHADER
+
+void Main(
+	FVertexFactoryInput Input,
+	out FSHLightVSOutput Output
+	)
+{
+	FVertexFactoryIntermediates VFIntermediates = GetVertexFactoryIntermediates(Input);
+	float4 WorldPosition = VertexFactoryGetWorldPosition(Input, VFIntermediates);
+	float3x3 TangentBasis = VertexFactoryGetTangentBasis(Input, VFIntermediates);
+
+	FMaterialVertexParameters VertexParameters = GetMaterialVertexParameters(Input, VFIntermediates, WorldPosition.xyz, TangentBasis);
+	// Isolate instructions used for world position offset on xbox 360, 
+	// As these cause the optimizer to generate different position calculating instructions in each pass, resulting in self-z-fighting.
+	// This is only necessary for shaders used in passes that have depth testing enabled.
+	ISOLATE
+	{
+		WorldPosition.xyz += GetMaterialWorldPositionOffset(VertexParameters);
+	}
+	
+#if USING_SM5_TESSELATION
+	Output.Position = WorldPosition;
+	Output.FactoryInterpolants = VertexFactoryGetInterpolantsVSToDS(Input, VFIntermediates);
+	#if PER_PIXEL_CAMERA_VECTOR
+		Output.VertexColor = VertexFactoryGetVertexColor( Input, VFIntermediates );
+	#endif
+
+#else
+
+	ISOLATE
+	{
+		Output.Position = MulMatrix(ViewProjectionMatrix,WorldPosition);
+		Output.Position = ApplyTemporalAAJitter(Output.Position,TemporalAAParameters);
+	}
+
+	Output.FactoryInterpolants = VertexFactoryGetInterpolantsVSToPS(Input, VFIntermediates);
+	#if WORLD_POS
+		Output.PixelPosition = WorldPosition;
+	#else
+		Output.PixelPosition = Output.Position;
+	#endif
+
+	Output.CameraVectorOrVertexColor = 1;
+	#if PER_PIXEL_CAMERA_VECTOR
+		Output.CameraVectorOrVertexColor = VertexFactoryGetVertexColor( Input, VFIntermediates );
+	#else
+		Output.CameraVectorOrVertexColor.xyz = VertexFactoryWorldToTangentSpace(Input,VFIntermediates,TangentBasis,CameraPositionVS.xyz - WorldPosition.xyz * CameraPositionVS.w);
+	#endif
+
+#endif
+
+}
+
+#endif // VERTEXSHADER

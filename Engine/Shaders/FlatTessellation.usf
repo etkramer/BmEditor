@@ -1,0 +1,78 @@
+/*=============================================================================
+	FlatTessellation.usf: Shader fragments for flat tessellation
+	Copyright 1998-2011 Epic Games, Inc. All Rights Reserved.
+=============================================================================*/
+
+struct FHullShaderConstantOutput
+{
+	// Tess factor for the FF HW block
+	float fTessFactor[3]    : SV_TessFactor;
+	float fInsideTessFactor : SV_InsideTessFactor;
+};
+
+#if HULLSHADER
+	FHullShaderConstantOutput HS_FlatTrianglesConstant( InputPatch<FPassSpecificVSToDS, 3> I )
+	{
+		FHullShaderConstantOutput O = (FHullShaderConstantOutput)0;
+	    
+		// $$ TODO, add distance based and/or camera attenuation
+
+		// Calculate tessellation on edges from the material.  Average the tess factro from 2 control points per edge factor
+		//	and average all 3 control points for interior factor
+
+		float2 TessellationFactor0 = PassGetTessellationFactors(I[0]);	// X is edge tess factor, Y is inside tess factor
+		float2 TessellationFactor1 = PassGetTessellationFactors(I[1]);
+		float2 TessellationFactor2 = PassGetTessellationFactors(I[2]);
+
+		// 0->1 edge
+		O.fTessFactor[0] = GlobalTesselationFactor * (TessellationFactor0.x + TessellationFactor1.x) / 2;
+
+		// 1->2 edge
+		O.fTessFactor[1] = GlobalTesselationFactor * (TessellationFactor1.x + TessellationFactor2.x) / 2;
+		
+		// 2->0 edge
+		O.fTessFactor[2] = GlobalTesselationFactor * (TessellationFactor2.x + TessellationFactor0.x) / 2;
+
+		// inside averages all 3
+		O.fInsideTessFactor = GlobalTesselationFactor * (TessellationFactor0.y + TessellationFactor1.y + TessellationFactor2.y) / 3;
+		return O;
+	}
+
+	[domain("tri")]
+	[partitioning("fractional_odd")]
+	[outputtopology("triangle_cw")]
+	[patchconstantfunc("HS_FlatTrianglesConstant")]
+	[outputcontrolpoints(3)]
+	FPassSpecificVSToDS MainHull( InputPatch<FPassSpecificVSToDS, 3> I, uint uCPID : SV_OutputControlPointID )
+	{
+		return I[uCPID];
+	}
+#endif
+
+#if DOMAINSHADER
+	[domain("tri")]
+	FPassSpecificVSToPS MainDomain(
+		FHullShaderConstantOutput HSConstantData,
+		const OutputPatch<FPassSpecificVSToDS, 3> I,
+		float3 f3BarycentricCoords : SV_DomainLocation
+		)
+	{
+		// Get the barycentric coords
+		float fU = f3BarycentricCoords.x;
+		float fV = f3BarycentricCoords.y;
+		float fW = f3BarycentricCoords.z;
+		
+		// Interpolate world position according to our tessellation scheme
+		float4 WorldPosition = PassGetWorldPosition(I[0]) * fW + PassGetWorldPosition(I[1]) * fU + PassGetWorldPosition(I[2]) * fV;
+		
+		// Interp remaining attributes (construct barycentric interp from bilerp primitives)
+		// NB: the HLSL compiler resolves the 1.f to something efficient (i.e. no-op)
+		FPassSpecificVSToDS Interp = PassInterpolate(	PassInterpolate(	I[0],fW,
+																			I[1],fU
+																			), 1.f,
+																		I[2],fV
+																		);
+																	
+		return PassFinalizeTessellationOutput(Interp, WorldPosition);
+	}
+#endif

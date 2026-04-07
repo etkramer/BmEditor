@@ -1,0 +1,11 @@
+/*=============================================================================
+	Xbox360Common.usf: Xbox360 specific common
+	Copyright 1998-2011 Epic Games, Inc. All Rights Reserved.
+=============================================================================*/
+
+// This file is needed to generate a .bin file as the real Xbox360 file is in a subfolder
+// which is not supported for the .bin file generation.
+
+#if XBOX
+	#include "Xbox360/Xbox360Common.usf"
+#endif
