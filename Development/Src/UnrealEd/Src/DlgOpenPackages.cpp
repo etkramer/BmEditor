@@ -19,84 +19,101 @@ WxDlgOpenPackages::WxDlgOpenPackages()
 	const bool bSuccess = wxXmlResource::Get()->LoadDialog( this, GApp->EditorFrame, TEXT("ID_DLG_OPENPACKAGES") );
 	check( bSuccess );
 
-	FString ContentDir = GApp->LastDir[LD_GENERIC_OPEN];
-	FString UserContentDir = GFileManager->ConvertAbsolutePathToUserPath(*GFileManager->ConvertToAbsolutePath(*ContentDir));
-
 	PackageTreeCtrl = (wxTreeCtrl*)FindWindow( XRCID( "IDTC_PACKAGES" ) );
 	check( PackageTreeCtrl != NULL );
 
-	PackageTreeCtrl->AddRoot( TEXT("Content") );
+	// Hidden root; Content and CookedPCConsole appear as top-level items (wxTR_HIDE_ROOT)
+	PackageTreeCtrl->AddRoot( TEXT("") );
 
-	TArray<FString> PackageFilenames;
-	appFindFilesInDirectory(PackageFilenames, *UserContentDir, TRUE, FALSE);
+	FString GameDir = appGameDir();
 
-	// @todo - do we need to sort the filenames here or is it safe to assume the file system/manager already did it?
+	TArray<FString> DirNames;
+	TArray<FString> DirPaths;
+	DirNames.AddItem( TEXT("Content") );
+	DirPaths.AddItem( GameDir + TEXT("Content") );
+	DirNames.AddItem( TEXT("CookedPCConsole") );
+	DirPaths.AddItem( GameDir + TEXT("CookedPCConsole") );
 
-	for( INT p = 0 ; p < PackageFilenames.Num() ; ++p )
+	for( INT d = 0; d < DirNames.Num(); ++d )
 	{
-		FString PkgName = *PackageFilenames(p);
-		TArray<FString> chunks;
+		const FString& DirName = DirNames(d);
+		FString UserDirPath = GFileManager->ConvertAbsolutePathToUserPath(
+			*GFileManager->ConvertToAbsolutePath(*DirPaths(d)));
 
-		PkgName.ParseIntoArray( &chunks, TEXT("\\"), TRUE );
+		TArray<FString> PackageFilenames;
+		appFindFilesInDirectory( PackageFilenames, *UserDirPath, TRUE, FALSE );
 
-		// Find the "content" chunk as that marks the start of the package tree
-
-		int x = 0;
-		UBOOL bFoundContent = FALSE;
-		FString PathBase = TEXT("");
-
-		for( x = 0 ; x < chunks.Num() ; ++x )
+		if( PackageFilenames.Num() == 0 )
 		{
-			if( PathBase.Len() )
-			{
-				PathBase += TEXT("\\");
-			}
-			PathBase += chunks(x);
-
-			if( chunks(x) == TEXT("Content") )
-			{
-				bFoundContent = TRUE;
-				break;
-			}
+			continue;
 		}
-		
-		if( bFoundContent )
+
+		wxTreeItemId DirRootID = PackageTreeCtrl->AppendItem(
+			PackageTreeCtrl->GetRootItem(), *DirName, -1, -1, new PackageTreePath(UserDirPath) );
+
+		for( INT p = 0; p < PackageFilenames.Num(); ++p )
 		{
-			wxTreeItemId ParentID = PackageTreeCtrl->GetRootItem();
-			FString FullPath = PathBase;
+			FString PkgName = PackageFilenames(p);
+			TArray<FString> Chunks;
+			PkgName.ParseIntoArray( &Chunks, TEXT("\\"), TRUE );
 
-			x++;
-			for( ; x < chunks.Num() ; ++x )
+			// Find the anchor chunk (e.g. "Content" or "CookedPCConsole") to mark the tree root
+			INT x = 0;
+			UBOOL bFoundAnchor = FALSE;
+			FString PathBase;
+
+			for( x = 0; x < Chunks.Num(); ++x )
 			{
-				wxTreeItemIdValue cookie;
-				wxTreeItemId child;
-
-				FullPath += TEXT("\\");
-				FullPath += chunks(x);
-
-				child = PackageTreeCtrl->GetFirstChild( ParentID, cookie );
-
-				while( child.IsOk() ) 
+				if( PathBase.Len() )
 				{
-					if( PackageTreeCtrl->GetItemText(child) == *chunks(x) )
+					PathBase += TEXT("\\");
+				}
+				PathBase += Chunks(x);
+
+				if( Chunks(x) == DirName )
+				{
+					bFoundAnchor = TRUE;
+					break;
+				}
+			}
+
+			if( bFoundAnchor )
+			{
+				wxTreeItemId ParentID = DirRootID;
+				FString FullPath = PathBase;
+
+				x++;
+				for( ; x < Chunks.Num(); ++x )
+				{
+					wxTreeItemIdValue cookie;
+					wxTreeItemId child;
+
+					FullPath += TEXT("\\");
+					FullPath += Chunks(x);
+
+					child = PackageTreeCtrl->GetFirstChild( ParentID, cookie );
+
+					while( child.IsOk() )
 					{
-						break;
+						if( PackageTreeCtrl->GetItemText(child) == *Chunks(x) )
+						{
+							break;
+						}
+						child = PackageTreeCtrl->GetNextChild( ParentID, cookie );
 					}
 
-					child = PackageTreeCtrl->GetNextChild( ParentID, cookie );
-				}
+					if( !child.IsOk() )
+					{
+						child = PackageTreeCtrl->AppendItem( ParentID, *Chunks(x), -1, -1, new PackageTreePath(FullPath) );
+					}
 
-				if( !child.IsOk() )
-				{
-					child = PackageTreeCtrl->AppendItem( ParentID, *chunks(x), -1, -1, new PackageTreePath(FullPath) );
+					ParentID = child;
 				}
-
-				ParentID = child;
 			}
 		}
-	}
 
-	PackageTreeCtrl->Expand( PackageTreeCtrl->GetRootItem() );
+		PackageTreeCtrl->Expand( DirRootID );
+	}
 
 	FLocalizeWindow( this );
 }
