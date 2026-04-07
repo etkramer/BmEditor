@@ -215,8 +215,8 @@ var native	array<byte>		CompressedByteStream;
 
 // BM
 var native	array<byte>		AnimZip_Data;
-var private transient native Vector	AnimZip_LinearOrigin;
-var private transient native Vector	AnimZip_LinearSpan;
+var() private transient native Vector	AnimZip_LinearOrigin;
+var() private transient native Vector	AnimZip_LinearSpan;
 
 var() bool bUseSimpleForwardYaw;
 var() bool bUseSimpleFloorHeight;

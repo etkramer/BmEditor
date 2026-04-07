@@ -113,13 +113,30 @@
     "version": "2.0.0",
     "tasks": [
       {
-        "label": "Build Editor",
+        "label": "Build Editor (Debug)",
         "type": "shell",
         "command": "${workspaceFolder}/Development/Intermediate/UnrealBuildTool/Release/UnrealBuildTool.exe",
         "args": ["BmGame", "Win32", "Debug"],
         "group": {
           "kind": "build",
           "isDefault": true,
+        },
+        "presentation": {
+          "reveal": "always",
+          "panel": "shared",
+          "echo": false,
+          "clear": true
+        },
+        "problemMatcher": "$msCompile",
+      },
+      {
+        "label": "Build Editor (Release)",
+        "type": "shell",
+        "command": "${workspaceFolder}/Development/Intermediate/UnrealBuildTool/Release/UnrealBuildTool.exe",
+        "args": ["BmGame", "Win32", "Release"],
+        "group": {
+          "kind": "build",
+          "isDefault": false,
         },
         "presentation": {
           "reveal": "always",
@@ -143,7 +160,7 @@
         "stopAtEntry": false,
         "cwd": "${workspaceFolder}",
         "environment": [],
-        "preLaunchTask": "Build Editor",
+        "preLaunchTask": "Build Editor (Debug)",
         "visualizerFile": "${workspaceFolder}/UE3.natvis",
         "internalConsoleOptions": "openOnSessionStart"
       },
