@@ -2231,7 +2231,14 @@ void UClassProperty::Serialize( FArchive& Ar )
 {
 	Super::Serialize( Ar );
 	Ar << MetaClass;
+#if BATMAN
+	if (!MetaClass && !HasAnyFlags(RF_ClassDefaultObject))
+	{
+		warnf(NAME_Warning, TEXT("UClassProperty::Serialize: NULL MetaClass for %s"), *GetFullName());
+	}
+#else
 	check(MetaClass||HasAnyFlags(RF_ClassDefaultObject));
+#endif
 }
 const TCHAR* UClassProperty::ImportText( const TCHAR* Buffer, BYTE* Data, INT PortFlags, UObject* Parent, FOutputDevice* ErrorText ) const
 {
@@ -4048,17 +4055,32 @@ void UStructProperty::StaticConstructor()
 }
 INT UStructProperty::GetMinAlignment() const
 {
+#if BATMAN
+	if (!Struct)
+	{
+		return 1;
+	}
+#endif
 	return Struct->GetMinAlignment();
 }
 void UStructProperty::Link( FArchive& Ar, UProperty* Prev )
 {
 	Super::Link(Ar, Prev);
 
+#if BATMAN
+	if (!Struct)
+	{
+		warnf(NAME_Warning, TEXT("UStructProperty::Link: NULL Struct for %s"), *GetFullName());
+		ElementSize = 0;
+		Offset = (GetOuter()->GetClass()->ClassCastFlags & CASTCLASS_UStruct) ? ((UStruct*)GetOuter())->GetPropertiesSize() : 0;
+		return;
+	}
+#endif
 	// Preload is required here in order to load the value of Struct->PropertiesSize
 	Ar.Preload(Struct);
 	ElementSize = Align(Struct->PropertiesSize, GetMinAlignment());
 	Offset = Align((GetOuter()->GetClass()->ClassCastFlags & CASTCLASS_UStruct) ? ((UStruct*)GetOuter())->GetPropertiesSize() : 0, GetMinAlignment());
-	
+
 	if (Struct->ConstructorLink && !(PropertyFlags & CPF_Native))
 	{
 		PropertyFlags |= CPF_NeedCtorLink;
@@ -4070,6 +4092,17 @@ UBOOL UStructProperty::Identical( const void* A, const void* B, DWORD PortFlags 
 }
 void UStructProperty::SerializeItem( FArchive& Ar, void* Value, INT MaxReadBytes, void* Defaults ) const
 {
+#if BATMAN
+	if (!Struct)
+	{
+		warnf(NAME_Warning, TEXT("UStructProperty::SerializeItem: NULL Struct for %s, skipping %i bytes"), *GetFullName(), MaxReadBytes);
+		if (Ar.IsLoading() && MaxReadBytes > 0)
+		{
+			Ar.Seek(Ar.Tell() + MaxReadBytes);
+		}
+		return;
+	}
+#endif
 	UBOOL bUseBinarySerialization =	!(Ar.IsLoading() || Ar.IsSaving()) 
 								||	Ar.WantBinaryPropertySerialization()
 								||  ((Struct->StructFlags & STRUCT_ImmutableWhenCooked) != 0 && (Ar.ContainsCookedData() || (GIsCooking && Ar.IsSaving())))

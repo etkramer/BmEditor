@@ -20,6 +20,51 @@ TMap<FString, TArray<BYTE> > ULinkerSave::PackagesToScriptSHAMap;
 	Helper functions.
 -----------------------------------------------------------------------------*/
 
+#if BATMAN
+/**
+ * BM3 uses a different EObjectFlags layout than standard UE3.
+ * These are the known BM3 flag values that need remapping.
+ */
+#define BM3_RF_ClassDefaultObject	DECLARE_UINT64(0x0000000000000080)
+#define BM3_RF_RootSet				DECLARE_UINT64(0x0000000000000400)
+#define BM3_RF_Public				DECLARE_UINT64(0x0000000000100000)
+#define BM3_RF_NeedPostLoad			DECLARE_UINT64(0x0000000004000000)
+
+static void RemapObjectFlag(EObjectFlags& Flags, EObjectFlags From, EObjectFlags To)
+{
+	if (From != To)
+	{
+		const UBOOL bSet = (Flags & From) != 0;
+		Flags &= ~From;
+		if (bSet)
+		{
+			Flags |= To;
+		}
+	}
+}
+
+/** Remap BM3 object flags to/from standard UE3 layout. */
+static void RemapBmObjectFlags(EObjectFlags& Flags, UBOOL bLoading)
+{
+	if (bLoading)
+	{
+		// BM3 → UE3
+		RemapObjectFlag(Flags, BM3_RF_ClassDefaultObject, RF_ClassDefaultObject);
+		RemapObjectFlag(Flags, BM3_RF_RootSet,            RF_RootSet);
+		RemapObjectFlag(Flags, BM3_RF_Public,             RF_Public);
+		RemapObjectFlag(Flags, BM3_RF_NeedPostLoad,       RF_NeedPostLoad);
+	}
+	else
+	{
+		// UE3 → BM3
+		RemapObjectFlag(Flags, RF_ClassDefaultObject, BM3_RF_ClassDefaultObject);
+		RemapObjectFlag(Flags, RF_RootSet,            BM3_RF_RootSet);
+		RemapObjectFlag(Flags, RF_Public,             BM3_RF_Public);
+		RemapObjectFlag(Flags, RF_NeedPostLoad,       BM3_RF_NeedPostLoad);
+	}
+}
+#endif
+
 /**
  * Fills in the passed in TArray with the packages that are in its PrecacheMap
  *
@@ -207,7 +252,26 @@ FArchive& operator<<( FArchive& Ar, FObjectExport& E )
 		Ar << ReferencedObjects;
 	}
 #endif
-	Ar << E.ObjectFlags;
+#if BATMAN
+	if (Ar.IsBmCooked(TRUE))
+	{
+		if (Ar.IsLoading())
+		{
+			Ar << E.ObjectFlags;
+			RemapBmObjectFlags(E.ObjectFlags, TRUE);
+		}
+		else
+		{
+			EObjectFlags BmFlags = E.ObjectFlags;
+			RemapBmObjectFlags(BmFlags, FALSE);
+			Ar << BmFlags;
+		}
+	}
+	else
+#endif
+	{
+		Ar << E.ObjectFlags;
+	}
 
 	Ar << E.SerialSize;
 	Ar << E.SerialOffset;
@@ -3148,21 +3212,6 @@ void ULinkerLoad::LoadAllObjects( UBOOL bForcePreload )
 		LinkerRoot->MarkAsFullyLoaded();
 	}
 
-#if BATMAN
-	if (IsBmCooked())
-	{
-		for (INT i = 0; i < ExportMap.Num(); i++)
-		{
-			UObject* Object = ExportMap(i)._Object;
-
-			// BM3 packages don't want to show in the editor because of a missing RF_Public flag, so add it back manually.
-			if (Object != NULL)
-			{
-				Object->SetFlags(RF_Public);
-			}
-		}
-	}
-#endif
 }
 
 /**
@@ -3299,7 +3348,7 @@ UObject* ULinkerLoad::Create( UClass* ObjectClass, FName ObjectName, UObject* Ou
 #define FIND_OBJECT_NONQUALIFIED 0
 // Set this to 1 if you want to see what it would have found previously. This is useful for fixing up hundreds
 // of now-illegal references in script code.
-#define DEBUG_PRINT_NONQUALIFIED_RESULT 1
+#define DEBUG_PRINT_NONQUALIFIED_RESULT 0
 
 #if DEBUG_PRINT_NONQUALIFIED_RESULT || FIND_OBJECT_NONQUALIFIED
 	Index = FindExportIndex(ObjectClass->GetFName(), ObjectClass->GetOuter()->GetFName(), ObjectName, INDEX_NONE);
@@ -3358,6 +3407,14 @@ void ULinkerLoad::Preload( UObject* Object )
 				{
 					Preload( ((UStruct*)Object)->SuperStruct );
 				}
+#if BATMAN
+				// BM: Don't load classes with missing supers.
+				else if( Cls && Object->Name != NAME_Object )
+				{
+					warnf(NAME_Warning, TEXT("Skipping class %s with no SuperStruct"), *Object->GetFullName());
+					return;
+				}
+#endif
 			}
 
 			// make sure this object didn't get loaded in the above Preload call
@@ -3649,14 +3706,6 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 		}
 #endif
 
-#if BATMAN
-		// Don't load classes from BM packages
-		if (IsBmCooked() && Export.ClassIndex == UCLASS_INDEX)
-		{
-			return NULL;
-		}
-#endif
-
 		// Get the object's class.
 		UClass* LoadClass = (UClass*)IndexToObject( Export.ClassIndex );
 		if( !LoadClass && Export.ClassIndex!=UCLASS_INDEX ) // Hack to load packages with classes which do not exist.
@@ -3669,11 +3718,22 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 		}
 
 #if BATMAN
-        // Skip currently unsupported types from BM packages
+		// BM: Skip classes with missing supers.
+		if (IsBmCooked() && !LoadClass->GetSuperClass())
+		{
+			return NULL;
+		}
+#endif
+
+#if BATMAN
+        // BM: Skip currently unsupported types.
         if (IsBmCooked() && (
             // These load but don't render properly (needs RefShaderCache compat).
             // Ignoring for now so we fall back to the prettier default mat.
             LoadClass->GetName() == "Material" ||
+
+			// Don't load class functions for now
+			LoadClass->GetName() == "Function" ||
 
             // Don't load levels for now
             LoadClass->GetName() == "Level" ||
@@ -3911,6 +3971,14 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 				: LoadClass->GetSuperClass()->GetDefaultObject(TRUE);
 		}
 
+#if BATMAN
+		if (!Template && IsBmCooked(TRUE))
+		{
+			warnf(NAME_Warning, TEXT("Skipping object %s: no template (class %s has incomplete properties)"),
+				*Export.ObjectName.ToString(), *LoadClass->GetFullName());
+			return NULL;
+		}
+#endif
 		check(Template);
 		//@script patcher todo: might need to adjust the following assertion
 		checkSlow((Export.ObjectFlags&RF_ClassDefaultObject)!=0 || Template->IsA(LoadClass));
@@ -4173,13 +4241,37 @@ UObject* ULinkerLoad::IndexToObject( PACKAGE_INDEX Index )
 	if( Index > 0 )
 	{
 		if( !ExportMap.IsValidIndex( Index-1 ) )
-			appErrorf( LocalizeSecure(LocalizeError(TEXT("ExportIndex"),TEXT("Core")), Index-1, ExportMap.Num()) );			
+		{
+#if BATMAN
+			if (IsBmCooked(TRUE))
+			{
+				warnf( NAME_Warning, TEXT("Bad export index %i/%i (serializing %s at offset %i)"), Index-1, ExportMap.Num(),
+					GSerializedObject ? *GSerializedObject->GetFullName() : TEXT("NULL"), Tell() );
+				return NULL;
+			}
+			else
+#endif
+			appErrorf( TEXT("Bad export index %i/%i (serializing %s at offset %i)"), Index-1, ExportMap.Num(),
+				GSerializedObject ? *GSerializedObject->GetFullName() : TEXT("NULL"), Tell() );
+		}
 		return CreateExport( Index-1 );
 	}
 	else if( Index < 0 )
 	{
 		if( !ImportMap.IsValidIndex( -Index-1 ) )
-			appErrorf( LocalizeSecure(LocalizeError(TEXT("ImportIndex"),TEXT("Core")), -Index-1, ImportMap.Num()) );
+		{
+#if BATMAN
+			if (IsBmCooked(TRUE))
+			{
+				warnf( NAME_Warning, TEXT("Bad import index %i/%i (serializing %s at offset %i)"), -Index-1, ImportMap.Num(),
+					GSerializedObject ? *GSerializedObject->GetFullName() : TEXT("NULL"), Tell() );
+				return NULL;
+			}
+			else
+#endif
+			appErrorf( TEXT("Bad import index %i/%i (serializing %s at offset %i)"), -Index-1, ImportMap.Num(),
+				GSerializedObject ? *GSerializedObject->GetFullName() : TEXT("NULL"), Tell() );
+		}
 		return CreateImport( -Index-1 );
 	}
 	else return NULL;
@@ -4719,6 +4811,18 @@ FArchive& ULinkerLoad::operator<<( FName& Name )
 
 	if( !NameMap.IsValidIndex(NameIndex) )
 	{
+#if BATMAN
+		if (IsBmCooked(FALSE))
+		{
+			warnf( NAME_Warning, TEXT("Bad name index %i/%i (serializing %s at offset %i)"), NameIndex, NameMap.Num(),
+				GSerializedObject ? *GSerializedObject->GetFullName() : TEXT("NULL"), Tell() );
+			INT TempNumber;
+			Ar << TempNumber;
+			Name = NAME_None;
+			return *this;
+		}
+		else
+#endif
 		appErrorf( TEXT("Bad name index %i/%i"), NameIndex, NameMap.Num() );
 	}
 

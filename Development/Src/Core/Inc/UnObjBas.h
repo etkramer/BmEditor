@@ -2809,6 +2809,9 @@ public:
 	DECLARE_FUNCTION(execSwitch);
 	DECLARE_FUNCTION(execCase);
 	DECLARE_FUNCTION(execJump);
+#if BATMAN
+	DECLARE_FUNCTION(execJumpIfNotEditorOnly);
+#endif
 	DECLARE_FUNCTION(execJumpIfNot);
 	DECLARE_FUNCTION(execAssert);
 	DECLARE_FUNCTION(execGotoLabel);
@@ -2847,6 +2850,10 @@ public:
 	DECLARE_FUNCTION(execIntConstByte);
 	DECLARE_FUNCTION(execDynamicCast);
 	DECLARE_FUNCTION(execMetaCast);
+#if BATMAN
+	DECLARE_FUNCTION(execDynamicCastChecked);
+	DECLARE_FUNCTION(execMetaCastChecked);
+#endif
 	DECLARE_FUNCTION(execPrimitiveCast);
 	DECLARE_FUNCTION(execInterfaceCast);
 	DECLARE_FUNCTION(execByteToInt);

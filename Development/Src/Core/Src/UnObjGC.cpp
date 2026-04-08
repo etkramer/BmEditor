@@ -1261,6 +1261,13 @@ UBOOL UStructProperty::ContainsObjectReference() const
 	{
 		EncounteredStructProps.AddItem(this);
 
+#if BATMAN
+		if (!Struct)
+		{
+			EncounteredStructProps.RemoveSingleItemSwap(this);
+			return FALSE;
+		}
+#endif
 		check(Struct);
 		UProperty* Property = Struct->PropertyLink;
 		while( Property )
@@ -1452,6 +1459,9 @@ void UMapProperty::EmitReferenceInfo( FGCReferenceTokenStream* ReferenceTokenStr
  */
 void UStructProperty::EmitReferenceInfo( FGCReferenceTokenStream* ReferenceTokenStream, INT BaseOffset )
 {
+#if BATMAN
+	if (!Struct) return;
+#endif
 	check(Struct);
 	if( ContainsObjectReference() )
 	{

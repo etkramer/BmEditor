@@ -534,6 +534,14 @@ void ULightComponent::Serialize(FArchive& Ar)
 {
 	Super::Serialize( Ar );
 
+#if BATMAN
+	if (Ar.IsBmCooked(TRUE))
+	{
+		// BM3 does not override ULightComponent::Serialize — convex volumes are not in cooked packages
+		return;
+	}
+#endif
+
 	// Serialize inclusion/ exclusion volumes.
 	Ar << InclusionConvexVolumes;
 	Ar << ExclusionConvexVolumes;

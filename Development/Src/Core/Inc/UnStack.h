@@ -189,6 +189,9 @@ enum EExprToken
 	EX_InstanceDelegate		= 0x4B,	// const reference to a delegate or normal function object
 
 #if BATMAN
+	EX_MetaCastChecked		= 0x4E, // Checked metaclass cast (always returns NULL at runtime)
+	EX_DynamicCastChecked	= 0x4F, // Checked dynamic class cast with additional class flag validation
+
 	// https://github.com/EliotVU/Unreal-Library/blob/f7e45802bf69b89ce979af7c2dd8011f8ac6f4a8/src/Branch/UE3/RSS/EngineBranch.RSS.cs#L17
 	EX_RSSContext			= 0x50,
 #endif
@@ -203,6 +206,9 @@ enum EExprToken
 	EX_DynArrayInsertItem	= 0x57, // Insert an item into a dynamic array
 	EX_DynArrayIterator		= 0x58, // Iterate through a dynamic array
 	EX_DynArraySort			= 0x59,	// Sort a list in place
+#if BATMAN
+	EX_JumpIfNotEditorOnly	= 0x5A, // Jump past editor-only code block (always jumps in shipping builds)
+#endif
 
 	// Natives.
 	EX_ExtendedNative		= 0x60,

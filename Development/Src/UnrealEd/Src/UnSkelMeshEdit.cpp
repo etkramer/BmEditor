@@ -7,6 +7,7 @@
 #include "EngineAnimClasses.h"
 #include "SkelImport.h"
 #include "AnimationUtils.h"
+#include "AnimationEncodingFormat.h"
 #include "DlgCheckBoxList.h"
 
 #if WITH_COLLADA
@@ -186,11 +187,18 @@ static UBOOL GetTrackMapAndExtend(UAnimSet* AnimSet, TArray<FName> &RawBoneNames
 
 static void PostProcessSequence(UAnimSequence* DestSeq, TArray<AdditiveAnimRebuildInfo> &AdditiveAnimRebuildList, UBOOL bSilence = FALSE)
 {
+#if BATMAN
+	// Build AnimZip_Data directly from RawAnimationData, then clear raw data
+	// so AnimZip is the sole playback path (matching the retail game).
+	extern void AnimZip_Compress(UAnimSequence* Seq);
+	AnimZip_Compress(DestSeq);
+#else
 	// Lossless compression for Raw data
 	DestSeq->CompressRawAnimData();
 
 	// Apply compression
 	FAnimationUtils::CompressAnimSequence(DestSeq, NULL, FALSE, FALSE);
+#endif
 
 	// Rebuild additive animations if necessary
 	if( AdditiveAnimRebuildList.Num() > 0 )

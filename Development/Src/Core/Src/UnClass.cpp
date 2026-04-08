@@ -773,7 +773,8 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 
 #if BATMAN
             // BM: Get struct type from property. This might not be needed for correct serialization.
-            if (Ar.IsBmCooked(TRUE) && Tag.Type == NAME_StructProperty && Cast<UStructProperty>(Property, CLASS_IsAUStructProperty) && Tag.StructName == NAME_None)
+            if (Ar.IsBmCooked(TRUE) && Tag.Type == NAME_StructProperty && Cast<UStructProperty>(Property, CLASS_IsAUStructProperty) && Tag.StructName == NAME_None
+                && ((UStructProperty*)Property)->Struct)
             {
                 FName StructName = ((UStructProperty*)Property)->Struct->GetFName();
                 Tag.StructName = StructName;
@@ -896,8 +897,12 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
                     FName ItemName;
                     Ar << ItemName;
 
-                    Ar.Preload(Enum);
-                    ByteValue = (BYTE)Enum->FindEnumIndex(ItemName);
+					// BM: Can be null if we haven't added it to Core/Engine yet.
+                    if (Enum)
+                    {
+                        Ar.Preload(Enum);
+                        ByteValue = (BYTE)Enum->FindEnumIndex(ItemName);
+                    }
                 }
 
                 *(BYTE*)(Data + Property->Offset + Tag.ArrayIndex * Property->ElementSize) = ByteValue;
@@ -976,7 +981,7 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 			{
 				debugf( NAME_Warning, TEXT("Type mismatch in %s of %s - Previous (%s) Current(%s) for package:  %s"), *Tag.Name.ToString(), *GetName(), *Tag.Type.ToString(), *Property->GetID().ToString(), *Ar.GetArchiveName() );
 			}
-			else if( Tag.Type==NAME_StructProperty && Tag.StructName!=CastChecked<UStructProperty>(Property)->Struct->GetFName() )
+			else if( Tag.Type==NAME_StructProperty && CastChecked<UStructProperty>(Property)->Struct && Tag.StructName!=CastChecked<UStructProperty>(Property)->Struct->GetFName() )
 			{
 				debugf( NAME_Warning, TEXT("Property %s of %s struct type mismatch %s/%s for package:  %s"), *Tag.Name.ToString(), *GetName(), *Tag.StructName.ToString(), *CastChecked<UStructProperty>(Property)->Struct->GetName(), *Ar.GetArchiveName() );
 			}
@@ -1215,14 +1220,24 @@ void UStruct::Serialize( FArchive& Ar )
 #if !CONSOLE
 	// if reading data that's cooked for console, skip this data
 	UBOOL const bIsCookedForConsole = IsPackageCookedForConsole(Ar);
-	if ( !bIsCookedForConsole && (!Ar.IsSaving() || !GIsCooking || !(GCookingTarget & UE3::PLATFORM_Console)) )
+#if BATMAN
+	// BM3 PC decompiled (sub_56C20): editor data skip uses PLATFORM_Console (0x28C)
+	// which does NOT include PLATFORM_WindowsConsole (0x40). PCConsole packages
+	// DO include ScriptText/CppText/Line/TextPos. Verified by hex analysis:
+	// what was misread as BytecodeSize=25343 was actually the Children field,
+	// offset by 16 bytes due to skipping these 4 fields.
+	UBOOL const bSkipEditorData = bIsCookedForConsole;
+#else
+	UBOOL const bSkipEditorData = bIsCookedForConsole;
+#endif
+	if ( !bSkipEditorData && (!Ar.IsSaving() || !GIsCooking || !(GCookingTarget & UE3::PLATFORM_Console)) )
 	{
 		Ar << ScriptText;
 	}
 #endif
 	Ar << Children;
 #if !CONSOLE
-	if (!bIsCookedForConsole && (!Ar.IsSaving() || !GIsCooking || !(GCookingTarget & UE3::PLATFORM_Console)) )
+	if (!bSkipEditorData && (!Ar.IsSaving() || !GIsCooking || !(GCookingTarget & UE3::PLATFORM_Console)) )
 	{
 		Ar << CppText;
 		// Compiler info.
@@ -1290,6 +1305,19 @@ void UStruct::Serialize( FArchive& Ar )
 		//@}
 #endif
 
+#if BATMAN
+		// BM3 cooked packages: StorageSize=0 means bytecode is not on disk.
+		// The original game's non-patcher path reads 0 bytes into a FMemoryReader
+		// and SerializeExpr harmlessly processes garbage from the empty buffer.
+		// We simply zero BytecodeSize so the later serialize loop is skipped
+		// and the archive position stays correct for UState/UClass fields.
+		if (Ar.IsBmCooked(FALSE) && ScriptStorageSize == 0)
+		{
+			ScriptBytecodeSize = 0;
+		}
+#endif
+
+
 		Script.Empty( ScriptBytecodeSize );
 		Script.Add( ScriptBytecodeSize );
 	}
@@ -1318,11 +1346,7 @@ void UStruct::Serialize( FArchive& Ar )
 		INT iCode = 0;
 		INT const BytecodeStartOffset = Ar.Tell();
 
-#if BATMAN
-		if (Ar.IsPersistent() && Ar.GetLinker() && !Ar.IsBmCooked(TRUE))
-#else
 		if (Ar.IsPersistent() && Ar.GetLinker())
-#endif
 		{
 			if (Ar.IsLoading())
 			{
@@ -1336,6 +1360,7 @@ void UStruct::Serialize( FArchive& Ar )
 				TArray<BYTE> TempScript;
 				TempScript.Add(ScriptStorageSize);
 				Ar.Serialize(TempScript.GetData(), ScriptStorageSize);
+
 
 				// force reading from the pre-serialized buffer
 				FMemoryReader MemReader(TempScript, Ar.IsPersistent());
@@ -1447,6 +1472,10 @@ void UStruct::Serialize( FArchive& Ar )
 #if BATMAN
 			ObjectReferenceCollector.SetVer(Ar.Ver());
 			ObjectReferenceCollector.SetLicenseeVer(Ar.LicenseeVer());
+			if (Ar.ContainsCookedData())
+			{
+				ObjectReferenceCollector.ThisContainsCookedData();
+			}
 #endif
 
 			INT iCode2 = 0;
@@ -1724,7 +1753,13 @@ void UState::Serialize( FArchive& Ar )
 	WORD const TmpLabelTableOffset = LabelTableOffset;
 
 #if BATMAN
-	if (Ar.Ver() <= VER_REDUCED_PROBEMASK_REMOVED_IGNOREMASK)
+	if (Ar.IsBmCooked(FALSE))
+	{
+		// BM3 PC decompiled: UState::Serialize reads ProbeMask as DWORD (4 bytes),
+		// no IgnoreMask, same as post-VER_REDUCED_PROBEMASK standard UE3.
+		Ar << ProbeMask;
+	}
+	else if (Ar.Ver() <= VER_REDUCED_PROBEMASK_REMOVED_IGNOREMASK)
 	{
 		QWORD _ProbeMask;
 		QWORD IgnoreMask;
@@ -2380,7 +2415,7 @@ void UClass::Serialize( FArchive& Ar )
 	// if reading data that's cooked for console/pcserver, skip this data
 	UBOOL const bIsCookedForConsole = IsPackageCookedForConsole(Ar);
 	UBOOL const bCookingConsoleOrPCServer = (GCookingTarget & (UE3::PLATFORM_Console|UE3::PLATFORM_WindowsServer)) != 0;
-	if ( !bIsCookedForConsole && 
+	if ( !bIsCookedForConsole &&
 		(!bCookingConsoleOrPCServer || !Ar.IsSaving() || Ar.GetLinker() == NULL) )
 	{
 		if( Ar.Ver() >= VER_DONTSORTCATEGORIES_ADDED )
@@ -2407,6 +2442,17 @@ void UClass::Serialize( FArchive& Ar )
 		{
 			bForceScriptOrder = 0;
 		}
+
+#if BATMAN
+		// BM3 PC decompiled: extra 4-byte field gated by LicenseeVer >= 94
+		// (between bForceScriptOrder and ClassGroupNames)
+		// BM TODO: Change to IsBmCooked(TRUE) and delete current script packages
+		if (Ar.IsBmCooked() && Ar.LicenseeVer() >= 94)
+		{
+			INT BmClassGroupFlags = 0;
+			Ar << BmClassGroupFlags;
+		}
+#endif
 
 		if( Ar.Ver() >= VER_ADDED_CLASS_GROUPS )
 		{
@@ -2450,9 +2496,21 @@ void UClass::Serialize( FArchive& Ar )
 
 	if( Ar.IsLoading() )
 	{
-		check((DWORD)Align(GetPropertiesSize(), GetMinAlignment()) >= sizeof(UObject));
-		check(!GetSuperClass() || !GetSuperClass()->HasAnyFlags(RF_NeedLoad));
-		Ar << ClassDefaultObject;
+#if BATMAN
+		if (Ar.IsBmCooked(FALSE) && (DWORD)Align(GetPropertiesSize(), GetMinAlignment()) < sizeof(UObject))
+		{
+			warnf(NAME_Warning, TEXT("UClass::Serialize %s: PropertiesSize %i < sizeof(UObject) %i, skipping CDO"),
+				*GetFullName(), GetPropertiesSize(), (INT)sizeof(UObject));
+			UObject* DummyCDO = NULL;
+			Ar << DummyCDO;
+		}
+		else
+#endif
+		{
+			check((DWORD)Align(GetPropertiesSize(), GetMinAlignment()) >= sizeof(UObject));
+			check(!GetSuperClass() || !GetSuperClass()->HasAnyFlags(RF_NeedLoad));
+			Ar << ClassDefaultObject;
+		}
 
 		// In order to ensure that the CDO inherits config & localized property values from the parent class, we can't initialize the CDO until
 		// the parent class's CDO has serialized its data from disk and called LoadConfig/LoadLocalized - this occurs in ULinkerLoad::Preload so the

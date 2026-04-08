@@ -659,177 +659,374 @@ void AnimZip_Sample(const UAnimSequence* Seq, USkeletalMesh* SkelMesh,
 	}
 }
 
-// --- Encoding functions for re-cooking (PackAnimZip) ---
+// ============================================================================
+// AnimZip compression / encoding
+// Produces AnimZip_Data from RawAnimationData after PSA import.
+// Uses QuatMax48 for rotations, NoScaleFloat96 for root translation.
+// Only includes rotation tracks that differ from the reference pose,
+// and translation only for the root bone (track 0).
+// ============================================================================
 
-static void EncodeQuatMax48(const FQuat& q, BYTE* b)
+// --- QuatMax48 encoder (inverse of DecodeQuatMax48) ---
+
+static void EncodeQuatMax48(const FQuat& InQ, BYTE* Out)
 {
-	INT MaxComponent = 0;
-	FLOAT MaxValue = Abs(q.X);
-	if (Abs(q.Y) > MaxValue) { MaxComponent = 1; MaxValue = Abs(q.Y); }
-	if (Abs(q.Z) > MaxValue) { MaxComponent = 2; MaxValue = Abs(q.Z); }
-	if (Abs(q.W) > MaxValue) { MaxComponent = 3; MaxValue = Abs(q.W); }
+	// Work on a copy so we can negate
+	FQuat Q = InQ;
 
-	FLOAT sign = 1.0f;
-	switch (MaxComponent)
+	// Find component with largest absolute value
+	FLOAT AbsVals[4] = { Abs(Q.X), Abs(Q.Y), Abs(Q.Z), Abs(Q.W) };
+	INT S = 0;
+	FLOAT MaxAbs = AbsVals[0];
+	for (INT i = 1; i < 4; i++)
 	{
-	case 0: sign = (q.X < 0) ? -1.0f : 1.0f; break;
-	case 1: sign = (q.Y < 0) ? -1.0f : 1.0f; break;
-	case 2: sign = (q.Z < 0) ? -1.0f : 1.0f; break;
-	case 3: sign = (q.W < 0) ? -1.0f : 1.0f; break;
-	}
-	FQuat qNorm = FQuat(q.X * sign, q.Y * sign, q.Z * sign, q.W * sign);
-
-	FLOAT l, m, h;
-	switch (MaxComponent)
-	{
-	case 0: m = qNorm.Y; h = qNorm.Z; l = qNorm.W; break;
-	case 1: m = qNorm.X; h = qNorm.Z; l = qNorm.W; break;
-	case 2: m = qNorm.X; h = qNorm.Y; l = qNorm.W; break;
-	default: m = qNorm.X; h = qNorm.Y; l = qNorm.Z; break;
+		if (AbsVals[i] > MaxAbs)
+		{
+			MaxAbs = AbsVals[i];
+			S = i;
+		}
 	}
 
-	static const FLOAT shift = 0.70710678118f;
-	static const FLOAT scale = 1.41421356237f;
-	FLOAT scale0 = ((1 << 15) - 1) / scale;
+	// Negate entire quaternion so the omitted (largest) component is positive
+	FLOAT Components[4] = { Q.X, Q.Y, Q.Z, Q.W };
+	if (Components[S] < 0.0f)
+	{
+		Components[0] = -Components[0];
+		Components[1] = -Components[1];
+		Components[2] = -Components[2];
+		Components[3] = -Components[3];
+	}
 
-	INT lVal = Clamp<INT>((l + shift) * scale0 + 0.5f, 0, 32767);
-	INT mVal = Clamp<INT>((m + shift) * scale0 + 0.5f, 0, 32767);
-	INT hVal = Clamp<INT>((h + shift) * scale0 + 0.5f, 0, 32767);
+	// Extract 3 remaining components as (m, h, l) based on S
+	// Matches decoder mapping: S=0 → (a,m,h,l)=(X,Y,Z,W), S=1 → (Y,X,Z,W), etc.
+	FLOAT m, h, l;
+	switch (S)
+	{
+	case 0: m = Components[1]; h = Components[2]; l = Components[3]; break; // X omitted
+	case 1: m = Components[0]; h = Components[2]; l = Components[3]; break; // Y omitted
+	case 2: m = Components[0]; h = Components[1]; l = Components[3]; break; // Z omitted
+	default: m = Components[0]; h = Components[1]; l = Components[2]; break; // W omitted
+	}
 
-	b[0] = (mVal >> 8) & 0xFF;
-	b[1] = mVal & 0xFF;
-	b[2] = ((hVal >> 8) & 0x3F) | ((MaxComponent & 2) << 6);
-	b[3] = hVal & 0xFF;
-	b[4] = ((lVal >> 8) & 0x7F) | ((MaxComponent & 1) << 7);
-	b[5] = lVal & 0xFF;
+	// Quantize to 15 bits each
+	// Decoder: val * (sqrt(2) / 32767) - 1/sqrt(2) = component
+	// Encoder: (component + 1/sqrt(2)) / (sqrt(2) / 32767) = val
+	static const FLOAT Shift = 0.70710678118f; // 1/sqrt(2)
+	static const FLOAT Scale = 32767.0f / 1.41421356237f; // 32767 / sqrt(2)
+	// Equivalent: (component + shift) * (1/sqrt(2)) * 32767 = (component + shift) * shift * 32767
+
+	INT mVal = Clamp<INT>(appFloor((m + Shift) * Scale + 0.5f), 0, 32767);
+	INT hVal = Clamp<INT>(appFloor((h + Shift) * Scale + 0.5f), 0, 32767);
+	INT lVal = Clamp<INT>(appFloor((l + Shift) * Scale + 0.5f), 0, 32767);
+
+	// Pack into 6 bytes big-endian
+	// Decoder reads: mVal = ((b[0]<<8)|b[1]) & 0x7FFF
+	//                hVal = ((b[2]<<8)|b[3]) & 0x7FFF
+	//                lVal = ((b[4]<<8)|b[5]) & 0x7FFF
+	//                S    = ((b[2]>>6)&2) | (b[4]>>7)
+	Out[0] = (BYTE)((mVal >> 8) & 0x7F);
+	Out[1] = (BYTE)(mVal & 0xFF);
+	Out[2] = (BYTE)(((S & 2) << 6) | ((hVal >> 8) & 0x7F));
+	Out[3] = (BYTE)(hVal & 0xFF);
+	Out[4] = (BYTE)(((S & 1) << 7) | ((lVal >> 8) & 0x7F));
+	Out[5] = (BYTE)(lVal & 0xFF);
 }
 
-static void PackAnimZip(UAnimSequence* Seq)
+// --- Determine if a rotation track differs from the reference pose ---
+
+static UBOOL RotationTrackDiffersFromRefPose(
+	const FRawAnimSequenceTrack& Track,
+	const FQuat& RefQuat,
+	FLOAT Threshold = 0.0001f)
 {
-	if (!Seq->RawAnimationData.Num())
+	if (Track.RotKeys.Num() == 0)
 	{
-		return;
+		return FALSE;
 	}
-
-	UAnimSet* Owner = Seq->GetAnimSet();
-	if (!Owner)
+	for (INT k = 0; k < Track.RotKeys.Num(); k++)
 	{
-		return;
-	}
-
-	INT NumTracks = Seq->RawAnimationData.Num();
-	INT NumKeys = Seq->NumFrames;
-
-	// Build one rotation bundle and one translation bundle
-	// (simple: all tracks in one bundle each, using QuatMax_48 / NoScale_Float_96)
-	TArray<BYTE> RotTrackMap;
-	TArray<BYTE> RotKeyframes;
-	TArray<BYTE> TransTrackMap;
-	TArray<BYTE> TransKeyframes;
-	INT RotTrackCount = 0;
-	INT TransTrackCount = 0;
-
-	// First pass: count tracks
-	for (INT BoneIdx = 0; BoneIdx < NumTracks; BoneIdx++)
-	{
-		const FRawAnimSequenceTrack& Track = Seq->RawAnimationData(BoneIdx);
-		if (Track.RotKeys.Num() > 0) RotTrackCount++;
-		if (Track.PosKeys.Num() > 0) TransTrackCount++;
-	}
-
-	// Second pass: encode
-	for (INT BoneIdx = 0; BoneIdx < NumTracks; BoneIdx++)
-	{
-		const FRawAnimSequenceTrack& Track = Seq->RawAnimationData(BoneIdx);
-		if (Track.RotKeys.Num() > 0)
+		const FQuat& Key = Track.RotKeys(k);
+		// Compare allowing for sign flip (Q and -Q represent the same rotation)
+		FLOAT Dot = Abs(Key.X * RefQuat.X + Key.Y * RefQuat.Y + Key.Z * RefQuat.Z + Key.W * RefQuat.W);
+		if (Dot < 1.0f - Threshold)
 		{
-			RotTrackMap.AddItem((BYTE)BoneIdx);
-			for (INT k = 0; k < NumKeys; k++)
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
+// --- Main AnimZip compression entry point ---
+
+void AnimZip_Compress(UAnimSequence* Seq)
+{
+	if (!Seq || Seq->RawAnimationData.Num() == 0 || Seq->NumFrames == 0)
+	{
+		return;
+	}
+
+	UAnimSet* AnimSet = Seq->GetAnimSet();
+	if (!AnimSet)
+	{
+		return;
+	}
+
+	const INT NumTracks = Seq->RawAnimationData.Num();
+	const INT NumFrames = Seq->NumFrames;
+
+	check(NumTracks <= 255); // FBundle::NumTracks is BYTE
+
+	// --- Load reference skeleton for ref pose comparison ---
+	USkeletalMesh* RefMesh = NULL;
+	if (AnimSet->PreviewSkelMeshName != NAME_None)
+	{
+		RefMesh = LoadObject<USkeletalMesh>(NULL, *AnimSet->PreviewSkelMeshName.ToString(), NULL, LOAD_None, NULL);
+	}
+
+	// --- Determine which rotation tracks to include ---
+	// Build a list of anim track indices that have rotation differing from ref pose.
+	TArray<INT> IncludedRotTracks;
+	for (INT t = 0; t < NumTracks; t++)
+	{
+		const FRawAnimSequenceTrack& Track = Seq->RawAnimationData(t);
+
+		UBOOL bInclude = TRUE;
+		if (RefMesh && Track.RotKeys.Num() > 0)
+		{
+			// Find the bone index for this track
+			FName BoneName = AnimSet->TrackBoneNames(t);
+			INT BoneIdx = RefMesh->MatchRefBone(BoneName);
+			if (BoneIdx != INDEX_NONE)
 			{
-				FQuat q = (k < Track.RotKeys.Num()) ? Track.RotKeys(k) : Track.RotKeys(Track.RotKeys.Num() - 1);
+				// Ref pose quat is in ActorX convention (same as RawAnimationData)
+				FQuat RefQuat = RefMesh->RefSkeleton(BoneIdx).BonePos.Orientation;
 				if (BoneIdx > 0)
 				{
-					q = FQuat(-q.X, -q.Y, -q.Z, q.W);
+					RefQuat.W *= -1.0f; // Apply ActorX W-flip to match RawAnimationData convention
 				}
-				BYTE encoded[6];
-				EncodeQuatMax48(q, encoded);
-				INT Offset = RotKeyframes.Add(6);
-				appMemcpy(&RotKeyframes(Offset), encoded, 6);
+				bInclude = RotationTrackDiffersFromRefPose(Track, RefQuat);
 			}
 		}
-		if (Track.PosKeys.Num() > 0)
+
+		if (bInclude)
 		{
-			TransTrackMap.AddItem((BYTE)BoneIdx);
-			for (INT k = 0; k < NumKeys; k++)
-			{
-				FVector v = (k < Track.PosKeys.Num()) ? Track.PosKeys(k) : Track.PosKeys(Track.PosKeys.Num() - 1);
-				INT Offset = TransKeyframes.Add(12);
-				appMemcpy(&TransKeyframes(Offset), &v, 12);
-			}
+			IncludedRotTracks.AddItem(t);
 		}
 	}
 
-	// Build the buffer
-	Seq->AnimZip_Data.Empty();
+	const INT NRot = IncludedRotTracks.Num();
+	const INT NTrans = 1; // Root bone only
+	const INT NumRotBundles = (NRot > 0) ? 1 : 0;
+	const INT NumTransBundles = 1;
+	const INT NumBundles = NumRotBundles + NumTransBundles;
 
-	// Calculate layout
-	const INT HEADER_SIZE = sizeof(FAnim);     // 24
-	const INT BUNDLE_SIZE = sizeof(FBundle);   // 12
+	// --- Compute offsets ---
+	const INT AnimHeaderSize = 24; // sizeof(FAnim)
+	const INT BundleSize = 12;     // sizeof(FBundle) packed
 
-	INT RotBundleOffset = HEADER_SIZE;
-	INT TransBundleOffset = RotBundleOffset + (RotTrackCount > 0 ? BUNDLE_SIZE : 0);
-	INT DataStart = TransBundleOffset + (TransTrackCount > 0 ? BUNDLE_SIZE : 0);
+	INT Cursor = AnimHeaderSize;
+	const INT RotBundleOffset = Cursor;
+	Cursor += NumRotBundles * BundleSize;
+	const INT TransBundleOffset = Cursor;
+	Cursor += NumTransBundles * BundleSize;
 
-	INT RotTracksAndHeadersOffset = DataStart;
-	INT RotKeyframesOffset = RotTracksAndHeadersOffset + RotTrackMap.Num(); // no headers for QuatMax_48
-	INT TransTracksAndHeadersOffset = RotKeyframesOffset + RotKeyframes.Num();
-	INT TransKeyframesOffset = TransTracksAndHeadersOffset + TransTrackMap.Num(); // no headers for Float_96
-	INT TotalSize = TransKeyframesOffset + TransKeyframes.Num();
+	// Rotation track map + keyframes
+	const INT RotTrackMapOffset = Cursor;
+	Cursor += NRot; // 1 byte per track
+	const INT RotKeyframesOffset = Cursor;
+	Cursor += 6 * NRot * NumFrames; // QuatMax48 = 6 bytes/key
 
+	// Translation track map + keyframes
+	const INT TransTrackMapOffset = Cursor;
+	Cursor += NTrans; // 1 byte
+	const INT TransKeyframesOffset = Cursor;
+	Cursor += 12 * NTrans * NumFrames; // NoScaleFloat96 = 12 bytes/key
+
+	const INT TotalSize = Cursor;
+
+	// --- Allocate and zero ---
+	Seq->AnimZip_Data.Empty(TotalSize);
 	Seq->AnimZip_Data.Add(TotalSize);
-	BYTE* Out = Seq->AnimZip_Data.GetData();
-	appMemzero(Out, TotalSize);
+	BYTE* Data = Seq->AnimZip_Data.GetData();
+	appMemzero(Data, TotalSize);
 
-	// Write FAnim header
-	FAnim* Hdr = (FAnim*)Out;
-	Hdr->MotionRotationBundleOffset = -1;
-	Hdr->MotionTranslationScaleBundleOffset = -1;
-	Hdr->NumRotationBundles = (RotTrackCount > 0) ? 1 : 0;
-	Hdr->RotationBundlesOffset = RotBundleOffset;
-	Hdr->NumTranslationScaleBundles = (TransTrackCount > 0) ? 1 : 0;
-	Hdr->TranslationScaleBundlesOffset = TransBundleOffset;
+	// --- Write FAnim header ---
+	FAnim* Anim = (FAnim*)Data;
+	Anim->MotionRotationBundleOffset = -1;
+	Anim->MotionTranslationScaleBundleOffset = -1;
+	Anim->NumRotationBundles = NumRotBundles;
+	Anim->RotationBundlesOffset = RotBundleOffset;
+	Anim->NumTranslationScaleBundles = NumTransBundles;
+	Anim->TranslationScaleBundlesOffset = TransBundleOffset;
 
-	// Write rotation bundle
-	if (RotTrackCount > 0)
+	// --- Write rotation FBundle ---
+	if (NRot > 0)
 	{
-		FBundle* RB = (FBundle*)&Out[RotBundleOffset];
-		RB->Codec = AZRC_QuatMax_48;
-		RB->NumTracks = (BYTE)RotTrackCount;
-		RB->NumFrames = (USHORT)NumKeys;
-		RB->TracksAndHeadersOffset = RotTracksAndHeadersOffset;
-		RB->KeyframesOffset = RotKeyframesOffset;
+		FBundle* RotBundle = (FBundle*)&Data[RotBundleOffset];
+		RotBundle->Codec = AZRC_QuatMax_48;
+		RotBundle->NumTracks = (BYTE)NRot;
+		RotBundle->NumFrames = (USHORT)NumFrames;
+		RotBundle->TracksAndHeadersOffset = RotTrackMapOffset;
+		RotBundle->KeyframesOffset = RotKeyframesOffset;
 	}
 
-	// Write translation bundle
-	if (TransTrackCount > 0)
+	// --- Write translation FBundle ---
 	{
-		FBundle* TB = (FBundle*)&Out[TransBundleOffset];
-		TB->Codec = AZTSC_NoScale_Float_96;
-		TB->NumTracks = (BYTE)TransTrackCount;
-		TB->NumFrames = (USHORT)NumKeys;
-		TB->TracksAndHeadersOffset = TransTracksAndHeadersOffset;
-		TB->KeyframesOffset = TransKeyframesOffset;
+		FBundle* TransBundle = (FBundle*)&Data[TransBundleOffset];
+		TransBundle->Codec = AZTSC_NoScale_Float_96;
+		TransBundle->NumTracks = (BYTE)NTrans;
+		TransBundle->NumFrames = (USHORT)NumFrames;
+		TransBundle->TracksAndHeadersOffset = TransTrackMapOffset;
+		TransBundle->KeyframesOffset = TransKeyframesOffset;
 	}
 
-	// Write track maps and keyframes
-	if (RotTrackMap.Num()) appMemcpy(&Out[RotTracksAndHeadersOffset], RotTrackMap.GetData(), RotTrackMap.Num());
-	if (RotKeyframes.Num()) appMemcpy(&Out[RotKeyframesOffset], RotKeyframes.GetData(), RotKeyframes.Num());
-	if (TransTrackMap.Num()) appMemcpy(&Out[TransTracksAndHeadersOffset], TransTrackMap.GetData(), TransTrackMap.Num());
-	if (TransKeyframes.Num()) appMemcpy(&Out[TransKeyframesOffset], TransKeyframes.GetData(), TransKeyframes.Num());
+	// --- Write rotation track map ---
+	for (INT i = 0; i < NRot; i++)
+	{
+		Data[RotTrackMapOffset + i] = (BYTE)IncludedRotTracks(i);
+	}
+
+	// --- Encode rotation keyframes ---
+	for (INT f = 0; f < NumFrames; f++)
+	{
+		for (INT i = 0; i < NRot; i++)
+		{
+			INT AnimTrack = IncludedRotTracks(i);
+			const FRawAnimSequenceTrack& Track = Seq->RawAnimationData(AnimTrack);
+
+			// Get the key for this frame (replicate single keys)
+			INT KeyIdx = (Track.RotKeys.Num() > 1) ? Min(f, Track.RotKeys.Num() - 1) : 0;
+			FQuat Q = Track.RotKeys(KeyIdx);
+
+			// Convert from ActorX convention to AnimZip "natural" convention:
+			// RawAnimationData has W negated for ALL bones (PSA import line 440).
+			// Standard decode flips W back for BoneIndex > 0.
+			// AnimZip never flips at decode, so we bake the flip into the data.
+			// For non-root bones: negate W to undo ActorX convention.
+			// For root bone (track 0 typically): keep as-is (ActorX convention IS the natural form for root).
+			FName BoneName = AnimSet->TrackBoneNames(AnimTrack);
+			INT BoneIdx = RefMesh ? RefMesh->MatchRefBone(BoneName) : AnimTrack;
+			if (BoneIdx > 0)
+			{
+				Q.W = -Q.W;
+			}
+
+			Q.Normalize();
+
+			BYTE* KeyDst = &Data[RotKeyframesOffset + 6 * (i + NRot * f)];
+			EncodeQuatMax48(Q, KeyDst);
+		}
+	}
+
+	// --- Write translation track map (root bone = track 0) ---
+	Data[TransTrackMapOffset] = 0;
+
+	// --- Encode translation keyframes (root bone only) ---
+	{
+		const FRawAnimSequenceTrack& Track = Seq->RawAnimationData(0);
+		for (INT f = 0; f < NumFrames; f++)
+		{
+			INT KeyIdx = (Track.PosKeys.Num() > 1) ? Min(f, Track.PosKeys.Num() - 1) : 0;
+			FVector Pos = Track.PosKeys(KeyIdx);
+
+			FLOAT* Dst = (FLOAT*)&Data[TransKeyframesOffset + 12 * f];
+			Dst[0] = Pos.X;
+			Dst[1] = Pos.Y;
+			Dst[2] = Pos.Z;
+		}
+	}
+
+	// --- Set linear transform (identity — no additional transform) ---
+	Seq->AnimZip_LinearOrigin = FVector(0, 0, 0);
+	Seq->AnimZip_LinearSpan = FVector(1, 1, 1);
+
+	// --- Set clipping/blend properties that the retail game expects ---
+	// Without these, GetBoneAtom's AnimZip path computes NormTime=0 always
+	// (ClippedLength=0 → NormTime fallback to 0).
+	Seq->ClippedStart = 0.0f;
+	Seq->ClippedLength = Seq->SequenceLength;
+	Seq->BlendInPoint = 0.0f;
+	Seq->BlendOutPoint = Seq->SequenceLength;
+
+	// --- Round-trip verification ---
+#if DO_CHECK
+	for (INT i = 0; i < NRot; i++)
+	{
+		INT AnimTrack = IncludedRotTracks(i);
+		const FRawAnimSequenceTrack& Track = Seq->RawAnimationData(AnimTrack);
+		FName BoneName = AnimSet->TrackBoneNames(AnimTrack);
+		INT BoneIdx = RefMesh ? RefMesh->MatchRefBone(BoneName) : AnimTrack;
+
+		for (INT f = 0; f < NumFrames; f++)
+		{
+			FLOAT NormTime = (NumFrames > 1) ? (FLOAT)f / (NumFrames - 1) : 0.0f;
+			// Clamp like the decoder does
+			NormTime = Clamp(NormTime, 0.0f, 1.0f - (FLOAT)SMALL_NUMBER);
+
+			FBoneAtom Decoded;
+			AnimZip_Sample_Track(Seq, AnimTrack, NormTime, &Decoded);
+
+			// Build expected quat (with convention conversion applied)
+			INT KeyIdx = (Track.RotKeys.Num() > 1) ? Min(f, Track.RotKeys.Num() - 1) : 0;
+			FQuat Expected = Track.RotKeys(KeyIdx);
+			if (BoneIdx > 0)
+			{
+				Expected.W = -Expected.W;
+			}
+			Expected.Normalize();
+
+			FQuat Got = Decoded.GetRotation();
+			// Allow sign flip (Q and -Q are same rotation)
+			FLOAT Dot = Abs(Expected.X * Got.X + Expected.Y * Got.Y + Expected.Z * Got.Z + Expected.W * Got.W);
+			checkf(Dot > 0.999f, TEXT("AnimZip round-trip rotation error too large for track %d frame %d (dot=%f)"), AnimTrack, f, Dot);
+		}
+	}
+
+	// Verify root translation
+	{
+		const FRawAnimSequenceTrack& Track = Seq->RawAnimationData(0);
+		for (INT f = 0; f < NumFrames; f++)
+		{
+			FLOAT NormTime = (NumFrames > 1) ? (FLOAT)f / (NumFrames - 1) : 0.0f;
+			NormTime = Clamp(NormTime, 0.0f, 1.0f - (FLOAT)SMALL_NUMBER);
+
+			FBoneAtom Decoded;
+			AnimZip_Sample_Track(Seq, 0, NormTime, &Decoded);
+
+			INT KeyIdx = (Track.PosKeys.Num() > 1) ? Min(f, Track.PosKeys.Num() - 1) : 0;
+			FVector Expected = Track.PosKeys(KeyIdx);
+			FVector Got = Decoded.GetTranslation();
+			FLOAT Err = (Expected - Got).Size();
+			checkf(Err < 0.01f, TEXT("AnimZip round-trip translation error too large for root frame %d (err=%f)"), f, Err);
+		}
+	}
+
+	debugf(TEXT("AnimZip_Compress: %s verified OK (%d rot tracks, %d frames, %d bytes)"),
+		*Seq->SequenceName.ToString(), NRot, NumFrames, TotalSize);
+#endif
+
+	// Clear RawAnimationData so AnimZip is the sole playback path.
+	for (INT t = 0; t < Seq->RawAnimationData.Num(); t++)
+	{
+		Seq->RawAnimationData(t).PosKeys.Empty();
+		Seq->RawAnimationData(t).RotKeys.Empty();
+	}
+	Seq->RawAnimationData.Empty();
+	Seq->TranslationData.Empty();
+	Seq->RotationData.Empty();
+	Seq->CompressedTrackOffsets.Empty();
+	Seq->CompressedByteStream.Empty();
+
+	// Set valid default compression format so Serialize() doesn't crash
+	// when calling AnimationFormat_SetInterfaceLinks / ByteSwapOut on the
+	// (now empty) CompressedByteStream.
+	Seq->KeyEncodingFormat = AKF_ConstantKeyLerp;
+	Seq->TranslationCompressionFormat = ACF_None;
+	Seq->RotationCompressionFormat = ACF_None;
 }
 
 #endif
-	
+
 void UAnimSequence::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
@@ -869,7 +1066,7 @@ void UAnimSequence::Serialize(FArchive& Ar)
 		AnimationFormat_SetInterfaceLinks(*this);
 
 #if BATMAN
-		if (Ar.IsBmCooked())
+		if (Ar.IsBmCooked(TRUE))
 		{
 			Ar << AnimZip_Data;
 		}
@@ -899,20 +1096,15 @@ void UAnimSequence::Serialize(FArchive& Ar)
 		Ar << Num;
 		Ar.Serialize( SerializedData.GetData(), SerializedData.Num() );
 
+		// Count compressed data.
+		Ar.CountBytes( SerializedData.Num(), SerializedData.Num() );
+
 #if BATMAN
-		// Pack and write AnimZip data
 		if (Ar.IsBmCooked(TRUE))
 		{
-			// Pack RawAnimationData into AnimZip format
-			PackAnimZip(this);
-
-			// Write AnimZip_Data
 			Ar << AnimZip_Data;
 		}
 #endif
-
-		// Count compressed data.
-		Ar.CountBytes( SerializedData.Num(), SerializedData.Num() );
 	}
 }
 

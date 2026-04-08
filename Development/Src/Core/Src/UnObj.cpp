@@ -946,7 +946,16 @@ void UObject::SetLinker( ULinkerLoad* LinkerLoad, INT LinkerIndex )
 	// Detach from existing linker.
 	if( _Linker )
 	{
-		check(!HasAnyFlags(RF_NeedLoad|RF_NeedPostLoad));
+#if BATMAN
+		if (_Linker->IsBmCooked())
+		{
+			ClearFlags(RF_NeedLoad|RF_NeedPostLoad);
+		}
+		else
+#endif
+		{
+			check(!HasAnyFlags(RF_NeedLoad|RF_NeedPostLoad));
+		}
 		check(_Linker->ExportMap(_LinkerIndex)._Object!=NULL);
 		check(_Linker->ExportMap(_LinkerIndex)._Object==this);
 		_Linker->ExportMap(_LinkerIndex)._Object = NULL;

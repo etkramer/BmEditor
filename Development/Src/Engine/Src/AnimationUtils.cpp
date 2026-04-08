@@ -767,7 +767,10 @@ void FAnimationUtils::CompressAnimSequenceExplicit(
 		bValidSkeletalMesh = FALSE;
 		// RemoveLinearKeys needs bone hierarchy, so we require a valid SkelMesh to recompress.
 		// If we call this during PostLoad() SkelMesh might not be valid yet, so don't attempt to recompress.
+#if BATMAN
+#else
 		warnf(TEXT("FAnimationUtils::CompressAnimSequence %s (%s) SkelMesh not valid, won't be able to use RemoveLinearKeys."), *AnimSeq->SequenceName.ToString(), *AnimSet->GetFullName());
+#endif
 	}
 
 	static INT TotalRecompressions = 0;
@@ -1476,7 +1479,11 @@ void FAnimationUtils::CompressAnimSequenceExplicit(
 	}
 	else
 	{
+#if BATMAN
+		// BM: Don't worry about this, we use AnimZip instead of built-in UE3 compression.
+#else
 		warnf(TEXT("Compression Requested for Empty Animation %s"), *AnimSeq->SequenceName.ToString() );
+#endif
 	}
 #endif
 }

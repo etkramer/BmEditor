@@ -73,14 +73,26 @@ struct FPropertyTag
 				}
 
 				// Validate type range
-				check(TypeIndex <= NAME_GUIDProperty);
+				if (TypeIndex < 0 || TypeIndex > NAME_GUIDProperty)
+				{
+					warnf(NAME_Warning, TEXT("FPropertyTag: TypeIndex %d out of range [1,%d], treating as end of properties"), (INT)TypeIndex, (INT)NAME_GUIDProperty);
+					Tag.Name = NAME_None;
+					Tag.Type = NAME_None;
+					return Ar;
+				}
 
 				// Convert int16 type index to FName (indices match NAME_ enum)
 				Tag.Type = FName((EName)TypeIndex);
 
 				// Read property name, size, array index
 				Ar << Tag.Name;
-				check(Tag.Name.IsValid());
+				if (!Tag.Name.IsValid())
+				{
+					warnf(NAME_Warning, TEXT("FPropertyTag: Invalid property name after TypeIndex %d, treating as end of properties"), (INT)TypeIndex);
+					Tag.Name = NAME_None;
+					Tag.Type = NAME_None;
+					return Ar;
+				}
 				Ar << Tag.Size << Tag.ArrayIndex;
 
 				// Bool properties store value in tag

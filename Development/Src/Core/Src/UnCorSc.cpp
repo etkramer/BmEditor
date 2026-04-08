@@ -1533,6 +1533,16 @@ void UObject::execJump( FFrame& Stack, RESULT_DECL )
 }
 IMPLEMENT_FUNCTION( UObject, EX_Jump, execJump );
 
+#if BATMAN
+void UObject::execJumpIfNotEditorOnly( FFrame& Stack, RESULT_DECL )
+{
+	// Read the jump offset and always jump past editor-only code in shipping builds.
+	INT Offset = Stack.ReadWord();
+	Stack.Code = &Stack.Node->Script(Offset);
+}
+IMPLEMENT_FUNCTION( UObject, EX_JumpIfNotEditorOnly, execJumpIfNotEditorOnly );
+#endif
+
 void UObject::execJumpIfNot( FFrame& Stack, RESULT_DECL )
 {
 	CHECK_RUNAWAY;
@@ -2217,6 +2227,41 @@ void UObject::execMetaCast( FFrame& Stack, RESULT_DECL )
 	*(UObject**)Result = (Castee && Castee->IsA(UClass::StaticClass()) && ((UClass*)Castee)->IsChildOf(MetaClass)) ? Castee : NULL;
 }
 IMPLEMENT_FUNCTION( UObject, EX_MetaCast, execMetaCast );
+
+#if BATMAN
+void UObject::execDynamicCastChecked( FFrame& Stack, RESULT_DECL )
+{
+	// Get class to cast to.
+	UClass* Class = (UClass*)Stack.ReadObject();
+
+	// Compile actor expression.
+	UObject* Castee = NULL;
+	Stack.Step( Stack.Object, &Castee );
+
+	// Always return NULL - this is the "checked" variant.
+	*(UObject**)Result = NULL;
+	if( Class->HasAnyClassFlags(CLASS_Interface) )
+	{
+		((FScriptInterface*)Result)->SetObject(NULL);
+		((FScriptInterface*)Result)->SetInterface(NULL);
+	}
+}
+IMPLEMENT_FUNCTION( UObject, EX_DynamicCastChecked, execDynamicCastChecked );
+
+void UObject::execMetaCastChecked( FFrame& Stack, RESULT_DECL )
+{
+	// Get metaclass to cast to.
+	UClass* MetaClass = (UClass*)Stack.ReadObject();
+
+	// Compile actor expression.
+	UObject* Castee = NULL;
+	Stack.Step( Stack.Object, &Castee );
+
+	// Always return NULL - this is the "checked" variant.
+	*(UObject**)Result = NULL;
+}
+IMPLEMENT_FUNCTION( UObject, EX_MetaCastChecked, execMetaCastChecked );
+#endif
 
 void UObject::execPrimitiveCast( FFrame& Stack, RESULT_DECL )
 {

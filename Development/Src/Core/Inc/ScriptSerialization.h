@@ -103,14 +103,14 @@
 		DWORD TempCode; \
         if (!Ar.IsLoading()) \
 		{ \
-			appMemcpy( &TempCode, &Script(iCode), sizeof(T) ); \
+			appMemcpy( &TempCode, &Script(iCode), sizeof(DWORD) ); \
 			AlignedPtr = (T)appDWORDToPointer(TempCode); \
 		} \
 		Ar << AlignedPtr; \
 		if (!Ar.IsSaving()) \
 		{ \
 			TempCode = appPointerToDWORD(AlignedPtr); \
-			appMemcpy( &Script(iCode), &TempCode, sizeof(T) ); \
+			appMemcpy( &Script(iCode), &TempCode, sizeof(DWORD) ); \
 		} \
 		iCode += sizeof(DWORD); \
 	}
@@ -131,7 +131,7 @@
 		} \
 		iCode += sizeof(ScriptPointerType); \
 	}
-	#define XFERPTR(T) if (Ar.Ver() <= 576) { XFERPTR_OLD(T) } else { XFERPTR_NEW(T) }
+	#define XFERPTR(T) if (Ar.Ver() <= 576 || Ar.IsBmCooked(FALSE)) { XFERPTR_OLD(T) } else { XFERPTR_NEW(T) }
 #else
 	#define XFERPTR(T) \
 	{ \
@@ -271,8 +271,16 @@
 	EExprToken Expr=(EExprToken)0;
 
 	// Get expr token.
+	if( iCode >= Script.Num() )
+	{
+		appErrorf( TEXT("SerializeExpr: iCode %i >= Script.Num() %i before reading opcode in %s"), iCode, Script.Num(), *GetFullName() );
+	}
 	XFER(BYTE);
 	Expr = (EExprToken)Script(iCode-1);
+	//if( Ar.IsBmCooked(FALSE) )
+	//{
+	//	warnf( NAME_Warning, TEXT("SerializeExpr: iCode=%i expr=0x%02X in %s"), iCode-1, (BYTE)Expr, *GetFullName() );
+	//}
 	if( Expr >= EX_FirstNative )
 	{
 		// Native final function with id 1-127.
@@ -606,12 +614,18 @@
 			break;
 		}
 		case EX_MetaCast:
+#if BATMAN
+		case EX_MetaCastChecked:
+#endif
 		{
 			XFER_OBJECT_POINTER(UClass*);
 			SerializeExpr( iCode, Ar );
 			break;
 		}
 		case EX_DynamicCast:
+#if BATMAN
+		case EX_DynamicCastChecked:
+#endif
 		{
 			XFER_OBJECT_POINTER(UClass*);
 			SerializeExpr( iCode, Ar );
@@ -743,6 +757,14 @@
 			HANDLE_OPTIONAL_DEBUG_INFO; //DEBUGGER
 			break;
 		}
+
+#if BATMAN
+		case EX_JumpIfNotEditorOnly:
+		{
+			XFER(CodeSkipSizeType); // Code offset to jump past editor-only code.
+			break;
+		}
+#endif
 		default:
 		{
 			// This should never occur.
