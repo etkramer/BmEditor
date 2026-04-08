@@ -321,14 +321,18 @@ void ULevel::Serialize( FArchive& Ar )
 #if BATMAN
 	if (Ar.IsBmCooked(TRUE))
 	{
-		TArray<FSphere> BoundingSpheres;
 		Ar << BoundingSpheres;
+		FStreamableTextureInstance::SerializationBoundingSpheres = &BoundingSpheres;
 	}
 #endif
 
 	if( !Ar.IsTransacting() )
 	{
 		Ar << TextureToInstancesMap;
+
+#if BATMAN
+		FStreamableTextureInstance::SerializationBoundingSpheres = NULL;
+#endif
 
 		if ( Ar.Ver() >= VER_DYNAMICTEXTUREINSTANCES )
 		{
@@ -467,6 +471,16 @@ void ULevel::Serialize( FArchive& Ar )
 			Ar << *PrecomputedLightVolume;
 		}
 	}
+
+#if BATMAN
+	if (Ar.IsBmCooked(TRUE))
+	{
+		Ar << NodeEdgeCollection;
+		Ar << HorizontalEdges;
+		Ar << ActorHorizontalEdges;
+		Ar << bEdgesValid;
+	}
+#endif
 
 	if (Ar.Ver() >= VER_NONUNIFORM_PRECOMPUTED_VISIBILITY)
 	{

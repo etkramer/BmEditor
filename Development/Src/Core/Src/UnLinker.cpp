@@ -3735,10 +3735,6 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 			// Don't load class functions for now
 			LoadClass->GetName() == "Function" ||
 
-            // Don't load levels for now
-            LoadClass->GetName() == "Level" ||
-            LoadClass->GetName() == "World" ||
-
 			LoadClass->GetName() == "PhysicsAsset" ||
 			LoadClass->GetName() == "RB_BodySetup" ||
 

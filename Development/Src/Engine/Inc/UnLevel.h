@@ -592,6 +592,71 @@ public:
 	}
 };
 
+#if BATMAN
+/** BM3: Horizontal edge for BSP node edge collection */
+struct FHorizontalEdge
+{
+	INT VertexA;
+	INT VertexB;
+	FVector OutwardDir;
+	TArray<INT> MatchingCollections;
+	FBox BoundingBox;
+
+	friend FArchive& operator<<( FArchive& Ar, FHorizontalEdge& E )
+	{
+		Ar << E.VertexA << E.VertexB << E.OutwardDir << E.MatchingCollections << E.BoundingBox;
+		return Ar;
+	}
+};
+
+/** BM3: Actor horizontal edge with compressed point B */
+struct FActorHorizontalEdge
+{
+	FLOAT PointAX;
+	FLOAT PointAY;
+	FLOAT PointAZ;
+	SWORD PointBX;
+	SWORD PointBY;
+	SWORD PointBZ;
+	BYTE EdgeType;
+
+	friend FArchive& operator<<( FArchive& Ar, FActorHorizontalEdge& E )
+	{
+		Ar << E.PointAX << E.PointAY << E.PointAZ;
+		Ar << E.PointBX << E.PointBY << E.PointBZ;
+		Ar << E.EdgeType;
+		return Ar;
+	}
+};
+
+/** BM3: Collection of horizontal edges from BSP */
+struct FEdgeCollection
+{
+	TArray<FHorizontalEdge> Edges;
+
+	friend FArchive& operator<<( FArchive& Ar, FEdgeCollection& C )
+	{
+		Ar << C.Edges;
+		return Ar;
+	}
+};
+
+/** BM3: Collection of actor horizontal edges */
+struct FActorEdgeCollection
+{
+	FBox BoundingBox;
+	TArray<FActorHorizontalEdge> Edges;
+	TArray<FActorHorizontalEdge> RailingTops;
+	TArray<WORD> ConnectedCollections;
+
+	friend FArchive& operator<<( FArchive& Ar, FActorEdgeCollection& C )
+	{
+		Ar << C.Edges << C.BoundingBox << C.ConnectedCollections << C.RailingTops;
+		return Ar;
+	}
+};
+#endif
+
 //
 // The level object.  Contains the level's actor list, Bsp information, and brush list.
 //
@@ -606,6 +671,11 @@ class ULevel : public ULevelBase
 	TArray<UModelComponent*>					ModelComponents;
 	/** The level's Kismet sequences */
 	class TArray<USequence*>					GameSequences;
+
+#if BATMAN
+	/** BM3: Shared bounding sphere pool, indexed by FStreamableTextureInstance during serialization */
+	TArray<FSphere>					BoundingSpheres;
+#endif
 
 	/** Static information used by texture streaming code, generated during PreSave									*/
 	TMap<UTexture2D*,TArray<FStreamableTextureInstance> >	TextureToInstancesMap;
@@ -716,11 +786,19 @@ class ULevel : public ULevelBase
 	 */
 	TArray<class AActor*>						CrossLevelActors;
 
-	/** 
-	* The precomputed light information for this level.  
+	/**
+	* The precomputed light information for this level.
 	* The extra level of indirection is to allow forward declaring FPrecomputedLightVolume.
 	*/
 	class FPrecomputedLightVolume*				PrecomputedLightVolume;
+
+#if BATMAN
+	/** BM3: BSP node edge collections for navigation */
+	TArray<WORD>								NodeEdgeCollection;
+	TArray<FEdgeCollection>						HorizontalEdges;
+	TArray<FActorEdgeCollection>				ActorHorizontalEdges;
+	UBOOL										bEdgesValid;
+#endif
 
 	/** Contains precomputed visibility data for this level. */
 	FPrecomputedVisibilityHandler				PrecomputedVisibilityHandler;

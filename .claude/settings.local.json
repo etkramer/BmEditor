@@ -31,7 +31,8 @@
       "Bash(awk 'BEGIN {prev=0} /case 0x[0-9a-fA-F]{2}:/ {if \\(NR - prev < 10\\) count++; else {if \\(count > 30\\) print \"Found \", count, \" consecutive cases starting around line \", prev - count*5; count=0}; prev=NR}' \"E:\\\\Games\\\\BatmanArkhamCity\\\\Binaries\\\\Win32\\\\BatmanAC.exe.c\")",
       "Bash(gh api:*)",
       "Bash(python3:*)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(git -C /i/UnrealEngine3 log --all --oneline -- \"*UnLevel*\")"
     ]
   }
 }

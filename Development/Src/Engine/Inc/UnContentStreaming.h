@@ -435,6 +435,11 @@ protected:
  */
 struct FStreamableTextureInstance
 {
+#if BATMAN
+	/** Set by ULevel::Serialize to pass the BoundingSpheres lookup table through to operator<<. */
+	static TArray<FSphere>* SerializationBoundingSpheres;
+#endif
+
 	/** Bounding sphere/ box of object */
 	FSphere BoundingSphere;
 	/** Object (and bounding sphere) specific texel scale factor  */

@@ -602,6 +602,15 @@ void WxMainToolBar::OnRealTimeAudioRightClick( wxCommandEvent& In )
 /** Called to update the UI for the toggle favorites button */
 void WxMainToolBar::UI_ToggleFavorites( wxUpdateUIEvent& In )
 {
+#if BATMAN
+	// BM: GetOutermost() check doesn't work for cooked map packages. 
+	if ( !GWorld )
+	{
+		In.Enable( FALSE );
+		return;
+	}
+#endif
+
 	FString FileName;
 	const UBOOL bMapFileExists = GPackageFileCache->FindPackageFile( *( GWorld->GetOutermost()->GetName() ), NULL, FileName );
 	

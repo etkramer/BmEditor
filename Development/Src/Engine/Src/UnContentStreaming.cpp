@@ -4939,8 +4939,54 @@ INT FStreamingHandlerTextureLevelForced::GetWantedMips2( FStreamingManagerTextur
  * @param	TextureInstance		Object to serialize
  * @return	Returns the archive passed in
  */
+#if BATMAN
+TArray<FSphere>* FStreamableTextureInstance::SerializationBoundingSpheres = NULL;
+#endif
+
 FArchive& operator<<( FArchive& Ar, FStreamableTextureInstance& TextureInstance )
 {
+#if BATMAN
+	if (Ar.IsBmCooked(TRUE))
+	{
+		if (Ar.IsLoading())
+		{
+			INT BoundingSphereIndex;
+			Ar << BoundingSphereIndex;
+			Ar << TextureInstance.TexelFactor;
+			if (FStreamableTextureInstance::SerializationBoundingSpheres &&
+				FStreamableTextureInstance::SerializationBoundingSpheres->IsValidIndex(BoundingSphereIndex))
+			{
+				TextureInstance.BoundingSphere = (*FStreamableTextureInstance::SerializationBoundingSpheres)(BoundingSphereIndex);
+			}
+			else
+			{
+				TextureInstance.BoundingSphere = FSphere(FVector(0, 0, 0), 0);
+			}
+		}
+		else
+		{
+			check(FStreamableTextureInstance::SerializationBoundingSpheres);
+			TArray<FSphere>& Spheres = *FStreamableTextureInstance::SerializationBoundingSpheres;
+			INT BoundingSphereIndex = INDEX_NONE;
+			for (INT i = 0; i < Spheres.Num(); i++)
+			{
+				if (Spheres(i).Center == TextureInstance.BoundingSphere.Center &&
+					Spheres(i).W == TextureInstance.BoundingSphere.W)
+				{
+					BoundingSphereIndex = i;
+					break;
+				}
+			}
+			if (BoundingSphereIndex == INDEX_NONE)
+			{
+				BoundingSphereIndex = Spheres.AddItem(TextureInstance.BoundingSphere);
+			}
+			Ar << BoundingSphereIndex;
+			Ar << TextureInstance.TexelFactor;
+		}
+		return Ar;
+	}
+#endif
 	Ar << TextureInstance.BoundingSphere;
 	Ar << TextureInstance.TexelFactor;
 	return Ar;
