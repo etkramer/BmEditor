@@ -732,6 +732,28 @@ static void EncodeQuatMax48(const FQuat& InQ, BYTE* Out)
 	Out[5] = (BYTE)(lVal & 0xFF);
 }
 
+// --- Determine if a translation track differs from the reference pose ---
+
+static UBOOL TranslationTrackDiffersFromRefPose(
+	const FRawAnimSequenceTrack& Track,
+	const FVector& RefPos,
+	FLOAT Threshold = 0.01f)
+{
+	if (Track.PosKeys.Num() == 0)
+	{
+		return FALSE;
+	}
+	for (INT k = 0; k < Track.PosKeys.Num(); k++)
+	{
+		const FVector& Key = Track.PosKeys(k);
+		if ((Key - RefPos).SizeSquared() > Threshold * Threshold)
+		{
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
 // --- Determine if a rotation track differs from the reference pose ---
 
 static UBOOL RotationTrackDiffersFromRefPose(
@@ -814,10 +836,32 @@ void AnimZip_Compress(UAnimSequence* Seq)
 		}
 	}
 
+	// --- Determine which translation tracks to include ---
+	// Always include root (track 0). Include non-root tracks that differ from ref pose.
+	TArray<INT> IncludedTransTracks;
+	IncludedTransTracks.AddItem(0); // Root bone always included
+	for (INT t = 1; t < NumTracks; t++)
+	{
+		const FRawAnimSequenceTrack& Track = Seq->RawAnimationData(t);
+		if (RefMesh && Track.PosKeys.Num() > 0)
+		{
+			FName BoneName = AnimSet->TrackBoneNames(t);
+			INT BoneIdx = RefMesh->MatchRefBone(BoneName);
+			if (BoneIdx != INDEX_NONE)
+			{
+				FVector RefPos = RefMesh->RefSkeleton(BoneIdx).BonePos.Position;
+				if (TranslationTrackDiffersFromRefPose(Track, RefPos))
+				{
+					IncludedTransTracks.AddItem(t);
+				}
+			}
+		}
+	}
+
 	const INT NRot = IncludedRotTracks.Num();
-	const INT NTrans = 1; // Root bone only
+	const INT NTrans = IncludedTransTracks.Num();
 	const INT NumRotBundles = (NRot > 0) ? 1 : 0;
-	const INT NumTransBundles = 1;
+	const INT NumTransBundles = (NTrans > 0) ? 1 : 0;
 	const INT NumBundles = NumRotBundles + NumTransBundles;
 
 	// --- Compute offsets ---
@@ -918,18 +962,24 @@ void AnimZip_Compress(UAnimSequence* Seq)
 		}
 	}
 
-	// --- Write translation track map (root bone = track 0) ---
-	Data[TransTrackMapOffset] = 0;
-
-	// --- Encode translation keyframes (root bone only) ---
+	// --- Write translation track map ---
+	for (INT i = 0; i < NTrans; i++)
 	{
-		const FRawAnimSequenceTrack& Track = Seq->RawAnimationData(0);
-		for (INT f = 0; f < NumFrames; f++)
+		Data[TransTrackMapOffset + i] = (BYTE)IncludedTransTracks(i);
+	}
+
+	// --- Encode translation keyframes ---
+	for (INT f = 0; f < NumFrames; f++)
+	{
+		for (INT i = 0; i < NTrans; i++)
 		{
+			INT AnimTrack = IncludedTransTracks(i);
+			const FRawAnimSequenceTrack& Track = Seq->RawAnimationData(AnimTrack);
+
 			INT KeyIdx = (Track.PosKeys.Num() > 1) ? Min(f, Track.PosKeys.Num() - 1) : 0;
 			FVector Pos = Track.PosKeys(KeyIdx);
 
-			FLOAT* Dst = (FLOAT*)&Data[TransKeyframesOffset + 12 * f];
+			FLOAT* Dst = (FLOAT*)&Data[TransKeyframesOffset + 12 * (i + NTrans * f)];
 			Dst[0] = Pos.X;
 			Dst[1] = Pos.Y;
 			Dst[2] = Pos.Z;
@@ -982,27 +1032,29 @@ void AnimZip_Compress(UAnimSequence* Seq)
 		}
 	}
 
-	// Verify root translation
+	// Verify translation tracks
+	for (INT i = 0; i < NTrans; i++)
 	{
-		const FRawAnimSequenceTrack& Track = Seq->RawAnimationData(0);
+		INT AnimTrack = IncludedTransTracks(i);
+		const FRawAnimSequenceTrack& Track = Seq->RawAnimationData(AnimTrack);
 		for (INT f = 0; f < NumFrames; f++)
 		{
 			FLOAT NormTime = (NumFrames > 1) ? (FLOAT)f / (NumFrames - 1) : 0.0f;
 			NormTime = Clamp(NormTime, 0.0f, 1.0f - (FLOAT)SMALL_NUMBER);
 
 			FBoneAtom Decoded;
-			AnimZip_Sample_Track(Seq, 0, NormTime, &Decoded);
+			AnimZip_Sample_Track(Seq, AnimTrack, NormTime, &Decoded);
 
 			INT KeyIdx = (Track.PosKeys.Num() > 1) ? Min(f, Track.PosKeys.Num() - 1) : 0;
 			FVector Expected = Track.PosKeys(KeyIdx);
 			FVector Got = Decoded.GetTranslation();
 			FLOAT Err = (Expected - Got).Size();
-			checkf(Err < 0.01f, TEXT("AnimZip round-trip translation error too large for root frame %d (err=%f)"), f, Err);
+			checkf(Err < 0.01f, TEXT("AnimZip round-trip translation error too large for track %d frame %d (err=%f)"), AnimTrack, f, Err);
 		}
 	}
 
-	debugf(TEXT("AnimZip_Compress: %s verified OK (%d rot tracks, %d frames, %d bytes)"),
-		*Seq->SequenceName.ToString(), NRot, NumFrames, TotalSize);
+	debugf(TEXT("AnimZip_Compress: %s verified OK (%d rot tracks, %d trans tracks, %d frames, %d bytes)"),
+		*Seq->SequenceName.ToString(), NRot, NTrans, NumFrames, TotalSize);
 #endif
 
 	// Clear RawAnimationData so AnimZip is the sole playback path.
