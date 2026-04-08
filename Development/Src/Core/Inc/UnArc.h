@@ -306,14 +306,16 @@ public:
 	FORCEINLINE INT GetMaxSerializeSize()					const	{return ArMaxSerializeSize;}
 
     // BM
-    UBOOL IsBmCooked(BOOL IncludeEditor = FALSE) const
+    UBOOL IsBmCooked(BOOL IncludeEditor = FALSE, BOOL IncludeNonCooked = TRUE) const
     {
 		if (IncludeEditor && LicenseeVer() == VER_BATMAN_EDITOR)
 		{
 			return true;
 		}
 
-        return (LicenseeVer() == VER_BATMAN3) && (BOOL)ArContainsCookedData;
+        return IncludeNonCooked
+			? (LicenseeVer() == VER_BATMAN3)
+			: (LicenseeVer() == VER_BATMAN3) && ArContainsCookedData;
     }
 
 	/**
