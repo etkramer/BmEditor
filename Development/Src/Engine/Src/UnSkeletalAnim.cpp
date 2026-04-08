@@ -928,6 +928,16 @@ void AnimZip_Compress(UAnimSequence* Seq)
 	Anim->NumTranslationScaleBundles = NumTransBundles;
 	Anim->TranslationScaleBundlesOffset = TransBundleOffset;
 
+	// --- Get root bone first-frame pose for motion bundle deltas ---
+	// Motion bundles store root motion as delta from the first frame, not absolute pose.
+	// The game's motion system (GetAnimOrigin/GetRootMotion) interprets these values
+	// as how much the root bone MOVED from its starting position. Storing the absolute
+	// pose would cause the static pelvis offset (height, orientation) to be treated as
+	// motion, sinking the mesh into the ground and rotating it incorrectly.
+	const FQuat RootFirstRot = RootTrack.RotKeys(0);
+	const FQuat RootFirstRotInv(-RootFirstRot.X, -RootFirstRot.Y, -RootFirstRot.Z, RootFirstRot.W);
+	const FVector RootFirstPos = RootTrack.PosKeys(0);
+
 	// --- Write motion rotation FBundle (root bone) ---
 	if (bHasMotionRot)
 	{
@@ -941,13 +951,14 @@ void AnimZip_Compress(UAnimSequence* Seq)
 		// Track map: track 0 -> anim track 0 (root bone)
 		Data[MotionRotTrackMapOffset] = 0;
 
-		// Encode root bone rotation keyframes
+		// Encode root bone rotation keyframes as delta from first frame
 		for (INT f = 0; f < NumFrames; f++)
 		{
 			INT KeyIdx = (RootTrack.RotKeys.Num() > 1) ? Min(f, RootTrack.RotKeys.Num() - 1) : 0;
 			FQuat Q = RootTrack.RotKeys(KeyIdx);
 
-			// Root bone (BoneIdx 0): keep ActorX convention as-is
+			// Delta from first frame: DeltaQ = AnimQ * FirstQ^(-1)
+			Q = Q * RootFirstRotInv;
 			Q.Normalize();
 
 			BYTE* KeyDst = &Data[MotionRotKeyframesOffset + 6 * f];
@@ -968,11 +979,13 @@ void AnimZip_Compress(UAnimSequence* Seq)
 		// Track map: track 0 -> anim track 0 (root bone)
 		Data[MotionTransTrackMapOffset] = 0;
 
-		// Encode root bone translation keyframes
+		// Encode root bone translation keyframes as delta from first frame
 		for (INT f = 0; f < NumFrames; f++)
 		{
 			INT KeyIdx = (RootTrack.PosKeys.Num() > 1) ? Min(f, RootTrack.PosKeys.Num() - 1) : 0;
 			FVector Pos = RootTrack.PosKeys(KeyIdx);
+
+			Pos -= RootFirstPos;
 
 			FLOAT* Dst = (FLOAT*)&Data[MotionTransKeyframesOffset + 12 * f];
 			Dst[0] = Pos.X;
