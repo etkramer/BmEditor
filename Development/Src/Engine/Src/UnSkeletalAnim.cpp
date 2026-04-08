@@ -864,15 +864,40 @@ void AnimZip_Compress(UAnimSequence* Seq)
 	const INT NumTransBundles = (NTrans > 0) ? 1 : 0;
 	const INT NumBundles = NumRotBundles + NumTransBundles;
 
+	// --- Check if root bone (track 0) has motion data for motion bundles ---
+	const FRawAnimSequenceTrack& RootTrack = Seq->RawAnimationData(0);
+	const UBOOL bHasMotionRot = (RootTrack.RotKeys.Num() > 0);
+	const UBOOL bHasMotionTrans = (RootTrack.PosKeys.Num() > 0);
+
 	// --- Compute offsets ---
 	const INT AnimHeaderSize = 24; // sizeof(FAnim)
 	const INT BundleSize = 12;     // sizeof(FBundle) packed
 
 	INT Cursor = AnimHeaderSize;
+
+	// Motion bundles (single-track bundles for root bone, read by AnimZip_Sample_MotionTrack)
+	const INT MotionRotBundleOffset = bHasMotionRot ? Cursor : -1;
+	if (bHasMotionRot) Cursor += BundleSize;
+	const INT MotionTransBundleOffset = bHasMotionTrans ? Cursor : -1;
+	if (bHasMotionTrans) Cursor += BundleSize;
+
+	// Regular bundles
 	const INT RotBundleOffset = Cursor;
 	Cursor += NumRotBundles * BundleSize;
 	const INT TransBundleOffset = Cursor;
 	Cursor += NumTransBundles * BundleSize;
+
+	// Motion rotation track map (1 byte) + keyframes
+	const INT MotionRotTrackMapOffset = Cursor;
+	if (bHasMotionRot) Cursor += 1; // 1 track
+	const INT MotionRotKeyframesOffset = Cursor;
+	if (bHasMotionRot) Cursor += 6 * NumFrames; // QuatMax48
+
+	// Motion translation track map (1 byte) + keyframes
+	const INT MotionTransTrackMapOffset = Cursor;
+	if (bHasMotionTrans) Cursor += 1; // 1 track
+	const INT MotionTransKeyframesOffset = Cursor;
+	if (bHasMotionTrans) Cursor += 12 * NumFrames; // NoScaleFloat96
 
 	// Rotation track map + keyframes
 	const INT RotTrackMapOffset = Cursor;
@@ -896,12 +921,65 @@ void AnimZip_Compress(UAnimSequence* Seq)
 
 	// --- Write FAnim header ---
 	FAnim* Anim = (FAnim*)Data;
-	Anim->MotionRotationBundleOffset = -1;
-	Anim->MotionTranslationScaleBundleOffset = -1;
+	Anim->MotionRotationBundleOffset = MotionRotBundleOffset;
+	Anim->MotionTranslationScaleBundleOffset = MotionTransBundleOffset;
 	Anim->NumRotationBundles = NumRotBundles;
 	Anim->RotationBundlesOffset = RotBundleOffset;
 	Anim->NumTranslationScaleBundles = NumTransBundles;
 	Anim->TranslationScaleBundlesOffset = TransBundleOffset;
+
+	// --- Write motion rotation FBundle (root bone) ---
+	if (bHasMotionRot)
+	{
+		FBundle* MotionRotBundle = (FBundle*)&Data[MotionRotBundleOffset];
+		MotionRotBundle->Codec = AZRC_QuatMax_48;
+		MotionRotBundle->NumTracks = 1;
+		MotionRotBundle->NumFrames = (USHORT)NumFrames;
+		MotionRotBundle->TracksAndHeadersOffset = MotionRotTrackMapOffset;
+		MotionRotBundle->KeyframesOffset = MotionRotKeyframesOffset;
+
+		// Track map: track 0 -> anim track 0 (root bone)
+		Data[MotionRotTrackMapOffset] = 0;
+
+		// Encode root bone rotation keyframes
+		for (INT f = 0; f < NumFrames; f++)
+		{
+			INT KeyIdx = (RootTrack.RotKeys.Num() > 1) ? Min(f, RootTrack.RotKeys.Num() - 1) : 0;
+			FQuat Q = RootTrack.RotKeys(KeyIdx);
+
+			// Root bone (BoneIdx 0): keep ActorX convention as-is
+			Q.Normalize();
+
+			BYTE* KeyDst = &Data[MotionRotKeyframesOffset + 6 * f];
+			EncodeQuatMax48(Q, KeyDst);
+		}
+	}
+
+	// --- Write motion translation FBundle (root bone) ---
+	if (bHasMotionTrans)
+	{
+		FBundle* MotionTransBundle = (FBundle*)&Data[MotionTransBundleOffset];
+		MotionTransBundle->Codec = AZTSC_NoScale_Float_96;
+		MotionTransBundle->NumTracks = 1;
+		MotionTransBundle->NumFrames = (USHORT)NumFrames;
+		MotionTransBundle->TracksAndHeadersOffset = MotionTransTrackMapOffset;
+		MotionTransBundle->KeyframesOffset = MotionTransKeyframesOffset;
+
+		// Track map: track 0 -> anim track 0 (root bone)
+		Data[MotionTransTrackMapOffset] = 0;
+
+		// Encode root bone translation keyframes
+		for (INT f = 0; f < NumFrames; f++)
+		{
+			INT KeyIdx = (RootTrack.PosKeys.Num() > 1) ? Min(f, RootTrack.PosKeys.Num() - 1) : 0;
+			FVector Pos = RootTrack.PosKeys(KeyIdx);
+
+			FLOAT* Dst = (FLOAT*)&Data[MotionTransKeyframesOffset + 12 * f];
+			Dst[0] = Pos.X;
+			Dst[1] = Pos.Y;
+			Dst[2] = Pos.Z;
+		}
+	}
 
 	// --- Write rotation FBundle ---
 	if (NRot > 0)
