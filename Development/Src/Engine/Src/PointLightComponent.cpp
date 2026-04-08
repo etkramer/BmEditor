@@ -476,6 +476,8 @@ void UPointLightComponent::PostLoad()
 	// FReloadObjectArcs call PostLoad() *prior* to instancing components for objects being reloaded, so this check is invalid in that case
 	&& (GUglyHackFlags&HACK_IsReloadObjArc) == 0 )
 	{
+#if BATMAN
+#else
 		if ( PreviewLightRadius && PreviewLightRadius->GetOuter() != GetOuter() )
 		{
 			// so if we are here, then the owning light actor was definitely created after the fixup code was added, so there is some way that this bug is still occurring
@@ -484,6 +486,7 @@ void UPointLightComponent::PostLoad()
 			//@todo ronp - remove this once we've verified that this is no longer occurring.
 			appMsgf(AMT_OK, TEXT("PointLightComponent %s has an invalid PreviewLightRadius '%s' even though package has been resaved since this bug was fixed.  Please let Ron know about this immediately!"), *GetFullName(), *PreviewLightRadius->GetFullName());
 		}
+#endif
 	}
 }
 

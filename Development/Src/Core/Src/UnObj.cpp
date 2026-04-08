@@ -1675,6 +1675,28 @@ void UObject::Serialize( FArchive& Ar )
 
 	// Execution stack.
 	//!!how does the stack work in conjunction with transaction tracking?
+#if BATMAN
+	// BM3 retail (UStateObject::SerializeStateFrame) always serializes a 1-byte
+	// boolean for RF_HasStack before the state frame data, for all actor subclasses.
+	// Without reading this byte, the stream is off by 1 for every actor, causing
+	// shifted NetIndex and property tag reads (e.g. TypeIndex 2304 = 0x0900).
+	if (!Ar.IsTransacting() && Ar.IsBmCooked(TRUE))
+	{
+		static UClass* ActorClass = FindObject<UClass>(ANY_PACKAGE, TEXT("Actor"));
+		if (ActorClass && IsA(ActorClass))
+		{
+			BYTE HasStackByte = HasAnyFlags(RF_HasStack) ? 1 : 0;
+			Ar.Serialize(&HasStackByte, 1);
+			if (Ar.IsLoading())
+			{
+				if (HasStackByte)
+					SetFlags(RF_HasStack);
+				else
+					ClearFlags(RF_HasStack);
+			}
+		}
+	}
+#endif
 	if( !Ar.IsTransacting() )
 	{
 		if( HasAnyFlags(RF_HasStack) )

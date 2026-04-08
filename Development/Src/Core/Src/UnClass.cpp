@@ -923,7 +923,7 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 
 				// Ensure we consumed exactly Tag.Size bytes to prevent stream misalignment
 				INT BytesRead = Ar.Tell() - StartPos;
-				if (BytesRead < Tag.Size)
+				if (BytesRead != Tag.Size)
 				{
 					Ar.Seek(StartPos + Tag.Size);
 				}
@@ -945,7 +945,7 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 
                 // Ensure we consumed exactly Tag.Size bytes to prevent stream misalignment
                 INT BytesRead = Ar.Tell() - StartPos;
-                if (BytesRead < Tag.Size)
+                if (BytesRead != Tag.Size)
                 {
                     Ar.Seek(StartPos + Tag.Size);
                 }
@@ -968,7 +968,7 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 
                 // Ensure we consumed exactly Tag.Size bytes to prevent stream misalignment
                 INT BytesRead = Ar.Tell() - StartPos;
-                if (BytesRead < Tag.Size)
+                if (BytesRead != Tag.Size)
                 {
                     Ar.Seek(StartPos + Tag.Size);
                 }
@@ -1049,7 +1049,22 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 				{
 					BYTE* DestAddress = Data + Property->Offset + Tag.ArrayIndex * Property->ElementSize;
 
-					// This property is ok.			
+					// This property is ok.
+#if BATMAN
+					if (Ar.IsBmCooked(TRUE))
+					{
+						INT StartPos = Ar.Tell();
+						Tag.SerializeTaggedProperty( Ar, Property, DestAddress, Tag.Size, NULL );
+						INT BytesRead = Ar.Tell() - StartPos;
+						if (BytesRead != Tag.Size)
+						{
+							debugf(NAME_Warning, TEXT("BM3: Property %s of %s read %d bytes but Tag.Size=%d, correcting stream (package: %s)"),
+								*Tag.Name.ToString(), *GetName(), BytesRead, Tag.Size, *Ar.GetArchiveName());
+							Ar.Seek(StartPos + Tag.Size);
+						}
+					}
+					else
+#endif
 					Tag.SerializeTaggedProperty( Ar, Property, DestAddress, Tag.Size, NULL );
 
 
@@ -2446,8 +2461,7 @@ void UClass::Serialize( FArchive& Ar )
 #if BATMAN
 		// BM3 PC decompiled: extra 4-byte field gated by LicenseeVer >= 94
 		// (between bForceScriptOrder and ClassGroupNames)
-		// BM TODO: Change to IsBmCooked(TRUE) and delete current script packages
-		if (Ar.IsBmCooked() && Ar.LicenseeVer() >= 94)
+		if (Ar.IsBmCooked(TRUE) && Ar.LicenseeVer() >= 94)
 		{
 			INT BmClassGroupFlags = 0;
 			Ar << BmClassGroupFlags;

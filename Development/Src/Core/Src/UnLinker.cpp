@@ -29,6 +29,7 @@ TMap<FString, TArray<BYTE> > ULinkerSave::PackagesToScriptSHAMap;
 #define BM3_RF_RootSet				DECLARE_UINT64(0x0000000000000400)
 #define BM3_RF_Public				DECLARE_UINT64(0x0000000000100000)
 #define BM3_RF_NeedPostLoad			DECLARE_UINT64(0x0000000004000000)
+#define BM3_RF_Standalone			DECLARE_UINT64(0x0000400000000000)
 
 static void RemapObjectFlag(EObjectFlags& Flags, EObjectFlags From, EObjectFlags To)
 {
@@ -53,6 +54,7 @@ static void RemapBmObjectFlags(EObjectFlags& Flags, UBOOL bLoading)
 		RemapObjectFlag(Flags, BM3_RF_RootSet,            RF_RootSet);
 		RemapObjectFlag(Flags, BM3_RF_Public,             RF_Public);
 		RemapObjectFlag(Flags, BM3_RF_NeedPostLoad,       RF_NeedPostLoad);
+		RemapObjectFlag(Flags, BM3_RF_Standalone,         RF_Standalone);
 	}
 	else
 	{
@@ -61,6 +63,7 @@ static void RemapBmObjectFlags(EObjectFlags& Flags, UBOOL bLoading)
 		RemapObjectFlag(Flags, RF_RootSet,            BM3_RF_RootSet);
 		RemapObjectFlag(Flags, RF_Public,             BM3_RF_Public);
 		RemapObjectFlag(Flags, RF_NeedPostLoad,       BM3_RF_NeedPostLoad);
+		RemapObjectFlag(Flags, RF_Standalone,         BM3_RF_Standalone);
 	}
 }
 #endif
@@ -3737,6 +3740,9 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 
 			LoadClass->GetName() == "PhysicsAsset" ||
 			LoadClass->GetName() == "RB_BodySetup" ||
+
+			LoadClass->GetName() == "SeqAct_Interp" ||
+			LoadClass->GetName() == "NavigationMeshBase" ||
 
             LoadClass->GetName() == "LightMapTexture2D" ||
 			LoadClass->GetName() == "TextureCube" ||
