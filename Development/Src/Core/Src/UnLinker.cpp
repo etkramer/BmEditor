@@ -3733,7 +3733,7 @@ UObject* ULinkerLoad::CreateExport( INT Index )
         if (IsBmCooked() && (
             // These load but don't render properly (needs RefShaderCache compat).
             // Ignoring for now so we fall back to the prettier default mat.
-            LoadClass->GetName() == "Material" ||
+            // LoadClass->GetName() == "Material" ||
 
 			// Don't load class functions for now
 			LoadClass->GetName() == "Function" ||
@@ -4816,8 +4816,8 @@ FArchive& ULinkerLoad::operator<<( FName& Name )
 #if BATMAN
 		if (IsBmCooked(FALSE))
 		{
-			warnf( NAME_Warning, TEXT("Bad name index %i/%i (serializing %s at offset %i)"), NameIndex, NameMap.Num(),
-				GSerializedObject ? *GSerializedObject->GetFullName() : TEXT("NULL"), Tell() );
+			// warnf( NAME_Warning, TEXT("Bad name index %i/%i (serializing %s at offset %i)"), NameIndex, NameMap.Num(),
+			// 	GSerializedObject ? *GSerializedObject->GetFullName() : TEXT("NULL"), Tell() );
 			INT TempNumber;
 			Ar << TempNumber;
 			Name = NAME_None;

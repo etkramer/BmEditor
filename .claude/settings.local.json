@@ -33,7 +33,11 @@
       "Bash(python3:*)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(git -C /i/UnrealEngine3 log --all --oneline -- \"*UnLevel*\")",
-      "Bash(ls I:/UnrealEngine3/BmGame/CookedPCConsole/BaneHQ*)"
+      "Bash(ls I:/UnrealEngine3/BmGame/CookedPCConsole/BaneHQ*)",
+      "Bash(du -sh /i/UnrealEngine3/Development/Src/*/)",
+      "Bash(\\\\.h\")",
+      "Bash(awk -F'\\(' '{print $1\":\"$2}')",
+      "Bash(awk -F'-' '{print $2}')"
     ]
   }
 }

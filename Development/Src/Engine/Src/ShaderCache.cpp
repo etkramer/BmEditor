@@ -305,6 +305,16 @@ void FShaderCache::Load(FArchive& Ar)
 
 	if (Ar.Ver() >= VER_SHADER_COMPRESSION)
 	{
+#if BATMAN
+		if (Ar.IsBmCooked())
+		{
+			// BM3 writes a 4-byte dummy INT instead of FCompressedShaderCodeCache
+			INT BmDummy = 0;
+			Ar << BmDummy;
+			warnf(NAME_Warning, TEXT("BM3 FShaderCache::Load: Platform=%d, Dummy=%d, Pos=%d"), (INT)Platform, BmDummy, Ar.Tell());
+		}
+		else
+#endif
 		if (GRHIShaderPlatform == (EShaderPlatform)Platform && UseShaderCompression((EShaderPlatform)Platform))
 		{
 			CompressedCache = new FCompressedShaderCodeCache((EShaderPlatform)Platform);
@@ -609,6 +619,14 @@ void UShaderCache::Load(FArchive& Ar, UBOOL bIsAlwaysLoaded)
 	DOUBLE StartTime = appSeconds();
 	SCOPE_SECONDS_COUNTER(GShaderCacheLoadTime);
 
+#if BATMAN
+	if (Ar.IsBmCooked())
+	{
+		warnf(NAME_Warning, TEXT("BM3 UShaderCache::Load: Entry Pos=%d, Ver=%d, LicVer=%d"),
+			Ar.Tell(), Ar.Ver(), Ar.LicenseeVer());
+	}
+#endif
+
 	if (Ar.Ver() < VER_SHADER_CACHE_PRIORITY)
 	{
 		ShaderCachePriority = 0;
@@ -618,6 +636,13 @@ void UShaderCache::Load(FArchive& Ar, UBOOL bIsAlwaysLoaded)
 		Ar << ShaderCachePriority;
 	}
 
+#if BATMAN
+	if (Ar.IsBmCooked())
+	{
+		warnf(NAME_Warning, TEXT("BM3 UShaderCache::Load: ShaderCachePriority=%d, Pos=%d (before FShaderCache::Load)"),
+			ShaderCachePriority, Ar.Tell());
+	}
+#endif
 
 	if(Ar.Ver() < VER_GLOBAL_SHADER_FILE)
 	{
@@ -647,10 +672,103 @@ void UShaderCache::Load(FArchive& Ar, UBOOL bIsAlwaysLoaded)
 	TArray<FString> OutdatedVFTypes;
 	INT NumMaterialShaderMaps = 0;
 	INT NumRedundantMaterialShaderMaps = 0;
+
+#if BATMAN
+	if (Ar.IsBmCooked())
+	{
+		warnf(NAME_Warning, TEXT("BM3 UShaderCache::Load: Before MaterialShaderMaps, Pos=%d"), Ar.Tell());
+	}
+#endif
+
 	Ar << NumMaterialShaderMaps;
+
+#if BATMAN
+	if (Ar.IsBmCooked())
+	{
+		warnf(NAME_Warning, TEXT("BM3 UShaderCache::Load: NumMaterialShaderMaps=%d, Pos=%d"), NumMaterialShaderMaps, Ar.Tell());
+	}
+#endif
 
 	// One cannot delete these right away, as they are used in a many-to-one relationship on load
 	TArray<FMaterialShaderMap*> DeferredDeleteMaterialShaderMaps;
+
+#if BATMAN
+	// BM3 has TWO MaterialShaderMap sections:
+	// Section 1: BM3-specific format with fixed 44-byte header (FName + FGuid + hash) + SkipOffset.
+	//            This does NOT use FStaticParameterSet serialization.
+	// Section 2: Standard UE3 format with FStaticParameterSet + ShaderMapVersion + ShaderMapLicenseeVersion + SkipOffset.
+	//            The FStaticParameterSet has variable-length arrays.
+	if (Ar.IsBmCooked())
+	{
+		// Section 1: BM3-specific MaterialShaderMaps (fixed 44-byte header + SkipOffset)
+		warnf(NAME_Warning, TEXT("BM3 UShaderCache::Load: Skipping %d MaterialShaderMaps (section 1) at Pos=%d"), NumMaterialShaderMaps, Ar.Tell());
+
+		for (INT MaterialIndex = 0; MaterialIndex < NumMaterialShaderMaps; MaterialIndex++)
+		{
+			BYTE Header[44];
+			Ar.Serialize(Header, 44);
+
+			INT SkipOffset = 0;
+			Ar << SkipOffset;
+
+			if (MaterialIndex < 3)
+			{
+				warnf(NAME_Warning, TEXT("BM3 MaterialShaderMap1[%d]: Pos=%d, SkipOffset=%d"),
+					MaterialIndex, Ar.Tell() - 48, SkipOffset);
+			}
+
+			if (SkipOffset <= Ar.Tell() || SkipOffset > Ar.TotalSize())
+			{
+				warnf(NAME_Warning, TEXT("BM3: Invalid MaterialShaderMap1 SkipOffset=%d at Material[%d], aborting"),
+					SkipOffset, MaterialIndex);
+				break;
+			}
+
+			Ar.Seek(SkipOffset);
+		}
+
+		warnf(NAME_Warning, TEXT("BM3 UShaderCache::Load: Done section 1, Pos=%d"), Ar.Tell());
+
+		// Section 2: Standard FStaticParameterSet-keyed MaterialShaderMaps
+		INT NumMaterialShaderMaps2 = 0;
+		Ar << NumMaterialShaderMaps2;
+		warnf(NAME_Warning, TEXT("BM3 UShaderCache::Load: Section 2 has %d MaterialShaderMaps at Pos=%d"), NumMaterialShaderMaps2, Ar.Tell());
+
+		for (INT MaterialIndex = 0; MaterialIndex < NumMaterialShaderMaps2; MaterialIndex++)
+		{
+			FStaticParameterSet StaticParameters;
+			StaticParameters.Serialize(Ar);
+
+			INT ShaderMapVersion = 0;
+			INT ShaderMapLicenseeVersion = 0;
+			Ar << ShaderMapVersion << ShaderMapLicenseeVersion;
+
+			INT SkipOffset = 0;
+			Ar << SkipOffset;
+
+			if (MaterialIndex < 3)
+			{
+				warnf(NAME_Warning, TEXT("BM3 MaterialShaderMap2[%d]: Pos=%d, BaseMaterialId=(%u,%u,%u,%u), ShaderMapVer=%d/%d, SkipOffset=%d"),
+					MaterialIndex, Ar.Tell(), StaticParameters.BaseMaterialId.A, StaticParameters.BaseMaterialId.B,
+					StaticParameters.BaseMaterialId.C, StaticParameters.BaseMaterialId.D,
+					ShaderMapVersion, ShaderMapLicenseeVersion, SkipOffset);
+			}
+
+			if (SkipOffset <= Ar.Tell() || SkipOffset > Ar.TotalSize())
+			{
+				warnf(NAME_Warning, TEXT("BM3: Invalid MaterialShaderMap2 SkipOffset=%d at Material[%d] (Pos=%d), aborting"),
+					SkipOffset, MaterialIndex, Ar.Tell());
+				break;
+			}
+
+			Ar.Seek(SkipOffset);
+		}
+
+		warnf(NAME_Warning, TEXT("BM3 UShaderCache::Load: Done section 2, EndPos=%d"), Ar.Tell());
+	}
+	else
+#endif
+	{
 
 	// Load the material shader indices in the cache.
 	for( INT MaterialIndex=0; MaterialIndex<NumMaterialShaderMaps; MaterialIndex++ )
@@ -786,6 +904,9 @@ void UShaderCache::Load(FArchive& Ar, UBOOL bIsAlwaysLoaded)
 			}
 		}
 	}
+
+	} // end non-BM3 MaterialShaderMap path
+
 	// One cannot delete these right away, as they are used in a many-to-one relationship on load
 	for (INT Index = 0; Index < DeferredDeleteMaterialShaderMaps.Num() ; Index++ )
 	{
@@ -1227,6 +1348,15 @@ void SerializeShaders(const TMap<FGuid,FShader*>& InShaders, FArchive& Ar)
 	}
 #endif
 
+#if BATMAN
+	// BM3 uses a completely different shader format (FGuid + raw D3D bytecode) handled
+	// separately in the loading path below, so automatic versioning doesn't apply.
+	if (Ar.IsLoading() && Ar.IsBmCooked())
+	{
+		bSerializeAutomaticVersioningData = FALSE;
+	}
+#endif
+
 	if (Ar.IsSaving())
 	{
 		INT NumShaders = InShaders.Num();
@@ -1291,6 +1421,43 @@ void SerializeShaders(const TMap<FGuid,FShader*>& InShaders, FArchive& Ar)
 
 		Ar << NumShaders;
 
+#if BATMAN
+		// BM3 uses a completely different per-shader format: FGuid(16) + INT BytecodeSize(4) + BYTE Bytecode[].
+		// No FName, no SkipOffset, no FShader::Serialize -- just raw D3D bytecode identified by GUID.
+		if (Ar.IsLoading() && Ar.IsBmCooked())
+		{
+			warnf(NAME_Warning, TEXT("BM3 SerializeShaders: NumShaders=%d, Pos=%d"), NumShaders, Ar.Tell());
+
+			for (INT ShaderIndex = 0; ShaderIndex < NumShaders; ShaderIndex++)
+			{
+				FGuid ShaderId;
+				INT BytecodeSize = 0;
+				Ar << ShaderId;
+				Ar << BytecodeSize;
+
+				if (ShaderIndex < 3)
+				{
+					warnf(NAME_Warning, TEXT("BM3 Shader[%d]: Pos=%d, GUID=(%u,%u,%u,%u), BytecodeSize=%d"),
+						ShaderIndex, Ar.Tell() - 20,
+						ShaderId.A, ShaderId.B, ShaderId.C, ShaderId.D, BytecodeSize);
+				}
+
+				if (BytecodeSize < 0 || BytecodeSize > Ar.TotalSize())
+				{
+					warnf(NAME_Warning, TEXT("BM3: Invalid BytecodeSize=%d at Shader[%d], aborting"), BytecodeSize, ShaderIndex);
+					break;
+				}
+
+				// Skip the raw D3D bytecode for now
+				Ar.Seek(Ar.Tell() + BytecodeSize);
+			}
+
+			warnf(NAME_Warning, TEXT("BM3 SerializeShaders: Done, EndPos=%d"), Ar.Tell());
+		}
+		else
+#endif
+		{
+
 		// Load the shaders in the cache.
 		for (INT ShaderIndex = 0; ShaderIndex < NumShaders; ShaderIndex++)
 		{
@@ -1324,7 +1491,7 @@ void SerializeShaders(const TMap<FGuid,FShader*>& InShaders, FArchive& Ar)
 			{
 				// Get the current hash of the shader's source files
 				const FSHAHash& CurrentHash = ShaderType->GetSourceHash();
-				
+
 				FShader* Shader = ShaderType->FindShaderById(ShaderId);
 				if (Shader)
 				{
@@ -1375,16 +1542,18 @@ void SerializeShaders(const TMap<FGuid,FShader*>& InShaders, FArchive& Ar)
 					else
 					{
 						// If this happens it probably indicates a bug in the automatic shader versioning
-						checkf(Ar.Tell() == SkipOffset, 
-							TEXT("Deserialized the wrong amount for shader %s!  Expected archive position %i, got position %i\n"), 
-							ShaderType->GetName(), 
-							SkipOffset, 
+						checkf(Ar.Tell() == SkipOffset,
+							TEXT("Deserialized the wrong amount for shader %s!  Expected archive position %i, got position %i\n"),
+							ShaderType->GetName(),
+							SkipOffset,
 							Ar.Tell()
 							);
 					}
 				}
 			}
 		}
+
+		} // end non-BM3 path
 		
 		if (ShouldReloadChangedShaders())
 		{

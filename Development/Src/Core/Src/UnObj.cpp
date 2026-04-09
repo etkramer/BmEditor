@@ -6524,6 +6524,13 @@ ULinkerLoad* UObject::GetPackageLinker
 			{
 				*appStrstr(T,TEXT(".")) = 0;
 			}
+#if BATMAN
+			// BM: Strip leading underscore from package name (e.g. "_BmGame" -> "BmGame")
+			if( *T == '_' )
+			{
+				T++;
+			}
+#endif
 			//@script patcher (LOAD_RemappedPackage)
 			UPackage* FilenamePkg = CreatePackage( NULL, T, (LoadFlags&LOAD_RemappedPackage) != 0 );
 
