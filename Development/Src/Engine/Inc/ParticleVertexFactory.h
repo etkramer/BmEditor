@@ -140,6 +140,9 @@ public:
 		NormalsTypeParameter.Bind(ParameterMap, TEXT("NormalsType"),TRUE);
 		NormalsSphereCenterParameter.Bind(ParameterMap, TEXT("NormalsSphereCenter"),TRUE);
 		NormalsCylinderUnitDirectionParameter.Bind(ParameterMap, TEXT("NormalsCylinderUnitDirection"),TRUE);
+#if BATMAN
+		CornerUVsParameter.Bind(ParameterMap, TEXT("CornerUVs"), TRUE);
+#endif
 	}
 
 	virtual void Serialize(FArchive& Ar)
@@ -155,7 +158,13 @@ public:
 		Ar << NormalsTypeParameter;
 		Ar << NormalsSphereCenterParameter;
 		Ar << NormalsCylinderUnitDirectionParameter;
-		
+#if BATMAN
+		if (Ar.IsBmCooked(TRUE))
+		{
+			Ar << CornerUVsParameter;
+		}
+#endif
+
 		// set parameter names for platforms that need them
 		CameraWorldPositionParameter.SetShaderParamName(TEXT("CameraWorldPosition"));
 		CameraRightParameter.SetShaderParamName(TEXT("CameraRight"));
@@ -183,4 +192,7 @@ private:
 	FShaderParameter NormalsTypeParameter;
 	FShaderParameter NormalsSphereCenterParameter;
 	FShaderParameter NormalsCylinderUnitDirectionParameter;
+#if BATMAN
+	FShaderParameter CornerUVsParameter;
+#endif
 };

@@ -6,6 +6,11 @@
 #include "EnginePrivate.h"
 #include "DiagnosticTable.h"
 
+#if BATMAN
+/** Global map of BM3 shader bytecode, defined in ShaderCache.cpp. */
+extern TMap<FGuid, TArray<BYTE>> GBmShaderBytecodeMap;
+#endif
+
 EShaderPlatform GRHIShaderPlatform = SP_PCD3D_SM3;
 /** Shader platform to cook for, not meaningful unless GIsCooking is TRUE */
 EShaderPlatform GCookingShaderPlatform = SP_PCD3D_SM3;
@@ -816,6 +821,19 @@ UBOOL FShader::Serialize(FArchive& Ar)
 		TArray<BYTE> Empty;
 		Ar << Empty;
 	}
+#if BATMAN
+	else if (Ar.IsLoading() && Ar.IsBmCooked())
+	{
+		// BM3 stores an FGuid reference to bytecode in GBmShaderBytecodeMap instead of inline TArray<BYTE>
+		FGuid BytecodeGuid;
+		Ar << BytecodeGuid;
+		TArray<BYTE>* Bytecode = GBmShaderBytecodeMap.Find(BytecodeGuid);
+		if (Bytecode)
+		{
+			Key.Code = *Bytecode;
+		}
+	}
+#endif
 	else
 	{
 		Ar << Key.Code;

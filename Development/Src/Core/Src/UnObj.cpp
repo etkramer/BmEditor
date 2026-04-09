@@ -6524,13 +6524,6 @@ ULinkerLoad* UObject::GetPackageLinker
 			{
 				*appStrstr(T,TEXT(".")) = 0;
 			}
-#if BATMAN
-			// BM: Strip leading underscore from package name (e.g. "_BmGame" -> "BmGame")
-			if( *T == '_' )
-			{
-				T++;
-			}
-#endif
 			//@script patcher (LOAD_RemappedPackage)
 			UPackage* FilenamePkg = CreatePackage( NULL, T, (LoadFlags&LOAD_RemappedPackage) != 0 );
 
@@ -7110,6 +7103,35 @@ UPackage* UObject::LoadPackage( UPackage* InOuter, const TCHAR* Filename, DWORD 
 		}
 		Result = Linker->LinkerRoot;
 		EndLoad();
+
+// #if BATMAN
+// 		// BM: Packages starting with '_' (e.g. "_BmGame") are merged into their non-underscore counterpart.
+// 		// If "BmGame" already exists, move top-level objects into it (sub-objects follow automatically).
+// 		// Otherwise, just rename the package itself.
+// 		{
+// 			FString PkgName = Result->GetName();
+// 			if( PkgName.Len() > 1 && PkgName[0] == TCHAR('_') )
+// 			{
+// 				FString StrippedName = PkgName.Mid(1);
+// 				UPackage* ExistingPkg = FindObject<UPackage>( NULL, *StrippedName );
+// 				if( ExistingPkg )
+// 				{
+// 					// Re-outer every top-level object from _BmGame into BmGame.
+// 					for( TObjectIterator<UObject> It; It; ++It )
+// 					{
+// 						if( It->GetOuter() == Result )
+// 						{
+// 							It->Rename( NULL, ExistingPkg, REN_ForceNoResetLoaders );
+// 						}
+// 					}
+// 				}
+// 				else
+// 				{
+// 					Result->Rename( *StrippedName, NULL, REN_ForceNoResetLoaders );
+// 				}
+// 			}
+// 		}
+// #endif
 
 		// Cancel all texture allocations that haven't been claimed yet.
 		Linker->Summary.TextureAllocations.CancelRemainingAllocations( TRUE );

@@ -554,6 +554,14 @@ UBOOL operator<<(FArchive& Ar,FVertexFactoryPSParameterRef& Ref)
 {
 	UBOOL bShaderHasOutdatedParameters = FALSE;
 
+#if BATMAN
+	// BM3 pixel shaders don't have vertex factory parameters
+	if (Ar.IsBmCooked(TRUE))
+	{
+		return FALSE;
+	}
+#endif
+
 	Ar << Ref.VertexFactoryType;
 
 #if CONSOLE

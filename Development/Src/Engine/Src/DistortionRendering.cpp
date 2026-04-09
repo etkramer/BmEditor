@@ -369,6 +369,11 @@ public:
 	*/
 	FBoundShaderStateRHIRef CreateBoundShaderState(DWORD DynamicStride = 0);
 
+#if BATMAN
+	/** Returns TRUE if all required shaders are non-NULL. */
+	UBOOL HasValidShaders() const;
+#endif
+
 	/**
 	* Sets the render states for drawing a mesh.
 	* @param PrimitiveSceneInfo - The primitive drawing the dynamic mesh.  If this is a view element, this will be NULL.
@@ -445,6 +450,18 @@ TDistortionMeshDrawingPolicy<DistortMeshPolicy>::TDistortionMeshDrawingPolicy(
 		InitializePixelShader = NULL;
 	}
 }
+
+#if BATMAN
+/** Returns TRUE if all required shaders are non-NULL. */
+template<class DistortMeshPolicy>
+UBOOL TDistortionMeshDrawingPolicy<DistortMeshPolicy>::HasValidShaders() const
+{
+	if (!VertexShader) return FALSE;
+	if (bInitializeOffsets && !InitializePixelShader) return FALSE;
+	if (!bInitializeOffsets && !DistortPixelShader) return FALSE;
+	return TRUE;
+}
+#endif
 
 /**
 * Match two draw policies
@@ -692,6 +709,12 @@ UBOOL TDistortionMeshDrawingPolicyFactory<DistortMeshPolicy>::DrawDynamicMesh(
 			bInitializeOffsets,
 			(View.Family->ShowFlags & SHOW_ShaderComplexity) != 0
 			);
+#if BATMAN
+		if (!DrawingPolicy.HasValidShaders())
+		{
+			return FALSE;
+		}
+#endif
 		DrawingPolicy.DrawShared(&View,DrawingPolicy.CreateBoundShaderState(Mesh.GetDynamicVertexStride()));
 		DrawingPolicy.SetMeshRenderState(View,PrimitiveSceneInfo,Mesh,bBackFace,typename TDistortionMeshDrawingPolicy<DistortMeshPolicy>::ElementDataType());
 		DrawingPolicy.DrawMesh(Mesh);
@@ -727,6 +750,12 @@ UBOOL TDistortionMeshDrawingPolicyFactory<DistortMeshPolicy>::DrawStaticMesh(
 			bInitializeOffsets,
 			(View->Family->ShowFlags & SHOW_ShaderComplexity) != 0
 			);
+#if BATMAN
+		if (!DrawingPolicy.HasValidShaders())
+		{
+			return FALSE;
+		}
+#endif
 		DrawingPolicy.DrawShared(View,DrawingPolicy.CreateBoundShaderState());
 		DrawingPolicy.SetMeshRenderState(*View,PrimitiveSceneInfo,StaticMesh,bBackFace,typename TDistortionMeshDrawingPolicy<DistortMeshPolicy>::ElementDataType());
 		DrawingPolicy.DrawMesh(StaticMesh);

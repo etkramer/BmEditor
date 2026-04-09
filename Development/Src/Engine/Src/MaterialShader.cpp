@@ -351,6 +351,12 @@ FArchive& operator<<(FArchive& Ar,FMaterialShaderParameters& Parameters)
 	Ar << Parameters.UniformScalarShaderParameters;
 	Ar << Parameters.UniformVectorShaderParameters;
 	Ar << Parameters.Uniform2DShaderResourceParameters;
+#if BATMAN
+	if (Ar.IsBmCooked(TRUE))
+	{
+		Ar << Parameters.LODFadeParameter;
+	}
+#endif
 	return Ar;
 }
 
@@ -408,6 +414,9 @@ void FMaterialShaderParameters::Bind(const FShaderParameterMap& ParameterMap, ES
 	}
 
 	DOFParameters.Bind(ParameterMap);
+#if BATMAN
+	LODFadeParameter.Bind(ParameterMap, TEXT("LODFade"), TRUE);
+#endif
 }
 
 /** Sets shader parameters that are material specific but not FMeshElement specific. */
@@ -440,6 +449,9 @@ void FMaterialShaderParameters::SetShader(
 	for (INT ParameterIndex = 0; ParameterIndex < UniformScalarShaderParameters.Num(); ParameterIndex++)
 	{
 		const TUniformParameter<FShaderParameter>& UniformParameter = UniformScalarShaderParameters(ParameterIndex);
+#if BATMAN
+		if (UniformParameter.Index >= (InExpressions.UniformScalarExpressions.Num() + 3) / 4) continue;
+#endif
 		checkSlow(UniformParameter.Index < (InExpressions.UniformScalarExpressions.Num() + 3) / 4);
 		const FVector4& Value = CachedValues->CachedScalarParameters(UniformParameter.Index);
 		SetShaderValue(ShaderRHI,UniformParameter.ShaderParameter,Value);
@@ -448,6 +460,9 @@ void FMaterialShaderParameters::SetShader(
 	for (INT ParameterIndex = 0; ParameterIndex < UniformVectorShaderParameters.Num(); ParameterIndex++)
 	{
 		const TUniformParameter<FShaderParameter>& UniformParameter = UniformVectorShaderParameters(ParameterIndex);
+#if BATMAN
+		if (UniformParameter.Index >= InExpressions.UniformVectorExpressions.Num()) continue;
+#endif
 		checkSlow(UniformParameter.Index < InExpressions.UniformVectorExpressions.Num());
 		const FVector4& Value = CachedValues->CachedVectorParameters(UniformParameter.Index);
 		SetShaderValue(ShaderRHI,UniformParameter.ShaderParameter,Value);
@@ -460,8 +475,14 @@ void FMaterialShaderParameters::SetShader(
 		for(INT ParameterIndex = 0;ParameterIndex < Uniform2DShaderResourceParameters.Num();ParameterIndex++)
 		{
 			const TUniformParameter<FShaderResourceParameter>& UniformResourceParameter = Uniform2DShaderResourceParameters(ParameterIndex);
+#if BATMAN
+			if (UniformResourceParameter.Index >= InExpressions.Uniform2DTextureExpressions.Num()) continue;
+#endif
 			checkSlow(UniformResourceParameter.Index < InExpressions.Uniform2DTextureExpressions.Num());
 			const FTexture* Value = CachedValues->CachedTexture2DParameters(UniformResourceParameter.Index);
+#if BATMAN
+			if (!Value) continue;
+#endif
 			checkSlow(Value);
 			const FLOAT MipBias = Value->MipBiasFade.CalcMipBias();
 			// Set the min mip level to 3 if we are told to work around deferred mip artifacts
@@ -604,6 +625,32 @@ void FMaterialPixelShaderParameters::Set(FShader* PixelShader,const FMaterialRen
 	const FMaterial* Material = MaterialRenderContext.MaterialRenderProxy->GetMaterial();
 	check(Material);
 	const FUniformExpressionSet& UniformExpressionSet = Material->ShaderMap->GetUniformExpressionSet();
+
+#if BATMAN
+	{
+		static INT BmRenderLogCount = 0;
+		static TSet<FString> BmLoggedMaterials;
+		const FString MatName = Material->GetFriendlyName();
+		if (Material->ShaderMap->IsFromBmCache() && BmRenderLogCount < 20 && !BmLoggedMaterials.Contains(MatName))
+		{
+			BmRenderLogCount++;
+			BmLoggedMaterials.Add(MatName);
+			const FShaderFrequencyUniformExpressions& PixelExprs = UniformExpressionSet.GetExpresssions(SF_Pixel);
+			// Count NULL textures in the array
+			INT NullTexCount = 0;
+			for (INT i = 0; i < Material->GetTextures().Num(); i++)
+			{
+				if (!Material->GetTextures()(i)) NullTexCount++;
+			}
+			warnf(NAME_Warning, TEXT("BM3 Render: '%s' — PixelExprs: %d vec, %d scalar, %d tex2d; Textures: %d (%d NULL); ExprSetEmpty=%d"),
+				*MatName,
+				PixelExprs.UniformVectorExpressions.Num(), PixelExprs.UniformScalarExpressions.Num(), PixelExprs.Uniform2DTextureExpressions.Num(),
+				Material->GetTextures().Num(), NullTexCount,
+				UniformExpressionSet.IsEmpty() ? 1 : 0);
+		}
+	}
+#endif
+
 	FMaterialShaderParameters::SetShader(PixelShaderRHI, UniformExpressionSet.PixelExpressions, MaterialRenderContext, MaterialRenderProxy.UniformParameterCache.PixelValues);
 
 #if WITH_MOBILE_RHI
@@ -913,8 +960,24 @@ FArchive& operator<<(FArchive& Ar,FMaterialPixelShaderParameters& Parameters)
 	Ar << Parameters.ScreenDoorFadeSettings2Parameter;
 	Ar << Parameters.ScreenDoorNoiseTextureParameter;
 	Ar << Parameters.AlphaSampleTextureParameter;
-	Ar << Parameters.FluidDetailNormalTextureParameter;
-	Ar << Parameters.DOFParameters;
+#if BATMAN
+	if (!Ar.IsBmCooked(TRUE))
+#endif
+	{
+		Ar << Parameters.FluidDetailNormalTextureParameter;
+		Ar << Parameters.DOFParameters;
+	}
+#if BATMAN
+	else if (Ar.IsLoading())
+	{
+		// BM3 doesn't have these — initialize as unbound to avoid IsInitialized() asserts.
+		TArray<BYTE> ZeroData;
+		ZeroData.AddZeroed(256);
+		FMemoryReader ZeroAr(ZeroData);
+		ZeroAr << Parameters.FluidDetailNormalTextureParameter;
+		ZeroAr << Parameters.DOFParameters;
+	}
+#endif
 
 	return Ar;
 }

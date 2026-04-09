@@ -108,6 +108,10 @@ protected:
 	TArray<TUniformParameter<FShaderParameter> > UniformScalarShaderParameters;
 	TArray<TUniformParameter<FShaderParameter> > UniformVectorShaderParameters;
 	TArray<TUniformParameter<FShaderResourceParameter> > Uniform2DShaderResourceParameters;
+
+#if BATMAN
+	FShaderParameter LODFadeParameter;
+#endif
 };
 
 /** An encapsulation of the material parameters for a pixel shader. */
@@ -379,6 +383,9 @@ public:
 		bCompilationFinalized(TRUE),
 		bCompiledSuccessfully(TRUE),
 		bIsPersistent(TRUE)
+#if BATMAN
+		, bFromBmCache(FALSE)
+#endif
 	{}
 
 	// Destructor.
@@ -472,6 +479,10 @@ public:
 	UINT GetCompilingId() const { return CompilingId; }
 	UBOOL IsCompilationFinalized() const { return bCompilationFinalized; }
 	UBOOL CompiledSuccessfully() const { return bCompiledSuccessfully; }
+#if BATMAN
+	UBOOL IsFromBmCache() const { return bFromBmCache; }
+	void SetFromBmCache() { bFromBmCache = TRUE; }
+#endif
 
 	const TArray<TRefCountPtr<FMaterialUniformExpressionTexture> >& GetUniform2DTextureExpressions() const { return UniformExpressionSet.PixelExpressions.Uniform2DTextureExpressions; }
 	const TArray<TRefCountPtr<FMaterialUniformExpressionTexture> >& GetUniformCubeTextureExpressions() const { return UniformExpressionSet.UniformCubeTextureExpressions; }
@@ -546,6 +557,11 @@ private:
 
 	/** Indicates whether the shader map should be stored in the shader cache. */
 	BITFIELD bIsPersistent : 1;
+
+#if BATMAN
+	/** Indicates this shader map was loaded from BM3's cooked shader cache. */
+	BITFIELD bFromBmCache : 1;
+#endif
 
 	/**
 	 * Initializes VertexFactoryMap from the contents of MeshShaderMaps.

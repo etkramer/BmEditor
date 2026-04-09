@@ -39,6 +39,11 @@ protected:
 		MaterialParameters.Bind(Initializer.ParameterMap);
 		HeightFogParameters.Bind(Initializer.ParameterMap);
 		FogVolumeParameters.Bind(Initializer.ParameterMap);
+#if BATMAN
+		DOFPackedParameters0.Bind(Initializer.ParameterMap, TEXT("DOFPackedParameters0"), TRUE);
+		DOFPackedParameters1.Bind(Initializer.ParameterMap, TEXT("DOFPackedParameters1"), TRUE);
+		ObjectFogColorParameter.Bind(Initializer.ParameterMap, TEXT("ObjectFogColor"), TRUE);
+#endif
 	}
 
 public:
@@ -69,9 +74,36 @@ public:
 		UBOOL bShaderHasOutdatedParameters = FShader::Serialize(Ar);
 		LightMapPolicyType::VertexParametersType::Serialize(Ar);
 		bShaderHasOutdatedParameters |= Ar << VertexFactoryParameters;
-		Ar << HeightFogParameters;
-		Ar << MaterialParameters;
-		Ar << FogVolumeParameters;
+#if BATMAN
+		if (Ar.IsBmCooked(TRUE))
+		{
+			Ar << MaterialParameters;
+			FShaderParameter Dummy;
+			Ar << Dummy;
+			Ar << Dummy;
+			Ar << FogVolumeParameters;
+			Ar << DOFPackedParameters0;
+			Ar << DOFPackedParameters1;
+			Ar << ObjectFogColorParameter;
+
+			// BM3 doesn't have HeightFogParameters in its format, but the rendering
+			// code still checks IsInitialized(). Deserialize from zeroed data to mark
+			// all sub-parameters as initialized-but-unbound (NumBytes=0).
+			if (Ar.IsLoading())
+			{
+				TArray<BYTE> ZeroData;
+				ZeroData.AddZeroed(256);
+				FMemoryReader ZeroAr(ZeroData);
+				ZeroAr << HeightFogParameters;
+			}
+		}
+		else
+#endif
+		{
+			Ar << HeightFogParameters;
+			Ar << MaterialParameters;
+			Ar << FogVolumeParameters;
+		}
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -117,6 +149,12 @@ private:
 
 	/** The parameters needed to calculate the fog contribution from an intersecting fog volume. */
 	typename FogDensityPolicyType::ShaderParametersType FogVolumeParameters;
+
+#if BATMAN
+	FShaderParameter DOFPackedParameters0;
+	FShaderParameter DOFPackedParameters1;
+	FShaderParameter ObjectFogColorParameter;
+#endif
 };
 
 #if WITH_D3D11_TESSELLATION
@@ -253,6 +291,9 @@ public:
 		UpperSkyColorParameter.Bind(Initializer.ParameterMap,TEXT("UpperSkyColor"),TRUE);
 		LowerSkyColorParameter.Bind(Initializer.ParameterMap,TEXT("LowerSkyColor"),TRUE);
 		DeferredRenderingParameters.Bind(Initializer.ParameterMap,TEXT("DeferredRenderingParameters"),TRUE);
+#if BATMAN
+		MotionBlurMaskParameter.Bind(Initializer.ParameterMap, TEXT("MotionBlurMask"), TRUE);
+#endif
 	}
 	TBasePassPixelShaderBaseType() {}
 
@@ -268,7 +309,15 @@ public:
 			const FMaterial* Material = MaterialRenderProxy->GetMaterial();
 			const UBOOL bIsTranslucentLitMaterial = IsTranslucentBlendMode(Material->GetBlendMode()) && Material->GetLightingModel() != MLM_Unlit;
 			const UBOOL bIsUnlitView = !(View->Family->ShowFlags & SHOW_Lighting);
-			const UBOOL bDrawSurfaceUnlit = bIsUnlitView || (LightMapPolicyType::bDrawLitTranslucencyUnlit && bDrawLitTranslucencyUnlit && bIsTranslucentLitMaterial);
+			UBOOL bDrawSurfaceUnlit = bIsUnlitView || (LightMapPolicyType::bDrawLitTranslucencyUnlit && bDrawLitTranslucencyUnlit && bIsTranslucentLitMaterial);
+#if BATMAN
+			// BM3 cached shaders (especially APlus3D character shaders) get all lighting
+			// from parameters we don't set. Treat as fully ambient-lit so textures are visible.
+			if (Material->ShaderMap && Material->ShaderMap->IsFromBmCache())
+			{
+				bDrawSurfaceUnlit = TRUE;
+			}
+#endif
 			SetPixelShaderValue(
 				GetPixelShader(),
 				AmbientColorAndSkyFactorParameter,
@@ -318,14 +367,34 @@ public:
 		LightMapPolicyType::PixelParametersType::Serialize(Ar);
 		Ar << MaterialParameters;
 		Ar << AmbientColorAndSkyFactorParameter;
-		Ar << UpperSkyColorParameter;
-		Ar << LowerSkyColorParameter;
-		Ar << DeferredRenderingParameters;
+#if BATMAN
+		if (Ar.IsBmCooked(TRUE))
+		{
+			Ar << MotionBlurMaskParameter;
 
-		// set parameter names for platforms that need them
-		UpperSkyColorParameter.SetShaderParamName(TEXT("UpperSkyColor"));
-		LowerSkyColorParameter.SetShaderParamName(TEXT("LowerSkyColor"));
-		
+			// BM3 doesn't have these in its format — initialize as unbound.
+			if (Ar.IsLoading())
+			{
+				TArray<BYTE> ZeroData;
+				ZeroData.AddZeroed(256);
+				FMemoryReader ZeroAr(ZeroData);
+				ZeroAr << UpperSkyColorParameter;
+				ZeroAr << LowerSkyColorParameter;
+				ZeroAr << DeferredRenderingParameters;
+			}
+		}
+		else
+#endif
+		{
+			Ar << UpperSkyColorParameter;
+			Ar << LowerSkyColorParameter;
+			Ar << DeferredRenderingParameters;
+
+			// set parameter names for platforms that need them
+			UpperSkyColorParameter.SetShaderParamName(TEXT("UpperSkyColor"));
+			LowerSkyColorParameter.SetShaderParamName(TEXT("LowerSkyColor"));
+		}
+
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -340,6 +409,9 @@ private:
 	FShaderParameter UpperSkyColorParameter;
 	FShaderParameter LowerSkyColorParameter;
 	FShaderParameter DeferredRenderingParameters;
+#if BATMAN
+	FShaderParameter MotionBlurMaskParameter;
+#endif
 };
 
 /** The concrete base pass pixel shader type, parameterized by whether sky lighting is needed. */
@@ -434,11 +506,11 @@ public:
 #if WITH_D3D11_TESSELLATION
 		HullShader = NULL;
 		DomainShader = NULL;
-	
+
 		const EMaterialTessellationMode MaterialTessellationMode = MaterialResource->GetD3D11TessellationMode();
 
 		if (GRHIShaderPlatform == SP_PCD3D_SM5
-			&& InVertexFactory->GetType()->SupportsTessellationShaders() 
+			&& InVertexFactory->GetType()->SupportsTessellationShaders()
 			&& MaterialTessellationMode != MTM_NoTessellation)
 		{
 			// Find the base pass tessellation shaders since the material is tessellated

@@ -2720,7 +2720,13 @@ FArchive& operator<<(FArchive& Ar,FSceneTextureShaderParameters& Parameters)
 {
 	Ar << Parameters.SceneColorTextureParameter;
 	Ar << Parameters.SceneDepthTextureParameter;
-	Ar << Parameters.SceneDepthSurfaceParameter;
+#if BATMAN
+	// BM3 doesn't have SceneDepthSurfaceParameter
+	if (!Ar.IsBmCooked(TRUE))
+#endif
+	{
+		Ar << Parameters.SceneDepthSurfaceParameter;
+	}
 	Ar << Parameters.SceneDepthCalcParameter;
 	Ar << Parameters.ScreenPositionScaleBiasParameter;
 #if CONSOLE

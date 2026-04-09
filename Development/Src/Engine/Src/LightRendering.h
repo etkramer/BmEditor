@@ -465,6 +465,14 @@ public:
 		ShadowingTypePolicy::VertexParametersType::Serialize(Ar);
 		bShaderHasOutdatedParameters |= Ar << VertexFactoryParameters;
 		Ar << MaterialParameters;
+#if BATMAN
+		if (Ar.IsBmCooked(TRUE))
+		{
+			FShaderParameter Dummy;
+			Ar << Dummy;
+			Ar << Dummy;
+		}
+#endif
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -596,6 +604,9 @@ public:
 		MaterialParameters.Bind(Initializer.ParameterMap);
 		LightAttenuationTextureParameter.Bind(Initializer.ParameterMap,TEXT("LightAttenuationTexture"),TRUE);
 		ForwardShadowingParameters.Bind(Initializer.ParameterMap);
+#if BATMAN
+		SpecularScaleParameter.Bind(Initializer.ParameterMap, TEXT("SpecularScale"), TRUE);
+#endif
 	}
 
 	void SetParameters(
@@ -642,6 +653,12 @@ public:
 		bShaderHasOutdatedParameters |= Ar << VertexFactoryParameters;
 		LightTypePolicy::PixelParametersType::Serialize(Ar);
 		ShadowingTypePolicy::PixelParametersType::Serialize(Ar);
+#if BATMAN
+		if (Ar.IsBmCooked(TRUE))
+		{
+			Ar << SpecularScaleParameter;
+		}
+#endif
 		Ar << MaterialParameters;
 		Ar << LightAttenuationTextureParameter;
 		ForwardShadowingParameters.Serialize(Ar);
@@ -657,6 +674,9 @@ private:
 	FMaterialPixelShaderParameters MaterialParameters;
 	FShaderResourceParameter LightAttenuationTextureParameter;
 	FForwardShadowingShaderParameters ForwardShadowingParameters;
+#if BATMAN
+	FShaderParameter SpecularScaleParameter;
+#endif
 };
 
 

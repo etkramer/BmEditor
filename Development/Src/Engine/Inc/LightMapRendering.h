@@ -314,6 +314,9 @@ public:
 		{
 			LightMapTexturesParameter.Bind(ParameterMap,TEXT("LightMapTextures"),TRUE);
 			LightMapScaleParameter.Bind(ParameterMap,TEXT("LightMapScale"),TRUE);
+#if BATMAN
+			LightMapLumaChannelParameter.Bind(ParameterMap,TEXT("LightMapLumaChannel"),TRUE);
+#endif
 		}
 		void SetLightMapTextures(
 			FShader* PixelShader,
@@ -393,13 +396,22 @@ public:
 		{
 			Ar << LightMapTexturesParameter;
 			Ar << LightMapScaleParameter;
-			
+#if BATMAN
+			if (Ar.IsBmCooked(TRUE))
+			{
+				Ar << LightMapLumaChannelParameter;
+			}
+#endif
+
 			// set parameter names for platforms that need them
 			LightMapScaleParameter.SetShaderParamName(TEXT("LightMapScale"));
 		}
 	private:
 		FShaderResourceParameter LightMapTexturesParameter;
 		FShaderParameter LightMapScaleParameter;
+#if BATMAN
+		FShaderParameter LightMapLumaChannelParameter;
+#endif
 	};
 
 	class VertexParametersType
@@ -907,13 +919,137 @@ public:
 		) const;
 };
 
-// A light map policy for rendering a dynamically shadowed directional, spot or point light in the base pass. 
+#if BATMAN
+// BM3's custom character lighting policy: ambient + up to 3 directional lights.
+// Only used for loading BM3 cached shaders — never compiles new shaders.
+class FAPlus3DLightLightMapPolicy : public FDirectionalLightLightMapPolicy
+{
+	typedef FDirectionalLightLightMapPolicy Super;
+public:
+
+	struct VertexParametersType : public Super::VertexParametersType
+	{
+		FShaderParameter APlus3DLightInfoVertexParameter;
+
+		void Bind(const FShaderParameterMap& ParameterMap)
+		{
+			Super::VertexParametersType::Bind(ParameterMap);
+			APlus3DLightInfoVertexParameter.Bind(ParameterMap, TEXT("APlus3DLightInfoVertex"), TRUE);
+		}
+
+		void Serialize(FArchive& Ar)
+		{
+			// BM3 serializes: LightDirection, then parent params, then APlus3DLightInfoVertex
+			if (Ar.IsBmCooked(TRUE))
+			{
+				Ar << LightDirectionParameter;
+			}
+			Super::VertexParametersType::Serialize(Ar);
+			if (Ar.IsBmCooked(TRUE))
+			{
+				Ar << APlus3DLightInfoVertexParameter;
+			}
+		}
+
+		FShaderParameter LightDirectionParameter;
+	};
+
+	struct PixelParametersType
+	{
+		FShaderParameter APlus3DLightInfoPixelParameter;
+		FShaderParameter WorldIncidentLightingParameter;
+
+		void Bind(const FShaderParameterMap& ParameterMap)
+		{
+			APlus3DLightInfoPixelParameter.Bind(ParameterMap, TEXT("APlus3DLightInfoPixel"), TRUE);
+			WorldIncidentLightingParameter.Bind(ParameterMap, TEXT("WorldIncidentLighting"), TRUE);
+		}
+
+		void Serialize(FArchive& Ar)
+		{
+			// BM3 pixel params: only these two, no parent chain
+			Ar << APlus3DLightInfoPixelParameter;
+			Ar << WorldIncidentLightingParameter;
+		}
+	};
+
+	struct ElementDataType
+	{
+		Super::ElementDataType SuperElementData;
+		ElementDataType(const Super::ElementDataType& InSuperElementData)
+			: SuperElementData(InSuperElementData)
+		{}
+	};
+
+	static UBOOL ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType, UBOOL bEnableSkyLight=FALSE)
+	{
+		// Never compile new shaders with this policy — BM3 cached shaders only
+		return FALSE;
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		Super::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		OutEnvironment.Definitions.Set(TEXT("ENABLE_A_PLUS_THREE_D_LIGHT"), TEXT("1"));
+	}
+
+	void Set(
+		const VertexParametersType* VertexShaderParameters,
+		const PixelParametersType* PixelShaderParameters,
+		FShader* VertexShader,
+		FShader* PixelShader,
+		const FVertexFactory* VertexFactory,
+		const FMaterialRenderProxy* MaterialRenderProxy,
+		const FSceneView* View
+		) const
+	{}
+
+	void SetMesh(
+		const FSceneView& View,
+		const FPrimitiveSceneInfo* PrimitiveSceneInfo,
+		const VertexParametersType* VertexShaderParameters,
+		const PixelParametersType* PixelShaderParameters,
+		FShader* VertexShader,
+		FShader* PixelShader,
+		const FVertexFactory* VertexFactory,
+		const FMaterialRenderProxy* MaterialRenderProxy,
+		const ElementDataType& ElementData
+		) const
+	{}
+};
+#endif
+
+// A light map policy for rendering a dynamically shadowed directional, spot or point light in the base pass.
 class FDynamicallyShadowedMultiTypeLightLightMapPolicy
 {
 public:
 
 	struct VertexParametersType : FDirectionalLightLightMapPolicy::VertexParametersType
 	{
+#if BATMAN
+		FShaderParameter LightDirectionParameter;
+		FShaderParameter APlus3DLightInfoVertexParameter;
+
+		void Bind(const FShaderParameterMap& ParameterMap)
+		{
+			LightDirectionParameter.Bind(ParameterMap, TEXT("LightDirection"), TRUE);
+			FDirectionalLightLightMapPolicy::VertexParametersType::Bind(ParameterMap);
+			APlus3DLightInfoVertexParameter.Bind(ParameterMap, TEXT("APlus3DLightInfoVertex"), TRUE);
+		}
+
+		void Serialize(FArchive& Ar)
+		{
+			if (Ar.IsBmCooked(TRUE))
+			{
+				Ar << LightDirectionParameter;
+			}
+			FDirectionalLightLightMapPolicy::VertexParametersType::Serialize(Ar);
+			if (Ar.IsBmCooked(TRUE))
+			{
+				Ar << APlus3DLightInfoVertexParameter;
+			}
+		}
+#endif
 	};
 
 	struct PixelParametersType
@@ -941,6 +1077,9 @@ public:
 			LightChannelMaskParameter.Bind(ParameterMap, TEXT("LightChannelMask"), TRUE);
 			LightAttenuationTextureParameter.Bind(ParameterMap,TEXT("LightAttenuationTexture"),TRUE);
 			ForwardShadowingParameters.Bind(ParameterMap);
+#if BATMAN
+			APlus3DLightInfoPixelParameter.Bind(ParameterMap, TEXT("APlus3DLightInfoPixel"), TRUE);
+#endif
 		}
 
 		void Serialize(FArchive& Ar)
@@ -955,7 +1094,17 @@ public:
 			Ar << LightChannelMaskParameter;
 			Ar << LightAttenuationTextureParameter;
 			ForwardShadowingParameters.Serialize(Ar);
+#if BATMAN
+			if (Ar.IsBmCooked(TRUE))
+			{
+				Ar << APlus3DLightInfoPixelParameter;
+			}
+#endif
 		}
+
+#if BATMAN
+		FShaderParameter APlus3DLightInfoPixelParameter;
+#endif
 	};
 
 	struct ElementDataType

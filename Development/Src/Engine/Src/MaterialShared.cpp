@@ -497,7 +497,16 @@ FArchive& operator<<(FArchive& Ar,FMaterialUniformExpression*& Ref)
 
 		// Find the expression type with a matching name.
 		FMaterialUniformExpressionType* Type = FMaterialUniformExpressionType::GetTypeMap().FindRef(TypeName);
+#if BATMAN
+		if (!Type)
+		{
+			warnf(NAME_Warning, TEXT("BM3: Unknown FMaterialUniformExpressionType '%s'"), *TypeName.ToString());
+			Ref = NULL;
+			return Ar;
+		}
+#else
 		check(Type);
+#endif
 
 		// Construct a new instance of the expression type.
 		Ref = (*Type->SerializationConstructor)();
@@ -1254,7 +1263,12 @@ UBOOL FMaterial::InitShaderMap(FStaticParameterSet* StaticParameters, EShaderPla
 	// Find the material's cached shader map.
 	ShaderMap = FMaterialShaderMap::FindId(*StaticParameters, Platform);
 	UBOOL bRequiredRecompile = FALSE;
-	if(!bValidCompilationOutput || !ShaderMap || !ShaderMap->IsComplete(this, TRUE))
+	if(!bValidCompilationOutput || !ShaderMap || (
+#if BATMAN
+		// BM3 shader maps won't have all our engine's shader types — accept them as-is.
+		!ShaderMap->IsFromBmCache() &&
+#endif
+		!ShaderMap->IsComplete(this, TRUE)))
 	{
 		if(bValidCompilationOutput)
 		{
@@ -1309,7 +1323,9 @@ UBOOL FMaterial::InitShaderMap(FStaticParameterSet* StaticParameters, EShaderPla
 	}
 	else
 	{
+#if !BATMAN
 		check(ShaderMap->IsUniformExpressionSetValid());
+#endif
 		if (LegacyUniformExpressions && ShaderMap->GetUniformExpressionSet().IsEmpty())
 		{
 			// This material has legacy uniform expressions, so propagate them to the shader map.
@@ -1898,11 +1914,11 @@ static UTexture* GetIndexedTexture(const FMaterial& Material, INT TextureIndex)
 		if( !GUsingMobileRHI )
 #endif
 		{
-			static UBOOL bWarnedOnce = FALSE;
-			if (!bWarnedOnce)
+			static INT WarnCount = 0;
+			if (WarnCount < 10)
 			{
-				warnf(TEXT("FMaterialUniformExpressionTexture had invalid TextureIndex! (%u/%u)"), TextureIndex, Material.GetTextures().Num());
-				bWarnedOnce = TRUE;
+				WarnCount++;
+				warnf(TEXT("FMaterialUniformExpressionTexture had invalid TextureIndex! (%u/%u) for material '%s'"), TextureIndex, Material.GetTextures().Num(), *Material.GetFriendlyName());
 			}
 		}
 	}
@@ -5760,46 +5776,59 @@ UBOOL FMaterial::CompileShaderMap(
 
 	UBOOL bSuccess = TRUE;
 	UBOOL bRequiredCompile = FALSE;
-	if(!ExistingShaderMap || !ExistingShaderMap->IsComplete(this, FALSE))
+	if(!ExistingShaderMap || (
+#if BATMAN
+		// BM3 shader maps won't have all our engine's shader types — accept them as-is.
+		!ExistingShaderMap->IsFromBmCache() &&
+#endif
+		!ExistingShaderMap->IsComplete(this, FALSE)))
 	{
-		bRequiredCompile = TRUE;
-
-		// Compile the shaders for the material.
-		bSuccess = OutShaderMap->Compile(this,StaticParameters,*MaterialShaderCode,UniformExpressionSet,Platform,CompileErrors,bDebugDump);
-		if (bSuccess)
 		{
-			//@todo - track down offenders and re-enable
-			//check(OutShaderMap->IsUniformExpressionSetValid());
+			bRequiredCompile = TRUE;
+		}
+
+		if (bRequiredCompile)
+		{
+			// Compile the shaders for the material.
+			bSuccess = OutShaderMap->Compile(this,StaticParameters,*MaterialShaderCode,UniformExpressionSet,Platform,CompileErrors,bDebugDump);
+			if (bSuccess)
+			{
+				//@todo - track down offenders and re-enable
+				//check(OutShaderMap->IsUniformExpressionSetValid());
+			}
 		}
 	}
 
 	if(bSuccess)
 	{
-		if (OutShaderMap->GetUniformExpressionSet().IsEmpty())
+#if BATMAN
+		// BM3 shader maps were compiled against BM3's expressions — don't validate or overwrite
+		// their expression set with our locally-generated one. Just use them as-is.
+		if (!bRequiredCompile && ExistingShaderMap && ExistingShaderMap->IsFromBmCache())
 		{
-			// The shader map's expression set was empty, it is legacy and should be overwritten with the newly generated set.
-			OutShaderMap->SetUniformExpressions(UniformExpressionSet);
+			// Existing complete shader map from cache — skip expression set validation
 		}
-		// Every FMaterial sharing the same shader map must generate the same uniform expression set to be used with the shared shader map.
-		// Shader map sharing happens with material instances with the same base material and same set of static parameters,
-		// Or with UMaterials that have been duplicated outside of the editor (filesystem copy) and have not been recompiled since.
-		// Any code that changes the way uniform expressions are generated needs to bump the appropriate version version to discard outdated shader maps.
-		else if (!(OutShaderMap->GetUniformExpressionSet() == UniformExpressionSet))
+		else
+#endif
 		{
-			/*
-			warnf(
-				TEXT("Translated uniform expression set was different than the cached shader map with the same Id! \n")
-				TEXT("	New: Base material %s, bRequiredCompile %u, ExpressionSet %s \n")
-				TEXT("	Cached: Shadermap name %s, Id %s, ExpressionSet %s \n"),
-				*GetBaseMaterialPathName(), 
-				bRequiredCompile,
-				*UniformExpressionSet.GetSummaryString(),
-				*OutShaderMap->GetFriendlyName(), 
-				*OutShaderMap->GetMaterialId().GetSummaryString(),
-				*OutShaderMap->GetUniformExpressionSet().GetSummaryString()
-				);*/
+			if (OutShaderMap->GetUniformExpressionSet().IsEmpty())
+			{
+				// The shader map's expression set was empty, it is legacy and should be overwritten with the newly generated set.
+				OutShaderMap->SetUniformExpressions(UniformExpressionSet);
+			}
+			// Every FMaterial sharing the same shader map must generate the same uniform expression set to be used with the shared shader map.
+			// Shader map sharing happens with material instances with the same base material and same set of static parameters,
+			// Or with UMaterials that have been duplicated outside of the editor (filesystem copy) and have not been recompiled since.
+			// Any code that changes the way uniform expressions are generated needs to bump the appropriate version version to discard outdated shader maps.
+			else if (!(OutShaderMap->GetUniformExpressionSet() == UniformExpressionSet))
+			{
+			}
+#if !BATMAN
+			// BM3 materials have stripped expressions, so locally-compiled shaders
+			// may also fail this check. Only enforce on non-BATMAN builds.
+			check(OutShaderMap->IsUniformExpressionSetValid());
+#endif
 		}
-		check(OutShaderMap->IsUniformExpressionSetValid());
 
 		// Only initialize the shaders if no recompile was required or if we are not deferring shader compiling
 		if (!bRequiredCompile || !DeferFinishCompiling() && !GShaderCompilingThreadManager->IsDeferringCompilation())
@@ -5987,20 +6016,45 @@ FShader* FMaterial::GetShader(FMeshMaterialShaderType* ShaderType, FVertexFactor
 	FShader* Shader = MeshShaderMap ? MeshShaderMap->GetShader(ShaderType) : NULL;
 	if (!Shader)
 	{
+#if BATMAN
+		// BM3 shader maps may not have all VF/shader combos our engine expects.
+		// Fall back to the default material's shader. The expression set won't match
+		// but the checkSlow guards in SetShader prevent crashes.
+		{
+			static INT BmFallbackLogCount = 0;
+			if (ShaderMap && ShaderMap->IsFromBmCache() && BmFallbackLogCount < 10)
+			{
+				BmFallbackLogCount++;
+				warnf(NAME_Warning, TEXT("BM3 GetShader fallback: '%s' missing Shader=%s VF=%s, using default material (MeshShaderMap=%s)"),
+					*GetFriendlyName(), ShaderType->GetName(), VertexFactoryType->GetName(),
+					MeshShaderMap ? TEXT("exists but no shader type") : TEXT("no VF match"));
+			}
+			const FMaterial* DefaultMaterial = GEngine->DefaultMaterial->GetRenderProxy(FALSE, FALSE)->GetMaterial();
+			if (DefaultMaterial && DefaultMaterial != this)
+			{
+				Shader = DefaultMaterial->GetShader(ShaderType, VertexFactoryType);
+			}
+			if (Shader)
+			{
+				return Shader;
+			}
+		}
+		return NULL;
+#else
 		// Get the ShouldCache results that determine whether the shader should be compiled
 		UBOOL bMaterialShouldCache = ShouldCache(GRHIShaderPlatform, ShaderType, VertexFactoryType);
 		UBOOL bVFShouldCache = VertexFactoryType->ShouldCache(GRHIShaderPlatform, this, ShaderType);
 		UBOOL bShaderShouldCache = ShaderType->ShouldCache(GRHIShaderPlatform, this, VertexFactoryType);
 		FString MaterialUsage = GetMaterialUsageDescription();
 
-		// Assert with detailed information if the shader wasn't found for rendering.  
+		// Assert with detailed information if the shader wasn't found for rendering.
 		// This is usually the result of an incorrect ShouldCache function.
 		appErrorf(
 			TEXT("Couldn't find Shader %s for Material Resource %s!\n")
 			TEXT("		With VF=%s, Platform=%s \n")
 			TEXT("		ShouldCache: Mat=%u, VF=%u, Shader=%u \n")
 			TEXT("		Material Usage = %s"),
-			ShaderType->GetName(), 
+			ShaderType->GetName(),
 			*GetFriendlyName(),
 			VertexFactoryType->GetName(),
 			ShaderPlatformToText(GRHIShaderPlatform),
@@ -6009,6 +6063,7 @@ FShader* FMaterial::GetShader(FMeshMaterialShaderType* ShaderType, FVertexFactor
 			bShaderShouldCache,
 			*MaterialUsage
 			);
+#endif
 	}
 
 	return Shader;

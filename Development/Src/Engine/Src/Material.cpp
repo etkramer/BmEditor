@@ -82,7 +82,7 @@ public:
 			FallbackMaterial = GEngine->DefaultDecalMaterial;
 		}
 		// this check is to stop the infinite "retry to compile DefaultMaterial" which can occur when MSP types are mismatched or another similar error state
-		check(this != FallbackMaterial->GetRenderProxy(bSelected,bHovered));	
+		check(this != FallbackMaterial->GetRenderProxy(bSelected,bHovered));
 		return FallbackMaterial->GetRenderProxy(bSelected,bHovered)->GetMaterial();
 	}
 	virtual UBOOL GetVectorValue(const FName& ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const
