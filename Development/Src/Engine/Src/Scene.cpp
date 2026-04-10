@@ -2425,6 +2425,14 @@ TStaticMeshDrawList<TBasePassDrawingPolicy<FSHLightLightMapPolicy,FNoDensityPoli
 	return BasePassSHLightDrawList[DrawType];
 }
 
+#if BATMAN
+template<>
+TStaticMeshDrawList<TBasePassDrawingPolicy<FAPlus3DLightLightMapPolicy,FNoDensityPolicy> >& FDepthPriorityGroup::GetBasePassDrawList<FAPlus3DLightLightMapPolicy>(EBasePassDrawListType DrawType)
+{
+	return BasePassAPlus3DLightDrawList[DrawType];
+}
+#endif
+
 template<>
 TStaticMeshDrawList<TBasePassDrawingPolicy<FShadowedDynamicLightDirectionalVertexLightMapPolicy,FNoDensityPolicy> >& FDepthPriorityGroup::GetBasePassDrawList<FShadowedDynamicLightDirectionalVertexLightMapPolicy>(EBasePassDrawListType DrawType)
 {

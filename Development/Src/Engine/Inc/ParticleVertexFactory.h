@@ -159,7 +159,7 @@ public:
 		Ar << NormalsSphereCenterParameter;
 		Ar << NormalsCylinderUnitDirectionParameter;
 #if BATMAN
-		if (Ar.IsBmCooked(TRUE))
+		if (Ar.IsBmCooked(FALSE))
 		{
 			Ar << CornerUVsParameter;
 		}

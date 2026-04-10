@@ -47,6 +47,9 @@ UBOOL FSceneRenderer::RenderDecals(const FViewInfo& View, UINT DPGIndex, UBOOL b
 	bDirty |= Scene->DPGs[DPGIndex].BasePassDistanceFieldShadowedDynamicLightDirectionalLightMapTextureDrawList[DrawType].DrawVisible(View,View.DecalStaticMeshVisibilityMap);
 	bDirty |= Scene->DPGs[DPGIndex].BasePassDynamicallyShadowedDynamicLightDrawList[DrawType].DrawVisible(View,View.DecalStaticMeshVisibilityMap);
 	bDirty |= Scene->DPGs[DPGIndex].BasePassSHLightAndDynamicLightDrawList[DrawType].DrawVisible(View,View.DecalStaticMeshVisibilityMap);
+#if BATMAN
+	bDirty |= Scene->DPGs[DPGIndex].BasePassAPlus3DLightDrawList[DrawType].DrawVisible(View,View.DecalStaticMeshVisibilityMap);
+#endif
 
 	if( bTranslucentPass)
 	{

@@ -397,7 +397,7 @@ public:
 			Ar << LightMapTexturesParameter;
 			Ar << LightMapScaleParameter;
 #if BATMAN
-			if (Ar.IsBmCooked(TRUE))
+			if (Ar.IsBmCooked(FALSE))
 			{
 				Ar << LightMapLumaChannelParameter;
 			}
@@ -406,6 +406,9 @@ public:
 			// set parameter names for platforms that need them
 			LightMapScaleParameter.SetShaderParamName(TEXT("LightMapScale"));
 		}
+#if BATMAN
+		const FShaderParameter& GetLightMapLumaChannelParameter() const { return LightMapLumaChannelParameter; }
+#endif
 	private:
 		FShaderResourceParameter LightMapTexturesParameter;
 		FShaderParameter LightMapScaleParameter;
@@ -543,6 +546,16 @@ public:
 				LightMapTextures[CoefficientIndex] = LightMapInteraction.GetTexture(CoefficientIndex);
 			}
 			PixelShaderParameters->SetLightMapTextures(PixelShader,LightMapTextures,NUM_DIRECTIONAL_LIGHTMAP_COEF);
+#if BATMAN
+			if(LightMapInteraction.AllowsDirectionalLightmaps())
+			{
+				SetPixelShaderValue(PixelShader->GetPixelShader(), PixelShaderParameters->GetLightMapLumaChannelParameter(), FVector2D(0.0f, 1.0f));
+			}
+			else
+			{
+				SetPixelShaderValue(PixelShader->GetPixelShader(), PixelShaderParameters->GetLightMapLumaChannelParameter(), FVector2D(1.0f, 0.0f));
+			}
+#endif
 		}
 
 		FLightMapTexturePolicy::SetMesh(View, PrimitiveSceneInfo, VertexShaderParameters, PixelShaderParameters, VertexShader, PixelShader, VertexFactory, MaterialRenderProxy, LightMapInteraction);
@@ -940,12 +953,12 @@ public:
 		void Serialize(FArchive& Ar)
 		{
 			// BM3 serializes: LightDirection, then parent params, then APlus3DLightInfoVertex
-			if (Ar.IsBmCooked(TRUE))
+			if (Ar.IsBmCooked(FALSE))
 			{
 				Ar << LightDirectionParameter;
 			}
 			Super::VertexParametersType::Serialize(Ar);
-			if (Ar.IsBmCooked(TRUE))
+			if (Ar.IsBmCooked(FALSE))
 			{
 				Ar << APlus3DLightInfoVertexParameter;
 			}
@@ -1015,7 +1028,33 @@ public:
 		const FMaterialRenderProxy* MaterialRenderProxy,
 		const ElementDataType& ElementData
 		) const
-	{}
+	{
+		// Call parent SetMesh for directional light setup
+		Super::SetMesh(View, PrimitiveSceneInfo,
+			(const Super::VertexParametersType*)VertexShaderParameters,
+			(const Super::PixelParametersType*)PixelShaderParameters,
+			VertexShader, PixelShader, VertexFactory, MaterialRenderProxy,
+			ElementData.SuperElementData);
+
+		if (PixelShader && PixelShaderParameters)
+		{
+			// APlus3DLightPixelInfo[4]: indices 0-2 = directional light colors, index 3 = ambient color
+			// Set to zero — ambient lighting is provided via AmbientColorAndSkyFactor (bDrawSurfaceUnlit=TRUE)
+			// which adds DiffuseColor * AmbientColor. Setting APlus3D ambient to non-zero would double it.
+			FVector4 APlus3DLightInfo[4];
+			APlus3DLightInfo[0] = FVector4(0, 0, 0, 0); // directional light 0
+			APlus3DLightInfo[1] = FVector4(0, 0, 0, 0); // directional light 1
+			APlus3DLightInfo[2] = FVector4(0, 0, 0, 0); // directional light 2
+			APlus3DLightInfo[3] = FVector4(1, 1, 1, 1); // ambient color — full white for editor preview
+
+			SetPixelShaderValues(
+				PixelShader->GetPixelShader(),
+				PixelShaderParameters->APlus3DLightInfoPixelParameter,
+				APlus3DLightInfo,
+				4
+			);
+		}
+	}
 };
 #endif
 
@@ -1039,12 +1078,12 @@ public:
 
 		void Serialize(FArchive& Ar)
 		{
-			if (Ar.IsBmCooked(TRUE))
+			if (Ar.IsBmCooked(FALSE))
 			{
 				Ar << LightDirectionParameter;
 			}
 			FDirectionalLightLightMapPolicy::VertexParametersType::Serialize(Ar);
-			if (Ar.IsBmCooked(TRUE))
+			if (Ar.IsBmCooked(FALSE))
 			{
 				Ar << APlus3DLightInfoVertexParameter;
 			}
@@ -1095,7 +1134,7 @@ public:
 			Ar << LightAttenuationTextureParameter;
 			ForwardShadowingParameters.Serialize(Ar);
 #if BATMAN
-			if (Ar.IsBmCooked(TRUE))
+			if (Ar.IsBmCooked(FALSE))
 			{
 				Ar << APlus3DLightInfoPixelParameter;
 			}

@@ -1569,6 +1569,9 @@ UBOOL FSceneRenderer::RenderDPGBasePassStaticDataMasked(UINT DPGIndex, FViewInfo
 			bDirty |= Scene->DPGs[DPGIndex].BasePassSHLightDrawList[MaskedDrawType].DrawVisible(View,View.StaticMeshVisibilityMap);
 			bDirty |= Scene->DPGs[DPGIndex].BasePassDynamicallyShadowedDynamicLightDrawList[MaskedDrawType].DrawVisible(View,View.StaticMeshVisibilityMap);
 			bDirty |= Scene->DPGs[DPGIndex].BasePassSHLightAndDynamicLightDrawList[MaskedDrawType].DrawVisible(View,View.StaticMeshVisibilityMap);
+#if BATMAN
+			bDirty |= Scene->DPGs[DPGIndex].BasePassAPlus3DLightDrawList[MaskedDrawType].DrawVisible(View,View.StaticMeshVisibilityMap);
+#endif
 		}
 	}
 
@@ -1618,6 +1621,9 @@ UBOOL FSceneRenderer::RenderDPGBasePassStaticDataDefault(UINT DPGIndex, FViewInf
 			bDirty |= Scene->DPGs[DPGIndex].BasePassSHLightDrawList[OpaqueDrawType].DrawVisible(View,View.StaticMeshVisibilityMap);
 			bDirty |= Scene->DPGs[DPGIndex].BasePassDynamicallyShadowedDynamicLightDrawList[OpaqueDrawType].DrawVisible(View,View.StaticMeshVisibilityMap);
 			bDirty |= Scene->DPGs[DPGIndex].BasePassSHLightAndDynamicLightDrawList[OpaqueDrawType].DrawVisible(View,View.StaticMeshVisibilityMap);
+#if BATMAN
+			bDirty |= Scene->DPGs[DPGIndex].BasePassAPlus3DLightDrawList[OpaqueDrawType].DrawVisible(View,View.StaticMeshVisibilityMap);
+#endif
 		}
 	}
 

@@ -719,6 +719,11 @@ void UShaderCache::Load(FArchive& Ar, UBOOL bIsAlwaysLoaded)
 		{
 			FShaderType* ShaderType = NULL;
 			FGuid ShaderId;
+			// Pre-read the shader type FName for skip diagnostics
+			INT TypeNamePos = Ar.Tell();
+			FName ShaderTypeFName;
+			Ar << ShaderTypeFName;
+			Ar.Seek(TypeNamePos);
 			Ar << ShaderType << ShaderId;
 
 			FSHAHash SavedHash;
@@ -735,6 +740,13 @@ void UShaderCache::Load(FArchive& Ar, UBOOL bIsAlwaysLoaded)
 
 			if (!ShaderType)
 			{
+				static TSet<FString> BmLoggedSkippedTypes;
+				FString TypeNameStr = ShaderTypeFName.ToString();
+				if (!BmLoggedSkippedTypes.Contains(TypeNameStr))
+				{
+					BmLoggedSkippedTypes.Add(TypeNameStr);
+					warnf(NAME_Warning, TEXT("BM3: Skipping unrecognized shader type '%s'"), *TypeNameStr);
+				}
 				Ar.Seek(SkipOffset);
 				NumSkippedShaders++;
 				continue;
@@ -848,6 +860,24 @@ void UShaderCache::Load(FArchive& Ar, UBOOL bIsAlwaysLoaded)
 							VertexExprs.UniformVectorExpressions.Num(), VertexExprs.UniformScalarExpressions.Num(), VertexExprs.Uniform2DTextureExpressions.Num(),
 							ExprSet.IsEmpty() ? 1 : 0);
 					}
+					// Log StaticParameterSet for Character materials to diagnose MIC lookup failures
+					if (MaterialShaderIndex->GetFriendlyName().InStr(TEXT("Character")) != INDEX_NONE)
+					{
+						FString SwitchInfo;
+						for (INT i = 0; i < StaticParameters.StaticSwitchParameters.Num(); i++)
+						{
+							SwitchInfo += FString::Printf(TEXT(" [%s=%d]"),
+								*StaticParameters.StaticSwitchParameters(i).ParameterName.ToString(),
+								StaticParameters.StaticSwitchParameters(i).Value);
+						}
+						warnf(NAME_Warning, TEXT("BM3 Cache Entry: '%s' — Switches=%d%s, Masks=%d, BaseMaterialId=%s"),
+							*MaterialShaderIndex->GetFriendlyName(),
+							StaticParameters.StaticSwitchParameters.Num(),
+							*SwitchInfo,
+							StaticParameters.StaticComponentMaskParameters.Num(),
+							*StaticParameters.BaseMaterialId.String());
+					}
+
 					MaterialShaderIndex->Register();
 					MaterialShaderMap.Set(StaticParameters, MaterialShaderIndex);
 				}

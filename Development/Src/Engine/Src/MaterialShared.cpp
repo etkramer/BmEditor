@@ -1262,6 +1262,22 @@ UBOOL FMaterial::InitShaderMap(FStaticParameterSet* StaticParameters, EShaderPla
 	}
 	// Find the material's cached shader map.
 	ShaderMap = FMaterialShaderMap::FindId(*StaticParameters, Platform);
+#if BATMAN
+	{
+		static INT BmInitLogCount = 0;
+		if (BmInitLogCount < 30)
+		{
+			BmInitLogCount++;
+			warnf(NAME_Warning, TEXT("BM3 InitShaderMap: '%s' — FindId=%s, IsFromBm=%d, Switches=%d, Masks=%d, BaseMaterialId=%s"),
+				*GetFriendlyName(),
+				ShaderMap ? TEXT("FOUND") : TEXT("NULL"),
+				ShaderMap ? ShaderMap->IsFromBmCache() : 0,
+				StaticParameters->StaticSwitchParameters.Num(),
+				StaticParameters->StaticComponentMaskParameters.Num(),
+				*StaticParameters->BaseMaterialId.String());
+		}
+	}
+#endif
 	UBOOL bRequiredRecompile = FALSE;
 	if(!bValidCompilationOutput || !ShaderMap || (
 #if BATMAN
@@ -5767,6 +5783,31 @@ UBOOL FMaterial::CompileShaderMap(
 		ExistingShaderMap = FMaterialShaderMap::FindId(*StaticParameters, Platform);
 	}
 
+#if BATMAN
+	// Log when FindId fails — helps diagnose MICs that can't find their BM3 shader map
+	if (!ExistingShaderMap)
+	{
+		static INT BmMissLogCount = 0;
+		if (BmMissLogCount < 50)
+		{
+			BmMissLogCount++;
+			FString SwitchInfo;
+			for (INT i = 0; i < StaticParameters->StaticSwitchParameters.Num(); i++)
+			{
+				SwitchInfo += FString::Printf(TEXT(" [%s=%d]"),
+					*StaticParameters->StaticSwitchParameters(i).ParameterName.ToString(),
+					StaticParameters->StaticSwitchParameters(i).Value);
+			}
+			warnf(NAME_Warning, TEXT("BM3 CompileShaderMap MISS: '%s' — Switches=%d%s, Masks=%d, BaseMaterialId=%s"),
+				*GetFriendlyName(),
+				StaticParameters->StaticSwitchParameters.Num(),
+				*SwitchInfo,
+				StaticParameters->StaticComponentMaskParameters.Num(),
+				*StaticParameters->BaseMaterialId.String());
+		}
+	}
+#endif
+
 	OutShaderMap = ExistingShaderMap;
 	if (!OutShaderMap)
 	{
@@ -5977,10 +6018,11 @@ void FShaderFrequencyUniformExpressionValues::Update(
 		{
 			checkAtCompileTime(sizeof(FLinearColor) == sizeof(FVector4),flinearcolor_and_fvector4_must_be_isomorphic);
 			UniformExpressions.UniformVectorExpressions(VectorIndex)->GetNumberValue(
-				MaterialRenderContext, 
+				MaterialRenderContext,
 				// we can drop this right into place
 				*(FLinearColor*)&CachedVectorParameters(VectorIndex));
 		}
+
 
 		CachedTexture2DParameters.Empty(UniformExpressions.Uniform2DTextureExpressions.Num());
 		CachedTexture2DParameters.Add(UniformExpressions.Uniform2DTextureExpressions.Num());
@@ -6014,6 +6056,23 @@ FShader* FMaterial::GetShader(FMeshMaterialShaderType* ShaderType, FVertexFactor
 {
 	const FMeshMaterialShaderMap* MeshShaderMap = ShaderMap->GetMeshShaderMap(VertexFactoryType);
 	FShader* Shader = MeshShaderMap ? MeshShaderMap->GetShader(ShaderType) : NULL;
+#if BATMAN
+	{
+		static INT BmFoundLogCount = 0;
+		static TSet<FString> BmFoundLoggedMaterials;
+		if (Shader && ShaderMap->IsFromBmCache() && BmFoundLogCount < 10)
+		{
+			const FString MatKey = FString::Printf(TEXT("%s_%s_%s"), *GetFriendlyName(), ShaderType->GetName(), VertexFactoryType->GetName());
+			if (!BmFoundLoggedMaterials.Contains(MatKey))
+			{
+				BmFoundLogCount++;
+				BmFoundLoggedMaterials.Add(MatKey);
+				warnf(NAME_Warning, TEXT("BM3 GetShader HIT: '%s' found Shader=%s VF=%s"),
+					*GetFriendlyName(), ShaderType->GetName(), VertexFactoryType->GetName());
+			}
+		}
+	}
+#endif
 	if (!Shader)
 	{
 #if BATMAN

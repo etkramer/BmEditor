@@ -225,10 +225,11 @@ public:
 	{
 		TransientOverrideValue = InOverrideTexture;
 	}
-	void SetTextureIndex(INT InTextureIndex) 
-	{ 
-		TextureIndex = InTextureIndex; 
+	void SetTextureIndex(INT InTextureIndex)
+	{
+		TextureIndex = InTextureIndex;
 	}
+	INT GetTextureIndex() const { return TextureIndex; }
 
 	virtual UBOOL IsConstant() const
 	{
@@ -976,8 +977,14 @@ private:
 	/** The maximum texture dependency length for the material. */
 	INT MaxTextureDependencyLength;
 
+#if BATMAN
+public:
+#endif
 	TRefCountPtr<FMaterialShaderMap> ShaderMap;
 
+#if BATMAN
+private:
+#endif
 	FGuid Id;
 
 	/** If non-NULL, contains legacy uniform expressions. */

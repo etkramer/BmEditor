@@ -290,7 +290,7 @@ public:
 		UBOOL bShaderHasOutdatedParameters = FShader::Serialize(Ar);
 		Ar << MaterialParameters << IndividualVelocityScale;
 #if BATMAN
-		if (!Ar.IsBmCooked(TRUE))
+		if (!Ar.IsBmCooked(FALSE))
 #endif
 		{
 			Ar << PrevViewProjectionMatrixParameter;

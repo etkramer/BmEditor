@@ -619,6 +619,15 @@ UBOOL UMaterial::GetParameterDesc(FName ParameterName, FString& OutDesc)
 	for(INT ExpressionIndex = 0; ExpressionIndex < Expressions.Num(); ExpressionIndex++)
 	{
 		UMaterialExpression* Expression = Expressions(ExpressionIndex);
+
+#if BATMAN
+		// BM: Cooked packages have stripped/null expressions
+		if (Expression == NULL)
+		{
+			continue;
+		}
+#endif
+
 		// Parameter is a basic Expression Parameter
 		if(Expression->IsA(UMaterialExpressionParameter::StaticClass()))
 		{

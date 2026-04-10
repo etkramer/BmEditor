@@ -556,7 +556,7 @@ UBOOL operator<<(FArchive& Ar,FVertexFactoryPSParameterRef& Ref)
 
 #if BATMAN
 	// BM3 pixel shaders don't have vertex factory parameters
-	if (Ar.IsBmCooked(TRUE))
+	if (Ar.IsBmCooked(FALSE))
 	{
 		return FALSE;
 	}

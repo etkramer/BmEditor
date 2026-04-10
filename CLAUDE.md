@@ -20,8 +20,9 @@ Build uses UnrealBuildTool. Do not try to trigger builds on  your own. The edito
 
 There are two useful decompilations to use as reference on the retail BM3 game:
 
-- `F:\Game Builds\Batman Arkham Origins (February 1, 2013)\Default.xex.[c,h]` - decompiled X360 source, with symbols. May not be fully accurate to the PC version, but a good reference for overall behavior and most serialization
-- `C:\Program Files (x86)\Steam\steamapps\common\Batman Arkham Origins\SinglePlayer\Binaries\Win32\BatmanOrigins.exe.c` - decompiled PC source, without symbols. This is the most accurate source, though it may be difficult to read without using X360 as reference
+- `I:\Gangland\Binaries\Win32\BmGame.exe.c` - decompiled source from a PC build of Arkham City, with partial symbols (has all function names). Should be very accurate to the PC version and a strong reference
+- `F:\Game Builds\Batman Arkham Origins (February 1, 2013)\Default.xex.[c,h]` - decompiled X360 source, with full symbols. May not be fully accurate to the PC version, but a good reference for overall behavior and game structs
+- `C:\Program Files (x86)\Steam\steamapps\common\Batman Arkham Origins\SinglePlayer\Binaries\Win32\BatmanOrigins.exe.c` - decompiled PC source, without symbols. This is the most accurate source, though it may be difficult to read without using X360 as reference. Probably only useful for finding specific exe offsets
 
 ## Architecture: Batman Customizations
 

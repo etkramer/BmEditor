@@ -2722,7 +2722,7 @@ FArchive& operator<<(FArchive& Ar,FSceneTextureShaderParameters& Parameters)
 	Ar << Parameters.SceneDepthTextureParameter;
 #if BATMAN
 	// BM3 doesn't have SceneDepthSurfaceParameter
-	if (!Ar.IsBmCooked(TRUE))
+	if (!Ar.IsBmCooked(FALSE))
 #endif
 	{
 		Ar << Parameters.SceneDepthSurfaceParameter;

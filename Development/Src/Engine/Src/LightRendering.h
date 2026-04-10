@@ -466,7 +466,7 @@ public:
 		bShaderHasOutdatedParameters |= Ar << VertexFactoryParameters;
 		Ar << MaterialParameters;
 #if BATMAN
-		if (Ar.IsBmCooked(TRUE))
+		if (Ar.IsBmCooked(FALSE))
 		{
 			FShaderParameter Dummy;
 			Ar << Dummy;
@@ -654,7 +654,7 @@ public:
 		LightTypePolicy::PixelParametersType::Serialize(Ar);
 		ShadowingTypePolicy::PixelParametersType::Serialize(Ar);
 #if BATMAN
-		if (Ar.IsBmCooked(TRUE))
+		if (Ar.IsBmCooked(FALSE))
 		{
 			Ar << SpecularScaleParameter;
 		}

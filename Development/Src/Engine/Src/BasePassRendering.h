@@ -75,7 +75,7 @@ public:
 		LightMapPolicyType::VertexParametersType::Serialize(Ar);
 		bShaderHasOutdatedParameters |= Ar << VertexFactoryParameters;
 #if BATMAN
-		if (Ar.IsBmCooked(TRUE))
+		if (Ar.IsBmCooked(FALSE))
 		{
 			Ar << MaterialParameters;
 			FShaderParameter Dummy;
@@ -311,12 +311,12 @@ public:
 			const UBOOL bIsUnlitView = !(View->Family->ShowFlags & SHOW_Lighting);
 			UBOOL bDrawSurfaceUnlit = bIsUnlitView || (LightMapPolicyType::bDrawLitTranslucencyUnlit && bDrawLitTranslucencyUnlit && bIsTranslucentLitMaterial);
 #if BATMAN
-			// BM3 cached shaders (especially APlus3D character shaders) get all lighting
-			// from parameters we don't set. Treat as fully ambient-lit so textures are visible.
-			if (Material->ShaderMap && Material->ShaderMap->IsFromBmCache())
-			{
-				bDrawSurfaceUnlit = TRUE;
-			}
+			// BM3 cached shaders have limited texture bindings in the base pass — character
+			// shaders only bind 2 textures (normal + null→white), so DiffuseColor evaluates
+			// to ~(1,1,1). With AmbientColor=(1,1,1), the base pass would output pure white.
+			// Instead, leave bDrawSurfaceUnlit=FALSE so AmbientColor=(0,0,0,1) and the base
+			// pass contributes only Emissive. The light pass (which binds all textures) provides
+			// the real directional lighting contribution.
 #endif
 			SetPixelShaderValue(
 				GetPixelShader(),
@@ -368,7 +368,7 @@ public:
 		Ar << MaterialParameters;
 		Ar << AmbientColorAndSkyFactorParameter;
 #if BATMAN
-		if (Ar.IsBmCooked(TRUE))
+		if (Ar.IsBmCooked(FALSE))
 		{
 			Ar << MotionBlurMaskParameter;
 
@@ -1110,9 +1110,15 @@ void ProcessBasePassMesh(
 			HANDLE_LIGHTMAP_TYPE(LMIT_Texture,FDirectionalLightMapTexturePolicy,FSimpleLightMapTexturePolicy,(),LightMapInteraction);
 			default:
 				{
+#if BATMAN
+					// TODO: BM3 character materials use APlus3D lighting in the retail game.
+					// Routing to FAPlus3DLightLightMapPolicy with fabricated NULL lightmap data
+					// causes white output. Disabled until proper element data can be provided.
+					// For now, these materials fall through to FNoLightMapPolicy (unlit but textured).
+#endif
 					// Check if we should use a directional light in the base pass
-					if (bIsLitMaterial 
-						&& Parameters.PrimitiveSceneInfo 
+					if (bIsLitMaterial
+						&& Parameters.PrimitiveSceneInfo
 						// Shaders not compiled with decal usage due to not enough constant registers
 						&& !Parameters.Material->IsUsedWithDecals())
 					{
