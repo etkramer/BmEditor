@@ -1204,7 +1204,7 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 			}
 		}
 #if BATMAN
-		if (Ar.IsBmCooked(TRUE))
+		if (Ar.IsBmCooked(TRUE, FALSE))
 		{
 			// Batman3: Write INT16 zero as end marker
 			SWORD EndMarker = 0;

@@ -3734,6 +3734,7 @@ UObject* ULinkerLoad::CreateExport( INT Index )
             // These load but don't render properly (needs RefShaderCache compat).
             // Ignoring for now so we fall back to the prettier default mat.
             LoadClass->GetName() == "Material" ||
+			LoadClass->GetName() == "MaterialInstanceConstant" ||
 
 			// Don't load class functions for now
 			LoadClass->GetName() == "Function" ||

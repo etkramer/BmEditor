@@ -629,6 +629,13 @@ void AnimZip_Sample(const UAnimSequence* Seq, USkeletalMesh* SkelMesh,
 
 	NormalizedTime = Clamp(NormalizedTime, 0.0f, 1.0f - (FLOAT)SMALL_NUMBER);
 
+	// When Compression_RelativeToReferencePose is set, decoded keys are stored relative
+	// to the target mesh refpose and must be composed back in at sample time. Matches
+	// the shipped game: SampleBundle<FRotationCodec_QuatMax_48,1> at Default.xex.c:2981587
+	// applies RefPose * Decoded for rotation; AnimZip_Sample_Track at :2967216 applies
+	// RefPose + Decoded for translation.
+	const UBOOL bRetarget = Seq->Compression_RelativeToReferencePose;
+
 	// Process all rotation bundles
 	const FBundle* RotBundles = (const FBundle*)&Data[Anim->RotationBundlesOffset];
 	for (INT i = 0; i < Anim->NumRotationBundles; i++)
@@ -645,6 +652,11 @@ void AnimZip_Sample(const UAnimSequence* Seq, USkeletalMesh* SkelMesh,
 			if (BoneIdx != INDEX_NONE && BoneIdx < NumBones)
 			{
 				FQuat Q = SampleRotationBundle(RB, B.Codec, t, B.NumTracks, Time);
+				if (bRetarget)
+				{
+					// Out_Bones[BoneIdx] still holds the pre-filled refpose at this point.
+					Q = Out_Bones[BoneIdx].GetRotation() * Q;
+				}
 				Out_Bones[BoneIdx].SetRotation(Q);
 			}
 		}
@@ -666,6 +678,10 @@ void AnimZip_Sample(const UAnimSequence* Seq, USkeletalMesh* SkelMesh,
 			if (BoneIdx != INDEX_NONE && BoneIdx < NumBones)
 			{
 				FVector V = SampleTranslationBundle(RB, B.Codec, t, B.NumTracks, Time);
+				if (bRetarget)
+				{
+					V += Out_Bones[BoneIdx].GetTranslation();
+				}
 				Out_Bones[BoneIdx].SetTranslation(V);
 			}
 		}

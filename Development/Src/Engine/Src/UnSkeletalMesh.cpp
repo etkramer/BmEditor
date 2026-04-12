@@ -1932,11 +1932,34 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 
 	Ar << Bounds;
 #if BATMAN
-	// https://github.com/gildor2/UEViewer/blob/a0bfb468d42be831b126632fd8a0ae6b3614f981/Unreal/UnrealMesh/UnMesh3.cpp#L1978
+	// BM3 populates ConservativeBounds and PerBoneBounds in USkeletalMesh::
+	// CalculateBounds(): per-bone bounding boxes in bone-local space plus a
+	// worst-case (BoneDistFromRoot + localVertexLen) used for frustum culling.
+	// When the editor resaves a mesh we can't easily replay the full skinning
+	// pass, so write conservative values that keep the game's culling/use
+	// paths happy: one FBoneBounds entry per bone with a generous box, and a
+	// ConservativeBounds large enough to never cull.
 	if (Ar.IsBmCooked(TRUE))
-    {
+	{
 		float ConservativeBounds;
 		TArray<FBoneBounds> PerBoneBounds;
+
+		if (Ar.IsSaving())
+		{
+			ConservativeBounds = Bounds.SphereRadius * 2.0f;
+
+			const FVector BigMin(-BIG_NUMBER, -BIG_NUMBER, -BIG_NUMBER);
+			const FVector BigMax( BIG_NUMBER,  BIG_NUMBER,  BIG_NUMBER);
+			PerBoneBounds.Empty(RefSkeleton.Num());
+			for (INT BoneIdx = 0; BoneIdx < RefSkeleton.Num(); ++BoneIdx)
+			{
+				FBoneBounds& BB = *new(PerBoneBounds) FBoneBounds;
+				BB.BoneIndex = BoneIdx;
+				BB.Min = BigMin;
+				BB.Max = BigMax;
+			}
+		}
+
 		Ar << ConservativeBounds << PerBoneBounds;
 	}
 #endif
