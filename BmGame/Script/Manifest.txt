@@ -1448,6 +1448,7 @@
    3 PropertyInputCombo UnrealEd [] []
    3 PropertyInputEditInline UnrealEd [] []
    3 PropertyInputText UnrealEd [] []
+ 1 RAnimZip_Settings Engine [] []
  1 RB_BodyInstance Engine [] []
  1 RB_ConstraintInstance Engine [] []
  1 RB_ConstraintSetup Engine [] []

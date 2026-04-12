@@ -198,6 +198,55 @@ enum ESplineControlRotMode
     op(SCR_NoChange) \
     op(SCR_AlongSpline) \
     op(SCR_Interpolate) 
+enum EAnimZipTranslationScaleCodec
+{
+    AZTSC_Float_128         =0,
+    AZTSC_NoScale_Float_96  =1,
+    AZTSC_NoScale_Interval_Fixed_48=2,
+    AZTSC_NoScale_Interval_Fixed_24=3,
+    AZTSC_MAX               =4,
+};
+#define FOREACH_ENUM_EANIMZIPTRANSLATIONSCALECODEC(op) \
+    op(AZTSC_Float_128) \
+    op(AZTSC_NoScale_Float_96) \
+    op(AZTSC_NoScale_Interval_Fixed_48) \
+    op(AZTSC_NoScale_Interval_Fixed_24) 
+enum EAnimZipRotationCodec
+{
+    AZRC_QuatMax_48         =0,
+    AZRC_QuatMax_40         =1,
+    AZRC_QuatRelative_32    =2,
+    AZRC_QuatRelative_24    =3,
+    AZRC_QuatRelative_16    =4,
+    AZRC_FixedAxis_16       =5,
+    AZRC_FixedAxis_8        =6,
+    AZRC_MAX                =7,
+};
+#define FOREACH_ENUM_EANIMZIPROTATIONCODEC(op) \
+    op(AZRC_QuatMax_48) \
+    op(AZRC_QuatMax_40) \
+    op(AZRC_QuatRelative_32) \
+    op(AZRC_QuatRelative_24) \
+    op(AZRC_QuatRelative_16) \
+    op(AZRC_FixedAxis_16) \
+    op(AZRC_FixedAxis_8) 
+enum EAnimZipPreset
+{
+    AZP_Default             =0,
+    AZP_Default50           =1,
+    AZP_Default25           =2,
+    AZP_Default10           =3,
+    AZP_AlmostNone          =4,
+    AZP_Custom              =5,
+    AZP_MAX                 =6,
+};
+#define FOREACH_ENUM_EANIMZIPPRESET(op) \
+    op(AZP_Default) \
+    op(AZP_Default50) \
+    op(AZP_Default25) \
+    op(AZP_Default10) \
+    op(AZP_AlmostNone) \
+    op(AZP_Custom) 
 
 #endif // !INCLUDED_ENGINE_ANIM_ENUMS
 #endif // !NO_ENUMS
@@ -679,6 +728,7 @@ public:
     TArrayNoInit<struct FRotationTrack> RotationData;
     TArrayNoInit<struct FCurveTrack> CurveData;
     class UAnimationCompressionAlgorithm* CompressionScheme;
+    class URAnimZip_Settings* Compression_CustomSettings;
     BYTE TranslationCompressionFormat;
     BYTE RotationCompressionFormat;
     BYTE KeyEncodingFormat;
@@ -4634,6 +4684,7 @@ public:
     TArrayNoInit<FName> UseTranslationBoneNames;
     TArrayNoInit<FName> ForceMeshTranslationBoneNames;
     FName PreviewSkelMeshName;
+    class URAnimZip_Settings* Compression_CustomSettings;
     FName PreviewExtraSkelMesh1Name;
     FName BestRatioSkelMeshName;
     //## END PROPS AnimSet
@@ -4778,6 +4829,96 @@ public:
 	 * Returns a one line description of an object for viewing in the thumbnail view of the generic browser
 	 */
 	virtual FString GetDesc();
+};
+
+struct FAnimZipErrorBounds
+{
+    FLOAT Rotation;
+    FLOAT Translation;
+    FLOAT Scale;
+
+    /** Constructors */
+    FAnimZipErrorBounds() {}
+    FAnimZipErrorBounds(EEventParm)
+    {
+        appMemzero(this, sizeof(FAnimZipErrorBounds));
+    }
+};
+
+struct FAnimZipTrackSettings
+{
+    struct FAnimZipErrorBounds ErrorBounds;
+    BITFIELD AllowRotationRetargeting:1;
+    SCRIPT_ALIGN;
+
+    /** Constructors */
+    FAnimZipTrackSettings() {}
+    FAnimZipTrackSettings(EEventParm)
+    {
+        appMemzero(this, sizeof(FAnimZipTrackSettings));
+    }
+};
+
+struct FAnimZipNamedTrackSettings
+{
+    FName TrackName;
+    struct FAnimZipTrackSettings Settings;
+
+    /** Constructors */
+    FAnimZipNamedTrackSettings() {}
+    FAnimZipNamedTrackSettings(EEventParm)
+    {
+        appMemzero(this, sizeof(FAnimZipNamedTrackSettings));
+    }
+};
+
+class URAnimZip_Settings : public UObject
+{
+public:
+    //## BEGIN PROPS RAnimZip_Settings
+    FLOAT CompressionAmount;
+    BITFIELD StripTracksIfSameAsReferencePose:1;
+    BITFIELD EnableAdaptiveDownsample:1;
+    BITFIELD ForceDownsample_Enabled:1;
+    BITFIELD EnableAdaptiveDownsampleEnergy:1;
+    BITFIELD EnableRotationRetargeting:1;
+    BITFIELD ForceRotationCodec_Enabled:1;
+    BITFIELD ForceTranslationScaleCodec_Enabled:1;
+    BITFIELD EnableCharacterOptimisations:1;
+    BITFIELD EnableCapeOptimisations:1;
+    BITFIELD Log:1;
+    TArrayNoInit<INT> AdaptiveDownsampleDivisors;
+    TArrayNoInit<INT> AdaptiveDownsampleNumbers;
+    FLOAT ForceDownsample;
+    FLOAT AdaptiveDownsampleEnergyLowScale;
+    FLOAT AdaptiveDownsampleEnergyHighScale;
+    FLOAT AdaptiveDownsampleEnergyPower;
+    struct FAnimZipTrackSettings DefaultTrackSettings;
+    TArrayNoInit<struct FAnimZipNamedTrackSettings> ForcedTrackSettings;
+    struct FAnimZipTrackSettings MotionTrackSettings;
+    BYTE ForceRotationCodec;
+    BYTE ForceTranslationScaleCodec;
+    TArrayNoInit<BYTE> DisableRotationCodecs;
+    TArrayNoInit<BYTE> DisableTranslationScaleCodecs;
+    struct FAnimZipTrackSettings CharacterTrackSettings;
+    struct FAnimZipTrackSettings CharacterTrackSettings_Bip01;
+    struct FAnimZipTrackSettings CharacterTrackSettings_Pelvis;
+    struct FAnimZipTrackSettings CharacterTrackSettings_Spine;
+    struct FAnimZipTrackSettings CharacterTrackSettings_Face;
+    struct FAnimZipTrackSettings CharacterTrackSettings_Head;
+    struct FAnimZipTrackSettings CharacterTrackSettings_Clavicle;
+    struct FAnimZipTrackSettings CharacterTrackSettings_Arm;
+    struct FAnimZipTrackSettings CharacterTrackSettings_Hand;
+    struct FAnimZipTrackSettings CharacterTrackSettings_Finger;
+    struct FAnimZipTrackSettings CharacterTrackSettings_Gundummy;
+    struct FAnimZipTrackSettings CharacterTrackSettings_Leg;
+    struct FAnimZipTrackSettings CharacterTrackSettings_Foot;
+    struct FAnimZipTrackSettings CharacterTrackSettings_Toe;
+    struct FAnimZipTrackSettings CapeTrackSettings;
+    //## END PROPS RAnimZip_Settings
+
+    DECLARE_CLASS(URAnimZip_Settings,UObject,0,Engine)
+    NO_DEFAULT_CONSTRUCTOR(URAnimZip_Settings)
 };
 
 #undef DECLARE_CLASS
@@ -4994,6 +5135,7 @@ AUTOGENERATE_FUNCTION(UMorphTargetSet,-1,execFindMorphTarget);
 	UMorphTargetSet::StaticClass(); \
 	GNativeLookupFuncs.Set(FName("MorphTargetSet"), GEngineUMorphTargetSetNatives); \
 	UMorphWeightSequence::StaticClass(); \
+	URAnimZip_Settings::StaticClass(); \
 
 #endif // ENGINE_ANIM_NATIVE_DEFS
 
@@ -5430,6 +5572,9 @@ VERIFY_CLASS_OFFSET_NODIE(UMorphTargetSet,MorphTargetSet,Targets)
 VERIFY_CLASS_OFFSET_NODIE(UMorphTargetSet,MorphTargetSet,RawWedgePointIndices)
 VERIFY_CLASS_SIZE_NODIE(UMorphTargetSet)
 VERIFY_CLASS_SIZE_NODIE(UMorphWeightSequence)
+VERIFY_CLASS_OFFSET_NODIE(URAnimZip_Settings,RAnimZip_Settings,CompressionAmount)
+VERIFY_CLASS_OFFSET_NODIE(URAnimZip_Settings,RAnimZip_Settings,CapeTrackSettings)
+VERIFY_CLASS_SIZE_NODIE(URAnimZip_Settings)
 #endif // VERIFY_CLASS_SIZES
 #endif // !ENUMS_ONLY
 

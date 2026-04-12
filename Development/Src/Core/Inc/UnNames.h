@@ -574,6 +574,8 @@ REGISTER_NAME( 1158, Bip01_R_UpperArm )
 REGISTER_NAME( 1159, Bip01_R_Forearm )
 REGISTER_NAME( 1160, Bip01_L_UpperArm )
 REGISTER_NAME( 1161, Bip01_L_Forearm )
+REGISTER_NAME( 1162, Bip01 )
+REGISTER_NAME( 1163, Gundummy )
 
 /*-----------------------------------------------------------------------------
 	Special engine-generated probe messages.

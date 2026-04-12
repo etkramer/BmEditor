@@ -40,7 +40,11 @@
       "Bash(awk -F'-' '{print $2}')",
       "Bash(git diff:*)",
       "Bash(awk -F'[\\(\\)]' '{if \\($2+0 > 698770 && $2+0 < 700000\\) print NR\": \"$0}')",
-      "Bash(awk:*)"
+      "Bash(awk:*)",
+      "WebFetch(domain:)",
+      "Bash(awk '/^[0-9]+:__vector4 \\\\*__fastcall SampleBundleTrack<FRotationCodec_QuatMax_48/{flag=1} flag{print NR\": \"$0; if\\(/^[0-9]+:\\\\}/\\) flag=0}' \"F:/Game Builds/Batman Arkham Origins \\(February 1, 2013\\)/Default.xex.c\")",
+      "Bash(ls /i/UnrealEngine3/Development/Src/Engine/Inc/*.h)",
+      "Bash(awk 'NR>=6680700 && NR<=6682500' \"I:/Gangland/Binaries/Win32/BmGame.exe.c\")"
     ]
   }
 }
