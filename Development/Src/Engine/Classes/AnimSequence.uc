@@ -162,6 +162,13 @@ var const array<CurveTrack>						CurveData;
 var() editinline editconst editoronly AnimationCompressionAlgorithm	CompressionScheme;
 
 /**
+ * Per-sequence AnimZip encoder overrides. When NULL, the encoder falls back to
+ * the owning AnimSet's Compression_CustomSettings, and then to the
+ * RAnimZip_Settings CDO.
+ */
+var(Compression) editinline editoronly RAnimZip_Settings Compression_CustomSettings;
+
+/**
  * Indicates animation data compression format.
  */
 enum AnimationCompressionFormat

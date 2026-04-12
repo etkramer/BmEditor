@@ -62,6 +62,12 @@ var() Array<name>		UseTranslationBoneNames;
 var() Array<Name>		ForceMeshTranslationBoneNames;
 /** In the AnimSetEditor, when you switch to this AnimSet, it sees if this skeletal mesh is loaded and if so switches to it. */
 var()	name				PreviewSkelMeshName;
+
+/**
+ * Per-anim-set AnimZip encoder overrides. When NULL, the encoder falls back to
+ * the RAnimZip_Settings CDO.
+ */
+var(Compression) editinline editoronly RAnimZip_Settings Compression_CustomSettings;
 // BM
 var()	name				PreviewExtraSkelMesh1Name;
 /** Holds the name of the skeletal mesh whose reference skeleton best matches the TrackBoneName array. */
