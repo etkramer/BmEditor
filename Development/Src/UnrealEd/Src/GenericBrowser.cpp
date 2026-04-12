@@ -4946,7 +4946,7 @@ END_EVENT_TABLE()
 
 WxGBLeftContainer::WxGBLeftContainer( wxWindow* InParent )
 	:	wxPanel( InParent, -1 )
-	,	ResourceAllType(NULL), ResourceFilterType(NULL), bTreeViewChanged(FALSE), bIsSCCStateDirty( TRUE )
+	,	ResourceAllType(NULL), ResourceFilterType(NULL), bTreeViewChanged(FALSE), bIsSCCStateDirty( TRUE ), UsageFilterSashPos( STD_SPLITTER_SZ )
 {
 	wxBoxSizer* MainSizer = new wxBoxSizer(wxVERTICAL);
 	{
@@ -5062,8 +5062,12 @@ WxGBLeftContainer::~WxGBLeftContainer()
 void WxGBLeftContainer::LoadSettings()
 {
 	// Load the sash position for the horizontal splitter.
-	INT SashPos;
+	INT SashPos = STD_SPLITTER_SZ;
 	GConfig->GetInt( TEXT("GenericBrowser"), TEXT("Package_Splitter_Sash_Position"), SashPos, GEditorUserSettingsIni );
+	if ( SashPos <= 0 )
+	{
+		SashPos = STD_SPLITTER_SZ;
+	}
 	PackageSplitter->SetSashPosition(SashPos);
 
 	// Load the value of the bShowAllTypes flag.
@@ -5092,7 +5096,12 @@ void WxGBLeftContainer::LoadSettings()
 	}
 
 	// "In-use" filter settings
+	UsageFilterSashPos = STD_SPLITTER_SZ;
 	GConfig->GetInt( TEXT("GenericBrowser"), TEXT("UsageFilter_Splitter_Sash_Position"), UsageFilterSashPos, GEditorUserSettingsIni );
+	if ( UsageFilterSashPos <= 0 )
+	{
+		UsageFilterSashPos = STD_SPLITTER_SZ;
+	}
 	UsageFilterHSplitter->SetSashPosition(UsageFilterSashPos);
 
 	// Load list of containers to use for the usage filter
@@ -5117,7 +5126,7 @@ void WxGBLeftContainer::SaveSettings()
 {
 	// Save the sash position for the horizontal splitter.
 	INT SashPos = PackageSplitter->GetSashPosition();
-	GConfig->SetInt( TEXT("GenericBrowser"), TEXT("Package_Splitter_Sash_Position"), UsageFilterSashPos, GEditorUserSettingsIni );
+	GConfig->SetInt( TEXT("GenericBrowser"), TEXT("Package_Splitter_Sash_Position"), SashPos, GEditorUserSettingsIni );
 
 	// Save the value of the bShowAllTypes flag.
 	GConfig->SetBool( TEXT("GenericBrowser"), TEXT("Package_Show_All_Types"), bShowAllTypes, GEditorUserSettingsIni );
@@ -5905,6 +5914,8 @@ void WxGBLeftContainer::GetReferencerContainers( TArray<UObject*>& out_Reference
 void WxGBLeftContainer::SetShowAllTypes( UBOOL bIn )
 {
 	bShowAllTypes = bIn;
+	ShowAllCheckBox->SetValue( bShowAllTypes == TRUE );
+	ResourceFilterList->Enable( bShowAllTypes == FALSE );
 
 	if( bShowAllTypes )
 	{

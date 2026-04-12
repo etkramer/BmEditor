@@ -725,6 +725,7 @@ void UBrowserManager::ShowWindow(INT InDockID,UBOOL bShowHide)
 				DockingContainer->GetNotebook()->SetSelection(Index);
 				bIsBrowserLayoutChanging = FALSE;
 
+				Page->Activated();
 				// Mark the browser as visible
 				Page->SetVisibleState(TRUE);
 				// Update the parent's caption
@@ -750,6 +751,7 @@ void UBrowserManager::ShowWindow(INT InDockID,UBOOL bShowHide)
 				// Make it visible
 				FloatingWindows(Index)->Show();
 				FloatingWindows(Index)->Raise();
+				FloatingWindows(Index)->GetChildWindow()->Activated();
 				// Mark the browser as visible
 				FloatingWindows(Index)->GetChildWindow()->SetVisibleState(TRUE);
 			}
