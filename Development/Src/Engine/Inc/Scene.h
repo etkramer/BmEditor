@@ -1722,6 +1722,10 @@ public:
 
 	FVector4 DiffuseOverrideParameter;
 	FVector4 SpecularOverrideParameter;
+#if BATMAN
+	FVector4 EmissiveOverrideParameter;
+	FVector4 CameraPlaneParameter;
+#endif
 
 	/** The primitives which are hidden for this view. */
 	TSet<UPrimitiveComponent*> HiddenPrimitives;

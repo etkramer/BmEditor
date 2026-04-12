@@ -2067,6 +2067,7 @@ public:
 	{
 		return FALSE;
 	}
+	virtual FName GetParameterName() const { return ParameterName; }
 	virtual UBOOL IsIdentical(const FMaterialUniformExpression* OtherExpression) const
 	{
 		if (GetType() != OtherExpression->GetType())
@@ -2114,6 +2115,7 @@ public:
 	{
 		return FALSE;
 	}
+	virtual FName GetParameterName() const { return ParameterName; }
 	virtual UBOOL IsIdentical(const FMaterialUniformExpression* OtherExpression) const
 	{
 		if (GetType() != OtherExpression->GetType())

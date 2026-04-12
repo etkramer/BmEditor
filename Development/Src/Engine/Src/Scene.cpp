@@ -363,6 +363,10 @@ FSceneView::FSceneView(
 	ColorScale(InColorScale),
 	DiffuseOverrideParameter(FVector4(0,0,0,1)),
 	SpecularOverrideParameter(FVector4(0,0,0,1)),
+#if BATMAN
+	EmissiveOverrideParameter(FVector4(0,0,0,1)),
+	CameraPlaneParameter(FVector4(0,0,0,0)),
+#endif
 	HiddenPrimitives(InHiddenPrimitives),
 	ScreenDoorRandomOffset( 0.0f, 0.0f ),
 	TemporalAAParameters(InTemporalAAParameters),

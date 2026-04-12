@@ -192,6 +192,7 @@ public:
 	virtual class FMaterialUniformExpressionTexture* GetTextureUniformExpression() { return NULL; }
 	virtual UBOOL IsConstant() const { return FALSE; }
 	virtual UBOOL IsIdentical(const FMaterialUniformExpression* OtherExpression) const { return FALSE; }
+	virtual FName GetParameterName() const { return NAME_None; }
 
 	friend FArchive& operator<<(FArchive& Ar,class FMaterialUniformExpression*& Ref);
 };

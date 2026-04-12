@@ -38,7 +38,9 @@
       "Bash(\\\\.h\")",
       "Bash(awk -F'\\(' '{print $1\":\"$2}')",
       "Bash(awk -F'-' '{print $2}')",
-      "Bash(git diff:*)"
+      "Bash(git diff:*)",
+      "Bash(awk -F'[\\(\\)]' '{if \\($2+0 > 698770 && $2+0 < 700000\\) print NR\": \"$0}')",
+      "Bash(awk:*)"
     ]
   }
 }

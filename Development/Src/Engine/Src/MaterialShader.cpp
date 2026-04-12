@@ -628,17 +628,11 @@ void FMaterialPixelShaderParameters::Set(FShader* PixelShader,const FMaterialRen
 
 #if BATMAN
 	// DX9 pixel shader constants are global state — they persist across draw calls.
-	// BM3 shaders may read registers that the engine doesn't know to set (compiled by BM3's
-	// compiler, not the editor's). Clear PS float constants to zero so stale values from
-	// previous non-BM3 draw calls don't bleed through (e.g. InvGamma=0 → pow(c,0)=1 → white).
-	// Skip engine-reserved registers 0-6 (PSR_MaxPixelShaderRegister) as they're set per-view.
-	if (Material->ShaderMap->IsFromBmCache())
-	{
-		const UINT StartRegister = PSR_MaxPixelShaderRegister; // 7
-		const UINT NumRegisters = 224 - StartRegister;         // 217
-		static FLOAT ZeroConstants[217 * 4] = {0};
-		RHISetPixelShaderParameter(PixelShaderRHI, 0, StartRegister * 16, NumRegisters * 16, ZeroConstants, 0);
-	}
+	// BM3 shaders read registers that aren't mapped through the expression set (color tints,
+	// material constants set directly by BM3's renderer). Blanket-zeroing these registers
+	// causes monochrome/too-bright output. Instead, rely on the InvGamma fix below to handle
+	// the specific stale-constant issue (pow(c,0)=1→white) and let other registers keep their
+	// stale values from previous draws, which are generally better than zeros.
 
 	{
 		static INT BmRenderLogCount = 0;
@@ -683,6 +677,46 @@ void FMaterialPixelShaderParameters::Set(FShader* PixelShader,const FMaterialRen
 					i, Param.Index, TexIdx,
 					Resolved ? *Resolved->GetName() : (TexExpr ? TEXT("NULL_TEX") : TEXT("OOB_EXPR")),
 					Param.ShaderParameter.GetBaseIndex());
+			}
+			// Dump the full UniformExpressionTextures array
+			warnf(NAME_Warning, TEXT("  BM3 UniformExpressionTextures[%d]:"), Material->GetTextures().Num());
+			for (INT i = 0; i < Material->GetTextures().Num(); i++)
+			{
+				UTexture* Tex = Material->GetTextures()(i);
+				warnf(NAME_Warning, TEXT("    [%d] %s (Resource=%s)"),
+					i, Tex ? *Tex->GetFullName() : TEXT("NULL"),
+					(Tex && Tex->Resource) ? TEXT("OK") : TEXT("MISSING"));
+			}
+			// Log actual vector/scalar parameter values being sent to the shader
+			FShaderFrequencyUniformExpressionValues TempValues;
+			TempValues.Update(PixelExprs, MaterialRenderContext, Material, TRUE);
+			for (INT i = 0; i < TempValues.CachedVectorParameters.Num(); i++)
+			{
+				const FVector4& V = TempValues.CachedVectorParameters(i);
+				FMaterialUniformExpression* Expr = (i < PixelExprs.UniformVectorExpressions.Num()) ? &*PixelExprs.UniformVectorExpressions(i) : NULL;
+				FName ParamName = Expr ? Expr->GetParameterName() : NAME_None;
+				warnf(NAME_Warning, TEXT("    BM3 VecParam[%d]: (%.4f, %.4f, %.4f, %.4f) Name='%s' Type=%s"),
+					i, V.X, V.Y, V.Z, V.W,
+					ParamName != NAME_None ? *ParamName.ToString() : TEXT("(none)"),
+					Expr ? Expr->GetType()->GetName() : TEXT("NULL"));
+			}
+			for (INT i = 0; i < TempValues.CachedScalarParameters.Num(); i++)
+			{
+				const FVector4& S = TempValues.CachedScalarParameters(i);
+				FString ScalarInfo;
+				for (INT j = 0; j < 4; j++)
+				{
+					INT ExprIdx = i * 4 + j;
+					if (ExprIdx < PixelExprs.UniformScalarExpressions.Num() && PixelExprs.UniformScalarExpressions(ExprIdx))
+					{
+						FMaterialUniformExpression* SExpr = &*PixelExprs.UniformScalarExpressions(ExprIdx);
+						FName SName = SExpr->GetParameterName();
+						ScalarInfo += FString::Printf(TEXT(" [%d]='%s'"), j,
+							SName != NAME_None ? *SName.ToString() : SExpr->GetType()->GetName());
+					}
+				}
+				warnf(NAME_Warning, TEXT("    BM3 ScalarParam[%d]: (%.4f, %.4f, %.4f, %.4f)%s"),
+					i, S.X, S.Y, S.Z, S.W, *ScalarInfo);
 			}
 		}
 	}
