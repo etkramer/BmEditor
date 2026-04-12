@@ -242,26 +242,32 @@ struct FResolvedBundle
 
 // --- Interpolation helper ---
 
-struct FLerpTime
+// Catmull-Rom time — four frame indices [i-1, i, i+1, i+2] clamped to valid range.
+// Matches the shipped game's decoder (Default.xex.c FCatmullRomTime::Make, ~:2966718).
+struct FCatmullRomTime
 {
-	INT Frame0;
-	INT Frame1;
-	FLOAT Alpha;
+	INT Frame0;		// i-1
+	INT Frame1;		// i (segment start)
+	INT Frame2;		// i+1 (segment end)
+	INT Frame3;		// i+2
+	FLOAT Alpha;	// fractional position within [Frame1, Frame2]
 
-	static FLerpTime Make(FLOAT NormalizedTime, INT NumFrames)
+	static FCatmullRomTime Make(FLOAT NormalizedTime, INT NumFrames)
 	{
-		FLerpTime T;
+		FCatmullRomTime T;
 		if (NumFrames <= 1)
 		{
-			T.Frame0 = 0;
-			T.Frame1 = 0;
+			T.Frame0 = T.Frame1 = T.Frame2 = T.Frame3 = 0;
 			T.Alpha = 0.0f;
 			return T;
 		}
 		FLOAT Pos = NormalizedTime * (NumFrames - 1);
-		T.Frame0 = Clamp<INT>(appFloor(Pos), 0, NumFrames - 1);
-		T.Frame1 = Min(T.Frame0 + 1, NumFrames - 1);
-		T.Alpha = Pos - (FLOAT)T.Frame0;
+		INT i = Clamp<INT>(appFloor(Pos), 0, NumFrames - 1);
+		T.Frame1 = i;
+		T.Frame2 = Min(i + 1, NumFrames - 1);
+		T.Frame0 = Max(i - 1, 0);
+		T.Frame3 = Min(i + 2, NumFrames - 1);
+		T.Alpha = Pos - (FLOAT)i;
 		return T;
 	}
 };
@@ -430,20 +436,38 @@ static FQuat SampleRotationKey(BYTE Codec, INT TrackInBundle, INT Frame, INT Num
 }
 
 static FQuat SampleRotationBundle(const FResolvedBundle& RB, BYTE Codec, INT TrackInBundle,
-	INT NumTracks, const FLerpTime& Time)
+	INT NumTracks, const FCatmullRomTime& Time)
 {
-	FQuat Q0 = SampleRotationKey(Codec, TrackInBundle, Time.Frame0, NumTracks, RB.Headers, RB.Keyframes);
-	if (Time.Alpha <= 0.0f || Time.Frame0 == Time.Frame1)
+	// Fast path: on a keyframe or single-frame track, return K1 directly.
+	FQuat K1 = SampleRotationKey(Codec, TrackInBundle, Time.Frame1, NumTracks, RB.Headers, RB.Keyframes);
+	if (Time.Alpha <= 0.0f || Time.Frame1 == Time.Frame2)
 	{
-		return Q0;
+		return K1;
 	}
-	FQuat Q1 = SampleRotationKey(Codec, TrackInBundle, Time.Frame1, NumTracks, RB.Headers, RB.Keyframes);
-	// Shortest arc slerp
-	if ((Q0 | Q1) < 0.0f)
-	{
-		Q1 = FQuat(-Q1.X, -Q1.Y, -Q1.Z, -Q1.W);
-	}
-	FQuat Result = Q0 * (1.0f - Time.Alpha) + Q1 * Time.Alpha;
+
+	FQuat K0 = SampleRotationKey(Codec, TrackInBundle, Time.Frame0, NumTracks, RB.Headers, RB.Keyframes);
+	FQuat K2 = SampleRotationKey(Codec, TrackInBundle, Time.Frame2, NumTracks, RB.Headers, RB.Keyframes);
+	FQuat K3 = SampleRotationKey(Codec, TrackInBundle, Time.Frame3, NumTracks, RB.Headers, RB.Keyframes);
+
+	// Align all keys to K1's hemisphere (so the cubic blend takes the short way).
+	if ((K1 | K0) < 0.0f) { K0 = FQuat(-K0.X, -K0.Y, -K0.Z, -K0.W); }
+	if ((K1 | K2) < 0.0f) { K2 = FQuat(-K2.X, -K2.Y, -K2.Z, -K2.W); }
+	if ((K1 | K3) < 0.0f) { K3 = FQuat(-K3.X, -K3.Y, -K3.Z, -K3.W); }
+
+	// Standard Catmull-Rom basis, tension 0.5.
+	const FLOAT a = Time.Alpha;
+	const FLOAT a2 = a * a;
+	const FLOAT a3 = a2 * a;
+	const FLOAT b0 = -0.5f * a3 +        a2 - 0.5f * a;
+	const FLOAT b1 =  1.5f * a3 - 2.5f * a2             + 1.0f;
+	const FLOAT b2 = -1.5f * a3 + 2.0f * a2 + 0.5f * a;
+	const FLOAT b3 =  0.5f * a3 - 0.5f * a2;
+
+	FQuat Result(
+		K0.X * b0 + K1.X * b1 + K2.X * b2 + K3.X * b3,
+		K0.Y * b0 + K1.Y * b1 + K2.Y * b2 + K3.Y * b3,
+		K0.Z * b0 + K1.Z * b1 + K2.Z * b2 + K3.Z * b3,
+		K0.W * b0 + K1.W * b1 + K2.W * b2 + K3.W * b3);
 	Result.Normalize();
 	return Result;
 }
@@ -499,15 +523,26 @@ static FVector SampleTranslationKey(BYTE Codec, INT TrackInBundle, INT Frame, IN
 }
 
 static FVector SampleTranslationBundle(const FResolvedBundle& RB, BYTE Codec, INT TrackInBundle,
-	INT NumTracks, const FLerpTime& Time)
+	INT NumTracks, const FCatmullRomTime& Time)
 {
-	FVector V0 = SampleTranslationKey(Codec, TrackInBundle, Time.Frame0, NumTracks, RB.Headers, RB.Keyframes);
-	if (Time.Alpha <= 0.0f || Time.Frame0 == Time.Frame1)
-	{
-		return V0;
-	}
 	FVector V1 = SampleTranslationKey(Codec, TrackInBundle, Time.Frame1, NumTracks, RB.Headers, RB.Keyframes);
-	return Lerp(V0, V1, Time.Alpha);
+	if (Time.Alpha <= 0.0f || Time.Frame1 == Time.Frame2)
+	{
+		return V1;
+	}
+	FVector V0 = SampleTranslationKey(Codec, TrackInBundle, Time.Frame0, NumTracks, RB.Headers, RB.Keyframes);
+	FVector V2 = SampleTranslationKey(Codec, TrackInBundle, Time.Frame2, NumTracks, RB.Headers, RB.Keyframes);
+	FVector V3 = SampleTranslationKey(Codec, TrackInBundle, Time.Frame3, NumTracks, RB.Headers, RB.Keyframes);
+
+	const FLOAT a = Time.Alpha;
+	const FLOAT a2 = a * a;
+	const FLOAT a3 = a2 * a;
+	const FLOAT b0 = -0.5f * a3 +        a2 - 0.5f * a;
+	const FLOAT b1 =  1.5f * a3 - 2.5f * a2             + 1.0f;
+	const FLOAT b2 = -1.5f * a3 + 2.0f * a2 + 0.5f * a;
+	const FLOAT b3 =  0.5f * a3 - 0.5f * a2;
+
+	return V0 * b0 + V1 * b1 + V2 * b2 + V3 * b3;
 }
 
 // --- Core sampling: single track ---
@@ -532,7 +567,7 @@ void AnimZip_Sample_Track(const UAnimSequence* Seq, INT TrackIndex, FLOAT Normal
 			{
 				FResolvedBundle RB;
 				RB.Resolve(Data, B);
-				FLerpTime Time = FLerpTime::Make(NormalizedTime, B.NumFrames);
+				FCatmullRomTime Time = FCatmullRomTime::Make(NormalizedTime, B.NumFrames);
 				FQuat Q = SampleRotationBundle(RB, B.Codec, t, B.NumTracks, Time);
 				Out->SetRotation(Q);
 				bFoundRotation = TRUE;
@@ -559,7 +594,7 @@ void AnimZip_Sample_Track(const UAnimSequence* Seq, INT TrackIndex, FLOAT Normal
 			{
 				FResolvedBundle RB;
 				RB.Resolve(Data, B);
-				FLerpTime Time = FLerpTime::Make(NormalizedTime, B.NumFrames);
+				FCatmullRomTime Time = FCatmullRomTime::Make(NormalizedTime, B.NumFrames);
 				FVector V = SampleTranslationBundle(RB, B.Codec, t, B.NumTracks, Time);
 				Out->SetTranslation(V);
 				bFoundTranslation = TRUE;
@@ -601,7 +636,7 @@ void AnimZip_Sample(const UAnimSequence* Seq, USkeletalMesh* SkelMesh,
 		const FBundle& B = RotBundles[i];
 		FResolvedBundle RB;
 		RB.Resolve(Data, B);
-		FLerpTime Time = FLerpTime::Make(NormalizedTime, B.NumFrames);
+		FCatmullRomTime Time = FCatmullRomTime::Make(NormalizedTime, B.NumFrames);
 
 		for (INT t = 0; t < B.NumTracks; t++)
 		{
@@ -622,7 +657,7 @@ void AnimZip_Sample(const UAnimSequence* Seq, USkeletalMesh* SkelMesh,
 		const FBundle& B = TransBundles[i];
 		FResolvedBundle RB;
 		RB.Resolve(Data, B);
-		FLerpTime Time = FLerpTime::Make(NormalizedTime, B.NumFrames);
+		FCatmullRomTime Time = FCatmullRomTime::Make(NormalizedTime, B.NumFrames);
 
 		for (INT t = 0; t < B.NumTracks; t++)
 		{

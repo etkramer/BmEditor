@@ -35,7 +35,8 @@
       "Bash(git -C /i/UnrealEngine3 log --all --oneline -- \"*UnLevel*\")",
       "Bash(ls I:/UnrealEngine3/BmGame/CookedPCConsole/BaneHQ*)",
       "WebFetch(domain:)",
-      "Bash(awk '/^[0-9]+:__vector4 \\\\*__fastcall SampleBundleTrack<FRotationCodec_QuatMax_48/{flag=1} flag{print NR\": \"$0; if\\(/^[0-9]+:\\\\}/\\) flag=0}' \"F:/Game Builds/Batman Arkham Origins \\(February 1, 2013\\)/Default.xex.c\")"
+      "Bash(awk '/^[0-9]+:__vector4 \\\\*__fastcall SampleBundleTrack<FRotationCodec_QuatMax_48/{flag=1} flag{print NR\": \"$0; if\\(/^[0-9]+:\\\\}/\\) flag=0}' \"F:/Game Builds/Batman Arkham Origins \\(February 1, 2013\\)/Default.xex.c\")",
+      "Bash(ls /i/UnrealEngine3/Development/Src/Engine/Inc/*.h)"
     ]
   }
 }
