@@ -626,122 +626,6 @@ void FMaterialPixelShaderParameters::Set(FShader* PixelShader,const FMaterialRen
 	check(Material);
 	const FUniformExpressionSet& UniformExpressionSet = Material->ShaderMap->GetUniformExpressionSet();
 
-#if BATMAN
-	// DX9 pixel shader constants are global state — they persist across draw calls.
-	// BM3 shaders read registers that aren't mapped through the expression set (color tints,
-	// material constants set directly by BM3's renderer). Blanket-zeroing these registers
-	// causes monochrome/too-bright output. Instead, rely on the InvGamma fix below to handle
-	// the specific stale-constant issue (pow(c,0)=1→white) and let other registers keep their
-	// stale values from previous draws, which are generally better than zeros.
-
-	{
-		static INT BmRenderLogCount = 0;
-		static TSet<FString> BmLoggedShaders;
-		const FString MatName = Material->GetFriendlyName();
-		const FString ShaderTypeName = PixelShader->GetType() ? FString(PixelShader->GetType()->GetName()) : TEXT("Unknown");
-		const FString LogKey = MatName + TEXT("|") + ShaderTypeName;
-		if (Material->ShaderMap->IsFromBmCache() && BmRenderLogCount < 40 && !BmLoggedShaders.Contains(LogKey))
-		{
-			BmRenderLogCount++;
-			BmLoggedShaders.Add(LogKey);
-			const FShaderFrequencyUniformExpressions& PixelExprs = UniformExpressionSet.GetExpresssions(SF_Pixel);
-			// Count NULL textures in the array
-			INT NullTexCount = 0;
-			for (INT i = 0; i < Material->GetTextures().Num(); i++)
-			{
-				if (!Material->GetTextures()(i)) NullTexCount++;
-			}
-			warnf(NAME_Warning, TEXT("BM3 Render: '%s' Shader='%s' — PixelExprs: %d vec, %d scalar, %d tex2d; Textures: %d (%d NULL); ExprSetEmpty=%d; GammaCorr=%d; InvGamma: Bound=%d BaseIdx=%d NumBytes=%d"),
-				*MatName, *ShaderTypeName,
-				PixelExprs.UniformVectorExpressions.Num(), PixelExprs.UniformScalarExpressions.Num(), PixelExprs.Uniform2DTextureExpressions.Num(),
-				Material->GetTextures().Num(), NullTexCount,
-				UniformExpressionSet.IsEmpty() ? 1 : 0,
-				Material->IsUsedWithGammaCorrection() ? 1 : 0,
-				InvGammaParameter.IsBound() ? 1 : 0,
-				InvGammaParameter.GetBaseIndex(),
-				InvGammaParameter.GetNumBytes());
-			// Log shader Uniform2DShaderResourceParameters to see sampler-to-expression mapping
-			warnf(NAME_Warning, TEXT("  BM3 Uniform2DShaderResourceParams: %d entries (Scalars=%d, Vectors=%d)"),
-				Uniform2DShaderResourceParameters.Num(),
-				UniformScalarShaderParameters.Num(),
-				UniformVectorShaderParameters.Num());
-			for (INT i = 0; i < Uniform2DShaderResourceParameters.Num(); i++)
-			{
-				const TUniformParameter<FShaderResourceParameter>& Param = Uniform2DShaderResourceParameters(i);
-				// Resolve what this expression points to
-				FMaterialUniformExpressionTexture* TexExpr = (Param.Index < PixelExprs.Uniform2DTextureExpressions.Num()) ?
-					PixelExprs.Uniform2DTextureExpressions(Param.Index) : NULL;
-				INT TexIdx = TexExpr ? TexExpr->GetTextureIndex() : -1;
-				UTexture* Resolved = (TexIdx >= 0 && TexIdx < Material->GetTextures().Num()) ? Material->GetTextures()(TexIdx) : NULL;
-				warnf(NAME_Warning, TEXT("    BM3 ShaderTexParam[%d]: ExprIndex=%d -> TexIdx=%d -> %s (Sampler=%d)"),
-					i, Param.Index, TexIdx,
-					Resolved ? *Resolved->GetName() : (TexExpr ? TEXT("NULL_TEX") : TEXT("OOB_EXPR")),
-					Param.ShaderParameter.GetBaseIndex());
-			}
-			// Dump the full UniformExpressionTextures array
-			warnf(NAME_Warning, TEXT("  BM3 UniformExpressionTextures[%d]:"), Material->GetTextures().Num());
-			for (INT i = 0; i < Material->GetTextures().Num(); i++)
-			{
-				UTexture* Tex = Material->GetTextures()(i);
-				warnf(NAME_Warning, TEXT("    [%d] %s (Resource=%s)"),
-					i, Tex ? *Tex->GetFullName() : TEXT("NULL"),
-					(Tex && Tex->Resource) ? TEXT("OK") : TEXT("MISSING"));
-			}
-			// Log actual vector/scalar parameter values being sent to the shader
-			FShaderFrequencyUniformExpressionValues TempValues;
-			TempValues.Update(PixelExprs, MaterialRenderContext, Material, TRUE);
-			for (INT i = 0; i < TempValues.CachedVectorParameters.Num(); i++)
-			{
-				const FVector4& V = TempValues.CachedVectorParameters(i);
-				FMaterialUniformExpression* Expr = (i < PixelExprs.UniformVectorExpressions.Num()) ? &*PixelExprs.UniformVectorExpressions(i) : NULL;
-				FName ParamName = Expr ? Expr->GetParameterName() : NAME_None;
-				warnf(NAME_Warning, TEXT("    BM3 VecParam[%d]: (%.4f, %.4f, %.4f, %.4f) Name='%s' Type=%s"),
-					i, V.X, V.Y, V.Z, V.W,
-					ParamName != NAME_None ? *ParamName.ToString() : TEXT("(none)"),
-					Expr ? Expr->GetType()->GetName() : TEXT("NULL"));
-			}
-			for (INT i = 0; i < TempValues.CachedScalarParameters.Num(); i++)
-			{
-				const FVector4& S = TempValues.CachedScalarParameters(i);
-				FString ScalarInfo;
-				for (INT j = 0; j < 4; j++)
-				{
-					INT ExprIdx = i * 4 + j;
-					if (ExprIdx < PixelExprs.UniformScalarExpressions.Num() && PixelExprs.UniformScalarExpressions(ExprIdx))
-					{
-						FMaterialUniformExpression* SExpr = &*PixelExprs.UniformScalarExpressions(ExprIdx);
-						FName SName = SExpr->GetParameterName();
-						ScalarInfo += FString::Printf(TEXT(" [%d]='%s'"), j,
-							SName != NAME_None ? *SName.ToString() : SExpr->GetType()->GetName());
-					}
-				}
-				warnf(NAME_Warning, TEXT("    BM3 ScalarParam[%d]: (%.4f, %.4f, %.4f, %.4f)%s"),
-					i, S.X, S.Y, S.Z, S.W, *ScalarInfo);
-			}
-		}
-	}
-
-	// Log non-BM3 materials that render near character materials — these are likely MICs
-	// whose StaticParameterSet didn't match the BM3 cache
-	{
-		static INT BmNonBmLogCount = 0;
-		static TSet<FString> BmNonBmLoggedMaterials;
-		if (!Material->ShaderMap->IsFromBmCache() && BmNonBmLogCount < 20)
-		{
-			const FString MatName = Material->GetFriendlyName();
-			if (!BmNonBmLoggedMaterials.Contains(MatName))
-			{
-				BmNonBmLogCount++;
-				BmNonBmLoggedMaterials.Add(MatName);
-				warnf(NAME_Warning, TEXT("BM3 NonBmCache Render: '%s' — ExprSetEmpty=%d, Textures=%d"),
-					*MatName,
-					UniformExpressionSet.IsEmpty() ? 1 : 0,
-					Material->GetTextures().Num());
-			}
-		}
-	}
-#endif
-
 	FMaterialShaderParameters::SetShader(PixelShaderRHI, UniformExpressionSet.PixelExpressions, MaterialRenderContext, MaterialRenderProxy.UniformParameterCache.PixelValues);
 
 #if WITH_MOBILE_RHI
@@ -1452,16 +1336,6 @@ FMaterialShaderMap* FMaterialShaderMap::FindId(const FStaticParameterSet& Static
 
 		if (BestMatch)
 		{
-			static INT BmSubsetLogCount = 0;
-			if (BmSubsetLogCount < 10)
-			{
-				BmSubsetLogCount++;
-				warnf(NAME_Warning, TEXT("BM3 FindId subset match: '%s' (lookup %d switches, cache %d switches, %d extra)"),
-					*BestMatch->GetFriendlyName(),
-					StaticParameterSet.StaticSwitchParameters.Num(),
-					StaticParameterSet.StaticSwitchParameters.Num() + BestExtraCount,
-					BestExtraCount);
-			}
 			Result = BestMatch;
 		}
 	}

@@ -169,34 +169,6 @@ void UMaterialInstanceConstant::InitResources()
 	InitMICParameters<MICVectorParameterMapping>(this);
 	InitMICParameters<MICTextureParameterMapping>(this);
 	InitMICParameters<MICFontParameterMapping>(this);
-
-#if BATMAN
-	// Log MIC parameter counts for BM3 character materials
-	static INT BmMicLogCount = 0;
-	if (BmMicLogCount < 30 && GetName().InStr(TEXT("Batman")) != INDEX_NONE)
-	{
-		BmMicLogCount++;
-		warnf(NAME_Warning, TEXT("BM3 MIC InitResources: '%s' — Vectors=%d, Scalars=%d, Textures=%d, Fonts=%d, Parent=%s"),
-			*GetFullName(),
-			VectorParameterValues.Num(),
-			ScalarParameterValues.Num(),
-			TextureParameterValues.Num(),
-			FontParameterValues.Num(),
-			Parent ? *Parent->GetName() : TEXT("NULL"));
-		for (INT i = 0; i < VectorParameterValues.Num(); i++)
-		{
-			const FVectorParameterValue& VP = VectorParameterValues(i);
-			warnf(NAME_Warning, TEXT("  BM3 MIC Vec[%d]: '%s' = (%.4f, %.4f, %.4f, %.4f)"),
-				i, *VP.ParameterName.ToString(), VP.ParameterValue.R, VP.ParameterValue.G, VP.ParameterValue.B, VP.ParameterValue.A);
-		}
-		for (INT i = 0; i < TextureParameterValues.Num(); i++)
-		{
-			const FTextureParameterValue& TP = TextureParameterValues(i);
-			warnf(NAME_Warning, TEXT("  BM3 MIC Tex[%d]: '%s' = %s"),
-				i, *TP.ParameterName.ToString(), TP.ParameterValue ? *TP.ParameterValue->GetName() : TEXT("NULL"));
-		}
-	}
-#endif
 }
 
 void UMaterialInstanceConstant::SetVectorParameterValue(FName ParameterName, const FLinearColor& Value)

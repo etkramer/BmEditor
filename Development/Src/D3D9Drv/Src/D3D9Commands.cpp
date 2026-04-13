@@ -484,21 +484,7 @@ void FD3D9DynamicRHI::SetViewParametersWithOverrides( const FSceneView& View, co
 	Direct3DDevice->SetPixelShaderConstantF( PSR_NvStereoEnabled, (const FLOAT*) &NvStereoEnabled, 1 );
 	Direct3DDevice->SetPixelShaderConstantF( PSR_DiffuseOverride, (const FLOAT*) &DiffuseOverride, 1 );
 	Direct3DDevice->SetPixelShaderConstantF( PSR_SpecularOverride, (const FLOAT*) &SpecularOverride, 1 );
-#if BATMAN
-	Direct3DDevice->SetPixelShaderConstantF( PSR_EmissiveOverride, (const FLOAT*) &View.EmissiveOverrideParameter, 1 );
-	// CameraPlane: XYZ = camera forward (view matrix row 2), W = -dot(forward, translation)
-	FVector4 CameraPlane(
-		View.ViewMatrix.M[2][0],
-		View.ViewMatrix.M[2][1],
-		View.ViewMatrix.M[2][2],
-		-(View.ViewMatrix.M[2][0] * View.ViewMatrix.M[3][0] +
-		  View.ViewMatrix.M[2][1] * View.ViewMatrix.M[3][1] +
-		  View.ViewMatrix.M[2][2] * View.ViewMatrix.M[3][2])
-	);
-	Direct3DDevice->SetPixelShaderConstantF( PSR_CameraPlane, (const FLOAT*) &CameraPlane, 1 );
-#else
 	Direct3DDevice->SetPixelShaderConstantF( PSR_ViewOrigin, (const FLOAT*) &View.ViewOrigin, 1 );
-#endif
 }
 
 /**

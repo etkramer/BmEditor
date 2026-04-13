@@ -6524,6 +6524,16 @@ ULinkerLoad* UObject::GetPackageLinker
 			{
 				*appStrstr(T,TEXT(".")) = 0;
 			}
+#if BATMAN
+			// BM: A file like "_BmGame.upk" is a supplemental package that should share
+			// a LinkerRoot with "BmGame". Strip the leading underscore here — after the
+			// file has already been located on disk by its real filename — so that the
+			// package created/found for LinkerRoot is the shared one.
+			if( T[0] == TEXT('_') && T[1] != 0 )
+			{
+				T++;
+			}
+#endif
 			//@script patcher (LOAD_RemappedPackage)
 			UPackage* FilenamePkg = CreatePackage( NULL, T, (LoadFlags&LOAD_RemappedPackage) != 0 );
 
@@ -6537,7 +6547,15 @@ ULinkerLoad* UObject::GetPackageLinker
 				InOuter = FilenamePkg;
 				for( INT i=0; i<GObjLoaders.Num() && !Result; i++ )
 				{
-					if( GetLoader(i)->LinkerRoot == InOuter )
+					if( GetLoader(i)->LinkerRoot == InOuter
+#if BATMAN
+						// BM: A shared LinkerRoot (e.g. "BmGame") can have multiple linkers
+						// attached when supplemental "_Foo.upk" files are merged in — only
+						// reuse an existing loader when its filename matches the one we're
+						// being asked to load.
+						&& GetLoader(i)->Filename == NewFilename
+#endif
+						)
 					{
 						Result = GetLoader(i);
 					}
@@ -7103,35 +7121,6 @@ UPackage* UObject::LoadPackage( UPackage* InOuter, const TCHAR* Filename, DWORD 
 		}
 		Result = Linker->LinkerRoot;
 		EndLoad();
-
-// #if BATMAN
-// 		// BM: Packages starting with '_' (e.g. "_BmGame") are merged into their non-underscore counterpart.
-// 		// If "BmGame" already exists, move top-level objects into it (sub-objects follow automatically).
-// 		// Otherwise, just rename the package itself.
-// 		{
-// 			FString PkgName = Result->GetName();
-// 			if( PkgName.Len() > 1 && PkgName[0] == TCHAR('_') )
-// 			{
-// 				FString StrippedName = PkgName.Mid(1);
-// 				UPackage* ExistingPkg = FindObject<UPackage>( NULL, *StrippedName );
-// 				if( ExistingPkg )
-// 				{
-// 					// Re-outer every top-level object from _BmGame into BmGame.
-// 					for( TObjectIterator<UObject> It; It; ++It )
-// 					{
-// 						if( It->GetOuter() == Result )
-// 						{
-// 							It->Rename( NULL, ExistingPkg, REN_ForceNoResetLoaders );
-// 						}
-// 					}
-// 				}
-// 				else
-// 				{
-// 					Result->Rename( *StrippedName, NULL, REN_ForceNoResetLoaders );
-// 				}
-// 			}
-// 		}
-// #endif
 
 		// Cancel all texture allocations that haven't been claimed yet.
 		Linker->Summary.TextureAllocations.CancelRemainingAllocations( TRUE );

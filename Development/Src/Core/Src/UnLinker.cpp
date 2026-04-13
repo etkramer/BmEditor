@@ -886,7 +886,11 @@ ULinkerLoad* ULinkerLoad::CreateLinkerAsync( UPackage* Parent, const TCHAR* File
 	ULinkerLoad* Linker = NULL;
 	for( INT LoaderIndex=0; LoaderIndex<GObjLoaders.Num(); LoaderIndex++ )
 	{
-		if( UObject::GetLoader(LoaderIndex)->LinkerRoot == Parent )
+		if( UObject::GetLoader(LoaderIndex)->LinkerRoot == Parent
+#if BATMAN
+			&& UObject::GetLoader(LoaderIndex)->Filename == Filename
+#endif
+			)
 		{
 			debugf(TEXT("ULinkerLoad::CreateLinkerAsync: Found existing linker for '%s'"), *Parent->GetName());
 			Linker = UObject::GetLoader(LoaderIndex);
@@ -1261,7 +1265,13 @@ UBOOL ULinkerLoad::CreateLoader()
 		// Error if linker is already loaded.
 		for( INT i=0; i<GObjLoaders.Num(); i++ )
 		{
-			if( GetLoader(i)->LinkerRoot == LinkerRoot )
+			if( GetLoader(i)->LinkerRoot == LinkerRoot
+#if BATMAN
+				// BM: Allow multiple linkers to share a LinkerRoot when they come from
+				// different files (supplemental "_Foo.upk" merged into "Foo").
+				&& GetLoader(i)->Filename == Filename
+#endif
+				)
 			{
 				appThrowf( LocalizeSecure(LocalizeError(TEXT("LinkerExists"),TEXT("Core")), *LinkerRoot->GetName()) );
 			}
@@ -3743,6 +3753,8 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 
 			LoadClass->GetName() == "SeqAct_Interp" ||
 			LoadClass->GetName() == "NavigationMeshBase" ||
+
+			LoadClass->GetName() == "RCinematicCameraActor" ||
 
             LoadClass->GetName() == "LightMapTexture2D" ||
 			LoadClass->GetName() == "TextureCube" ||

@@ -1321,14 +1321,15 @@ void UStruct::Serialize( FArchive& Ar )
 #endif
 
 #if BATMAN
-		// BM3 cooked packages: StorageSize=0 means bytecode is not on disk.
-		// The original game's non-patcher path reads 0 bytes into a FMemoryReader
-		// and SerializeExpr harmlessly processes garbage from the empty buffer.
-		// We simply zero BytecodeSize so the later serialize loop is skipped
-		// and the archive position stays correct for UState/UClass fields.
-		if (Ar.IsBmCooked(FALSE) && ScriptStorageSize == 0)
+		// BM3: We can't parse bytecode perfectly yet, skip explicitly to avoid a crash in GC.
+		if (Ar.IsBmCooked(FALSE))
 		{
+			if (ScriptStorageSize > 0)
+			{
+				Ar.Seek(Ar.Tell() + ScriptStorageSize);
+			}
 			ScriptBytecodeSize = 0;
+			ScriptStorageSize = 0;
 		}
 #endif
 

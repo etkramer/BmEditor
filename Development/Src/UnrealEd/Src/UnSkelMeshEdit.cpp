@@ -570,15 +570,6 @@ void UEditorEngine::ImportPSAIntoAnimSet( UAnimSet* AnimSet, const TCHAR* Filena
 				RawTrack.PosKeys.Add(DestSeq->NumFrames);
 				RawTrack.RotKeys.Add(DestSeq->NumFrames);
 
-				// BM3: only these tracks get real translation from the PSA. All other bones
-				// get the mesh ref-pose translation so imported anims match the target skeleton's
-				// proportions (fixes collapsed shoulders etc. when bAnimRotationOnly is off, and
-				// in-game where bAnimRotationOnly is not honored).
-				const FName PsaTrackName = AnimSet->TrackBoneNames(TrackIdx);
-				const UBOOL bUsePsaTranslation = (PsaTrackName == NAME_Bip01 || PsaTrackName == NAME_Gundummy);
-				const INT RefBoneIdx = FillInMesh->MatchRefBone(PsaTrackName);
-				const FVector RefPosForTrack = (RefBoneIdx != INDEX_NONE) ? FillInMesh->RefSkeleton(RefBoneIdx).BonePos.Position : FVector(0.f);
-
 				for(INT KeyIdx = 0; KeyIdx < DestSeq->NumFrames; KeyIdx++)
 				{
 					INT SrcKeyIdx = ((PSASeqInfo.FirstRawFrame + KeyIdx) * NumPSATracks) + SourceTrackIdx;
@@ -587,7 +578,7 @@ void UEditorEngine::ImportPSAIntoAnimSet( UAnimSet* AnimSet, const TCHAR* Filena
 					{
 						VQuatAnimKey& RawSrcKey = RawAnimKeys(SrcKeyIdx);
 
-						RawTrack.PosKeys(KeyIdx) = bUsePsaTranslation ? RawSrcKey.Position : RefPosForTrack;
+						RawTrack.PosKeys(KeyIdx) = RawSrcKey.Position;
 						RawTrack.RotKeys(KeyIdx) = RawSrcKey.Orientation;
 					}
 					else

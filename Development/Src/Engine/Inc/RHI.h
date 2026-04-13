@@ -679,12 +679,7 @@ enum EPixelShaderRegisters
 	PSR_NvStereoEnabled = 3,			// Whether stereo is enabled on the current rendering device.
 	PSR_DiffuseOverride = 4,			// Overrides GetMaterialDiffuseColor for visualization
 	PSR_SpecularOverride = 5,			// Overrides GetMaterialSpecularColor for visualization
-#if BATMAN
-	PSR_EmissiveOverride = 6,			// BM3: Overrides GetMaterialEmissive (.w scales raw, .xyz adds override)
-	PSR_CameraPlane = 7,				// BM3: Camera plane for distance calculations
-#else
 	PSR_ViewOrigin = 6,					// World space position of the view's origin (camera position)
-#endif
 	PSR_MaxPixelShaderRegister
 };
 

@@ -890,7 +890,9 @@ private:
 #endif
 
 	/** The shader type. */
+public:
 	FShaderType* Type;
+private:
 
 	/** A unique identifier for the shader. */
 	FGuid Id;

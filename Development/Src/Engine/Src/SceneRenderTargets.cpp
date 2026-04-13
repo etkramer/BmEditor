@@ -2735,6 +2735,8 @@ FArchive& operator<<(FArchive& Ar,FSceneTextureShaderParameters& Parameters)
 #else
     Ar << Parameters.NvStereoFixTextureParameter;
 #endif
+	// BM3 PC's 6th member here is actually SceneColorTextureMSAA (FShaderResourceParameter),
+	// not DecompressSceneColor — same size, wire-identical, so reuse the field.
 	Ar << Parameters.DecompressSceneColorParameter;
 	return Ar;
 }

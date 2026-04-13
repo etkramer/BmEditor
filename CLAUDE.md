@@ -39,4 +39,4 @@ The core work in this repo is making UE3's serialization understand BM3's cooked
 - `BmGame/Config/` — game configuration files
 - `Engine/Shaders/` — HLSL shader source
 
-UnrealScript classes live in `Development/Src/*/Classes/*.uc`.
+UnrealScript classes live in `Development/Src/*/Classes/*.uc`. Do not try to build the engine.

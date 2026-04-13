@@ -824,7 +824,16 @@ UBOOL FShader::Serialize(FArchive& Ar)
 #if BATMAN
 	else if (Ar.IsLoading() && Ar.IsBmCooked())
 	{
-		// BM3 stores an FGuid reference to bytecode in GBmShaderBytecodeMap instead of inline TArray<BYTE>
+		// BM3 PC per-shader body layout (70 bytes total, incl. 2 bytes Target read above).
+		// Note: the TArray<WORD> Serializations in the shader cache does NOT record the
+		// Type FName's 8 bytes — it appears in the stream but not in Serializations
+		// (sum=62, body=70). Layout after Target.Platform/Frequency:
+		//   [16] Key.Code as FGuid reference into GBmShaderBytecodeMap
+		//   [4]  Key.ParameterMapCRC
+		//   [16] FGuid Id
+		//   [8]  FShaderType FName (read and discarded — Type is set externally)
+		//   [20] FSHAHash
+		//   [4]  NumInstructions
 		FGuid BytecodeGuid;
 		Ar << BytecodeGuid;
 		TArray<BYTE>* Bytecode = GBmShaderBytecodeMap.Find(BytecodeGuid);
@@ -832,6 +841,22 @@ UBOOL FShader::Serialize(FArchive& Ar)
 		{
 			Key.Code = *Bytecode;
 		}
+		Ar << Key.ParameterMapCRC;
+		Ar << Id;
+		FName TypeName;
+		Ar << TypeName;
+	#if CONSOLE
+		FSHAHash Dummy;
+		Ar << Dummy;
+	#else
+		Ar << Hash;
+	#endif
+		if (Type)
+		{
+			Type->RegisterShader(this);
+		}
+		Ar << NumInstructions;
+		return FALSE;
 	}
 #endif
 	else
@@ -841,7 +866,7 @@ UBOOL FShader::Serialize(FArchive& Ar)
 
 	// Discard uncompressed shader source from global shader cache. The above check won't catch this as the global shader file
 	// is serialized as a raw binary file.
-	if( Ar.IsLoading() 
+	if( Ar.IsLoading()
 	&&	GRHIShaderPlatform == (EShaderPlatform)Target.Platform
 	&&	UseShaderCompression((EShaderPlatform)Target.Platform) )
 	{

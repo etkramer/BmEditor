@@ -1262,22 +1262,6 @@ UBOOL FMaterial::InitShaderMap(FStaticParameterSet* StaticParameters, EShaderPla
 	}
 	// Find the material's cached shader map.
 	ShaderMap = FMaterialShaderMap::FindId(*StaticParameters, Platform);
-#if BATMAN
-	{
-		static INT BmInitLogCount = 0;
-		if (BmInitLogCount < 30)
-		{
-			BmInitLogCount++;
-			warnf(NAME_Warning, TEXT("BM3 InitShaderMap: '%s' — FindId=%s, IsFromBm=%d, Switches=%d, Masks=%d, BaseMaterialId=%s"),
-				*GetFriendlyName(),
-				ShaderMap ? TEXT("FOUND") : TEXT("NULL"),
-				ShaderMap ? ShaderMap->IsFromBmCache() : 0,
-				StaticParameters->StaticSwitchParameters.Num(),
-				StaticParameters->StaticComponentMaskParameters.Num(),
-				*StaticParameters->BaseMaterialId.String());
-		}
-	}
-#endif
 	UBOOL bRequiredRecompile = FALSE;
 	if(!bValidCompilationOutput || !ShaderMap || (
 #if BATMAN
@@ -2067,7 +2051,6 @@ public:
 	{
 		return FALSE;
 	}
-	virtual FName GetParameterName() const { return ParameterName; }
 	virtual UBOOL IsIdentical(const FMaterialUniformExpression* OtherExpression) const
 	{
 		if (GetType() != OtherExpression->GetType())
@@ -2115,7 +2098,6 @@ public:
 	{
 		return FALSE;
 	}
-	virtual FName GetParameterName() const { return ParameterName; }
 	virtual UBOOL IsIdentical(const FMaterialUniformExpression* OtherExpression) const
 	{
 		if (GetType() != OtherExpression->GetType())
@@ -5785,31 +5767,6 @@ UBOOL FMaterial::CompileShaderMap(
 		ExistingShaderMap = FMaterialShaderMap::FindId(*StaticParameters, Platform);
 	}
 
-#if BATMAN
-	// Log when FindId fails — helps diagnose MICs that can't find their BM3 shader map
-	if (!ExistingShaderMap)
-	{
-		static INT BmMissLogCount = 0;
-		if (BmMissLogCount < 50)
-		{
-			BmMissLogCount++;
-			FString SwitchInfo;
-			for (INT i = 0; i < StaticParameters->StaticSwitchParameters.Num(); i++)
-			{
-				SwitchInfo += FString::Printf(TEXT(" [%s=%d]"),
-					*StaticParameters->StaticSwitchParameters(i).ParameterName.ToString(),
-					StaticParameters->StaticSwitchParameters(i).Value);
-			}
-			warnf(NAME_Warning, TEXT("BM3 CompileShaderMap MISS: '%s' — Switches=%d%s, Masks=%d, BaseMaterialId=%s"),
-				*GetFriendlyName(),
-				StaticParameters->StaticSwitchParameters.Num(),
-				*SwitchInfo,
-				StaticParameters->StaticComponentMaskParameters.Num(),
-				*StaticParameters->BaseMaterialId.String());
-		}
-	}
-#endif
-
 	OutShaderMap = ExistingShaderMap;
 	if (!OutShaderMap)
 	{
@@ -6058,23 +6015,6 @@ FShader* FMaterial::GetShader(FMeshMaterialShaderType* ShaderType, FVertexFactor
 {
 	const FMeshMaterialShaderMap* MeshShaderMap = ShaderMap->GetMeshShaderMap(VertexFactoryType);
 	FShader* Shader = MeshShaderMap ? MeshShaderMap->GetShader(ShaderType) : NULL;
-#if BATMAN
-	{
-		static INT BmFoundLogCount = 0;
-		static TSet<FString> BmFoundLoggedMaterials;
-		if (Shader && ShaderMap->IsFromBmCache() && BmFoundLogCount < 10)
-		{
-			const FString MatKey = FString::Printf(TEXT("%s_%s_%s"), *GetFriendlyName(), ShaderType->GetName(), VertexFactoryType->GetName());
-			if (!BmFoundLoggedMaterials.Contains(MatKey))
-			{
-				BmFoundLogCount++;
-				BmFoundLoggedMaterials.Add(MatKey);
-				warnf(NAME_Warning, TEXT("BM3 GetShader HIT: '%s' found Shader=%s VF=%s"),
-					*GetFriendlyName(), ShaderType->GetName(), VertexFactoryType->GetName());
-			}
-		}
-	}
-#endif
 	if (!Shader)
 	{
 #if BATMAN
@@ -6082,14 +6022,6 @@ FShader* FMaterial::GetShader(FMeshMaterialShaderType* ShaderType, FVertexFactor
 		// Fall back to the default material's shader. The expression set won't match
 		// but the checkSlow guards in SetShader prevent crashes.
 		{
-			static INT BmFallbackLogCount = 0;
-			if (ShaderMap && ShaderMap->IsFromBmCache() && BmFallbackLogCount < 10)
-			{
-				BmFallbackLogCount++;
-				warnf(NAME_Warning, TEXT("BM3 GetShader fallback: '%s' missing Shader=%s VF=%s, using default material (MeshShaderMap=%s)"),
-					*GetFriendlyName(), ShaderType->GetName(), VertexFactoryType->GetName(),
-					MeshShaderMap ? TEXT("exists but no shader type") : TEXT("no VF match"));
-			}
 			const FMaterial* DefaultMaterial = GEngine->DefaultMaterial->GetRenderProxy(FALSE, FALSE)->GetMaterial();
 			if (DefaultMaterial && DefaultMaterial != this)
 			{

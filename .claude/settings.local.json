@@ -44,7 +44,15 @@
       "WebFetch(domain:)",
       "Bash(awk '/^[0-9]+:__vector4 \\\\*__fastcall SampleBundleTrack<FRotationCodec_QuatMax_48/{flag=1} flag{print NR\": \"$0; if\\(/^[0-9]+:\\\\}/\\) flag=0}' \"F:/Game Builds/Batman Arkham Origins \\(February 1, 2013\\)/Default.xex.c\")",
       "Bash(ls /i/UnrealEngine3/Development/Src/Engine/Inc/*.h)",
-      "Bash(awk 'NR>=6680700 && NR<=6682500' \"I:/Gangland/Binaries/Win32/BmGame.exe.c\")"
+      "Bash(awk 'NR>=6680700 && NR<=6682500' \"I:/Gangland/Binaries/Win32/BmGame.exe.c\")",
+      "Bash(git diff:*)",
+      "Bash(ls Development/Src/Core/Inc/*.h)",
+      "Bash(ls -la \"I:/UnrealEngine3/BmGame/Content/\"*ShaderCache* \"I:/UnrealEngine3/BmGame/CookedPCConsole/\"*ShaderCache*)",
+      "PowerShell($f=[IO.File]::OpenRead\\('I:\\\\UnrealEngine3\\\\BmGame\\\\CookedPCConsole\\\\RefShaderCache-PC-D3D-SM3.upk'\\); Write-Output \\(\"FileSize={0}\" -f $f.Length\\); $f.Position=203357700; $b=New-Object byte[] 240; $null=$f.Read\\($b,0,240\\); $f.Close\\(\\); for\\($i=0;$i -lt 240;$i+=16\\){ $off=203357700+$i; $hex=\\($b[$i..\\([Math]::Min\\($i+15,239\\)\\)]|ForEach-Object{'{0:x2}' -f $_}\\) -join ' '; $asc=-join\\($b[$i..\\([Math]::Min\\($i+15,239\\)\\)]|ForEach-Object{if\\($_ -ge 32 -and $_ -lt 127\\){[char]$_}else{'.'}}\\); '{0,10}: {1}  {2}' -f $off,$hex,$asc })",
+      "PowerShell($f='I:\\\\UnrealEngine3\\\\BmGame\\\\CookedPCConsole\\\\RefShaderCache-PC-D3D-SM3.upk'; $fs=[IO.File]::OpenRead\\($f\\); $fs.Position=203347104; $b=New-Object byte[] 1024; [void]$fs.Read\\($b,0,1024\\); $fs.Close\\(\\); for\\($i=0;$i -lt 1024;$i+=16\\){ $off=203347104+$i; $hex=\\(\\($b[$i..\\([Math]::Min\\($i+15,1023\\)\\)] | %{ '{0:X2}' -f $_ }\\) -join ' '\\); $asc=-join \\($b[$i..\\([Math]::Min\\($i+15,1023\\)\\)] | %{ if\\($_ -ge 32 -and $_ -lt 127\\){ [char]$_ } else { '.' } }\\); '{0,10}: {1,-48}  {2}' -f $off,$hex,$asc })",
+      "PowerShell($f='I:\\\\UnrealEngine3\\\\BmGame\\\\CookedPCConsole\\\\RefShaderCache-PC-D3D-SM3.upk'; $fs=[IO.File]::OpenRead\\($f\\); $fs.Position=203348760; $b=New-Object byte[] 256; [void]$fs.Read\\($b,0,256\\); $fs.Close\\(\\); for\\($i=0;$i -lt 256;$i+=16\\){ $off=203348760+$i; $hex=\\(\\($b[$i..\\([Math]::Min\\($i+15,255\\)\\)] | %{ '{0:X2}' -f $_ }\\) -join ' '\\); $asc=-join \\($b[$i..\\([Math]::Min\\($i+15,255\\)\\)] | %{ if\\($_ -ge 32 -and $_ -lt 127\\){ [char]$_ } else { '.' } }\\); '{0,10}: {1,-48}  {2}' -f $off,$hex,$asc })",
+      "PowerShell($f='I:\\\\UnrealEngine3\\\\BmGame\\\\CookedPCConsole\\\\RefShaderCache-PC-D3D-SM3.upk'; $fs=[IO.File]::OpenRead\\($f\\); $fs.Position=203347108; $b=New-Object byte[] 64; [void]$fs.Read\\($b,0,64\\); $fs.Close\\(\\); 'Hex: ' + \\(\\($b | %{ '{0:X2}' -f $_ }\\) -join ' '\\); 'As DWORDs \\(LE\\):'; for\\($i=0;$i -lt 64;$i+=4\\){ $v=[BitConverter]::ToUInt32\\($b,$i\\); '  [+{0,2}] 0x{1:X8} = {1}' -f $i,$v })",
+      "PowerShell($f=[IO.File]::ReadAllBytes\\('I:\\\\UnrealEngine3\\\\BmGame\\\\CookedPCConsole\\\\RefShaderCache-PC-D3D-SM3.upk'\\); $bodyStart=203347382; \"Body bytes [FShader 0..62]:\"; [BitConverter]::ToString\\($f[$bodyStart..\\($bodyStart+61\\)]\\); $basePos=$bodyStart+62; \"base+0..53 \\(6 FSP + 3 TArrayNum + LODFade\\):\"; [BitConverter]::ToString\\($f[$basePos..\\($basePos+53\\)]\\); $pixelPos=$basePos+54; \"next 4 \\(PixelCube Num\\):\"; [BitConverter]::ToUInt32\\($f,$pixelPos\\))"
     ]
   }
 }

@@ -631,15 +631,6 @@ public:
 				bUseTranslucencyLightAttenuation ? (const FTextureRHIRef&)GSceneRenderTargets.GetTranslucencyDominantLightAttenuationTexture() : GSceneRenderTargets.GetEffectiveLightAttenuationTexture(TRUE, TRUE)
 				);
 		}
-
-#if BATMAN
-		// BM3 shaders expect SpecularScale to be set. In the retail game, this is 1.0 when
-		// analytical specular is enabled (the default), 0.0 when image reflection specular is used.
-		if (SpecularScaleParameter.IsBound())
-		{
-			SetPixelShaderValue(GetPixelShader(), SpecularScaleParameter, 1.0f);
-		}
-#endif
 	}
 
 	void SetMesh(
