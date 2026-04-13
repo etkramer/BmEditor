@@ -52,7 +52,15 @@
       "PowerShell($f='I:\\\\UnrealEngine3\\\\BmGame\\\\CookedPCConsole\\\\RefShaderCache-PC-D3D-SM3.upk'; $fs=[IO.File]::OpenRead\\($f\\); $fs.Position=203347104; $b=New-Object byte[] 1024; [void]$fs.Read\\($b,0,1024\\); $fs.Close\\(\\); for\\($i=0;$i -lt 1024;$i+=16\\){ $off=203347104+$i; $hex=\\(\\($b[$i..\\([Math]::Min\\($i+15,1023\\)\\)] | %{ '{0:X2}' -f $_ }\\) -join ' '\\); $asc=-join \\($b[$i..\\([Math]::Min\\($i+15,1023\\)\\)] | %{ if\\($_ -ge 32 -and $_ -lt 127\\){ [char]$_ } else { '.' } }\\); '{0,10}: {1,-48}  {2}' -f $off,$hex,$asc })",
       "PowerShell($f='I:\\\\UnrealEngine3\\\\BmGame\\\\CookedPCConsole\\\\RefShaderCache-PC-D3D-SM3.upk'; $fs=[IO.File]::OpenRead\\($f\\); $fs.Position=203348760; $b=New-Object byte[] 256; [void]$fs.Read\\($b,0,256\\); $fs.Close\\(\\); for\\($i=0;$i -lt 256;$i+=16\\){ $off=203348760+$i; $hex=\\(\\($b[$i..\\([Math]::Min\\($i+15,255\\)\\)] | %{ '{0:X2}' -f $_ }\\) -join ' '\\); $asc=-join \\($b[$i..\\([Math]::Min\\($i+15,255\\)\\)] | %{ if\\($_ -ge 32 -and $_ -lt 127\\){ [char]$_ } else { '.' } }\\); '{0,10}: {1,-48}  {2}' -f $off,$hex,$asc })",
       "PowerShell($f='I:\\\\UnrealEngine3\\\\BmGame\\\\CookedPCConsole\\\\RefShaderCache-PC-D3D-SM3.upk'; $fs=[IO.File]::OpenRead\\($f\\); $fs.Position=203347108; $b=New-Object byte[] 64; [void]$fs.Read\\($b,0,64\\); $fs.Close\\(\\); 'Hex: ' + \\(\\($b | %{ '{0:X2}' -f $_ }\\) -join ' '\\); 'As DWORDs \\(LE\\):'; for\\($i=0;$i -lt 64;$i+=4\\){ $v=[BitConverter]::ToUInt32\\($b,$i\\); '  [+{0,2}] 0x{1:X8} = {1}' -f $i,$v })",
-      "PowerShell($f=[IO.File]::ReadAllBytes\\('I:\\\\UnrealEngine3\\\\BmGame\\\\CookedPCConsole\\\\RefShaderCache-PC-D3D-SM3.upk'\\); $bodyStart=203347382; \"Body bytes [FShader 0..62]:\"; [BitConverter]::ToString\\($f[$bodyStart..\\($bodyStart+61\\)]\\); $basePos=$bodyStart+62; \"base+0..53 \\(6 FSP + 3 TArrayNum + LODFade\\):\"; [BitConverter]::ToString\\($f[$basePos..\\($basePos+53\\)]\\); $pixelPos=$basePos+54; \"next 4 \\(PixelCube Num\\):\"; [BitConverter]::ToUInt32\\($f,$pixelPos\\))"
+      "PowerShell($f=[IO.File]::ReadAllBytes\\('I:\\\\UnrealEngine3\\\\BmGame\\\\CookedPCConsole\\\\RefShaderCache-PC-D3D-SM3.upk'\\); $bodyStart=203347382; \"Body bytes [FShader 0..62]:\"; [BitConverter]::ToString\\($f[$bodyStart..\\($bodyStart+61\\)]\\); $basePos=$bodyStart+62; \"base+0..53 \\(6 FSP + 3 TArrayNum + LODFade\\):\"; [BitConverter]::ToString\\($f[$basePos..\\($basePos+53\\)]\\); $pixelPos=$basePos+54; \"next 4 \\(PixelCube Num\\):\"; [BitConverter]::ToUInt32\\($f,$pixelPos\\))",
+      "Bash(ls \"I:/Gangland/Binaries/Win32/\"*.c \"I:/Gangland/Binaries/Win32/\"*.h)",
+      "Bash(ls \"C:/Program Files \\(x86\\)/Steam/steamapps/common/Batman Arkham Origins/SinglePlayer/Binaries/Win32/\"*.c \"C:/Program Files \\(x86\\)/Steam/steamapps/common/Batman Arkham Origins/SinglePlayer/Binaries/Win32/\"*.h)",
+      "Bash(git:*)",
+      "PowerShell(git diff:*)",
+      "PowerShell(git status; git --no-pager diff HEAD -- Development/Src/Engine/Src/MaterialShared.cpp | Out-String)",
+      "PowerShell(git --no-pager log -p --all -S \"extra BOOL\" -- Development/Src/Engine/ 2>&1 | Select-Object -First 80)",
+      "PowerShell(git:*)",
+      "PowerShell(git --no-pager show c873394e -- Development/Src/Engine/Src/MaterialShader.cpp | Out-String)"
     ]
   }
 }

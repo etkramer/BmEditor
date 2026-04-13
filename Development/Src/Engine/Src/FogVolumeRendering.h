@@ -497,6 +497,15 @@ public:
 		UBOOL bShaderHasOutdatedParameters = FShader::Serialize(Ar);
 		bShaderHasOutdatedParameters |= Ar << VertexFactoryParameters;
 		Ar << MaterialParameters;
+#if BATMAN
+		// BM3 has two extra trailing FShaderParameters in the wire format; discard.
+		if (Ar.IsBmCooked(TRUE))
+		{
+			FShaderParameter BmUnusedA, BmUnusedB;
+			Ar << BmUnusedA;
+			Ar << BmUnusedB;
+		}
+#endif
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -622,6 +631,13 @@ public:
 		Ar << SecondDensityFunctionParameters;
 		Ar << StartDistanceParameter;
 		Ar << MaxDistanceParameter;
+#if BATMAN
+		// BM3 omits MaxDistanceParameter from the wire format.
+		if (!Ar.IsBmCooked(TRUE))
+		{
+			Ar << MaxDistanceParameter;
+		}
+#endif
 		Ar << InvMaxIntegralParameter;
 		return bShaderHasOutdatedParameters;
 	}
@@ -774,6 +790,15 @@ public:
 		UBOOL bShaderHasOutdatedParameters = FShader::Serialize(Ar);
 		bShaderHasOutdatedParameters |= Ar << VertexFactoryParameters;
 		Ar << MaterialParameters;
+#if BATMAN
+		// BM3 has two extra trailing FShaderParameters in the wire format; discard.
+		if (Ar.IsBmCooked(TRUE))
+		{
+			FShaderParameter BmUnusedA, BmUnusedB;
+			Ar << BmUnusedA;
+			Ar << BmUnusedB;
+		}
+#endif
 		return bShaderHasOutdatedParameters;
 	}
 

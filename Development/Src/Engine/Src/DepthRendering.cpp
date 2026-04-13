@@ -45,6 +45,16 @@ public:
 		UBOOL bShaderHasOutdatedParameters = FShader::Serialize(Ar);
 		bShaderHasOutdatedParameters |= Ar << VertexFactoryParameters;
 		Ar << MaterialParameters;
+#if BATMAN
+		// BM3's position-only depth VS has two extra trailing FShaderParameters
+		// whose semantic meaning we don't know; discard them to match the wire format
+		if (bUsePositionOnlyStream && Ar.IsBmCooked(TRUE))
+		{
+			FShaderParameter BmUnusedA, BmUnusedB;
+			Ar << BmUnusedA;
+			Ar << BmUnusedB;
+		}
+#endif
 		return bShaderHasOutdatedParameters;
 	}
 	void SetParameters(const FVertexFactory* VertexFactory,const FMaterialRenderProxy* MaterialRenderProxy,const FSceneView& View)

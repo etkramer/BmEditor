@@ -103,6 +103,7 @@
       "_MSC_VER=1400",
       "_WIN32_WINDOWS=0x0500",
     ],
+    "C_Cpp.errorSquiggles": "disabled",
     "dotnet.backgroundAnalysis.analyzerDiagnosticsScope": "none",
     "files.associations": {
       "*.natvis": "xml",
@@ -157,6 +158,7 @@
         "request": "launch",
         "program": "${workspaceFolder}/Binaries/Win32/Debug-BmGame.exe",
         "args": ["editor", "-d3d9"],
+        // "args": ["editor", "-d3d11"], // DX11 loads, needs a crash fix to render
         "stopAtEntry": false,
         "cwd": "${workspaceFolder}",
         "environment": [],
