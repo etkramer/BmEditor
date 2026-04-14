@@ -2182,6 +2182,10 @@ public:
 		return ParameterName == OtherParameter->ParameterName && Super::IsIdentical(OtherParameter);
 	}
 
+#if BATMAN
+	virtual FName GetParameterName() const { return ParameterName; }
+#endif
+
 private:
 	FName ParameterName;
 };
@@ -5893,6 +5897,23 @@ UBOOL FMaterial::CacheShaders(FStaticParameterSet* StaticParameters, EShaderPlat
 		ShaderMap->BeginRelease();
 		ShaderMap = NULL;
 	}
+
+#if BATMAN
+	// BM3: if the cache already has a shader map for this material, use it as-is. Compile()
+	// would rebuild UniformExpressionTextures in graph-walk order, invalidating the TextureIndex
+	// values baked into the BM3 shader map's uniform expressions and binding textures to the wrong slots.
+	if (!bFlushExistingShaderMap)
+	{
+		FMaterialShaderMap* ExistingShaderMap = FMaterialShaderMap::FindId(*StaticParameters, Platform);
+		if (ExistingShaderMap && ExistingShaderMap->IsFromBmCache())
+		{
+			ShaderMap = ExistingShaderMap;
+			ShaderMap->BeginInit();
+			bValidCompilationOutput = TRUE;
+			return TRUE;
+		}
+	}
+#endif
 
 	// Compile the material shaders for the current platform.
 	return Compile(StaticParameters, Platform, ShaderMap, bFlushExistingShaderMap, bDebugDump);

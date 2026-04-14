@@ -21,6 +21,15 @@ TMap<FMaterialShaderMap*, TArray<FMaterial*> > FMaterialShaderMap::ShaderMapsBei
  */
 TMap<UINT, const ANSICHAR*> FMaterialShaderMap::MaterialCodeBeingCompiled;
 
+#if BATMAN
+// FMaterialResource::GetFriendlyName() returns the parent UMaterial's name for MICs
+// (see AllocateStaticPermutations), so filter on the master material, not the MIC.
+FString GBmDumpTextureBindingsFor = TEXT("Character_Base_v2_MAT");
+// Debug: log every distinct material name that hits FMaterialPixelShaderParameters::Set.
+UBOOL GBmLogEverySeenMaterial = TRUE;
+TSet<FString> GBmSeenMaterialNames;
+#endif
+
 /** Converts an EMaterialLightingModel to a string description. */
 FString GetLightingModelString(EMaterialLightingModel LightingModel)
 {
@@ -422,10 +431,14 @@ void FMaterialShaderParameters::Bind(const FShaderParameterMap& ParameterMap, ES
 /** Sets shader parameters that are material specific but not FMeshElement specific. */
 template<typename ShaderRHIParamRef>
 void FMaterialShaderParameters::SetShader(
-	const ShaderRHIParamRef& ShaderRHI, 
-	const FShaderFrequencyUniformExpressions& InExpressions, 
+	const ShaderRHIParamRef& ShaderRHI,
+	const FShaderFrequencyUniformExpressions& InExpressions,
 	const FMaterialRenderContext& MaterialRenderContext,
-	FShaderFrequencyUniformExpressionValues& InValues) const
+	FShaderFrequencyUniformExpressionValues& InValues
+#if BATMAN
+	, const FShader* DebugShader
+#endif
+	) const
 {
 	// Set the uniform parameters.
 	const FMaterial* Material = MaterialRenderContext.MaterialRenderProxy->GetMaterial();
@@ -450,10 +463,16 @@ void FMaterialShaderParameters::SetShader(
 	{
 		const TUniformParameter<FShaderParameter>& UniformParameter = UniformScalarShaderParameters(ParameterIndex);
 #if BATMAN
-		if (UniformParameter.Index >= (InExpressions.UniformScalarExpressions.Num() + 3) / 4) continue;
-#endif
+		// BM3: bind zero rather than skipping — a skipped bind leaves stale float constants from the prior draw.
+		const FVector4 ZeroValue(0, 0, 0, 0);
+		const FVector4& Value =
+			UniformParameter.Index < (InExpressions.UniformScalarExpressions.Num() + 3) / 4
+				? CachedValues->CachedScalarParameters(UniformParameter.Index)
+				: ZeroValue;
+#else
 		checkSlow(UniformParameter.Index < (InExpressions.UniformScalarExpressions.Num() + 3) / 4);
 		const FVector4& Value = CachedValues->CachedScalarParameters(UniformParameter.Index);
+#endif
 		SetShaderValue(ShaderRHI,UniformParameter.ShaderParameter,Value);
 	}
 
@@ -461,10 +480,16 @@ void FMaterialShaderParameters::SetShader(
 	{
 		const TUniformParameter<FShaderParameter>& UniformParameter = UniformVectorShaderParameters(ParameterIndex);
 #if BATMAN
-		if (UniformParameter.Index >= InExpressions.UniformVectorExpressions.Num()) continue;
-#endif
+		// BM3: bind zero rather than skipping — a skipped bind leaves stale float constants from the prior draw.
+		const FVector4 ZeroValue(0, 0, 0, 0);
+		const FVector4& Value =
+			UniformParameter.Index < InExpressions.UniformVectorExpressions.Num()
+				? CachedValues->CachedVectorParameters(UniformParameter.Index)
+				: ZeroValue;
+#else
 		checkSlow(UniformParameter.Index < InExpressions.UniformVectorExpressions.Num());
 		const FVector4& Value = CachedValues->CachedVectorParameters(UniformParameter.Index);
+#endif
 		SetShaderValue(ShaderRHI,UniformParameter.ShaderParameter,Value);
 	}
 
@@ -476,14 +501,50 @@ void FMaterialShaderParameters::SetShader(
 		{
 			const TUniformParameter<FShaderResourceParameter>& UniformResourceParameter = Uniform2DShaderResourceParameters(ParameterIndex);
 #if BATMAN
-			if (UniformResourceParameter.Index >= InExpressions.Uniform2DTextureExpressions.Num()) continue;
-#endif
+			// BM3: always bind *something* — skipping leaves a stale texture from the previous draw in this sampler slot.
+			const FTexture* Value =
+				UniformResourceParameter.Index < InExpressions.Uniform2DTextureExpressions.Num()
+					? CachedValues->CachedTexture2DParameters(UniformResourceParameter.Index)
+					: NULL;
+			const UBOOL bDidFallback = !Value;
+			if (!Value)
+			{
+				Value = GWhiteTexture;
+			}
+			if (GBmDumpTextureBindingsFor.Len() > 0 &&
+				Material->GetFriendlyName().InStr(GBmDumpTextureBindingsFor) != INDEX_NONE)
+			{
+				const TCHAR* ShaderName = DebugShader ? DebugShader->GetType()->GetName() : TEXT("<?>");
+				const TCHAR* ExprName = TEXT("<out-of-range>");
+				FName ParamName = NAME_None;
+				if (UniformResourceParameter.Index < InExpressions.Uniform2DTextureExpressions.Num())
+				{
+					FMaterialUniformExpressionTexture* Expr = InExpressions.Uniform2DTextureExpressions(UniformResourceParameter.Index);
+					if (Expr)
+					{
+						ExprName = Expr->GetType()->GetName();
+						ParamName = Expr->GetParameterName();
+					}
+					else
+					{
+						ExprName = TEXT("<null-expr>");
+					}
+				}
+				// warnf(NAME_Warning, TEXT("BmTex [%s] mat=%s slot=%u exprIdx=%d expr=%s param=%s bound=%s%s"),
+				// 	ShaderName,
+				// 	*Material->GetFriendlyName(),
+				// 	UniformResourceParameter.ShaderParameter.GetBaseIndex(),
+				// 	UniformResourceParameter.Index,
+				// 	ExprName,
+				// 	*ParamName.ToString(),
+				// 	Value ? *Value->GetFriendlyName() : TEXT("<null>"),
+				// 	bDidFallback ? TEXT(" [FALLBACK->WHITE]") : TEXT(""));
+			}
+#else
 			checkSlow(UniformResourceParameter.Index < InExpressions.Uniform2DTextureExpressions.Num());
 			const FTexture* Value = CachedValues->CachedTexture2DParameters(UniformResourceParameter.Index);
-#if BATMAN
-			if (!Value) continue;
-#endif
 			checkSlow(Value);
+#endif
 			const FLOAT MipBias = Value->MipBiasFade.CalcMipBias();
 			// Set the min mip level to 3 if we are told to work around deferred mip artifacts
 			// Textures with mip maps in deferred passes cause problems because the GPU picks a very low mip at large depth discontinuities, 
@@ -626,7 +687,27 @@ void FMaterialPixelShaderParameters::Set(FShader* PixelShader,const FMaterialRen
 	check(Material);
 	const FUniformExpressionSet& UniformExpressionSet = Material->ShaderMap->GetUniformExpressionSet();
 
-	FMaterialShaderParameters::SetShader(PixelShaderRHI, UniformExpressionSet.PixelExpressions, MaterialRenderContext, MaterialRenderProxy.UniformParameterCache.PixelValues);
+#if BATMAN
+	if (GBmLogEverySeenMaterial)
+	{
+		const FString Name = Material->GetFriendlyName();
+		if (!GBmSeenMaterialNames.Contains(Name))
+		{
+			GBmSeenMaterialNames.Add(Name);
+			warnf(NAME_Warning, TEXT("BmMat seen: '%s' (proxy=%s, shader=%s, fromBmCache=%d)"),
+				*Name,
+				MaterialRenderProxy.GetMaterial() != Material ? TEXT("!=this") : TEXT("=this"),
+				PixelShader->GetType()->GetName(),
+				Material->ShaderMap && Material->ShaderMap->IsFromBmCache() ? 1 : 0);
+		}
+	}
+#endif
+
+	FMaterialShaderParameters::SetShader(PixelShaderRHI, UniformExpressionSet.PixelExpressions, MaterialRenderContext, MaterialRenderProxy.UniformParameterCache.PixelValues
+#if BATMAN
+		, PixelShader
+#endif
+		);
 
 #if WITH_MOBILE_RHI
 	if( GUsingMobileRHI )
@@ -994,10 +1075,14 @@ void FMaterialDomainShaderParameters::Set(FShader* DomainShader,const FMaterialR
 	check(Material);
 	const FUniformExpressionSet& UniformExpressionSet = Material->ShaderMap->GetUniformExpressionSet();
 	FMaterialShaderParameters::SetShader(
-		DomainShader->GetDomainShader(), 
+		DomainShader->GetDomainShader(),
 		UniformExpressionSet.DomainExpressions,
-		MaterialRenderContext, 
-		MaterialRenderProxy.UniformParameterCache.DomainValues);
+		MaterialRenderContext,
+		MaterialRenderProxy.UniformParameterCache.DomainValues
+#if BATMAN
+		, DomainShader
+#endif
+		);
 }
 
 /**
@@ -1029,10 +1114,14 @@ void FMaterialHullShaderParameters::Set(FShader* HullShader,const FMaterialRende
 	check(Material);
 	const FUniformExpressionSet& UniformExpressionSet = Material->ShaderMap->GetUniformExpressionSet();
 	FMaterialShaderParameters::SetShader(
-		HullShader->GetHullShader(), 
+		HullShader->GetHullShader(),
 		UniformExpressionSet.HullExpressions,
-		MaterialRenderContext, 
-		MaterialRenderProxy.UniformParameterCache.HullValues);
+		MaterialRenderContext,
+		MaterialRenderProxy.UniformParameterCache.HullValues
+#if BATMAN
+		, HullShader
+#endif
+		);
 }
 
 /**
@@ -1066,10 +1155,14 @@ void FMaterialVertexShaderParameters::Set(FShader* VertexShader,const FMaterialR
 	const FUniformExpressionSet& UniformExpressionSet = Material->ShaderMap->GetUniformExpressionSet();
 
 	FMaterialShaderParameters::SetShader(
-		VertexShader->GetVertexShader(), 
+		VertexShader->GetVertexShader(),
 		UniformExpressionSet.VertexExpressions,
-		MaterialRenderContext, 
-		MaterialRenderProxy.UniformParameterCache.VertexValues);
+		MaterialRenderContext,
+		MaterialRenderProxy.UniformParameterCache.VertexValues
+#if BATMAN
+		, VertexShader
+#endif
+		);
 
 #if WITH_MOBILE_RHI
 	if( GUsingMobileRHI )

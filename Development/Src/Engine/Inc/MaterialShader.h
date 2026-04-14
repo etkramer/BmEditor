@@ -69,10 +69,14 @@ public:
 	/** Sets pixel parameters that are material specific but not FMeshElement specific. */
 	template<typename ShaderRHIParamRef>
 	void SetShader(
-		const ShaderRHIParamRef& ShaderRHI, 
-		const FShaderFrequencyUniformExpressions& InExpressions, 
+		const ShaderRHIParamRef& ShaderRHI,
+		const FShaderFrequencyUniformExpressions& InExpressions,
 		const FMaterialRenderContext& MaterialRenderContext,
-		FShaderFrequencyUniformExpressionValues& InValues) const;
+		FShaderFrequencyUniformExpressionValues& InValues
+#if BATMAN
+		, const class FShader* DebugShader = NULL
+#endif
+		) const;
 	
 	/**
 	* Set the material shader parameters which depend on the mesh element being rendered.

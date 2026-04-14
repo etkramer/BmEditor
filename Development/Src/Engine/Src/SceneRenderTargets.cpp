@@ -604,6 +604,19 @@ void FSceneRenderTargets::BeginRenderingSceneColor( DWORD RenderTargetUsage /*= 
 
 	UpdateRenderTargetUsage( GetSceneColorSurface(), RenderTargetUsage );
 
+#if BATMAN
+	// BM3 uses a light pre-pass architecture: the base pass writes only WorldNormal
+	// (confirmed by shader output reflection — single oC0). SceneColor is filled later
+	// by the light pass which samples material textures directly.
+	if (bGBufferPass)
+	{
+		RHISetRenderTarget(GetWorldNormalGBufferSurface(), GetSceneDepthSurface());
+	}
+	else
+	{
+		RHISetRenderTarget(GetSceneColorSurface(), GetSceneDepthSurface());
+	}
+#else
 	// Set the scene color surface as the render target, and the scene depth surface as the depth-stencil target.
 	RHISetRenderTarget( GetSceneColorSurface(), GetSceneDepthSurface());
 
@@ -641,7 +654,8 @@ void FSceneRenderTargets::BeginRenderingSceneColor( DWORD RenderTargetUsage /*= 
 			}
 		}
 	#endif
-} 
+#endif
+}
 
 /**
 * Called when finished rendering to the scene color surface
@@ -1997,6 +2011,21 @@ void FSceneRenderTargets::InitDynamicRHI()
 
         RenderTargets[StereoFix].Texture = RHICreateStereoFixTexture();
 
+#if BATMAN
+		// BM3 uses the WorldNormal G-buffer on all RHI paths (light pre-pass renderer).
+		// Allocate it here so SM3/D3D9 has a valid surface to bind during the base pass.
+		{
+			const EPixelFormat NormalGBufferFormat = GSystemSettings.bHighPrecisionGBuffers ? PF_FloatRGBA : PF_A2B10G10R10;
+			RenderTargets[WorldNormalGBuffer].Texture = RHICreateTexture2D(BufferSizeX,BufferSizeY,NormalGBufferFormat,1,TexCreate_ResolveTargetable,NULL);
+			RenderTargets[WorldNormalGBuffer].Surface = RHICreateTargetableSurface(
+				BufferSizeX,BufferSizeY,NormalGBufferFormat,
+				RenderTargets[WorldNormalGBuffer].Texture,
+				MultiSampleFlag,
+				TEXT("WorldNormalGBuffer")
+				);
+		}
+#endif
+
 		// Create the D3D11-specific render targets if running on D3D11.
 		#if !CONSOLE
 			if (GRHIShaderPlatform == SP_PCD3D_SM5)
@@ -2007,7 +2036,8 @@ void FSceneRenderTargets::InitDynamicRHI()
 				RHISetRenderTarget(RenderTargets[WhiteDummy].Surface,FSurfaceRHIRef());
 				RHIClear(TRUE,FLinearColor(1,1,1,1),FALSE,0,FALSE,0);
 
-				// Create the world-space normal g-buffer.
+#if !BATMAN
+				// Create the world-space normal g-buffer. (BM3 allocates this earlier for all RHI paths.)
 				const EPixelFormat NormalGBufferFormat   = GSystemSettings.bHighPrecisionGBuffers ? PF_FloatRGBA : PF_A2B10G10R10;
 				RenderTargets[WorldNormalGBuffer].Texture = RHICreateTexture2D(BufferSizeX,BufferSizeY,NormalGBufferFormat,1,TexCreate_ResolveTargetable,NULL);
 				RenderTargets[WorldNormalGBuffer].Surface = RHICreateTargetableSurface(
@@ -2016,6 +2046,7 @@ void FSceneRenderTargets::InitDynamicRHI()
 					MultiSampleFlag,
 					TEXT("WorldNormalGBuffer")
 					);
+#endif
 
 				// Create the world-space reflection normal g-buffer.
 				RenderTargets[WorldReflectionNormalGBuffer].Texture = RHICreateTexture2D(BufferSizeX,BufferSizeY,PF_A2B10G10R10,1,TexCreate_ResolveTargetable,NULL);

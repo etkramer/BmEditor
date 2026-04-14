@@ -231,6 +231,11 @@ public:
 	}
 	INT GetTextureIndex() const { return TextureIndex; }
 
+#if BATMAN
+	/** Returns the parameter name if this is a parameter expression, NAME_None otherwise. */
+	virtual FName GetParameterName() const { return NAME_None; }
+#endif
+
 	virtual UBOOL IsConstant() const
 	{
 		return FALSE;
