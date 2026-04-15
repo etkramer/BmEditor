@@ -60,7 +60,9 @@
       "PowerShell(git status; git --no-pager diff HEAD -- Development/Src/Engine/Src/MaterialShared.cpp | Out-String)",
       "PowerShell(git --no-pager log -p --all -S \"extra BOOL\" -- Development/Src/Engine/ 2>&1 | Select-Object -First 80)",
       "PowerShell(git:*)",
-      "PowerShell(git --no-pager show c873394e -- Development/Src/Engine/Src/MaterialShader.cpp | Out-String)"
+      "PowerShell(git --no-pager show c873394e -- Development/Src/Engine/Src/MaterialShader.cpp | Out-String)",
+      "Bash(ls I:/UnrealEngine3/BUG*.md)",
+      "Read(//i/Gangland/Binaries/Win32/**)"
     ]
   }
 }

@@ -231,11 +231,6 @@ public:
 	}
 	INT GetTextureIndex() const { return TextureIndex; }
 
-#if BATMAN
-	/** Returns the parameter name if this is a parameter expression, NAME_None otherwise. */
-	virtual FName GetParameterName() const { return NAME_None; }
-#endif
-
 	virtual UBOOL IsConstant() const
 	{
 		return FALSE;
@@ -982,14 +977,8 @@ private:
 	/** The maximum texture dependency length for the material. */
 	INT MaxTextureDependencyLength;
 
-#if BATMAN
-public:
-#endif
 	TRefCountPtr<FMaterialShaderMap> ShaderMap;
 
-#if BATMAN
-private:
-#endif
 	FGuid Id;
 
 	/** If non-NULL, contains legacy uniform expressions. */

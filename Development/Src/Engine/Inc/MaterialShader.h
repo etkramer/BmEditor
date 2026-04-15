@@ -73,9 +73,6 @@ public:
 		const FShaderFrequencyUniformExpressions& InExpressions,
 		const FMaterialRenderContext& MaterialRenderContext,
 		FShaderFrequencyUniformExpressionValues& InValues
-#if BATMAN
-		, const class FShader* DebugShader = NULL
-#endif
 		) const;
 	
 	/**

@@ -497,16 +497,7 @@ FArchive& operator<<(FArchive& Ar,FMaterialUniformExpression*& Ref)
 
 		// Find the expression type with a matching name.
 		FMaterialUniformExpressionType* Type = FMaterialUniformExpressionType::GetTypeMap().FindRef(TypeName);
-#if BATMAN
-		if (!Type)
-		{
-			warnf(NAME_Warning, TEXT("BM3: Unknown FMaterialUniformExpressionType '%s'"), *TypeName.ToString());
-			Ref = NULL;
-			return Ar;
-		}
-#else
 		check(Type);
-#endif
 
 		// Construct a new instance of the expression type.
 		Ref = (*Type->SerializationConstructor)();

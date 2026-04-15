@@ -21,15 +21,6 @@ TMap<FMaterialShaderMap*, TArray<FMaterial*> > FMaterialShaderMap::ShaderMapsBei
  */
 TMap<UINT, const ANSICHAR*> FMaterialShaderMap::MaterialCodeBeingCompiled;
 
-#if BATMAN
-// FMaterialResource::GetFriendlyName() returns the parent UMaterial's name for MICs
-// (see AllocateStaticPermutations), so filter on the master material, not the MIC.
-FString GBmDumpTextureBindingsFor = TEXT("Character_Base_v2_MAT");
-// Debug: log every distinct material name that hits FMaterialPixelShaderParameters::Set.
-UBOOL GBmLogEverySeenMaterial = TRUE;
-TSet<FString> GBmSeenMaterialNames;
-#endif
-
 /** Converts an EMaterialLightingModel to a string description. */
 FString GetLightingModelString(EMaterialLightingModel LightingModel)
 {
@@ -435,9 +426,6 @@ void FMaterialShaderParameters::SetShader(
 	const FShaderFrequencyUniformExpressions& InExpressions,
 	const FMaterialRenderContext& MaterialRenderContext,
 	FShaderFrequencyUniformExpressionValues& InValues
-#if BATMAN
-	, const FShader* DebugShader
-#endif
 	) const
 {
 	// Set the uniform parameters.
@@ -506,39 +494,10 @@ void FMaterialShaderParameters::SetShader(
 				UniformResourceParameter.Index < InExpressions.Uniform2DTextureExpressions.Num()
 					? CachedValues->CachedTexture2DParameters(UniformResourceParameter.Index)
 					: NULL;
-			const UBOOL bDidFallback = !Value;
+			
 			if (!Value)
 			{
 				Value = GWhiteTexture;
-			}
-			if (GBmDumpTextureBindingsFor.Len() > 0 &&
-				Material->GetFriendlyName().InStr(GBmDumpTextureBindingsFor) != INDEX_NONE)
-			{
-				const TCHAR* ShaderName = DebugShader ? DebugShader->GetType()->GetName() : TEXT("<?>");
-				const TCHAR* ExprName = TEXT("<out-of-range>");
-				FName ParamName = NAME_None;
-				if (UniformResourceParameter.Index < InExpressions.Uniform2DTextureExpressions.Num())
-				{
-					FMaterialUniformExpressionTexture* Expr = InExpressions.Uniform2DTextureExpressions(UniformResourceParameter.Index);
-					if (Expr)
-					{
-						ExprName = Expr->GetType()->GetName();
-						ParamName = Expr->GetParameterName();
-					}
-					else
-					{
-						ExprName = TEXT("<null-expr>");
-					}
-				}
-				// warnf(NAME_Warning, TEXT("BmTex [%s] mat=%s slot=%u exprIdx=%d expr=%s param=%s bound=%s%s"),
-				// 	ShaderName,
-				// 	*Material->GetFriendlyName(),
-				// 	UniformResourceParameter.ShaderParameter.GetBaseIndex(),
-				// 	UniformResourceParameter.Index,
-				// 	ExprName,
-				// 	*ParamName.ToString(),
-				// 	Value ? *Value->GetFriendlyName() : TEXT("<null>"),
-				// 	bDidFallback ? TEXT(" [FALLBACK->WHITE]") : TEXT(""));
 			}
 #else
 			checkSlow(UniformResourceParameter.Index < InExpressions.Uniform2DTextureExpressions.Num());
@@ -687,27 +646,7 @@ void FMaterialPixelShaderParameters::Set(FShader* PixelShader,const FMaterialRen
 	check(Material);
 	const FUniformExpressionSet& UniformExpressionSet = Material->ShaderMap->GetUniformExpressionSet();
 
-#if BATMAN
-	if (GBmLogEverySeenMaterial)
-	{
-		const FString Name = Material->GetFriendlyName();
-		if (!GBmSeenMaterialNames.Contains(Name))
-		{
-			GBmSeenMaterialNames.Add(Name);
-			warnf(NAME_Warning, TEXT("BmMat seen: '%s' (proxy=%s, shader=%s, fromBmCache=%d)"),
-				*Name,
-				MaterialRenderProxy.GetMaterial() != Material ? TEXT("!=this") : TEXT("=this"),
-				PixelShader->GetType()->GetName(),
-				Material->ShaderMap && Material->ShaderMap->IsFromBmCache() ? 1 : 0);
-		}
-	}
-#endif
-
-	FMaterialShaderParameters::SetShader(PixelShaderRHI, UniformExpressionSet.PixelExpressions, MaterialRenderContext, MaterialRenderProxy.UniformParameterCache.PixelValues
-#if BATMAN
-		, PixelShader
-#endif
-		);
+	FMaterialShaderParameters::SetShader(PixelShaderRHI, UniformExpressionSet.PixelExpressions, MaterialRenderContext, MaterialRenderProxy.UniformParameterCache.PixelValues);
 
 #if WITH_MOBILE_RHI
 	if( GUsingMobileRHI )
@@ -803,15 +742,6 @@ void FMaterialPixelShaderParameters::Set(FShader* PixelShader,const FMaterialRen
 			checkSlow(MaterialRenderContext.View->Family->GammaCorrection > 0.0f );
 			SetPixelShaderValue( PixelShaderRHI, InvGammaParameter, 1.0f / MaterialRenderContext.View->Family->GammaCorrection );
 		}
-#if BATMAN
-		else if (Material->ShaderMap->IsFromBmCache())
-		{
-			// BM3 shaders may use gamma correction even if our engine thinks the material doesn't.
-			// Set to identity (1.0) so pow(Color, 1.0) = Color, rather than leaving it zeroed
-			// which would cause pow(Color, 0) = 1.0 (everything white).
-			SetPixelShaderValue( PixelShaderRHI, InvGammaParameter, 1.0f );
-		}
-#endif
 	}
 
 	SceneTextureParameters.Set(
@@ -1026,23 +956,30 @@ FArchive& operator<<(FArchive& Ar,FMaterialPixelShaderParameters& Parameters)
 	Ar << Parameters.ScreenDoorNoiseTextureParameter;
 	Ar << Parameters.AlphaSampleTextureParameter;
 #if BATMAN
-	if (!Ar.IsBmCooked(FALSE))
-#endif
+	if (!Ar.IsBmCooked())
 	{
 		Ar << Parameters.FluidDetailNormalTextureParameter;
 		Ar << Parameters.DOFParameters;
 	}
-#if BATMAN
-	else if (Ar.IsLoading())
-	{
-		// BM3 doesn't have these — initialize as unbound to avoid IsInitialized() asserts.
-		TArray<BYTE> ZeroData;
-		ZeroData.AddZeroed(256);
-		FMemoryReader ZeroAr(ZeroData);
-		ZeroAr << Parameters.FluidDetailNormalTextureParameter;
-		ZeroAr << Parameters.DOFParameters;
-	}
 #endif
+// #if BATMAN
+// 	if (!Ar.IsBmCooked(FALSE))
+// #endif
+// 	{
+// 		Ar << Parameters.FluidDetailNormalTextureParameter;
+// 		Ar << Parameters.DOFParameters;
+// 	}
+// #if BATMAN
+// 	else if (Ar.IsLoading())
+// 	{
+// 		// BM3 doesn't have these — initialize as unbound to avoid IsInitialized() asserts.
+// 		TArray<BYTE> ZeroData;
+// 		ZeroData.AddZeroed(256);
+// 		FMemoryReader ZeroAr(ZeroData);
+// 		ZeroAr << Parameters.FluidDetailNormalTextureParameter;
+// 		ZeroAr << Parameters.DOFParameters;
+// 	}
+// #endif
 
 	return Ar;
 }
@@ -1079,9 +1016,6 @@ void FMaterialDomainShaderParameters::Set(FShader* DomainShader,const FMaterialR
 		UniformExpressionSet.DomainExpressions,
 		MaterialRenderContext,
 		MaterialRenderProxy.UniformParameterCache.DomainValues
-#if BATMAN
-		, DomainShader
-#endif
 		);
 }
 
@@ -1118,9 +1052,6 @@ void FMaterialHullShaderParameters::Set(FShader* HullShader,const FMaterialRende
 		UniformExpressionSet.HullExpressions,
 		MaterialRenderContext,
 		MaterialRenderProxy.UniformParameterCache.HullValues
-#if BATMAN
-		, HullShader
-#endif
 		);
 }
 
@@ -1159,9 +1090,6 @@ void FMaterialVertexShaderParameters::Set(FShader* VertexShader,const FMaterialR
 		UniformExpressionSet.VertexExpressions,
 		MaterialRenderContext,
 		MaterialRenderProxy.UniformParameterCache.VertexValues
-#if BATMAN
-		, VertexShader
-#endif
 		);
 
 #if WITH_MOBILE_RHI
