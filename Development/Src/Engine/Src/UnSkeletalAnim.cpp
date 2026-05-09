@@ -1576,9 +1576,29 @@ void AnimZip_Compress(UAnimSequence* Seq)
 		}
 	}
 
-	// --- Set linear transform (identity — no additional transform) ---
-	Seq->AnimZip_LinearOrigin = FVector(0, 0, 0);
-	Seq->AnimZip_LinearSpan = FVector(1, 1, 1);
+	// --- AnimZip_LinearOrigin / AnimZip_LinearSpan ---
+	if (bHasMotionTrans && RootTrack.PosKeys.Num() > 0)
+	{
+		const FVector FirstPos = RootTrack.PosKeys(0);
+		const FVector LastPos  = RootTrack.PosKeys(RootTrack.PosKeys.Num() - 1);
+		const FVector Delta = LastPos - FirstPos;
+
+		FVector Sum(0, 0, 0);
+		for (INT f = 0; f < NumFrames; f++)
+		{
+			INT KeyIdx = (RootTrack.PosKeys.Num() > 1) ? Min(f, RootTrack.PosKeys.Num() - 1) : 0;
+			Sum += RootTrack.PosKeys(KeyIdx);
+		}
+		const FVector Avg = Sum * (1.0f / (FLOAT)NumFrames);
+
+		Seq->AnimZip_LinearSpan   = Delta;
+		Seq->AnimZip_LinearOrigin = (Avg - FirstPos) - 0.5f * Delta;
+	}
+	else
+	{
+		Seq->AnimZip_LinearOrigin = FVector(0, 0, 0);
+		Seq->AnimZip_LinearSpan = FVector(0, 0, 0);
+	}
 
 	// --- Set clipping/blend properties that the retail game expects ---
 	// Without these, GetBoneAtom's AnimZip path computes NormTime=0 always
@@ -1586,7 +1606,7 @@ void AnimZip_Compress(UAnimSequence* Seq)
 	Seq->ClippedStart = 0.0f;
 	Seq->ClippedLength = Seq->SequenceLength;
 	Seq->BlendInPoint = 0.0f;
-	Seq->BlendOutPoint = Seq->SequenceLength;
+	Seq->BlendOutPoint = 1.0f;
 
 	// --- Round-trip verification ---
 #if DO_CHECK
