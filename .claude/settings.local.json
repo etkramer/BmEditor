@@ -68,7 +68,8 @@
       "Bash(xxd *)",
       "Bash(findstr /i animzip)",
       "Bash(dir /b \"C:\\\\Users\\\\elitk\\\\Desktop\\\\Batman2\\\\Engine\\\\Classes\")",
-      "Bash(findstr /i \"AnimZip RAnim\")"
+      "Bash(findstr /i \"AnimZip RAnim\")",
+      "Bash(scalar deleting\\\\|FMorphTargetVertex::)"
     ]
   }
 }

@@ -3058,23 +3058,41 @@ public:
 			{
 				if(  Ar.Ver() >= VER_DWORD_SKELETAL_MESH_INDICES || Ar.IsBmCooked(TRUE) )
 				{
-					BYTE IndexSize;
+					BYTE IndexSize = sizeof(WORD);
 					Ar << IndexSize;
 				}
 
 				TMap<struct FBoneIndexPair, TArray<WORD> > TempMapping;
+
+				if( Ar.IsSaving() )
+				{
+					for( TMap<struct FBoneIndexPair, TArray<DWORD> >::TConstIterator It(W.VertexInfluenceMapping); It; ++It )
+					{
+						const TArray<DWORD>& SrcArray = It.Value();
+						TArray<WORD> NewArray;
+						for( INT I = 0; I < SrcArray.Num(); ++I )
+						{
+							NewArray.AddItem( (WORD)SrcArray(I) );
+						}
+						TempMapping.Set( It.Key(), NewArray );
+					}
+				}
+
 				Ar << TempMapping;
 
-				for( TMap<struct FBoneIndexPair, TArray<WORD> >::TConstIterator It(TempMapping); It; ++It )
+				if( Ar.IsLoading() )
 				{
-					const TArray<WORD>& TempArray = It.Value();
-					TArray<DWORD> NewArray;
-					for( INT I = 0; I < TempArray.Num(); ++I )
+					for( TMap<struct FBoneIndexPair, TArray<WORD> >::TConstIterator It(TempMapping); It; ++It )
 					{
-						NewArray.AddItem( TempArray(I) );
-					}
+						const TArray<WORD>& TempArray = It.Value();
+						TArray<DWORD> NewArray;
+						for( INT I = 0; I < TempArray.Num(); ++I )
+						{
+							NewArray.AddItem( TempArray(I) );
+						}
 
-					W.VertexInfluenceMapping.Set( It.Key(), NewArray );
+						W.VertexInfluenceMapping.Set( It.Key(), NewArray );
+					}
 				}
 			}
 			else

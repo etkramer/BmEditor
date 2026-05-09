@@ -210,13 +210,30 @@ public:
 	*/
 	virtual void Serialize( FArchive& Ar )
 	{
-		if (Ar.IsLoading() && ((Ar.Ver() < VER_DWORD_SKELETAL_MESH_INDICES) || Ar.IsBmCooked(TRUE))) // 16 bit
+		if ((Ar.IsLoading() && Ar.Ver() < VER_DWORD_SKELETAL_MESH_INDICES) || Ar.IsBmCooked(TRUE)) // 16 bit
 		{
-			TResourceArray<WORD,INDEXBUFFER_ALIGNMENT> WORDIndexBuffer;
-			WORDIndexBuffer.BulkSerialize(Ar);
-			for (INT i = 0; i < WORDIndexBuffer.Num(); ++i)
+			if (sizeof(INDEX_TYPE) == sizeof(WORD))
 			{
-				Indices.AddItem(WORDIndexBuffer(i));
+				Indices.BulkSerialize( Ar );
+			}
+			else if (Ar.IsLoading())
+			{
+				TResourceArray<WORD,INDEXBUFFER_ALIGNMENT> WORDIndexBuffer;
+				WORDIndexBuffer.BulkSerialize(Ar);
+				for (INT i = 0; i < WORDIndexBuffer.Num(); ++i)
+				{
+					Indices.AddItem(WORDIndexBuffer(i));
+				}
+			}
+			else
+			{
+				TResourceArray<WORD,INDEXBUFFER_ALIGNMENT> WORDIndexBuffer;
+				WORDIndexBuffer.Empty(Indices.Num());
+				for (INT i = 0; i < Indices.Num(); ++i)
+				{
+					WORDIndexBuffer.AddItem((WORD)Indices(i));
+				}
+				WORDIndexBuffer.BulkSerialize(Ar);
 			}
 		}
 		else
