@@ -611,6 +611,56 @@ void AnimZip_Sample_Track(const UAnimSequence* Seq, INT TrackIndex, FLOAT Normal
 	Out->SetScale(1.0f);
 }
 
+// --- Core sampling: motion bundles ---
+//
+// AnimZip stores root motion separately from regular bone tracks: the rotation
+// bundle is a yaw-only quat per frame and the translation bundle is delta-from-
+// first-frame, both with a single track. See the encoder paths above (search for
+// MotionRotBundleOffset / MotionTransBundleOffset) for layout details.
+
+UBOOL AnimZip_Sample_Motion(const UAnimSequence* Seq, FLOAT NormalizedTime, FBoneAtom* Out)
+{
+	Out->SetRotation(FQuat::Identity);
+	Out->SetTranslation(FVector::ZeroVector);
+	Out->SetScale(1.0f);
+
+	if (Seq->AnimZip_Data.Num() < (INT)sizeof(FAnim))
+	{
+		return FALSE;
+	}
+
+	const BYTE* Data = Seq->AnimZip_Data.GetData();
+	const FAnim* Anim = (const FAnim*)Data;
+	const INT RotOffset = Anim->MotionRotationBundleOffset;
+	const INT TransOffset = Anim->MotionTranslationScaleBundleOffset;
+	if (RotOffset < 0 && TransOffset < 0)
+	{
+		return FALSE;
+	}
+
+	NormalizedTime = Clamp(NormalizedTime, 0.0f, 1.0f - (FLOAT)SMALL_NUMBER);
+
+	if (RotOffset >= 0)
+	{
+		const FBundle& B = *(const FBundle*)&Data[RotOffset];
+		FResolvedBundle RB;
+		RB.Resolve(Data, B);
+		FCatmullRomTime Time = FCatmullRomTime::Make(NormalizedTime, B.NumFrames);
+		Out->SetRotation(SampleRotationBundle(RB, B.Codec, 0, B.NumTracks, Time));
+	}
+
+	if (TransOffset >= 0)
+	{
+		const FBundle& B = *(const FBundle*)&Data[TransOffset];
+		FResolvedBundle RB;
+		RB.Resolve(Data, B);
+		FCatmullRomTime Time = FCatmullRomTime::Make(NormalizedTime, B.NumFrames);
+		Out->SetTranslation(SampleTranslationBundle(RB, B.Codec, 0, B.NumTracks, Time));
+	}
+
+	return TRUE;
+}
+
 // --- Core sampling: batch (all bones) ---
 
 void AnimZip_Sample(const UAnimSequence* Seq, USkeletalMesh* SkelMesh,
