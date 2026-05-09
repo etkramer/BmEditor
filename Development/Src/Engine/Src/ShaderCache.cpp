@@ -667,13 +667,25 @@ void UShaderCache::Load(FArchive& Ar, UBOOL bIsAlwaysLoaded)
 	TArray<FMaterialShaderMap*> DeferredDeleteMaterialShaderMaps;
 
 #if BATMAN
-	// BM3 has two MaterialShaderMap sections:
-	// Section 1: per-shader entries (FShaderType FName + FGuid Id + FSHAHash + SkipOffset +
-	//            TArray<WORD> Serializations + FShader::Serialize body). FShader::Serialize
-	//            stores an FGuid reference into GBmShaderBytecodeMap instead of an inline
-	//            TArray<BYTE>.
-	// Section 2: standard FStaticParameterSet-keyed MaterialShaderMaps (same wire format as
-	//            stock UE3 with ShaderMapVersion/LicenseeVersion + SkipOffset).
+	// The layout between SerializeShaders and UShaderCache::Load on BM3 PC is:
+	//
+	//     [SerializeShaders]
+	//       pre_count(4) + N*{FGuid, TArray<BYTE>}     <-- handled by BATMAN block
+	//                                                      in SerializeShaders (dedup pre-section)
+	//       shader_count(4) + N*{stock per-shader}     <-- read by "Section 1" below
+	//     [UShaderCache::Load resumes]
+	//       map_count(4) + N*{stock MaterialShaderMap} <-- read by "Section 2" below
+	//
+	// Section 1 is *not* a MaterialShaderMap section — it is the stock per-shader loop
+	// that would normally live inside SerializeShaders in stock UE3. The `NumMaterialShaderMaps`
+	// variable above was actually BM3's shader_count; the real map_count comes later as
+	// NumMaterialShaderMaps2. Don't read the comments below as "BM3 has two MaterialShaderMap
+	// sections"; it has one, and one unrelated per-shader section that our code just happens
+	// to consume in this function because of how it was originally reverse-engineered.
+	//
+	// Reference: BatmanOrigins.exe.c sub_1E95F0 (SerializeShaders, lines 882078-882293) for
+	// the pre-section + per-shader sequence, and sub_1EB540 (UShaderCache::Load, lines
+	// 883785-883955) for the final MaterialShaderMap loop.
 	if (Ar.IsBmCooked())
 	{
 		for (INT ShaderIndex = 0; ShaderIndex < NumMaterialShaderMaps; ShaderIndex++)
@@ -1375,8 +1387,10 @@ void SerializeShaders(const TMap<FGuid,FShader*>& InShaders, FArchive& Ar)
 #endif
 
 #if BATMAN
-	// BM3 uses a completely different shader format (FGuid + raw D3D bytecode) handled
-	// separately in the loading path below, so automatic versioning doesn't apply.
+	// BM3 doesn't write a TArray<WORD> Serializations history alongside each shader body
+	// (the stream has a history, but we read it in the per-shader loop in UShaderCache::Load
+	// and discard it — see the "Section 1" note there). Disabling this flag stops
+	// FShaderLoadArchive from doing automatic-versioning bookkeeping on BM3 paths.
 	if (Ar.IsLoading() && Ar.IsBmCooked())
 	{
 		bSerializeAutomaticVersioningData = FALSE;
@@ -1448,8 +1462,28 @@ void SerializeShaders(const TMap<FGuid,FShader*>& InShaders, FArchive& Ar)
 		Ar << NumShaders;
 
 #if BATMAN
-		// BM3 uses a completely different per-shader format: FGuid(16) + INT BytecodeSize(4) + BYTE Bytecode[].
-		// No FName, no SkipOffset, no FShader::Serialize -- just raw D3D bytecode identified by GUID.
+		// BM3 PC prepends a bytecode dedup pre-section before the per-shader stock loop
+		// (see BatmanOrigins.exe.c sub_1E95F0 lines 882078-882140). On-disk format:
+		//
+		//     pre_count(4) + pre_count * { FGuid Id(16), TArray<BYTE> Code }
+		//
+		// INT + TArray<BYTE> is equivalent to INT BytecodeSize(4) + bytes, so we read the
+		// bytes directly into GBmShaderBytecodeMap instead of constructing FShaderCodeHolder
+		// instances. In PC, the runtime uses a TMap<FGuid,FShaderCodeHolder*> (dword_14E5CAC)
+		// where each 40-byte holder embeds a refcount, the TArray<BYTE>, and the FGuid Id.
+		// Our GBmShaderBytecodeMap is the moral equivalent — FShader::Serialize's BATMAN
+		// branch (ShaderManager.cpp) later reads the per-shader holder-ref FGuid and copies
+		// bytecode out of this map into Key.Code.
+		//
+		// Note: what immediately follows the pre-section in the archive is the *stock*
+		// per-shader loop (shader_count + per-shader headers + bodies). NumShaders above
+		// was just read at the top of this function and is the pre-section count —
+		// NOT the per-shader count. After this BATMAN block returns from SerializeShaders,
+		// control falls back to UShaderCache::Load, whose BATMAN "Section 1" loop reads
+		// what it calls NumMaterialShaderMaps but is really BM3's shader_count, then
+		// "Section 2" reads the actual NumMaterialShaderMaps. The structural weirdness
+		// (per-shader work living in UShaderCache::Load rather than SerializeShaders) is
+		// a legacy of how this was originally reverse-engineered; byte positions line up.
 		if (Ar.IsLoading() && Ar.IsBmCooked())
 		{
 			for (INT ShaderIndex = 0; ShaderIndex < NumShaders; ShaderIndex++)

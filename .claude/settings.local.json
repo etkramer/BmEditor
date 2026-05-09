@@ -62,7 +62,13 @@
       "PowerShell(git:*)",
       "PowerShell(git --no-pager show c873394e -- Development/Src/Engine/Src/MaterialShader.cpp | Out-String)",
       "Bash(ls I:/UnrealEngine3/BUG*.md)",
-      "Read(//i/Gangland/Binaries/Win32/**)"
+      "Read(//i/Gangland/Binaries/Win32/**)",
+      "Bash(ls *)",
+      "Bash(xxd \"F:/Game Builds/Batman Arkham City/PS4/Image0/BmGame/CookedOrbis/Playable_Batman_Std_SF.xxx\")",
+      "Bash(xxd *)",
+      "Bash(findstr /i animzip)",
+      "Bash(dir /b \"C:\\\\Users\\\\elitk\\\\Desktop\\\\Batman2\\\\Engine\\\\Classes\")",
+      "Bash(findstr /i \"AnimZip RAnim\")"
     ]
   }
 }

@@ -19,62 +19,6 @@ FPixelShaderRHIRef FD3D9DynamicRHI::CreatePixelShader(const TArray<BYTE>& Code)
 	TRefCountPtr<FD3D9PixelShader> PixelShader = NULL;
 	VERIFYD3D9RESULT(Direct3DDevice->CreatePixelShader((DWORD*)&Code(0),(IDirect3DPixelShader9**)PixelShader.GetInitReference()));
 
-#if BATMAN
-	{
-		// Reflect sampler usage via the D3DX constant table. We need the actual sampler register index
-		// per name (D3DXGetShaderSamplers only gives names, in alphabetical order). Paired with
-		// BmShaderInit in ShaderManager.cpp — log order gives correlation.
-		LPD3DXCONSTANTTABLE ConstantTable = NULL;
-		HRESULT hr = D3DXGetShaderConstantTable((CONST DWORD*)&Code(0), &ConstantTable);
-		if (SUCCEEDED(hr) && ConstantTable)
-		{
-			D3DXCONSTANTTABLE_DESC TableDesc;
-			ConstantTable->GetDesc(&TableDesc);
-			FString RegList;
-			INT SamplerCount = 0;
-			for (UINT i = 0; i < TableDesc.Constants; ++i)
-			{
-				D3DXHANDLE Handle = ConstantTable->GetConstant(NULL, i);
-				if (!Handle) continue;
-				D3DXCONSTANT_DESC Desc;
-				UINT Count = 1;
-				if (FAILED(ConstantTable->GetConstantDesc(Handle, &Desc, &Count))) continue;
-				if (Desc.RegisterSet != D3DXRS_SAMPLER) continue;
-				if (SamplerCount > 0) RegList += TEXT(",");
-				RegList += FString::Printf(TEXT("s%u=%s"), Desc.RegisterIndex, ANSI_TO_TCHAR(Desc.Name ? Desc.Name : "<null>"));
-				++SamplerCount;
-			}
-			warnf(NAME_Warning, TEXT("BmShaderSamplers count=%d regs=[%s]"), SamplerCount, *RegList);
-			ConstantTable->Release();
-		}
-		else
-		{
-			warnf(NAME_Warning, TEXT("BmShaderSamplers [GetConstantTable failed hr=0x%08x]"), hr);
-		}
-
-		// Dump pixel shader output semantics — shows which oC# registers (MRT slots) the shader writes to.
-		{
-			D3DXSEMANTIC OutSemantics[16];
-			UINT NumSemantics = 16;
-			HRESULT hr2 = D3DXGetShaderOutputSemantics((CONST DWORD*)&Code(0), OutSemantics, &NumSemantics);
-			if (SUCCEEDED(hr2))
-			{
-				FString OutList;
-				for (UINT i = 0; i < NumSemantics; ++i)
-				{
-					if (i > 0) OutList += TEXT(",");
-					OutList += FString::Printf(TEXT("usage=%u idx=%u"), OutSemantics[i].Usage, OutSemantics[i].UsageIndex);
-				}
-				warnf(NAME_Warning, TEXT("BmShaderOutputs count=%u [%s]"), NumSemantics, *OutList);
-			}
-			else
-			{
-				warnf(NAME_Warning, TEXT("BmShaderOutputs [GetOutputSemantics failed hr=0x%08x]"), hr2);
-			}
-		}
-	}
-#endif
-
 	return PixelShader.GetReference();
 }
 

@@ -744,9 +744,11 @@ static void EncodeQuatMax48(const FQuat& InQ, BYTE* Out)
 	static const FLOAT Scale = 32767.0f / 1.41421356237f; // 32767 / sqrt(2)
 	// Equivalent: (component + shift) * (1/sqrt(2)) * 32767 = (component + shift) * shift * 32767
 
-	INT mVal = Clamp<INT>(appFloor((m + Shift) * Scale + 0.5f), 0, 32767);
-	INT hVal = Clamp<INT>(appFloor((h + Shift) * Scale + 0.5f), 0, 32767);
-	INT lVal = Clamp<INT>(appFloor((l + Shift) * Scale + 0.5f), 0, 32767);
+	// Match Gangland's PackFloat rounding (RAnimZip_Pack.h): floor(2x + 0.5) >> 1.
+	// Differs from round-half-up: values with frac in [0.5, 0.75) round DOWN.
+	INT mVal = Clamp<INT>(appFloor((m + Shift) * Scale * 2.0f + 0.5f) >> 1, 0, 32767);
+	INT hVal = Clamp<INT>(appFloor((h + Shift) * Scale * 2.0f + 0.5f) >> 1, 0, 32767);
+	INT lVal = Clamp<INT>(appFloor((l + Shift) * Scale * 2.0f + 0.5f) >> 1, 0, 32767);
 
 	// Pack into 6 bytes big-endian
 	// Decoder reads: mVal = ((b[0]<<8)|b[1]) & 0x7FFF
@@ -802,9 +804,10 @@ static void EncodeQuatMax40(const FQuat& InQ, BYTE* Out)
 	static const FLOAT Shift = 0.70710678118f;
 	static const FLOAT Scale = 4095.0f / 1.41421356237f;
 
-	INT mVal = Clamp<INT>(appFloor((m + Shift) * Scale + 0.5f), 0, 4095);
-	INT hVal = Clamp<INT>(appFloor((h + Shift) * Scale + 0.5f), 0, 4095);
-	INT lVal = Clamp<INT>(appFloor((l + Shift) * Scale + 0.5f), 0, 4095);
+	// Match Gangland's PackFloat rounding (see EncodeQuatMax48 above).
+	INT mVal = Clamp<INT>(appFloor((m + Shift) * Scale * 2.0f + 0.5f) >> 1, 0, 4095);
+	INT hVal = Clamp<INT>(appFloor((h + Shift) * Scale * 2.0f + 0.5f) >> 1, 0, 4095);
+	INT lVal = Clamp<INT>(appFloor((l + Shift) * Scale * 2.0f + 0.5f) >> 1, 0, 4095);
 
 	Out[0] = (BYTE)((mVal >> 4) & 0xFF);
 	Out[1] = (BYTE)(((mVal & 0xF) << 4) | ((hVal >> 8) & 0xF));
