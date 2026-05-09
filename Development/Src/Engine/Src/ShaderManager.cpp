@@ -956,12 +956,12 @@ void FShader::InitRHI()
 	}
 	else if(Target.Frequency == SF_Pixel)
 	{
-#if BATMAN
-		// Paired with BmShaderSamplers in D3D9Shaders.cpp CreatePixelShader — log order gives correlation.
-		warnf(NAME_Warning, TEXT("BmShaderInit name=%s freq=Pixel codeBytes=%d"),
-			Type ? Type->GetName() : TEXT("<no-type>"),
-			Key.Code.Num());
-#endif
+// #if BATMAN
+// 		// Paired with BmShaderSamplers in D3D9Shaders.cpp CreatePixelShader — log order gives correlation.
+// 		warnf(NAME_Warning, TEXT("BmShaderInit name=%s freq=Pixel codeBytes=%d"),
+// 			Type ? Type->GetName() : TEXT("<no-type>"),
+// 			Key.Code.Num());
+// #endif
 		PixelShader = RHICreatePixelShader(Key.Code);
 	}
 #if WITH_D3D11_TESSELLATION

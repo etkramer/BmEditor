@@ -1397,7 +1397,7 @@ void AnimZip_Compress(UAnimSequence* Seq)
 	INT Cursor = AnimHeaderSize;
 
 	// Motion bundles come first (game reads these directly via FAnim::MotionRotationBundleOffset).
-	// TODO: Final impl — store absolute (needs ClipTracks on regular root track first).
+	// TODO: store absolute (needs ClipTracks on regular root track first).
 	const INT MotionRotBundleOffset = bHasMotionRot ? Cursor : -1;
 	if (bHasMotionRot) Cursor += BundleSize;
 	const INT MotionTransBundleOffset = bHasMotionTrans ? Cursor : -1;
@@ -1474,7 +1474,7 @@ void AnimZip_Compress(UAnimSequence* Seq)
 	Anim->TranslationScaleBundlesOffset = TransBundlesOffset;
 
 	// --- Motion rotation bundle (yaw-only quat per frame) ---
-	// TODO: Final impl — yaw source uses raw root track, not ReferenceOptions.
+	// TODO: yaw source uses raw root track, not ReferenceOptions.
 	if (bHasMotionRot)
 	{
 		FBundle* MB = (FBundle*)&Data[MotionRotBundleOffset];
@@ -1521,7 +1521,7 @@ void AnimZip_Compress(UAnimSequence* Seq)
 	}
 
 	// --- Motion translation bundle (lerp-or-raw per axis, delta-from-first) ---
-	// TODO: Final impl — missing ReferenceOptions/CollisionOptions/notify offsets.
+	// TODO: missing ReferenceOptions/CollisionOptions/notify offsets.
 	if (bHasMotionTrans)
 	{
 		FBundle* MB = (FBundle*)&Data[MotionTransBundleOffset];
