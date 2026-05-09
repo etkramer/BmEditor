@@ -57,9 +57,9 @@ struct FMorphTargetVertex
 	/** pipe operator */
 	friend FArchive& operator<<( FArchive& Ar, FMorphTargetVertex& V )
 	{
-		if (Ar.IsLoading() && ((Ar.Ver() < VER_DWORD_SKELETAL_MESH_INDICES) || Ar.IsBmCooked(TRUE)))
+		if ((Ar.IsLoading() && Ar.Ver() < VER_DWORD_SKELETAL_MESH_INDICES) || Ar.IsBmCooked(TRUE))
 		{
-			WORD Idx;
+			WORD Idx = V.SourceIdx;
 			Ar << V.PositionDelta << V.TangentZDelta << Idx;
 			V.SourceIdx = Idx;
 		}
