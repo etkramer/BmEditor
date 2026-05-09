@@ -887,6 +887,30 @@ static UBOOL TranslationTrackDiffersFromRefPose(
 	return FALSE;
 }
 
+// --- Retail motion-extraction math primitives (BmGame.exe.c) ---
+
+static FLOAT AnimZip_EaseInOut(FLOAT T)
+{
+	if (T < 0.0f) T = 0.0f;
+	if (T >= 1.0f) return 1.0f;
+	return (3.0f - 2.0f * T) * T * T;
+}
+
+static FLOAT AnimZip_GetAngleFromTo(FLOAT From, FLOAT To)
+{
+	const FLOAT D = To - From;
+	if (D > 0.0f) return appFmod(D + (FLOAT)PI, 2.0f * (FLOAT)PI) - (FLOAT)PI;
+	if (D == 0.0f) return 0.0f;
+	return -(appFmod((FLOAT)PI - D, 2.0f * (FLOAT)PI) - (FLOAT)PI);
+}
+
+static FLOAT AnimZip_ExtractYaw(const FQuat& Q)
+{
+	return appAtan2(
+		2.0f * (Q.W * Q.Z + Q.X * Q.Y),
+		1.0f - 2.0f * (Q.Y * Q.Y + Q.Z * Q.Z));
+}
+
 // --- Determine if a rotation track differs from the reference pose ---
 
 static UBOOL RotationTrackDiffersFromRefPose(
@@ -1372,11 +1396,8 @@ void AnimZip_Compress(UAnimSequence* Seq)
 
 	INT Cursor = AnimHeaderSize;
 
-	// Motion bundles come first (the game reads them directly via FAnim::MotionRotationBundleOffset).
-	// Format is delta-from-first-frame, matching the original GetMotionTrack encoder
-	// (BmGame.exe.c ~L11456727) and the game decoder's GetLinearOrigin / GetAnimOrigin
-	// (Default.xex.c ~L2942063), which sample the bundle at t=0 and compose the result
-	// onto the base pose. Storing absolute poses would double-apply the root's rest offset.
+	// Motion bundles come first (game reads these directly via FAnim::MotionRotationBundleOffset).
+	// TODO: Final impl — store absolute (needs ClipTracks on regular root track first).
 	const INT MotionRotBundleOffset = bHasMotionRot ? Cursor : -1;
 	if (bHasMotionRot) Cursor += BundleSize;
 	const INT MotionTransBundleOffset = bHasMotionTrans ? Cursor : -1;
@@ -1452,12 +1473,10 @@ void AnimZip_Compress(UAnimSequence* Seq)
 	Anim->NumTranslationScaleBundles = NumTransBundles;
 	Anim->TranslationScaleBundlesOffset = TransBundlesOffset;
 
-	// --- Motion bundles (still delta-from-first-frame — see TODO above) ---
+	// --- Motion rotation bundle (yaw-only quat per frame) ---
+	// TODO: Final impl — yaw source uses raw root track, not ReferenceOptions.
 	if (bHasMotionRot)
 	{
-		const FQuat RootFirstRot = RootTrack.RotKeys(0);
-		const FQuat RootFirstRotInv(-RootFirstRot.X, -RootFirstRot.Y, -RootFirstRot.Z, RootFirstRot.W);
-
 		FBundle* MB = (FBundle*)&Data[MotionRotBundleOffset];
 		MB->Codec = AZRC_QuatMax_48;
 		MB->NumTracks = 1;
@@ -1466,14 +1485,32 @@ void AnimZip_Compress(UAnimSequence* Seq)
 		MB->KeyframesOffset = MotionRotKeyframesOffset;
 		Data[MotionRotTrackMapOffset] = 0;
 
+		const INT LastIdx = RootTrack.RotKeys.Num() - 1;
+		const FLOAT Yaw0 = AnimZip_ExtractYaw(RootTrack.RotKeys(0));
+		const FLOAT YawLast = AnimZip_ExtractYaw(RootTrack.RotKeys(Max(0, LastIdx)));
+		const FLOAT YawSpan = AnimZip_GetAngleFromTo(Yaw0, YawLast);
+		const UBOOL bSimpleYaw = Seq->bUseSimpleForwardYaw;
+
 		FQuat PrevMotion(0, 0, 0, 1);
 		for (INT f = 0; f < NumFrames; f++)
 		{
-			INT KeyIdx = (RootTrack.RotKeys.Num() > 1) ? Min(f, RootTrack.RotKeys.Num() - 1) : 0;
-			FQuat Q = RootTrack.RotKeys(KeyIdx);
-			Q = Q * RootFirstRotInv;
+			FLOAT DeltaYaw;
+			if (bSimpleYaw)
+			{
+				const FLOAT T = (NumFrames > 1) ? (FLOAT)f / (FLOAT)(NumFrames - 1) : 0.0f;
+				DeltaYaw = YawSpan * T;
+			}
+			else
+			{
+				const INT KeyIdx = (RootTrack.RotKeys.Num() > 1) ? Min(f, LastIdx) : 0;
+				const FLOAT YawF = AnimZip_ExtractYaw(RootTrack.RotKeys(KeyIdx));
+				DeltaYaw = AnimZip_GetAngleFromTo(Yaw0, YawF);
+			}
+
+			const FLOAT H = DeltaYaw * 0.5f;
+			FQuat Q(0.0f, 0.0f, appSin(H), appCos(H));
 			Q.Normalize();
-			// Shortest-arc flip — same reasoning as the regular rotation loop.
+			// Shortest-arc flip — decoder uses plain nlerp between adjacent keys.
 			if (f > 0 && (PrevMotion | Q) < 0.0f)
 			{
 				Q = FQuat(-Q.X, -Q.Y, -Q.Z, -Q.W);
@@ -1482,10 +1519,11 @@ void AnimZip_Compress(UAnimSequence* Seq)
 			EncodeQuatMax48(Q, &Data[MotionRotKeyframesOffset + 6 * f]);
 		}
 	}
+
+	// --- Motion translation bundle (lerp-or-raw per axis, delta-from-first) ---
+	// TODO: Final impl — missing ReferenceOptions/CollisionOptions/notify offsets.
 	if (bHasMotionTrans)
 	{
-		const FVector RootFirstPos = RootTrack.PosKeys(0);
-
 		FBundle* MB = (FBundle*)&Data[MotionTransBundleOffset];
 		MB->Codec = AZTSC_NoScale_Float_96;
 		MB->NumTracks = 1;
@@ -1494,12 +1532,27 @@ void AnimZip_Compress(UAnimSequence* Seq)
 		MB->KeyframesOffset = MotionTransKeyframesOffset;
 		Data[MotionTransTrackMapOffset] = 0;
 
+		const INT LastIdx = RootTrack.PosKeys.Num() - 1;
+		const FVector PosFirst = RootTrack.PosKeys(0);
+		const FVector PosLast = RootTrack.PosKeys(Max(0, LastIdx));
+		const UBOOL bSimpleXY = Seq->bUseSimpleRootMotionXY;
+		const UBOOL bSimpleZ = Seq->bUseSimpleFloorHeight;
+
 		for (INT f = 0; f < NumFrames; f++)
 		{
-			INT KeyIdx = (RootTrack.PosKeys.Num() > 1) ? Min(f, RootTrack.PosKeys.Num() - 1) : 0;
-			FVector Pos = RootTrack.PosKeys(KeyIdx) - RootFirstPos;
+			const INT KeyIdx = (RootTrack.PosKeys.Num() > 1) ? Min(f, LastIdx) : 0;
+			const FVector Raw = RootTrack.PosKeys(KeyIdx);
+			const FLOAT T = (NumFrames > 1) ? (FLOAT)f / (FLOAT)(NumFrames - 1) : 0.0f;
+			const FLOAT Eased = AnimZip_EaseInOut(T);
+
+			FVector Pos;
+			Pos.X = bSimpleXY ? (PosFirst.X + (PosLast.X - PosFirst.X) * Eased) : Raw.X;
+			Pos.Y = bSimpleXY ? (PosFirst.Y + (PosLast.Y - PosFirst.Y) * Eased) : Raw.Y;
+			Pos.Z = bSimpleZ  ? (PosFirst.Z + (PosLast.Z - PosFirst.Z) * Eased) : Raw.Z;
+
+			const FVector Delta = Pos - PosFirst;
 			FLOAT* Dst = (FLOAT*)&Data[MotionTransKeyframesOffset + 12 * f];
-			Dst[0] = Pos.X; Dst[1] = Pos.Y; Dst[2] = Pos.Z;
+			Dst[0] = Delta.X; Dst[1] = Delta.Y; Dst[2] = Delta.Z;
 		}
 	}
 
