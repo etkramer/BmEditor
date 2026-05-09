@@ -1999,6 +1999,14 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 	Ar << NameIndexMap;
 	Ar << PerPolyBoneKDOPs;
 
+#if BATMAN
+	if (Ar.IsBmCooked(TRUE))
+	{
+		BOOL bSkelMeshFlag25 = FALSE;
+		Ar << bSkelMeshFlag25;
+	}
+#endif
+
 	if (Ar.Ver() >= VER_ADDED_EXTRA_SKELMESH_VERTEX_INFLUENCE_MAPPING)
 	{
 		Ar << BoneBreakNames;
