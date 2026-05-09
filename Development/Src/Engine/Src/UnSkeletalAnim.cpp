@@ -1732,13 +1732,8 @@ void AnimZip_Compress(UAnimSequence* Seq)
 		*Seq->SequenceName.ToString(), NQ48, NQ40, NumRotBundles, NF96, NI48, NumTransBundles, NumFrames, TotalSize);
 #endif
 
-	// Clear RawAnimationData so AnimZip is the sole playback path.
-	for (INT t = 0; t < Seq->RawAnimationData.Num(); t++)
-	{
-		Seq->RawAnimationData(t).PosKeys.Empty();
-		Seq->RawAnimationData(t).RotKeys.Empty();
-	}
-	Seq->RawAnimationData.Empty();
+	// Keep RawAnimationData so PostEditChangeProperty / PostLoad can re-encode.
+	// Clear the standard UE3 compressed buffers — the sampler uses AnimZip exclusively.
 	Seq->TranslationData.Empty();
 	Seq->RotationData.Empty();
 	Seq->CompressedTrackOffsets.Empty();
@@ -1888,12 +1883,11 @@ void UAnimSequence::PostLoad()
 	Super::PostLoad();
 
 #if BATMAN
-	// AnimZip_Data stays compressed for runtime sampling.
-	// Clear standard compressed data so we don't accidentally use the wrong path.
+	// AnimZip_Data is the sole runtime path; clear the standard UE3 compressed buffer.
+	// RawAnimationData is preserved so PostEditChangeProperty can re-encode.
 	if (AnimZip_Data.Num())
 	{
 		CompressedTrackOffsets.Empty();
-		RawAnimationData.Empty();
 	}
 #endif
 
@@ -2163,6 +2157,14 @@ void UAnimSequence::PostLoad()
 		// this probably will not show newly created animations in PIE but will show them in the game once they have been saved off
 		INC_DWORD_STAT_BY( STAT_AnimationMemory, GetResourceSize() );
 	}
+
+#if BATMAN
+	// Match retail BmGame.exe.c:6572136 — auto-encode AnimZip if missing.
+	if (AnimZip_Data.Num() == 0 && RawAnimationData.Num() > 0 && NumFrames > 0 && Cast<UAnimSet>(GetOuter()))
+	{
+		AnimZip_Compress(this);
+	}
+#endif
 }
 
 void UAnimSequence::BeginDestroy()
@@ -2188,6 +2190,15 @@ void UAnimSequence::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 		// Make sure package is marked dirty when doing stuff like adding/removing notifies
 		MarkPackageDirty();
 	}
+
+#if BATMAN
+	// Match retail BmGame.exe.c:6517758 — re-encode on any property change so
+	// flags like bUseSimpleForwardYaw take effect immediately.
+	if (NumFrames > 0 && RawAnimationData.Num() > 0)
+	{
+		AnimZip_Compress(this);
+	}
+#endif
 }
 
 // @todo DB: Optimize!
