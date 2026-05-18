@@ -27,17 +27,16 @@ struct {QWORD} qword
 
 //=============================================================================
 // UObject variables.
+//
+// Layout matches BM2's Object.uc. Linker, LinkerIndex, StateFrame, NetIndex
+// are no longer inline fields and live in external maps; see UnObjBas.h.
 
-// Internal variables.
-var native private const editconst noexport		pointer VfTableObject;
-var native private const editconst				pointer HashNext;
-var native private const editconst				qword ObjectFlags;			// This needs to be 8-byte aligned in 32-bit!
-var native private const editconst				pointer HashOuterNext;
-var native private const editconst				pointer StateFrame;
-var native private const editconst noexport		Object Linker;
-var native private const editconst noexport		pointer LinkerIndex;
-var native private const editconst noexport		int ObjectInternalInteger;
-var native private const editconst noexport		int NetIndex;
+var private native const editconst noexport		pointer VfTableObject;
+var private native const editconst noexport		pointer ObjectInternalInteger;
+var private native const editconst				int ObjectFlags;
+var private editoronly native const editconst	int EditorObjectFlags;
+var private native const editconst				pointer HashNext;
+var private native const editconst				pointer HashOuterNext;
 var native const editconst						Object Outer;
 var() native const editconst					name Name;
 var native const editconst						class Class;

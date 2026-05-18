@@ -2711,8 +2711,8 @@ void ULinkerLoad::GatherImportDependencies(INT ImportIndex, TSet<FDependencyRef>
 	if (Import.XObject)
 	{
 		warnf(TEXT("Using non-native XObject %s!!!"), *Import.XObject->GetFullName());
-		NewRef.Linker = Import.XObject->_Linker;
-		NewRef.ExportIndex = Import.XObject->_LinkerIndex;
+		NewRef.Linker = Import.XObject->GetLinker();
+		NewRef.ExportIndex = Import.XObject->GetLinkerIndex();
 	}
 	else
 	{
@@ -2841,8 +2841,8 @@ void ULinkerLoad::VerifyImport( INT i )
 		if (!bFailed)
 		{
 			// we update the runtime information (SourceIndex, SourceLinker) to point to the object the redirector pointed to
-			Import.SourceIndex = Import.XObject->_LinkerIndex;
-			Import.SourceLinker = Import.XObject->_Linker;
+			Import.SourceIndex = Import.XObject->GetLinkerIndex();
+			Import.SourceLinker = Import.XObject->GetLinker();
 		}
 		else
 		{
@@ -3424,7 +3424,7 @@ void ULinkerLoad::Preload( UObject* Object )
 			if (Object->HasAnyFlags(RF_NeedLoad))
 			{
 				// grab the resource for this Object
-				FObjectExport& Export = ExportMap( Object->_LinkerIndex );
+				FObjectExport& Export = ExportMap( Object->GetLinkerIndex() );
 				check(Export._Object==Object);
 
 #if SUPPORTS_SCRIPTPATCH_LOADING
@@ -4479,7 +4479,7 @@ void ULinkerLoad::DetachExport( INT i )
 		debugf(TEXT("Detach LinkerRoot : %s"), *LinkerRoot->GetFullName() );
 		appErrorf( TEXT("Linker object %s %s.%s mislinked!"), *GetExportClassName(i).ToString(), *LinkerRoot->GetName(), *E.ObjectName.ToString() );
 	}
-	if( E._Object->_LinkerIndex!=i )
+	if( E._Object->GetLinkerIndex()!=i )
 	{
 		appErrorf( TEXT("Linker object %s %s.%s misindexed!"), *GetExportClassName(i).ToString(), *LinkerRoot->GetName(), *E.ObjectName.ToString() );
 	}

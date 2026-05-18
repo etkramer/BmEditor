@@ -1009,6 +1009,53 @@ FORCEINLINE INT GetObjectOuterHash(FName ObjName,PTRINT Outer)
 	return ((ObjName.GetIndex() ^ ObjName.GetNumber()) ^ (Outer >> 4)) & (OBJECT_HASH_BINS - 1);
 }
 
+// Side-storage for UObject fields that were moved off the struct so its
+// layout matches BM2's. See Object.uc.
+class ULinkerLoad;
+class UObject;
+struct FStateFrame;
+
+struct FObjectLinkerInfo
+{
+	ULinkerLoad* Linker;
+	PTRINT       LinkerIndex;
+	FObjectLinkerInfo() : Linker(NULL), LinkerIndex((PTRINT)INDEX_NONE) {}
+	FObjectLinkerInfo(ULinkerLoad* InLinker, PTRINT InIndex) : Linker(InLinker), LinkerIndex(InIndex) {}
+};
+
+class FObjectLinkerInfoManager
+{
+public:
+	static ULinkerLoad* GetLinker(const UObject* Object);
+	static PTRINT       GetLinkerIndex(const UObject* Object);
+	static void         SetLinker(const UObject* Object, ULinkerLoad* Linker);
+	static void         SetLinker(const UObject* Object, ULinkerLoad* Linker, PTRINT Index);
+	static void         SetLinkerIndex(const UObject* Object, PTRINT Index);
+	static void         Remove(const UObject* Object);
+private:
+	static TMap<const UObject*, FObjectLinkerInfo> Map;
+};
+
+class FObjectStateFrameManager
+{
+public:
+	static FStateFrame* Get(const UObject* Object);
+	static void         Set(const UObject* Object, FStateFrame* Frame);
+	static void         Remove(const UObject* Object);
+private:
+	static TMap<const UObject*, FStateFrame*> Map;
+};
+
+class FObjectNetIndexManager
+{
+public:
+	static INT  Get(const UObject* Object);
+	static void Set(const UObject* Object, INT Value);
+	static void Remove(const UObject* Object);
+private:
+	static TMap<const UObject*, INT> Map;
+};
+
 //
 // The base class of all objects.
 //
@@ -1037,42 +1084,27 @@ class UObject
 	friend void PREFETCH_OBJECT_ARRAY(INT,INT);
 
 private:
-	// Internal per-object variables.
+	// Internal per-object variables. Layout matches BM2's UObject.
+
+	/** Index of object into GObjObjects array. (= ObjectInternalInteger in script) */
+	INT								Index;
+
+	/** Flags split into two DWORDs to match BM2's editor layout. */
+	union
+	{
+		EObjectFlags				ObjectFlags;
+		struct
+		{
+			DWORD					ObjectFlagsLow;
+			DWORD					EditorObjectFlags;
+		};
+	};
 
 	/** Next object in this hash bin. */
 	UObject*						HashNext;
 
-	/** Flags used to track and report various object states. This needs to be 8 byte aligned on 32-bit
-	    platforms to reduce memory waste */
-	EObjectFlags					ObjectFlags;
-
 	/** Next object in the hash bin that includes outers */
 	UObject*						HashOuterNext;
-
-	/** Main script execution stack. */
-	FStateFrame*					StateFrame;
-
-	/**
-	 * Linker that contains the FObjectExport resource corresponding to
-	 * this object.  NULL if this object is native only (i.e. never stored
-	 * in an Unreal package), or if this object has been detached from its
-	 * linker, for e.g. renaming operations, saving the package, etc.
-	 */
-	ULinkerLoad*					_Linker;
-
-	/**
-	 * Index into the linker's ExportMap array for the FObjectExport resource
-	 * corresponding to this object.
-	 */
-	PTRINT							_LinkerIndex;
-
-	/** Index of object into GObjObjects array. */
-	INT								Index;
-
-	/** index into Outermost's NetObjects array, used for replicating references to this object
-	 * INDEX_None means references to this object cannot be replicated
-	 */
-	INT								NetIndex;
 
 	/** Object this object resides in. */
 	UObject*						Outer;
@@ -1503,7 +1535,7 @@ public:
 	/** returns this object's NetIndex */
 	FORCEINLINE INT GetNetIndex()
 	{
-		return NetIndex;
+		return FObjectNetIndexManager::Get(this);
 	}
 
 	/**
@@ -2525,7 +2557,7 @@ public:
 	 */
 	FORCEINLINE ULinkerLoad* GetLinker() const
 	{
-		return _Linker;
+		return FObjectLinkerInfoManager::GetLinker(this);
 	}
 	/**
 	 * Returns this object's LinkerIndex.
@@ -2535,7 +2567,7 @@ public:
 	 */
 	FORCEINLINE INT GetLinkerIndex() const
 	{
-		return _LinkerIndex;
+		return FObjectLinkerInfoManager::GetLinkerIndex(this);
 	}
 	/**
 	 * Returns the version of the linker for this object.
@@ -2561,7 +2593,7 @@ public:
 
 	FORCEINLINE FStateFrame* GetStateFrame() const
 	{
-		return StateFrame;
+		return FObjectStateFrameManager::Get(this);
 	}
 
 	/**

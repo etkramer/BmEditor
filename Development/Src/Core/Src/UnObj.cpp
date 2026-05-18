@@ -67,6 +67,104 @@ TArray< INT >				UObject::GGCObjectsPendingDestruction;
 /** Number of objects actually still pending destruction */
 INT							UObject::GGCObjectsPendingDestructionCount		= 0;
 
+// Side-map definitions for fields moved off UObject.
+TMap<const UObject*, FObjectLinkerInfo>	FObjectLinkerInfoManager::Map;
+TMap<const UObject*, FStateFrame*>		FObjectStateFrameManager::Map;
+TMap<const UObject*, INT>				FObjectNetIndexManager::Map;
+
+// Auto-register chain "next pointer" used only during native registration.
+static TMap<UObject*, UObject*> GObjAutoRegisterNext;
+
+ULinkerLoad* FObjectLinkerInfoManager::GetLinker(const UObject* Object)
+{
+	const FObjectLinkerInfo* Info = Map.Find(Object);
+	return Info ? Info->Linker : NULL;
+}
+PTRINT FObjectLinkerInfoManager::GetLinkerIndex(const UObject* Object)
+{
+	const FObjectLinkerInfo* Info = Map.Find(Object);
+	return Info ? Info->LinkerIndex : (PTRINT)INDEX_NONE;
+}
+void FObjectLinkerInfoManager::SetLinker(const UObject* Object, ULinkerLoad* Linker)
+{
+	FObjectLinkerInfo* Existing = Map.Find(Object);
+	if (Existing)
+	{
+		Existing->Linker = Linker;
+	}
+	else if (Linker != NULL)
+	{
+		Map.Set(Object, FObjectLinkerInfo(Linker, (PTRINT)INDEX_NONE));
+	}
+}
+void FObjectLinkerInfoManager::SetLinker(const UObject* Object, ULinkerLoad* Linker, PTRINT Index)
+{
+	if (Linker == NULL && Index == (PTRINT)INDEX_NONE)
+	{
+		Map.Remove(Object);
+		return;
+	}
+	Map.Set(Object, FObjectLinkerInfo(Linker, Index));
+}
+void FObjectLinkerInfoManager::SetLinkerIndex(const UObject* Object, PTRINT Index)
+{
+	FObjectLinkerInfo* Existing = Map.Find(Object);
+	if (Existing)
+	{
+		Existing->LinkerIndex = Index;
+	}
+	else if (Index != (PTRINT)INDEX_NONE)
+	{
+		Map.Set(Object, FObjectLinkerInfo(NULL, Index));
+	}
+}
+void FObjectLinkerInfoManager::Remove(const UObject* Object)
+{
+	Map.Remove(Object);
+}
+
+FStateFrame* FObjectStateFrameManager::Get(const UObject* Object)
+{
+	FStateFrame** Found = Map.Find(Object);
+	return Found ? *Found : NULL;
+}
+void FObjectStateFrameManager::Set(const UObject* Object, FStateFrame* Frame)
+{
+	if (Frame == NULL)
+	{
+		Map.Remove(Object);
+	}
+	else
+	{
+		Map.Set(Object, Frame);
+	}
+}
+void FObjectStateFrameManager::Remove(const UObject* Object)
+{
+	Map.Remove(Object);
+}
+
+INT FObjectNetIndexManager::Get(const UObject* Object)
+{
+	const INT* Found = Map.Find(Object);
+	return Found ? *Found : (INT)INDEX_NONE;
+}
+void FObjectNetIndexManager::Set(const UObject* Object, INT Value)
+{
+	if (Value == INDEX_NONE)
+	{
+		Map.Remove(Object);
+	}
+	else
+	{
+		Map.Set(Object, Value);
+	}
+}
+void FObjectNetIndexManager::Remove(const UObject* Object)
+{
+	Map.Remove(Object);
+}
+
 #if !CONSOLE
 /** Map of path redirections used when calling SavePackage				*/
 TMap<FString, FString>		UObject::GSavePackagePathRedirections;
@@ -102,28 +200,24 @@ UObject::UObject( const UObject& Src )
 		appErrorf( TEXT("Attempt to copy-construct %s from %s"), *GetFullName(), *Src.GetFullName() );
 }
 UObject::UObject( ENativeConstructor, UClass* InClass, const TCHAR* InName, const TCHAR* InPackageName, EObjectFlags InFlags )
-:	HashNext		( NULL													)
-,	ObjectFlags		( InFlags | RF_Native | RF_RootSet | RF_DisregardForGC	)	
+:	Index			( INDEX_NONE											)
+,	HashNext		( NULL													)
 ,	HashOuterNext	( NULL													)
-,	StateFrame		( NULL													)
-,	_Linker			( NULL													)
-,	_LinkerIndex	( (PTRINT)INDEX_NONE									)
-,	Index			( INDEX_NONE											)
 ,	Outer			( NULL													)
 ,	Name			( NAME_None												)
 ,	Class			( InClass												)
 ,	ObjectArchetype	( NULL													)
 {
+	ObjectFlags = InFlags | RF_Native | RF_RootSet | RF_DisregardForGC;
 	// Make sure registration is allowed now.
 	check(!GObjNoRegister);
 
 	// Setup registration info, for processing now (if inited) or later (if starting up).
 	check(sizeof(Outer       )>=sizeof(InPackageName));
-	check(sizeof(_LinkerIndex)>=sizeof(GAutoRegister));
 	check(sizeof(Name        )>=sizeof(DWORD        ));
 	*(const TCHAR  **)&Name			= InName;
 	*(const TCHAR  **)&Outer        = InPackageName;
-	*(UObject      **)&_LinkerIndex = GAutoRegister;
+	GObjAutoRegisterNext.Set(this, GAutoRegister);
 	GAutoRegister                   = this;
 
 	// Call native registration from terminal constructor.
@@ -131,20 +225,17 @@ UObject::UObject( ENativeConstructor, UClass* InClass, const TCHAR* InName, cons
 		Register();
 }
 UObject::UObject( EStaticConstructor, const TCHAR* InName, const TCHAR* InPackageName, EObjectFlags InFlags )
-:	HashNext		( NULL													)
-,	ObjectFlags		( InFlags | RF_Native | RF_RootSet | RF_DisregardForGC	)
-,	StateFrame		( NULL													)
-,	_Linker			( NULL													)
-,	_LinkerIndex	( (PTRINT)INDEX_NONE									)
-,	Index			( INDEX_NONE											)
+:	Index			( INDEX_NONE											)
+,	HashNext		( NULL													)
+,	HashOuterNext	( NULL													)
 ,	Outer			( NULL													)
 ,	Name			( NAME_None												)
 ,	Class			( NULL													)
 ,	ObjectArchetype	( NULL													)
 {
+	ObjectFlags = InFlags | RF_Native | RF_RootSet | RF_DisregardForGC;
 	// Setup registration info, for processing now (if inited) or later (if starting up).
 	check(sizeof(Outer       )>=sizeof(InPackageName));
-	check(sizeof(_LinkerIndex)>=sizeof(GAutoRegister));
 	check(sizeof(Name        )>=sizeof(DWORD        ));
 	*(const TCHAR  **)&Name			= InName;
 	*(const TCHAR  **)&Outer        = InPackageName;
@@ -152,7 +243,7 @@ UObject::UObject( EStaticConstructor, const TCHAR* InName, const TCHAR* InPackag
 	// If we are not initialized yet, auto register.
 	if (!GObjInitialized)
 	{
-		*(UObject      **)&_LinkerIndex = GAutoRegister;
+		GObjAutoRegisterNext.Set(this, GAutoRegister);
 		GAutoRegister                   = this;
 	}
 }
@@ -782,8 +873,8 @@ void UObject::FinishDestroy()
 			);
 	}
 
-	check( _Linker == NULL );
-	check( _LinkerIndex	== INDEX_NONE );
+	check( GetLinker() == NULL );
+	check( GetLinkerIndex()	== INDEX_NONE );
 
 	SetFlags( RF_DebugFinishDestroyed );
 
@@ -943,11 +1034,13 @@ void UObject::ConditionalCleanupCrossLevelReferences()
  */
 void UObject::SetLinker( ULinkerLoad* LinkerLoad, INT LinkerIndex )
 {
+	ULinkerLoad* OldLinker = GetLinker();
+	PTRINT OldLinkerIndex = GetLinkerIndex();
 	// Detach from existing linker.
-	if( _Linker )
+	if( OldLinker )
 	{
 #if BATMAN
-		if (_Linker->IsBmCooked())
+		if (OldLinker->IsBmCooked())
 		{
 			ClearFlags(RF_NeedLoad|RF_NeedPostLoad);
 		}
@@ -956,14 +1049,13 @@ void UObject::SetLinker( ULinkerLoad* LinkerLoad, INT LinkerIndex )
 		{
 			check(!HasAnyFlags(RF_NeedLoad|RF_NeedPostLoad));
 		}
-		check(_Linker->ExportMap(_LinkerIndex)._Object!=NULL);
-		check(_Linker->ExportMap(_LinkerIndex)._Object==this);
-		_Linker->ExportMap(_LinkerIndex)._Object = NULL;
+		check(OldLinker->ExportMap(OldLinkerIndex)._Object!=NULL);
+		check(OldLinker->ExportMap(OldLinkerIndex)._Object==this);
+		OldLinker->ExportMap(OldLinkerIndex)._Object = NULL;
 	}
-	
+
 	// Set new linker.
-	_Linker      = LinkerLoad;
-	_LinkerIndex = LinkerIndex;
+	FObjectLinkerInfoManager::SetLinker(this, LinkerLoad, (PTRINT)LinkerIndex);
 }
 
 /**
@@ -977,7 +1069,7 @@ void UObject::SetLinker( ULinkerLoad* LinkerLoad, INT LinkerIndex )
  */
 INT UObject::GetLinkerVersion() const
 {
-	ULinkerLoad* Loader = _Linker;
+	ULinkerLoad* Loader = GetLinker();
 
 	// No linker.
 	if( Loader == NULL )
@@ -1024,7 +1116,7 @@ INT UObject::GetLinkerVersion() const
  */
 INT UObject::GetLinkerLicenseeVersion() const
 {
-	ULinkerLoad* Loader = _Linker;
+	ULinkerLoad* Loader = GetLinker();
 
 	// No linker.
 	if( Loader == NULL )
@@ -1063,19 +1155,20 @@ INT UObject::GetLinkerLicenseeVersion() const
 /** sets the NetIndex associated with this object for network replication */
 void UObject::SetNetIndex(INT InNetIndex)
 {
-	if (InNetIndex != NetIndex)
+	INT CurNetIndex = GetNetIndex();
+	if (InNetIndex != CurNetIndex)
 	{
 		UPackage* Package = GetOutermost();
 		// skip if package is not meant to be replicated
 		if (!(Package->PackageFlags & PKG_ServerSideOnly))
 		{
-			if (NetIndex != INDEX_NONE)
+			if (CurNetIndex != INDEX_NONE)
 			{
 				// remove from old
 				Package->RemoveNetObject(this);
 			}
-			NetIndex = InNetIndex;
-			if (NetIndex != INDEX_NONE)
+			FObjectNetIndexManager::Set(this, InNetIndex);
+			if (InNetIndex != INDEX_NONE)
 			{
 				Package->AddNetObject(this);
 			}
@@ -1448,10 +1541,16 @@ UObject::~UObject()
 	}
 
 	// Free execution stack.
-	if( StateFrame )
 	{
-		delete StateFrame;
+		FStateFrame* SF = GetStateFrame();
+		if( SF )
+		{
+			delete SF;
+			FObjectStateFrameManager::Remove(this);
+		}
 	}
+	FObjectLinkerInfoManager::Remove(this);
+	FObjectNetIndexManager::Remove(this);
 }
 
 void UObject::operator delete( void* Object, size_t Size )
@@ -1561,24 +1660,26 @@ void UObject::SerializeNetIndex(FArchive& Ar)
 	// do not serialize NetIndex when duplicating objects via serialization
 	if (!(Ar.GetPortFlags() & PPF_Duplicate))
 	{
-		INT InNetIndex = NetIndex;
+		INT InNetIndex = GetNetIndex();
 		Ar << InNetIndex;
 		if (Ar.IsLoading())
 		{
+			ULinkerLoad* Linker = GetLinker();
+			PTRINT LinkerIdx = GetLinkerIndex();
 #if SUPPORTS_SCRIPTPATCH_CREATION
 			//@script patcher
-			if (GIsScriptPatcherActive || _Linker == NULL || _Linker->LinkerRoot == NULL || (_Linker->LinkerRoot->PackageFlags & PKG_Cooked))
+			if (GIsScriptPatcherActive || Linker == NULL || Linker->LinkerRoot == NULL || (Linker->LinkerRoot->PackageFlags & PKG_Cooked))
 #else
-			if (_Linker == NULL || _Linker->LinkerRoot == NULL || (_Linker->LinkerRoot->PackageFlags & PKG_Cooked))
+			if (Linker == NULL || Linker->LinkerRoot == NULL || (Linker->LinkerRoot->PackageFlags & PKG_Cooked))
 #endif
 			{
 				// use serialized net index for cooked packages
 				SetNetIndex(InNetIndex);
 			}
 			// set net index from linker
-			else if (_Linker != NULL && _LinkerIndex != INDEX_NONE)
+			else if (Linker != NULL && LinkerIdx != INDEX_NONE)
 			{
-				SetNetIndex(_LinkerIndex);
+				SetNetIndex((INT)LinkerIdx);
 			}
 		}
 	}
@@ -1630,7 +1731,9 @@ void UObject::Serialize( FArchive& Ar )
 		{
 			Ar << Class;
 		}
-		Ar << _Linker;
+		ULinkerLoad* LinkerRef = GetLinker();
+		Ar << LinkerRef;
+		FObjectLinkerInfoManager::SetLinker(this, LinkerRef);
 		if( !Ar.IsIgnoringArchetypeRef() )
 		{
 			Ar.AllowEliminatingReferences(FALSE);
@@ -1699,11 +1802,13 @@ void UObject::Serialize( FArchive& Ar )
 #endif
 	if( !Ar.IsTransacting() )
 	{
+		FStateFrame* StateFrame = GetStateFrame();
 		if( HasAnyFlags(RF_HasStack) )
 		{
 			if( !StateFrame )
 			{
 				StateFrame = new FStateFrame( this );
+				FObjectStateFrameManager::Set(this, StateFrame);
 			}
 			Ar << StateFrame->Node << StateFrame->StateNode;
 			if (Ar.Ver() < VER_REDUCED_PROBEMASK_REMOVED_IGNOREMASK)
@@ -1750,7 +1855,7 @@ void UObject::Serialize( FArchive& Ar )
 				}
 				StateFrame->Code = Offset!=INDEX_NONE ? &StateFrame->Node->Script(Offset) : NULL;
 			}
-			else 
+			else
 			{
 				StateFrame->Code = NULL;
 			}
@@ -1758,7 +1863,7 @@ void UObject::Serialize( FArchive& Ar )
 		else if( StateFrame )
 		{
 			delete StateFrame;
-			StateFrame = NULL;
+			FObjectStateFrameManager::Remove(this);
 		}
 	}
 
@@ -2181,11 +2286,12 @@ void UObject::InitExecution()
 	{
 		check(GetClass()!=NULL);
 
-		if( StateFrame )
+		FStateFrame* OldSF = GetStateFrame();
+		if( OldSF )
 		{
-			delete StateFrame;
+			delete OldSF;
 		}
-		StateFrame = new FStateFrame( this );
+		FObjectStateFrameManager::Set(this, new FStateFrame( this ));
 		SetFlags( RF_HasStack );
 	}
 }
@@ -2341,6 +2447,7 @@ UBOOL UObject::ScriptConsoleExec( const TCHAR* Str, FOutputDevice& Ar, UObject* 
 //
 UField* UObject::FindObjectField( FName InName, UBOOL Global )
 {
+	FStateFrame* StateFrame = GetStateFrame();
 	// Search current state scope.
 	if( StateFrame && StateFrame->StateNode && !Global )
 	{
@@ -2367,6 +2474,7 @@ UField* UObject::FindObjectField( FName InName, UBOOL Global )
 }
 UFunction* UObject::FindFunction( FName InName, UBOOL Global ) const
 {
+	FStateFrame* StateFrame = GetStateFrame();
 	UFunction *Function = NULL;
 	if( StateFrame != NULL && StateFrame->StateNode != NULL && !Global )
 	{
@@ -4059,8 +4167,8 @@ void UObject::Register()
 	// Set object properties.
 	Outer        = CreatePackage(NULL,InOuter);
 	Name         = InName;
-	_LinkerIndex = (PTRINT)INDEX_NONE;
-	NetIndex = INDEX_NONE;
+	FObjectLinkerInfoManager::Remove(this);
+	FObjectNetIndexManager::Remove(this);
 
 	// Validate the object.
 	if( Outer==NULL )
@@ -4178,13 +4286,25 @@ void UObject::ProcessRegistrants()
 	GObjRegisterCount++;
 	TArray<UObject*>	ObjRegistrants;
 	// Make list of all objects to be registered.
-	for( ; GAutoRegister; GAutoRegister=*(UObject **)&GAutoRegister->_LinkerIndex )
-		ObjRegistrants.AddItem( GAutoRegister );
+	while( GAutoRegister )
+	{
+		UObject* Cur = GAutoRegister;
+		UObject** NextPtr = GObjAutoRegisterNext.Find(Cur);
+		GAutoRegister = NextPtr ? *NextPtr : NULL;
+		GObjAutoRegisterNext.Remove(Cur);
+		ObjRegistrants.AddItem( Cur );
+	}
 	for( INT i=0; i<ObjRegistrants.Num(); i++ )
 	{
 		ObjRegistrants(i)->ConditionalRegister();
-		for( ; GAutoRegister; GAutoRegister=*(UObject **)&GAutoRegister->_LinkerIndex )
-			ObjRegistrants.AddItem( GAutoRegister );
+		while( GAutoRegister )
+		{
+			UObject* Cur = GAutoRegister;
+			UObject** NextPtr = GObjAutoRegisterNext.Find(Cur);
+			GAutoRegister = NextPtr ? *NextPtr : NULL;
+			GObjAutoRegisterNext.Remove(Cur);
+			ObjRegistrants.AddItem( Cur );
+		}
 	}
 	ObjRegistrants.Empty();
 	check(!GAutoRegister);
@@ -7929,11 +8049,11 @@ UObject* UObject::StaticAllocateObject
 		}
 
 		// Remember linker, flags, index, and native class info.
-		Linker		= Obj->_Linker;
-		LinkerIndex = Obj->_LinkerIndex;
+		Linker		= Obj->GetLinker();
+		LinkerIndex = (INT)Obj->GetLinkerIndex();
 		InFlags		|= Obj->GetMaskedFlags(RF_Keep);
 		Index		= Obj->Index;
-		OldNetIndex = Obj->NetIndex;
+		OldNetIndex = Obj->GetNetIndex();
 
 		// if this is the class default object, it means that InClass is native and the CDO was created during static registration.
 		// Propagate the load flags but don't replace it - the CDO will be initialized by InitClassDefaultObject
@@ -8046,9 +8166,8 @@ UObject* UObject::StaticAllocateObject
 	// Set the base properties.
 	Obj->Index			 = INDEX_NONE;
 	Obj->HashNext		 = NULL;
-	Obj->StateFrame      = NULL;
-	Obj->_Linker		 = Linker;
-	Obj->_LinkerIndex	 = LinkerIndex;
+	FObjectStateFrameManager::Remove(Obj);
+	FObjectLinkerInfoManager::SetLinker(Obj, Linker, (PTRINT)LinkerIndex);
 	Obj->Outer			 = InOuter;
 	Obj->ObjectFlags	 = InFlags;
 	Obj->Name			 = InName;
@@ -8100,7 +8219,7 @@ UObject* UObject::StaticAllocateObject
 	Obj->SafeInitProperties( (BYTE*)Obj, InClass->GetPropertiesSize(), BaseClass, (BYTE*)ObjectArchetype, DefaultsCount, Obj->HasAnyFlags(RF_NeedLoad) ? NULL : Obj, SubobjectRoot, InstanceGraph );
 
 	// reset NetIndex after InitProperties so that the value from the template is ignored
-	Obj->NetIndex = INDEX_NONE;
+	FObjectNetIndexManager::Remove(Obj);
 	Obj->SetNetIndex(OldNetIndex);
 
 	// Add to global table.

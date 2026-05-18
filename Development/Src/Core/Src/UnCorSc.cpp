@@ -184,8 +184,9 @@ void FFrame::Serialize( const TCHAR* V, EName Event )
 //
 EGotoState UObject::GotoState( FName NewState, UBOOL bForceEvents, UBOOL bKeepStack )
 {
+	FStateFrame* StateFrame = GetStateFrame();
 	// check to see if this object even supports states
-	if (StateFrame == NULL) 
+	if (StateFrame == NULL)
 	{
 		return GOTOSTATE_NotFound;
 	}
@@ -307,8 +308,9 @@ EGotoState UObject::GotoState( FName NewState, UBOOL bForceEvents, UBOOL bKeepSt
 
 UBOOL UObject::IsInState(FName StateName, UBOOL bTestStateStack)
 {
+	FStateFrame* StateFrame = GetStateFrame();
 	// if in a valid state
-	if( StateFrame != NULL ) 
+	if( StateFrame != NULL )
 	{
 		// test the current state (and inheritance)
 		for( UState* Test=StateFrame->StateNode; Test; Test=Test->GetSuperState() )
@@ -341,6 +343,7 @@ UBOOL UObject::IsInState(FName StateName, UBOOL bTestStateStack)
 //
 UBOOL UObject::GotoLabel( FName FindLabel )
 {
+	FStateFrame* StateFrame = GetStateFrame();
 	if( StateFrame )
 	{
 		StateFrame->LatentAction = 0;
@@ -5179,6 +5182,7 @@ IMPLEMENT_FUNCTION( UObject, 258, execClassIsChildOf );
 
 void UObject::execGotoState( FFrame& Stack, RESULT_DECL )
 {
+	FStateFrame* StateFrame = GetStateFrame();
 	FName CurrentStateName = (StateFrame && StateFrame->StateNode!=Class) ? StateFrame->StateNode->GetFName() : FName(NAME_None);
 	P_GET_NAME_OPTX( S, CurrentStateName );
 	P_GET_NAME_OPTX( L, NAME_None );
@@ -5219,6 +5223,7 @@ IMPLEMENT_FUNCTION( UObject, 113, execGotoState );
 
 void UObject::PushState(FName NewState, FName NewLabel)
 {
+	FStateFrame* StateFrame = GetStateFrame();
 	// if we support states
 	if (StateFrame != NULL)
 	{
@@ -5292,6 +5297,7 @@ IMPLEMENT_FUNCTION(UObject, -1, execPushState);
 
 void UObject::PopState(FFrame& Stack, UBOOL bPopAll)
 {
+	FStateFrame* StateFrame = GetStateFrame();
 	// if we support states, and we have a nested state
 	if (StateFrame != NULL &&
 		StateFrame->StateNode != NULL &&
@@ -5361,6 +5367,7 @@ IMPLEMENT_FUNCTION(UObject, -1, execPopState);
 void UObject::execDumpStateStack(FFrame &Stack,RESULT_DECL)
 {
 	P_FINISH;
+	FStateFrame* StateFrame = GetStateFrame();
 	if ( StateFrame != NULL )
 	{
 		debugf(TEXT("%s current state: %s"),*GetName(),*StateFrame->StateNode->GetName());
@@ -5378,6 +5385,7 @@ IMPLEMENT_FUNCTION(UObject,-1,execDumpStateStack);
 void UObject::execEnable( FFrame& Stack, RESULT_DECL )
 {
 	P_GET_NAME(N);
+	FStateFrame* StateFrame = GetStateFrame();
 	if( N.GetIndex()>=NAME_PROBEMIN && N.GetIndex()<NAME_PROBEMAX && StateFrame )
 	{
 		DWORD BaseProbeMask = (GetStateFrame()->StateNode->ProbeMask | GetClass()->ProbeMask);
@@ -5396,6 +5404,7 @@ void UObject::execDisable( FFrame& Stack, RESULT_DECL )
 	P_GET_NAME(N);
 	P_FINISH;
 
+	FStateFrame* StateFrame = GetStateFrame();
 	if( N.GetIndex()>=NAME_PROBEMIN && N.GetIndex()<NAME_PROBEMAX && StateFrame )
 	{
 		GetStateFrame()->ProbeMask &= ~((DWORD)1<<(N.GetIndex()-NAME_PROBEMIN));
@@ -5539,6 +5548,7 @@ IMPLEMENT_FUNCTION( UObject, 284, execGetStateName );
 */
 FName UObject::GetStateName()
 {
+	FStateFrame* StateFrame = GetStateFrame();
 	return (StateFrame && StateFrame->StateNode) ? StateFrame->StateNode->GetFName() : FName(NAME_None);
 }
 

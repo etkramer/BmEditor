@@ -432,15 +432,15 @@ void UPackageMap::AddPackageInfo(const FPackageInfo& Info)
 //
 INT UPackageMap::ObjectToIndex( UObject* Object )
 {
-	if (Object != NULL && Object->NetIndex != INDEX_NONE)
+	if (Object != NULL && Object->GetNetIndex() != INDEX_NONE)
 	{
 		INT* Found = PackageListMap.Find(Object->GetOutermost()->GetFName());
 		if (Found != NULL)
 		{
 			FPackageInfo& Info = List(*Found);
-			if (Object->NetIndex < Info.ObjectCount)
+			if (Object->GetNetIndex() < Info.ObjectCount)
 			{
-				return Info.ObjectBase + Object->NetIndex;
+				return Info.ObjectBase + Object->GetNetIndex();
 			}
 		}
 	}

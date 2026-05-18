@@ -1870,6 +1870,7 @@ inline UBOOL UObject::RootPackageHasAllFlags( DWORD CheckFlagMask ) const
 //
 inline UBOOL UObject::IsProbing( FName ProbeName )
 {
+	FStateFrame* StateFrame = GetStateFrame();
 	return	(ProbeName.GetIndex() <  NAME_PROBEMIN)
 	||		(ProbeName.GetIndex() >= NAME_PROBEMAX)
 	||		(!StateFrame)
