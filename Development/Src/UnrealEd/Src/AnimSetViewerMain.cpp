@@ -1717,99 +1717,6 @@ public:
 		// triangle strips easier.
 		if (!PDI->IsHitTesting())
 		{
-			if( ASV && ASV->bShowAdditiveBase && ASV->SelectedAnimSeq && ASV->SelectedAnimSeq->bIsAdditive )
-			{
-				UAnimNodeSequence* AnimNodeSeq = ASV->PreviewAnimNode;
-				if( AnimNodeSeq && AnimNodeSeq->AnimSeq == ASV->SelectedAnimSeq 
-					&& AnimNodeSeq->SkelComponent == SkeletalMeshComponent
-					&& ASV->SelectedAnimSet == AnimNodeSeq->AnimSeq->GetAnimSet() )
-				{
-					TArray<FMeshBone>& RefSkel = SkeletalMeshComponent->SkeletalMesh->RefSkeleton;
-
-					UAnimSet* AnimSet = ASV->SelectedAnimSet;
-					const INT AnimLinkupIndex = AnimNodeSeq->AnimLinkupIndex;
-
-					check(AnimLinkupIndex != INDEX_NONE);
-					check(AnimLinkupIndex < AnimSet->LinkupCache.Num());
-					FAnimSetMeshLinkup* AnimLinkup = &AnimSet->LinkupCache(AnimLinkupIndex);
-					check(AnimLinkup);
-
-					const INT LODIndex = ::Clamp(SkeletalMeshComponent->PredictedLODLevel, 0, ASV->SelectedSkelMesh->LODModels.Num()-1);
-					FStaticLODModel& LODModel = ASV->SelectedSkelMesh->LODModels( LODIndex );
-					FColor SkeletonColor = FColor(192,64,255,255);
-
-					TArray<FBoneAtom> SpaceBases, WorldBases;
-					SpaceBases.Add( RefSkel.Num() );
-					WorldBases.Add( RefSkel.Num() );
-
-					for(INT i=0; i<LODModel.RequiredBones.Num(); i++)
-					{
-						const INT BoneIndex	= LODModel.RequiredBones(i);
-						// Find which track in the sequence we look in for this bones data
-						const INT	TrackIndex = AnimLinkup->BoneToTrackTable(BoneIndex);
-
-						FBoneAtom LocalAtom;
-						if( TrackIndex != INDEX_NONE )
-						{
-							ASV->SelectedAnimSeq->GetAdditiveBasePoseBoneAtom(LocalAtom, TrackIndex, AnimNodeSeq->CurrentTime, AnimNodeSeq->bLooping);
-							// If doing 'rotation only' case, use ref pose for all non-root bones that are not in the BoneUseAnimTranslation array.
-							if(	BoneIndex > 0 && ((AnimSet->bAnimRotationOnly && !AnimSet->BoneUseAnimTranslation(TrackIndex)) || AnimSet->ForceUseMeshTranslation(TrackIndex)) )
-							{
-								LocalAtom.SetTranslation(RefSkel(BoneIndex).BonePos.Position);
-							}
-						}
-						else
-						{
-							LocalAtom.SetComponents(RefSkel(BoneIndex).BonePos.Orientation, RefSkel(BoneIndex).BonePos.Position);
-						}
-
-						// transform bone mats to world space
-						if( BoneIndex > 0 )
-						{
-							// Apply quaternion fix for ActorX-exported quaternions.
-							LocalAtom.FlipSignOfRotationW();
-							const INT ParentIndex = ASV->SelectedSkelMesh->RefSkeleton(BoneIndex).ParentIndex;
-							SpaceBases(BoneIndex) = LocalAtom * SpaceBases(ParentIndex);
-						}
-						else
-						{
-							SpaceBases(BoneIndex) = LocalAtom;
-						}
-						// Turn this from component space to world space.
-						WorldBases(BoneIndex) = SpaceBases(BoneIndex) * SkeletalMeshComponent->LocalToWorldBoneAtom;
-
-						// Draw only bones that haven't been masked out
-						const FColor& BoneColor = RefSkel(BoneIndex).BoneColor;
-						if( BoneColor.A != 0 )
-						{
-							if( BoneIndex > 0 )
-							{
-								const INT ParentIndex = RefSkel(BoneIndex).ParentIndex;
-								PDI->DrawLine(WorldBases(BoneIndex).GetOrigin(), WorldBases(ParentIndex).GetOrigin(), SkeletonColor, SDPG_Foreground);
-							}
-							else
-							{
-								PDI->DrawLine(WorldBases(BoneIndex).GetOrigin(), SkeletalMeshComponent->LocalToWorld.GetOrigin(), FColor(255, 0, 255), SDPG_Foreground);
-							}
-
-							// Display colored coordinate system axes for each joint.			
-							// Red = X
-							FVector XAxis = WorldBases(BoneIndex).TransformNormal( FVector(1.0f,0.0f,0.0f));
-							XAxis.Normalize();
-							PDI->DrawLine( WorldBases(BoneIndex).GetOrigin(), WorldBases(BoneIndex).GetOrigin() + XAxis * 3.75f, FColor( 255, 80, 80), SDPG_Foreground );			
-							// Green = Y
-							FVector YAxis = WorldBases(BoneIndex).TransformNormal( FVector(0.0f,1.0f,0.0f));
-							YAxis.Normalize();
-							PDI->DrawLine( WorldBases(BoneIndex).GetOrigin(), WorldBases(BoneIndex).GetOrigin() + YAxis * 3.75f, FColor( 80, 255, 80), SDPG_Foreground ); 
-							// Blue = Z
-							FVector ZAxis = WorldBases(BoneIndex).TransformNormal( FVector(0.0f,0.0f,1.0f));
-							ZAxis.Normalize();
-							PDI->DrawLine( WorldBases(BoneIndex).GetOrigin(), WorldBases(BoneIndex).GetOrigin() + ZAxis * 3.75f, FColor( 80, 80, 255), SDPG_Foreground ); 
-						}
-					}
-				}
-			}
-
 			if(SkeletalMeshComponent->bDrawMesh)
 			{
 				FSkeletalMeshSceneProxy::DrawDynamicElements(PDI, View, DPGIndex,Flags);
@@ -2274,10 +2181,6 @@ void FASVViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 
 			// Combine comment from notify struct and from function on object
 			FString NotifyComment;
-			if (NotifyEvent.Comment != NAME_None)
-			{
-				NotifyComment = FString::Printf(TEXT("[%s]"),*NotifyEvent.Comment.ToString());
-			}
 			if(NotifyEvent.Notify)
 			{
 				NotifyComment += NotifyEvent.Notify->GetEditorComment();
@@ -2298,13 +2201,6 @@ void FASVViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 				INT TrackIdx = -1;
 
 				INT TrackW = W;
-				if( NotifyEvent.Duration > 0.f )
-				{
-					// Double track with for extra label
-					TrackW *= 2.f;
-					// Stretch track for the duration
-					TrackW += (NotifyEvent.Duration / AnimSeq->SequenceLength) * (SizeX - (2.f * NotifyViewBorderX));
-				}
 				for (INT Idx = 0; Idx < Tracks.Num(); Idx++)
 				{
 					if (Tracks(Idx).AddSlot(LabelX,TrackW))
@@ -2328,91 +2224,10 @@ void FASVViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 					DrawTile(Canvas,LabelX-2,NotifyY-2,W+2,H+2,0.f,0.f,1.f,1.f,FLinearColor(0.05f,0.05f,0.05f,1.f));
 					DrawBox2D(Canvas,FVector2D( LabelX - 2, NotifyY - 2 ),FVector2D( LabelX + W + 1, NotifyY + H + 1 ),NotifyColor );
 					DrawString(Canvas, LabelX, NotifyY, *NotifyComment, GEngine->SmallFont, NotifyColor );
-					// if we've got a duration then draw a matching notifying widget
-					if (NotifyEvent.Duration > 0.f)
-					{
-						INT RightEdge = LabelX + W + 2;
-						NotifyX = NotifyViewBorderX + (PixelsPerSecond * (NotifyEvent.Time + NotifyEvent.Duration));
-						LabelX = Clamp(NotifyX - W/2,NotifyViewBorderX,SizeX-NotifyViewBorderX-W);
-						// draw a line connecting the two boxes
-						DrawLine2D(Canvas,FVector2D(LabelX-2,NotifyY + H/2),FVector2D(RightEdge,NotifyY + H/2),NotifyColor);
-						if (Canvas->IsHitTesting())	{Canvas->SetHitProxy(new HNotifyProxy(i,TRUE));}
-						DrawBox2D(Canvas,FVector2D( LabelX - 2, NotifyY - 2 ),FVector2D( LabelX + W + 1, NotifyY + H + 1 ),NotifyColor );
-						DrawString(Canvas, LabelX, NotifyY, *NotifyComment, GEngine->SmallFont, NotifyColor );
-						DrawLine2D(Canvas, FVector2D(NotifyX, NotifyY + H), FVector2D(NotifyX, TrackY), NotifyColor );
-					}
 				if (Canvas->IsHitTesting())	{Canvas->SetHitProxy(NULL);}
 			}
 		}
 		
-		// Bone Control Modifiers are displayed in animset viewer 
-		// Using same track slot with notifier, and display which bone control and what is strength
-		for(INT MetadataIndex=0; MetadataIndex<AnimSeq->MetaData.Num(); MetadataIndex++)
-		{
-			UAnimMetaData* Metadata = AnimSeq->MetaData(MetadataIndex);
-			UAnimMetaData_SkelControlKeyFrame* MetadataKeyFrame = Cast<UAnimMetaData_SkelControlKeyFrame>(Metadata);
-			if( MetadataKeyFrame )
-			{
-				for (INT KeyIndex=0; KeyIndex<MetadataKeyFrame->KeyFrames.Num(); KeyIndex++)
-				{
-					FTimeModifier& Key = MetadataKeyFrame->KeyFrames(KeyIndex);
-					const INT NotifyX = NotifyViewBorderX + (PixelsPerSecond * Key.Time);
-
-					// Get color from notify object, if present
-					FColor NotifyColor = FColor(112,154,209);
-
-					// Combine comment from notify struct and from function on object
-					FString BoneControlName;
-					if( MetadataKeyFrame->SkelControlNameList.Num() > 0 )
-					{
-						BoneControlName = FString::Printf( TEXT("%s"), (MetadataKeyFrame->SkelControlNameList(0)==NAME_None)?TEXT("None"): *MetadataKeyFrame->SkelControlNameList(0).GetNameString());
-						for(INT NameIdx=1; NameIdx<MetadataKeyFrame->SkelControlNameList.Num(); NameIdx++)
-						{
-							BoneControlName = FString::Printf( TEXT("%s,%s"), *BoneControlName, (MetadataKeyFrame->SkelControlNameList(NameIdx)==NAME_None)?TEXT("None"): *MetadataKeyFrame->SkelControlNameList(NameIdx).GetNameString());
-						}
-					}
-					else
-					{
-						BoneControlName = TEXT("None");
-					}
-					FString NotifyComment = FString::Printf(TEXT("[%s:%0.2f]"),*BoneControlName, Key.TargetStrength);
-
-					// do the deed
-					{
-						INT W, H;
-						// figure out what height to draw this notify at
-						StringSize(GEngine->SmallFont, W, H, *NotifyComment);
-						INT LabelX = Clamp(NotifyX - W/2,NotifyViewBorderX,SizeX-NotifyViewBorderX-W);
-						INT TrackIdx = -1;
-						for (INT Idx = 0; Idx < Tracks.Num(); Idx++)
-						{
-							if (Tracks(Idx).AddSlot(LabelX,W))
-							{
-								TrackIdx = Idx;
-								break;
-							}
-						}
-						if (TrackIdx == -1)
-						{
-							// add new track, no room on existing ones
-							TrackIdx = Tracks.AddItem(TrackSlots());
-							Tracks(TrackIdx).AddSlot(LabelX,W);
-						}
-						NotifyY = TrackY - ((H + 8) * (TrackIdx + 1));
-
-						// draw a line from the track to see the actual position
-						DrawLine2D(Canvas, FVector2D(NotifyX, NotifyY + H), FVector2D(NotifyX, TrackY), NotifyColor );
-						// draw a box and comment with a hit proxy for time dragging
-						if (Canvas->IsHitTesting())	{Canvas->SetHitProxy(new HBoneControlProxy(MetadataIndex, KeyIndex));}
-						DrawTile(Canvas,LabelX-2,NotifyY-2,W+2,H+2,0.f,0.f,1.f,1.f,FLinearColor(0.05f,0.05f,0.05f,1.f));
-						DrawBox2D(Canvas,FVector2D( LabelX - 2, NotifyY - 2 ),FVector2D( LabelX + W + 1, NotifyY + H + 1 ),NotifyColor );
-						DrawString(Canvas, LabelX, NotifyY, *NotifyComment, GEngine->SmallFont, NotifyColor );
-						if (Canvas->IsHitTesting())	{Canvas->SetHitProxy(NULL);}
-					}
-				}
-			}
-		}
-
 		// Draw current position on the track.
 		if (Canvas->IsHitTesting())	{Canvas->SetHitProxy(new HTrackPosProxy());}
 		const INT CurrentPosX = NotifyViewBorderX + (PixelsPerSecond * AnimSetViewer->PreviewAnimNode->CurrentTime);
@@ -2463,13 +2278,6 @@ void FASVViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 		StringSize(GEngine->SmallFont, XS, YS, *InfoString);
 		DrawString(Canvas,SizeX - XS - XL - NotifyViewBorderX, SizeY - YS - YL - NotifyViewBorderY - NotifyViewEndHeight, *InfoString, GEngine->SmallFont, FColor(255,255,255));
 
-		// Draw if it's an ADDITIVE animation
-		if( AnimSetViewer->SelectedAnimSeq->bIsAdditive )
-		{
-			InfoString = FString::Printf(TEXT("ADDITIVE ANIMATION (Reference: %s)"), *AnimSetViewer->SelectedAnimSeq->AdditiveRefName.ToString());
-			CurYOffset += YL + 2;
-			DrawString(Canvas, 5, CurYOffset, *InfoString, GEngine->SmallFont, FColor(255,0,0) );
-		}
 	}
 
 	// If doing cloth sim, show wind direction
@@ -2737,17 +2545,6 @@ UBOOL FASVViewportClient::InputKey(FViewport* Viewport, INT ControllerId, FName 
 						}
 					}
 				}
-				else if (HitResult->IsA(HBoneControlProxy::StaticGetType()))
-				{
-					// bring up the properties for this notify
-					AnimSetViewer->PropNotebook->SetSelection(2);
-					FPropertyNode* MetadataNode = AnimSetViewer->AnimSeqProps->FindPropertyNode(TEXT("MetaData"));
-					if( MetadataNode )
-					{
-						MetadataNode->SetExpanded(FALSE, TRUE);
-					}
-					AnimSetViewer->AnimSeqProps->ExpandItem(TEXT("MetaData"),((HBoneControlProxy*)HitResult)->ControlModifierID);
-				}
 				else if (HitResult->IsA(HVertInfluenceProxy::StaticGetType()))
 				{
 					//We want to swap in or out a vertex we double clicked from the alternate weight track
@@ -2919,19 +2716,6 @@ UBOOL FASVViewportClient::InputKey(FViewport* Viewport, INT ControllerId, FName 
 			{
 				bDraggingTrackPos = FALSE;
 			}
-			if (DraggingNotifyIndex != -1)
-			{
-				if (DraggingNotifyIndex >= 0 && DraggingNotifyIndex < AnimSetViewer->SelectedAnimSeq->Notifies.Num())
-				{
-					// the Time and/or Duration property of the AnimNotify has changed, invoke the EventChanged method
-					FAnimNotifyEvent* OwnerEvent = &(AnimSetViewer->SelectedAnimSeq->Notifies(DraggingNotifyIndex));
-					if (OwnerEvent && OwnerEvent->Notify)
-					{
-						OwnerEvent->Notify->AnimNotifyEventChanged(AnimSetViewer->PreviewAnimNode, OwnerEvent);
-					}
-				}
-			}
-
 			DraggingNotifyIndex = -1;
 			DraggingMetadataIndex = -1;
 			DraggingMetadataKeyIndex = -1;
@@ -3043,59 +2827,13 @@ UBOOL FASVViewportClient::InputAxis(FViewport* Viewport, INT ControllerId, FName
 	{
 		if (DraggingNotifyIndex >= 0 && DraggingNotifyIndex < AnimSetViewer->SelectedAnimSeq->Notifies.Num())
 		{
-			// check to see if we're dragging the tail, and should update duration instead of time
-			if (bDraggingNotifyTail)
+			FLOAT &Time = AnimSetViewer->SelectedAnimSeq->Notifies(DraggingNotifyIndex).Time;
+			Time = Clamp<FLOAT>(Time + (DragX/400.f * AnimSetViewer->SelectedAnimSeq->SequenceLength),0.f,AnimSetViewer->SelectedAnimSeq->SequenceLength);
+			// if shift is down then match the anim track pos
+			if (bShiftDown)
 			{
-				FLOAT &Duration = AnimSetViewer->SelectedAnimSeq->Notifies(DraggingNotifyIndex).Duration;
-				Duration = Max(0.f,Duration + (DragX/400.f * AnimSetViewer->SelectedAnimSeq->SequenceLength));
-				// clamp by the end of the anim seq
-				FLOAT Time = AnimSetViewer->SelectedAnimSeq->Notifies(DraggingNotifyIndex).Time;
-				if (Time + Duration > AnimSetViewer->SelectedAnimSeq->SequenceLength)
-				{
-					Duration = AnimSetViewer->SelectedAnimSeq->SequenceLength - Time;
-				}
-				// if shift is down then match the anim track pos
-				if (bShiftDown)
-				{
-					AnimSetViewer->PreviewAnimNode->SetPosition(Time,FALSE);
-					AnimSetViewer->PreviewAnimNodeRaw->SetPosition(Time,FALSE);
-				}
-			}
-			else
-			{
-				FLOAT &Time = AnimSetViewer->SelectedAnimSeq->Notifies(DraggingNotifyIndex).Time;
-				Time = Clamp<FLOAT>(Time + (DragX/400.f * AnimSetViewer->SelectedAnimSeq->SequenceLength),0.f,AnimSetViewer->SelectedAnimSeq->SequenceLength);
-				// check to see if the duration needs to be clamped
-				FLOAT &Duration = AnimSetViewer->SelectedAnimSeq->Notifies(DraggingNotifyIndex).Duration;
-				if (Time + Duration > AnimSetViewer->SelectedAnimSeq->SequenceLength)
-				{
-					debugf(TEXT("clamping: %.2f vs %.2f"),Time+Duration,AnimSetViewer->SelectedAnimSeq->SequenceLength);
-					Duration = AnimSetViewer->SelectedAnimSeq->SequenceLength - Time;
-				}
-				// if shift is down then match the anim track pos
-				if (bShiftDown)
-				{
-					AnimSetViewer->PreviewAnimNode->SetPosition(Time,FALSE);
-					AnimSetViewer->PreviewAnimNodeRaw->SetPosition(Time,FALSE);
-				}
-			}
-		}
-	}
-	else if( DraggingMetadataKeyIndex != -1 )
-	{
-		if (DraggingMetadataIndex >= 0 && DraggingMetadataIndex < AnimSetViewer->SelectedAnimSeq->MetaData.Num())
-		{
-			UAnimMetaData_SkelControlKeyFrame* SkelControlKeyFrame = Cast<UAnimMetaData_SkelControlKeyFrame>(AnimSetViewer->SelectedAnimSeq->MetaData(DraggingMetadataIndex));
-			if( SkelControlKeyFrame )
-			{
-				FLOAT &Time = SkelControlKeyFrame->KeyFrames(DraggingMetadataKeyIndex).Time;
-				Time = Clamp<FLOAT>(Time + (DragX/200.f * AnimSetViewer->SelectedAnimSeq->SequenceLength),0.f,AnimSetViewer->SelectedAnimSeq->SequenceLength);
-				// if shift is down then match the anim track pos
-				if (bShiftDown)
-				{
-					AnimSetViewer->PreviewAnimNode->SetPosition(Time,FALSE);
-					AnimSetViewer->PreviewAnimNodeRaw->SetPosition(Time,FALSE);
-				}
+				AnimSetViewer->PreviewAnimNode->SetPosition(Time,FALSE);
+				AnimSetViewer->PreviewAnimNodeRaw->SetPosition(Time,FALSE);
 			}
 		}
 	}
@@ -3891,7 +3629,6 @@ WxAnimSetViewer::WxAnimSetViewer(wxWindow* InParent, wxWindowID InID, USkeletalM
 	,	SelectedSortStripSectionIndex(INDEX_NONE)
 	,	bSortStripMoveForward(FALSE)
 	,	bSortStripMoveBackward(FALSE)
-	,	bResampleAnimNotifyData(FALSE)
 	,	bSearchAllAnimSequences(FALSE)
 	,	bPromptUserToLoadAllAnimSets(TRUE)
 {
@@ -4833,32 +4570,6 @@ void WxAnimSetViewer::NotifyPostChange( void* Src, UProperty* PropertyThatChange
 			FComponentReattachContext ReattachContext3(PreviewSkelCompAux3);
 		}
 
-		//@todo. Do this the 'right' way...
-		bResampleAnimNotifyData = FALSE;
-		UObject* Outer = PropertyThatChanged->GetOuter();
-		UScriptStruct* ScriptStruct = Cast<UScriptStruct>(Outer);
-		if (ScriptStruct != NULL)
-		{
-			FAnimNotifyEvent* Event = (FAnimNotifyEvent*)ScriptStruct;
-			if (ScriptStruct->GetName() == TEXT("AnimNotifyEvent"))
-			{
-				bResampleAnimNotifyData = TRUE;
-			}
-		}
-		UAnimNotify_Trails* TrailsNotify = Cast<UAnimNotify_Trails>(Outer);
-		if (TrailsNotify)
-		{
-			bResampleAnimNotifyData = TRUE;
-		}
-
-		UClass* OuterClass = Cast<UClass>(Outer);
-		if (OuterClass)
-		{
-			if (OuterClass->GetName() == TEXT("AnimNotify_Trails"))
-			{
-				bResampleAnimNotifyData = TRUE;
-			}
-		}
 	}
 
 	// Might have changed UseTranslationBoneNames array. We have to fix any existing FAnimSetMeshLinkup objects in selected AnimSet.

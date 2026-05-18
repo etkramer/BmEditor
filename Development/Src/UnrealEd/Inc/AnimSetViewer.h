@@ -520,9 +520,6 @@ public:
 	UBOOL	bSortStripMoveForward;
 	UBOOL	bSortStripMoveBackward;
 
-	/** Flag to indicate the AnimNotify data needs to be resampled */
-	UBOOL bResampleAnimNotifyData;
-
 	/** Determines if the user can search through all anim sequences in the sequence combo box. */
 	UBOOL bSearchAllAnimSequences;
 	/** Flag to indicate if the user turned on the option to view all anim sequences at least once. */

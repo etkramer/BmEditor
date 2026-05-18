@@ -8,169 +8,10 @@
 class AnimSequence extends Object
 	native(Anim)
 	config(Engine)
-	hidecategories(Object);
+	dependson(RAnimZip_Settings)
+	hidecategories(Object)
+	autocollapsecategories(Info);
 
-/*
- * Triggers an animation notify.  Each AnimNotifyEvent contains an AnimNotify object
- * which has its Notify method called and passed to the animation.
- */
-struct native AnimNotifyEvent
-{
-	var()	float						Time;
-	var()	instanced AnimNotify		Notify;
-	var()	editoronly Name				Comment;
-	var()	float						Duration;
-};
-
-/**
- * Raw keyframe data for one track.  Each array will contain either NumFrames elements or 1 element.
- * One element is used as a simple compression scheme where if all keys are the same, they'll be
- * reduced to 1 key that is constant over the entire sequence.
- *
- * @warning: manually mirrored in UnMiscDeclerations.h due to mixed native/ script serialization
- */
-struct RawAnimSequenceTrack
-{
-	/** Position keys. */
-	var array<vector>	PosKeys;
-	/** Rotation keys. */
-	var array<quat>		RotKeys;
-};
-
-/** Name of the animation sequence. Used in AnimNodeSequence. */
-var		name									SequenceName;
-
-/** Animation notifies, sorted by time (earliest notification first). */
-var()	editinline array<AnimNotifyEvent>		Notifies;
-
-/** Animation Meta Data */
-var()	editinline instanced Array<AnimMetaData>    MetaData;
-
-/*
- * This is to support Skel Control Strength from animation data
- * For example, if you'd like to scale bones via SkelControlSingleBone from animation data.
- * This looks up SkelControlName in the Anim tree and apply strength at the point where it's set up
- */
-struct native TimeModifier
-{
-	/** Time to apply **/
-	var()   float           Time;
-	/** Target Strength of the Skel Control at this time **/
-	/** This will linearly interpolate between multiple strength within one anim data**/
-	var()   float           TargetStrength;
-};
-
-/* DEPRECATED VER_ADDED_ANIM_METADATA_FIXED_QUATERROR
- * This contains all skel control modifiers 
- * The TimeModifier will be sorted by time
- * Initially it starts from what strength it was when animation started. 
- */
-struct native SkelControlModifier
-{
-	/** SkelControl Node Name in the Anim Tree that would apply **/
-	var()   name            SkelControlName;
-
-	/** Modifiers for what time and what strength for this skelcontrol name**/
-	var()  editinline array<TimeModifier>  Modifiers;
-};
-
-/** DEPRECATED VER_ADDED_ANIM_METADATA_FIXED_QUATERROR Bone Control Modifiers, sorted by time (earliest notification first). */
-var	deprecated editinline array<SkelControlModifier>		BoneControlModifiers;
-
-/** Length (in seconds) of this AnimSequence if played back with a speed of 1.0. */
-var		float									SequenceLength;
-
-/** Number of raw frames in this sequence (not used by engine - just for informational purposes). */
-var		int										NumFrames;
-
-/** Number for tweaking playback rate of this animation globally. */
-var()	float									RateScale;
-
-/**
- * if TRUE, disable interpolation between last and first frame when looping.
- */
-var()	bool									bNoLoopingInterpolation;
-
-/**
- * Raw uncompressed keyframe data. RawAnimData is deprecated and moved to RawAnimationData
- * to switch to native serialization. Down the road it should be switched to use lazy loading
- * as the data is only used in the editor. It is used pervasively enough to be a separate change.
- */
-var	deprecated private const array<RawAnimSequenceTrack>	RawAnimData;
-var native private const array<RawAnimSequenceTrack>		RawAnimationData;
-
-/**
- * Keyframe position data for one track.  Pos(i) occurs at Time(i).  Pos.Num() always equals Time.Num().
- */
-struct native TranslationTrack
-{
-	var array<vector>	PosKeys;
-	var array<float>	Times;
-};
-
-/**
- * Keyframe rotation data for one track.  Rot(i) occurs at Time(i).  Rot.Num() always equals Time.Num().
- */
-struct native RotationTrack
-{
-	var array<quat>		RotKeys;
-	var array<float>	Times;
-};
-
-/**
- * Key frame curve data for one track
- * CurveName: Morph Target Name
- * CurveWeights: List of weights for each frame
- */
-struct native CurveTrack
-{
-	var name			CurveName;
-	var array<float>	CurveWeights;
-
-	structcpptext
-	{
-	/** Returns TRUE if valid curve weight exists in the array*/
-	UBOOL IsValidCurveTrack();
-	/** This is very simple cut to 1 key method if all is same since I see so many redundant same value in every frame 
-	 *  Eventually this can get more complicated 
-	 *  Will return TRUE if compressed to 1. Return FALSE otherwise **/
-	UBOOL CompressCurveWeights();
-	}
-};
-
-/**
- * Translation data post keyframe reduction.  TranslationData.Num() is zero if keyframe reduction
- * has not yet been applied.
- */
-var transient const array<TranslationTrack>		TranslationData;
-
-/**
- * Rotation data post keyframe reduction.  RotationData.Num() is zero if keyframe reduction
- * has not yet been applied.
- */
-var transient const array<RotationTrack>		RotationData;
-
-/*
- * Curve data - no compression yet                                                                       
- */
-var const array<CurveTrack>						CurveData;
-
-/**
- * The compression scheme that was most recently used to compress this animation.
- * May be NULL.
- */
-var() editinline editconst editoronly AnimationCompressionAlgorithm	CompressionScheme;
-
-/**
- * Per-sequence AnimZip encoder overrides. When NULL, the encoder falls back to
- * the owning AnimSet's Compression_CustomSettings, and then to the
- * RAnimZip_Settings CDO.
- */
-var(Compression) editinline editoronly RAnimZip_Settings Compression_CustomSettings;
-
-/**
- * Indicates animation data compression format.
- */
 enum AnimationCompressionFormat
 {
 	ACF_None,
@@ -180,14 +21,97 @@ enum AnimationCompressionFormat
 	ACF_Fixed32NoW,
 	ACF_Float32NoW,
 	ACF_Identity,
-    ACF_Fixed48Max,
 };
 
-/** The compression format that was used to compress translation tracks. */
-var const AnimationCompressionFormat		TranslationCompressionFormat;
+enum EForwardYawDirection
+{
+	FYD_Clockwise,
+	FYD_AntiClockwise,
+};
 
-/** The compression format that was used to compress rotation tracks. */
-var const AnimationCompressionFormat		RotationCompressionFormat;
+enum EAnimPhysics
+{
+	APHYS_Walking,
+	APHYS_Flying,
+	APHYS_Floating,
+	APHYS_Falling,
+	APHYS_Ceiling,
+};
+
+enum ERootMotionRotationOption
+{
+	RMRO_On,
+	RMRO_NoExtraction,
+	RMRO_Off,
+};
+
+enum ERootMotionTranslationOption
+{
+	RMTO_On,
+	RMTO_NoExtraction,
+	RMTO_Off,
+};
+
+enum AnimationKeyFormat
+{
+	AKF_ConstantKeyLerp,
+	AKF_VariableKeyLerp,
+	AKF_PerTrackCompression,
+};
+
+struct native AnimNotifyEvent
+{
+	var()	float							Time;
+	var()	editoronly export AnimNotify	Notify;
+};
+
+/**
+ * Raw keyframe data for one track.  Each array will contain either NumFrames elements or 1 element.
+ * One element is used as a simple compression scheme where if all keys are the same, they'll be
+ * reduced to 1 key that is constant over the entire sequence.
+ */
+struct RawAnimSequenceTrack
+{
+	var array<vector>	PosKeys;
+	var array<quat>		RotKeys;
+	var array<float>	ScaleKeys;
+};
+
+struct native TimeModifier
+{
+	var()   float           Time;
+	var()   float           TargetStrength;
+};
+
+struct native SkelControlModifier
+{
+	var()   name            SkelControlName;
+	var()   editinline array<TimeModifier>  Modifiers;
+};
+
+struct native TranslationTrack
+{
+	var array<vector>	PosKeys;
+	var array<float>	Times;
+};
+
+struct native RotationTrack
+{
+	var array<quat>		RotKeys;
+	var array<float>	Times;
+};
+
+struct native CurveTrack
+{
+	var name			CurveName;
+	var array<float>	CurveWeights;
+
+	structcpptext
+	{
+	UBOOL IsValidCurveTrack();
+	UBOOL CompressCurveWeights();
+	}
+};
 
 struct native CompressedTrack
 {
@@ -197,131 +121,117 @@ struct native CompressedTrack
 	var float			Ranges[3];
 };
 
-/**
- * An array of 4*NumTrack ints, arranged as follows:
- *   [0] Trans0.Offset
- *   [1] Trans0.NumKeys
- *   [2] Rot0.Offset
- *   [3] Rot0.NumKeys
- *   [4] Trans1.Offset
- *   . . .
- */
-var			array<int>		CompressedTrackOffsets;
-
-/**
- * ByteStream for compressed animation data.
- * All keys are currently stored at evenly-spaced intervals (ie no explicit key times).
- *
- * For a translation track of n keys, data is packed as n uncompressed float[3]:
- *
- * For a rotation track of n>1 keys, the first 24 bytes are reserved for compression info
- * (eg Fixed32 stores float Mins[3]; float Ranges[3]), followed by n elements of the compressed type.
- * For a rotation track of n=1 keys, the single key is packed as an FQuatFloat96NoW.
- */
-var native	array<byte>		CompressedByteStream;
-
-// BM
-var native	array<byte>		AnimZip_Data;
-var() private transient native Vector	AnimZip_LinearOrigin;
-var() private transient native Vector	AnimZip_LinearSpan;
-
-var() bool bUseSimpleForwardYaw;
-var() bool bUseSimpleFloorHeight;
-var() bool bUseSimpleRootMotionXY;
-var() bool DisableProportionalMotionDuringBlendOut;
-var() bool AllowCheekyBlendIn;
-var() bool AllowCheekyBlendOut;
-var(Info) editconst bool WeaponSwitchPointEnabled;
-var(Compression) bool Compression_UseLinearInterpolation;
-var(Compression) bool Compression_RelativeToReferencePose;
-var(Compression) editconst bool Compression_UsingTemporaryCompression;
-var(Info) editconst float BlendInPoint;
-var(Info) editconst float BlendOutPoint;
-var(Info) editconst float ClippedStart;
-var(Info) editconst float ClippedLength;
-var(Info) editconst float CanCancelBeforeHerePoint;
-var(Info) editconst float CanCancelAfterHerePoint;
-var(Info) editconst float CanCorrectAfterHerePoint;
-var(Info) editconst float ClipRootMotionInPoint;
-var(Info) editconst float ClipRootMotionOutPoint;
-var(Info) editconst float CollisionOptionsOutPoint;
-var(Info) editconst float WeaponSwitchPoint;
-
-/**
- * Indicates animation data compression format.
- */
-enum AnimationKeyFormat
+struct native AnimReferenceOptions
 {
-	AKF_ConstantKeyLerp,
-	AKF_VariableKeyLerp,
-	AKF_PerTrackCompression,
+	var() bool AutomaticFloorHeight;
+	var() EForwardYawDirection ForwardYawDirection;
+	var() float ForwardYaw;
+	var() float FloorHeight;
 };
 
-var const AnimationKeyFormat		KeyEncodingFormat;
+struct native AnimReferencePeriods
+{
+	var() AnimReferenceOptions Start;
+	var() AnimReferenceOptions End;
+	var() bool EnforceMinimumFloorHeight;
+	var() float MinimumFloorHeight;
+};
 
-/**
- * The runtime interface to decode and byte swap the compressed animation
- * May be NULL. Set at runtime - does not exist in editor
- */
-var private transient native pointer	TranslationCodec;
-var private transient native pointer	RotationCodec;
+struct native AnimCollisionOptions
+{
+	var() bool BlockActors;
+	var() bool CollideWorld;
+	var() bool DisableLegIK;
+	var() bool AllowIKWhenNotPHYSWalking;
+	var() bool PreviousVelocityOverridesAnimRootMotion;
+	var() EAnimPhysics Physics;
+	var() ERootMotionRotationOption RootMotionRotationOption;
+	var() ERootMotionTranslationOption RootMotionTranslationOption;
 
-// Additive Animation Support
-/** TRUE if this is an Additive Animation */
-var	const	bool			bIsAdditive;
-/** Reference pose for additive animation. Deprecated. */
-var	const	deprecated Array<BoneAtom>	AdditiveRefPose;
-/** Store Reference Pose animation used to create this additive one. For playback in editor only. */
-var const Array<RawAnimSequenceTrack>   AdditiveBasePose;
+	structdefaultproperties
+	{
+		BlockActors=true
+		CollideWorld=true
+		Physics=APHYS_Walking
+		RootMotionRotationOption=RMRO_On
+		RootMotionTranslationOption=RMTO_On
+	}
+};
 
-/** Reference animation name */
-var	const editoronly Name AdditiveRefName;
-/** TRUE if additive animation was built with looping interpolation. */
-var editoronly bool	bAdditiveBuiltLooping;
-/** If this animation is Additive, this is the reference to the Base Pose used. For automatic rebuilding in the editor. Made into a list to handle duplicate animations. */
-var editoronly Array<AnimSequence> AdditiveBasePoseAnimSeq;
-/** If this animation is Additive, this is the reference to the Target Pose used. For automatic rebuilding in the editor. Made into a list to handle duplicate animations. */
-var editoronly Array<AnimSequence> AdditiveTargetPoseAnimSeq;
-/** If this animation was used, either as a Base or Target Pose, to build additive animations, they are referenced there. For automatic rebuilding in the editor. */
-var editoronly Array<AnimSequence> RelatedAdditiveAnimSeqs;
+struct native AnimCollisionPeriods
+{
+	var() AnimCollisionOptions Middle;
+	var() AnimCollisionOptions End;
+};
 
-// Versioning Support
-/** The version of the global encoding package used at the time of import */
-var	const	int				EncodingPkgVersion;
-/** Saved version number with CompressAnimations commandlet. To help with doing it in multiple passes. */
-var editoronly const int    CompressCommandletVersion;
-
-	/**
- * Do not attempt to override compression scheme when running CompressAnimations commandlet.
- * Some high frequency animations are too sensitive and shouldn't be changed.
- */
-var() editoronly const bool			bDoNotOverrideCompression;
-
-/**
- * Debug flag to trace if this anim sequence was played.
- */
-var const transient bool	bHasBeenUsed;
-/**
- * Debug score to find out animation usage
- */
-var const transient float	UseScore;
-/** Temporary Animation Tagging Information: until we integrate Content Tagging
-  * This is configurable information in Engine
-  * Tag: Name of Tag
-  * Contains: Contains text
-  * Priority is index of array
-  */
 struct native AnimTag
 {
-	var string 	Tag; // This is Tag name
-	var array<string> Contains; // This is contains strings, i.e. _cvr_ or _cover_ for Tag name Cover
+	var string			Tag;
+	var array<string>	Contains;
 };
 
-/**
- * Animation tag for stat system: This is temporary until we can add content tag to animation
- * Currently it auto tags based on "contains" - Check DefaultEngine.ini for modification
- */
-var config editoronly array<AnimTag> AnimTags;
+var		name									SequenceName;
+var()	editoronly array<editoronly AnimNotifyEvent>		Notifies;
+var(Audio) editoronly bool						AudioComplete;
+var()	bool									bUseSimpleForwardYaw;
+var()	bool									bUseSimpleFloorHeight;
+var()	bool									bUseSimpleRootMotionXY;
+var()	bool									bInheritRootMotionFromVelocity;
+var()	bool									DisableProportionalMotionDuringBlendOut;
+var()	bool									AllowCheekyBlendIn;
+var()	bool									AllowCheekyBlendOut;
+var(FaceFX) bool								EmbeddedFaceFXAnim_AllowAutomaticBlinks;
+var(Info) editconst bool						WeaponSwitchPointEnabled;
+var(Compression) bool							Compression_UseLinearInterpolation;
+var(Compression) bool							Compression_RelativeToReferencePose;
+var(Compression) editconst bool					Compression_UsingTemporaryCompression;
+var() editoronly const bool						bDoNotOverrideCompression;
+var const transient bool						bHasBeenUsed;
+var const transient bool						MetricWasRecorded;
+var(Info) editconst float						SequenceLength;
+var(Info) editconst int							NumFrames;
+var()	float									RateScale;
+var	deprecated private const array<RawAnimSequenceTrack>	RawAnimData;
+var native private const array<RawAnimSequenceTrack>		RawAnimationData;
+var const array<CurveTrack>						CurveData;
+var(Info) editoronly editconst AnimationCompressionAlgorithm	CompressionScheme;
+var const AnimationCompressionFormat			TranslationCompressionFormat;
+var const AnimationCompressionFormat			RotationCompressionFormat;
+var(Compression) RAnimZip_Settings.EAnimZipPreset	Compression_Preset;
+var const AnimationKeyFormat					KeyEncodingFormat;
+var			array<int>							CompressedTrackOffsets;
+var native	array<byte>							CompressedByteStream;
+var(Info) editoronly string						MaxFilePath;
+var(Info) editoronly string						MaxAuthor;
+var()	vector									ReferencePoint;
+var()	float									ReferencePointYaw;
+var()	AnimReferencePeriods					ReferenceOptions;
+var()	float									ProportionalMotionDistanceCap;
+var()	AnimCollisionPeriods					CollisionOptions;
+var()	float									BlendInDuration;
+var()	float									BlendOutDuration;
+var(FaceFX) editconst FaceFXAnimSet				EmbeddedFaceFXAnim;
+var(Info) editconst float						BlendInPoint;
+var(Info) editconst float						BlendOutPoint;
+var(Info) editconst float						ClippedStart;
+var(Info) editconst float						ClippedLength;
+var(Info) editconst float						CanCancelBeforeHerePoint;
+var(Info) editconst float						CanCancelAfterHerePoint;
+var(Info) editconst float						CanCorrectAfterHerePoint;
+var(Info) editconst float						ClipRootMotionInPoint;
+var(Info) editconst float						ClipRootMotionOutPoint;
+var(Info) editconst float						CollisionOptionsOutPoint;
+var(Info) editconst float						WeaponSwitchPoint;
+var(Compression) editoronly export RAnimZip_Settings	Compression_CustomSettings;
+var native	array<byte>							AnimZip_Data;
+var(Info) editconst vector						AnimZip_LinearOrigin;
+var(Info) editconst vector						AnimZip_LinearSpan;
+var private transient native pointer			TranslationCodec;
+var private transient native pointer			RotationCodec;
+var const int									EncodingPkgVersion;
+var editoronly const int						CompressCommandletVersion;
+var const transient float						UseScore;
+var config editoronly array<AnimTag>			AnimTags;
 
 cpptext
 {
@@ -335,7 +245,7 @@ cpptext
 
 	/**
 	 * Used by various commandlets to purge editor only and platform-specific data from various objects
-	 * 
+	 *
 	 * @param PlatformsToKeep Platforms for which to keep platform-specific data
 	 * @param bStripLargeEditorData If TRUE, data used in the editor, but large enough to bloat download sizes, will be removed
 	 */
@@ -418,17 +328,6 @@ cpptext
 	 * @param	CurveKeys		List of Curve Keys if exists
 	 */
 	void GetBoneAtom(FBoneAtom& OutAtom, INT TrackIndex, FLOAT Time, UBOOL bLooping, UBOOL bUseRawData, FCurveKeyArray* CurveKeys = NULL) const;
-	
-	/**
-	 * Interpolate keyframes in this sequence to find the bone transform (relative to parent).
-	 * This returns the base pose used to create the additive animation.
-	 *
-	 * @param	OutAtom			[out] Output bone transform.
-	 * @param	TrackIndex		Index of track to interpolate.
-	 * @param	Time			Time on track to interpolate to.
-	 * @param	bLooping		TRUE if the animation is looping.
-	 */
-	void GetAdditiveBasePoseBoneAtom(FBoneAtom& OutAtom, INT TrackIndex, FLOAT Time, UBOOL bLooping) const;
 
 	/**
 	 * Interpolate curve weights of the Time in this sequence if curve data exists
@@ -478,8 +377,8 @@ cpptext
 	 * @return					TRUE if the operation was successful.
 	 */
 	UBOOL CropRawAnimData( FLOAT CurrentTime, UBOOL bFromStart );
-	/** 
-	 *  Utility function for lossless compression of a FRawAnimSequenceTrack 
+	/**
+	 *  Utility function for lossless compression of a FRawAnimSequenceTrack
 	 *  @return TRUE if keys were removed.
 	 **/
 	UBOOL CompressRawAnimSequenceTrack(FRawAnimSequenceTrack& RawTrack, float MaxPosDiff, float MaxAngleDiff);
@@ -501,25 +400,17 @@ cpptext
 	/** Clears any data in the AnimSequence, so it can be recycled when importing a new animation with same name over it. */
 	void RecycleAnimSequence();
 
-	/** 
-	 * Clear references to additive animations.
-	 * This is the following arrays: AdditiveBasePoseAnimSeq, AdditiveTargetPoseAnimSeq and RelatedAdditiveAnimSeqs.
-	 * Handles dependencies, and removes us properly.
-	 */
-	void ClearAdditiveAnimReferences();
-
 	static UBOOL CopyAnimSequenceProperties(UAnimSequence* SourceAnimSeq, UAnimSequence* DestAnimSeq, UBOOL bSkipCopyingNotifies=FALSE);
-	static void CopyMetadata(UAnimSequence* SourceAnimSeq, UAnimSequence* DestAnimSeq);
 	static UBOOL CopyNotifies(UAnimSequence* SourceAnimSeq, UAnimSequence* DestAnimSeq);
 }
 
-/** 
- *	Get the time (in seconds) from the start of the animation that the first notify of the given class would fire 
+/**
+ *	Get the time (in seconds) from the start of the animation that the first notify of the given class would fire
  *
  *	@param	NotifyClass		Class of AnimNotify we are looking for (ie AnimNotify_Sound)
  *	@param	PlayRate		Rate that animation would be played at
  *	@param	StartPosition	Initial position in the animation to start checking from
- *	@return					Time in seconds that notify would fire if anim was played at given rate 
+ *	@return					Time in seconds that notify would fire if anim was played at given rate
  *							Returns -1.f if no notify is found
  */
 native function float GetNotifyTimeByClass( class<AnimNotify> NotifyClass, optional float PlayRate = 1.f, optional float StartPosition = -1.f, optional out AnimNotify out_Notify, optional out float out_Duration );
@@ -527,4 +418,6 @@ native function float GetNotifyTimeByClass( class<AnimNotify> NotifyClass, optio
 defaultproperties
 {
 	RateScale=1.0
+	AllowCheekyBlendIn=true
+	AllowCheekyBlendOut=true
 }

@@ -581,12 +581,6 @@ FORCEINLINE void DecompressRotation(FQuat& Out, const BYTE* RESTRICT TopOfStream
 	{
 		((FQuatFixed48NoW*)KeyData)->ToQuat( Out );
 	}
-#if BATMAN
-	else if (FORMAT == ACF_Fixed48Max)
-	{
-		((FQuatFixed48Max*)KeyData)->ToQuat(Out);
-	}
-#endif
 	else if ( FORMAT == ACF_IntervalFixed32NoW )
 	{
 		const FLOAT* RESTRICT Mins = (FLOAT*)TopOfStream;
@@ -968,12 +962,6 @@ public:
 			FLOAT WSquared = 1.0f - ((Out.X * Out.X) + (Out.Y * Out.Y) + (Out.Z * Out.Z));
 			Out.W = (WSquared > 0.f) ? appSqrt( WSquared ) : 0.f;
 		}
-#if BATMAN
-		else if (Format == ACF_Fixed48Max)
-		{
-			((FQuatFixed48Max*)KeyData)->ToQuat(Out);
-		}
-#endif
 		else if ( Format == ACF_IntervalFixed32NoW )
 		{
 			const FLOAT* RESTRICT SourceBounds = (FLOAT*)TopOfStream;

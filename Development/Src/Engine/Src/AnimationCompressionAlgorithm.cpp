@@ -81,13 +81,6 @@ static void PackQuaternionToStream(
 		const FQuatFloat32NoW QuatFloat32NoW( Quat );
 		AC_UnalignedWriteToStream( &QuatFloat32NoW, sizeof(FQuatFloat32NoW) );
 	}
-#if BATMAN
-	else if (TargetRotationFormat == ACF_Fixed48Max)
-	{
-		const FQuatFixed48Max QuatFixed48Max(Quat);
-		AC_UnalignedWriteToStream(&QuatFixed48Max, sizeof(FQuatFixed48Max));
-	}
-#endif
 }
 
 /**
@@ -379,11 +372,6 @@ void UAnimationCompressionAlgorithm::BitwiseCompressAnimationTracks(
 		// Trim unused memory.
 		Seq->CompressedByteStream.Shrink();
 	}
-
-	// We may not have used the key data arrays resident in this sequence,
-	// but we should make sure they are empty at this point.
-	Seq->TranslationData.Empty();
-	Seq->RotationData.Empty();
 }
 
 /**

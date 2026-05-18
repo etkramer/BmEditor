@@ -18,6 +18,55 @@
 #ifndef INCLUDED_ENGINE_ANIM_ENUMS
 #define INCLUDED_ENGINE_ANIM_ENUMS 1
 
+enum EAnimZipTranslationScaleCodec
+{
+    AZTSC_Float_128         =0,
+    AZTSC_NoScale_Float_96  =1,
+    AZTSC_NoScale_Interval_Fixed_48=2,
+    AZTSC_NoScale_Interval_Fixed_24=3,
+    AZTSC_MAX               =4,
+};
+#define FOREACH_ENUM_EANIMZIPTRANSLATIONSCALECODEC(op) \
+    op(AZTSC_Float_128) \
+    op(AZTSC_NoScale_Float_96) \
+    op(AZTSC_NoScale_Interval_Fixed_48) \
+    op(AZTSC_NoScale_Interval_Fixed_24) 
+enum EAnimZipRotationCodec
+{
+    AZRC_QuatMax_48         =0,
+    AZRC_QuatMax_40         =1,
+    AZRC_QuatRelative_32    =2,
+    AZRC_QuatRelative_24    =3,
+    AZRC_QuatRelative_16    =4,
+    AZRC_FixedAxis_16       =5,
+    AZRC_FixedAxis_8        =6,
+    AZRC_MAX                =7,
+};
+#define FOREACH_ENUM_EANIMZIPROTATIONCODEC(op) \
+    op(AZRC_QuatMax_48) \
+    op(AZRC_QuatMax_40) \
+    op(AZRC_QuatRelative_32) \
+    op(AZRC_QuatRelative_24) \
+    op(AZRC_QuatRelative_16) \
+    op(AZRC_FixedAxis_16) \
+    op(AZRC_FixedAxis_8) 
+enum EAnimZipPreset
+{
+    AZP_Default             =0,
+    AZP_Default50           =1,
+    AZP_Default25           =2,
+    AZP_Default10           =3,
+    AZP_AlmostNone          =4,
+    AZP_Custom              =5,
+    AZP_MAX                 =6,
+};
+#define FOREACH_ENUM_EANIMZIPPRESET(op) \
+    op(AZP_Default) \
+    op(AZP_Default50) \
+    op(AZP_Default25) \
+    op(AZP_Default10) \
+    op(AZP_AlmostNone) \
+    op(AZP_Custom) 
 enum AnimationKeyFormat
 {
     AKF_ConstantKeyLerp     =0,
@@ -29,6 +78,52 @@ enum AnimationKeyFormat
     op(AKF_ConstantKeyLerp) \
     op(AKF_VariableKeyLerp) \
     op(AKF_PerTrackCompression) 
+enum ERootMotionTranslationOption
+{
+    RMTO_On                 =0,
+    RMTO_NoExtraction       =1,
+    RMTO_Off                =2,
+    RMTO_MAX                =3,
+};
+#define FOREACH_ENUM_EROOTMOTIONTRANSLATIONOPTION(op) \
+    op(RMTO_On) \
+    op(RMTO_NoExtraction) \
+    op(RMTO_Off) 
+enum ERootMotionRotationOption
+{
+    RMRO_On                 =0,
+    RMRO_NoExtraction       =1,
+    RMRO_Off                =2,
+    RMRO_MAX                =3,
+};
+#define FOREACH_ENUM_EROOTMOTIONROTATIONOPTION(op) \
+    op(RMRO_On) \
+    op(RMRO_NoExtraction) \
+    op(RMRO_Off) 
+enum EAnimPhysics
+{
+    APHYS_Walking           =0,
+    APHYS_Flying            =1,
+    APHYS_Floating          =2,
+    APHYS_Falling           =3,
+    APHYS_Ceiling           =4,
+    APHYS_MAX               =5,
+};
+#define FOREACH_ENUM_EANIMPHYSICS(op) \
+    op(APHYS_Walking) \
+    op(APHYS_Flying) \
+    op(APHYS_Floating) \
+    op(APHYS_Falling) \
+    op(APHYS_Ceiling) 
+enum EForwardYawDirection
+{
+    FYD_Clockwise           =0,
+    FYD_AntiClockwise       =1,
+    FYD_MAX                 =2,
+};
+#define FOREACH_ENUM_EFORWARDYAWDIRECTION(op) \
+    op(FYD_Clockwise) \
+    op(FYD_AntiClockwise) 
 enum AnimationCompressionFormat
 {
     ACF_None                =0,
@@ -38,8 +133,7 @@ enum AnimationCompressionFormat
     ACF_Fixed32NoW          =4,
     ACF_Float32NoW          =5,
     ACF_Identity            =6,
-    ACF_Fixed48Max          =7,
-    ACF_MAX                 =8,
+    ACF_MAX                 =7,
 };
 #define FOREACH_ENUM_ANIMATIONCOMPRESSIONFORMAT(op) \
     op(ACF_None) \
@@ -48,8 +142,7 @@ enum AnimationCompressionFormat
     op(ACF_IntervalFixed32NoW) \
     op(ACF_Fixed32NoW) \
     op(ACF_Float32NoW) \
-    op(ACF_Identity) \
-    op(ACF_Fixed48Max) 
+    op(ACF_Identity) 
 enum ESliderType
 {
     ST_1D                   =0,
@@ -198,55 +291,6 @@ enum ESplineControlRotMode
     op(SCR_NoChange) \
     op(SCR_AlongSpline) \
     op(SCR_Interpolate) 
-enum EAnimZipTranslationScaleCodec
-{
-    AZTSC_Float_128         =0,
-    AZTSC_NoScale_Float_96  =1,
-    AZTSC_NoScale_Interval_Fixed_48=2,
-    AZTSC_NoScale_Interval_Fixed_24=3,
-    AZTSC_MAX               =4,
-};
-#define FOREACH_ENUM_EANIMZIPTRANSLATIONSCALECODEC(op) \
-    op(AZTSC_Float_128) \
-    op(AZTSC_NoScale_Float_96) \
-    op(AZTSC_NoScale_Interval_Fixed_48) \
-    op(AZTSC_NoScale_Interval_Fixed_24) 
-enum EAnimZipRotationCodec
-{
-    AZRC_QuatMax_48         =0,
-    AZRC_QuatMax_40         =1,
-    AZRC_QuatRelative_32    =2,
-    AZRC_QuatRelative_24    =3,
-    AZRC_QuatRelative_16    =4,
-    AZRC_FixedAxis_16       =5,
-    AZRC_FixedAxis_8        =6,
-    AZRC_MAX                =7,
-};
-#define FOREACH_ENUM_EANIMZIPROTATIONCODEC(op) \
-    op(AZRC_QuatMax_48) \
-    op(AZRC_QuatMax_40) \
-    op(AZRC_QuatRelative_32) \
-    op(AZRC_QuatRelative_24) \
-    op(AZRC_QuatRelative_16) \
-    op(AZRC_FixedAxis_16) \
-    op(AZRC_FixedAxis_8) 
-enum EAnimZipPreset
-{
-    AZP_Default             =0,
-    AZP_Default50           =1,
-    AZP_Default25           =2,
-    AZP_Default10           =3,
-    AZP_AlmostNone          =4,
-    AZP_Custom              =5,
-    AZP_MAX                 =6,
-};
-#define FOREACH_ENUM_EANIMZIPPRESET(op) \
-    op(AZP_Default) \
-    op(AZP_Default50) \
-    op(AZP_Default25) \
-    op(AZP_Default10) \
-    op(AZP_AlmostNone) \
-    op(AZP_Custom) 
 
 #endif // !INCLUDED_ENGINE_ANIM_ENUMS
 #endif // !NO_ENUMS
@@ -587,12 +631,100 @@ private:
 	void RefreshTrackControls();
 };
 
+struct FAnimZipErrorBounds
+{
+    FLOAT Rotation;
+    FLOAT Translation;
+    FLOAT Scale;
+
+    /** Constructors */
+    FAnimZipErrorBounds() {}
+    FAnimZipErrorBounds(EEventParm)
+    {
+        appMemzero(this, sizeof(FAnimZipErrorBounds));
+    }
+};
+
+struct FAnimZipTrackSettings
+{
+    struct FAnimZipErrorBounds ErrorBounds;
+    BITFIELD AllowRotationRetargeting:1;
+    SCRIPT_ALIGN;
+
+    /** Constructors */
+    FAnimZipTrackSettings() {}
+    FAnimZipTrackSettings(EEventParm)
+    {
+        appMemzero(this, sizeof(FAnimZipTrackSettings));
+    }
+};
+
+struct FAnimZipNamedTrackSettings
+{
+    FName TrackName;
+    struct FAnimZipTrackSettings Settings;
+
+    /** Constructors */
+    FAnimZipNamedTrackSettings() {}
+    FAnimZipNamedTrackSettings(EEventParm)
+    {
+        appMemzero(this, sizeof(FAnimZipNamedTrackSettings));
+    }
+};
+
+class URAnimZip_Settings : public UObject
+{
+public:
+    //## BEGIN PROPS RAnimZip_Settings
+    FLOAT CompressionAmount;
+    BITFIELD StripTracksIfSameAsReferencePose:1;
+    BITFIELD EnableAdaptiveDownsample:1;
+    BITFIELD ForceDownsample_Enabled:1;
+    BITFIELD EnableAdaptiveDownsampleEnergy:1;
+    BITFIELD EnableRotationRetargeting:1;
+    BITFIELD ForceRotationCodec_Enabled:1;
+    BITFIELD ForceTranslationScaleCodec_Enabled:1;
+    BITFIELD EnableCharacterOptimisations:1;
+    BITFIELD EnableCapeOptimisations:1;
+    BITFIELD Log:1;
+    TArrayNoInit<INT> AdaptiveDownsampleDivisors;
+    TArrayNoInit<INT> AdaptiveDownsampleNumbers;
+    FLOAT ForceDownsample;
+    FLOAT AdaptiveDownsampleEnergyLowScale;
+    FLOAT AdaptiveDownsampleEnergyHighScale;
+    FLOAT AdaptiveDownsampleEnergyPower;
+    struct FAnimZipTrackSettings DefaultTrackSettings;
+    TArrayNoInit<struct FAnimZipNamedTrackSettings> ForcedTrackSettings;
+    struct FAnimZipTrackSettings MotionTrackSettings;
+    BYTE ForceRotationCodec;
+    BYTE ForceTranslationScaleCodec;
+    TArrayNoInit<BYTE> DisableRotationCodecs;
+    TArrayNoInit<BYTE> DisableTranslationScaleCodecs;
+    struct FAnimZipTrackSettings CharacterTrackSettings;
+    struct FAnimZipTrackSettings CharacterTrackSettings_Bip01;
+    struct FAnimZipTrackSettings CharacterTrackSettings_Pelvis;
+    struct FAnimZipTrackSettings CharacterTrackSettings_Spine;
+    struct FAnimZipTrackSettings CharacterTrackSettings_Face;
+    struct FAnimZipTrackSettings CharacterTrackSettings_Head;
+    struct FAnimZipTrackSettings CharacterTrackSettings_Clavicle;
+    struct FAnimZipTrackSettings CharacterTrackSettings_Arm;
+    struct FAnimZipTrackSettings CharacterTrackSettings_Hand;
+    struct FAnimZipTrackSettings CharacterTrackSettings_Finger;
+    struct FAnimZipTrackSettings CharacterTrackSettings_Gundummy;
+    struct FAnimZipTrackSettings CharacterTrackSettings_Leg;
+    struct FAnimZipTrackSettings CharacterTrackSettings_Foot;
+    struct FAnimZipTrackSettings CharacterTrackSettings_Toe;
+    struct FAnimZipTrackSettings CapeTrackSettings;
+    //## END PROPS RAnimZip_Settings
+
+    DECLARE_CLASS(URAnimZip_Settings,UObject,0,Engine)
+    NO_DEFAULT_CONSTRUCTOR(URAnimZip_Settings)
+};
+
 struct FAnimNotifyEvent
 {
     FLOAT Time;
     class UAnimNotify* Notify;
-    FName Comment;
-    FLOAT Duration;
 
     /** Constructors */
     FAnimNotifyEvent() {}
@@ -659,11 +791,7 @@ struct FCurveTrack
     FName CurveName;
     TArrayNoInit<FLOAT> CurveWeights;
 
-	/** Returns TRUE if valid curve weight exists in the array*/
 	UBOOL IsValidCurveTrack();
-	/** This is very simple cut to 1 key method if all is same since I see so many redundant same value in every frame 
-	 *  Eventually this can get more complicated 
-	 *  Will return TRUE if compressed to 1. Return FALSE otherwise **/
 	UBOOL CompressCurveWeights();
 	
 };
@@ -680,6 +808,71 @@ struct FCompressedTrack
     FCompressedTrack(EEventParm)
     {
         appMemzero(this, sizeof(FCompressedTrack));
+    }
+};
+
+struct FAnimReferenceOptions
+{
+    BITFIELD AutomaticFloorHeight:1;
+    SCRIPT_ALIGN;
+    BYTE ForwardYawDirection;
+    FLOAT ForwardYaw;
+    FLOAT FloorHeight;
+
+    /** Constructors */
+    FAnimReferenceOptions() {}
+    FAnimReferenceOptions(EEventParm)
+    {
+        appMemzero(this, sizeof(FAnimReferenceOptions));
+    }
+};
+
+struct FAnimReferencePeriods
+{
+    struct FAnimReferenceOptions Start;
+    struct FAnimReferenceOptions End;
+    BITFIELD EnforceMinimumFloorHeight:1;
+    FLOAT MinimumFloorHeight;
+
+    /** Constructors */
+    FAnimReferencePeriods() {}
+    FAnimReferencePeriods(EEventParm)
+    {
+        appMemzero(this, sizeof(FAnimReferencePeriods));
+    }
+};
+
+struct FAnimCollisionOptions
+{
+    BITFIELD BlockActors:1;
+    BITFIELD CollideWorld:1;
+    BITFIELD DisableLegIK:1;
+    BITFIELD AllowIKWhenNotPHYSWalking:1;
+    BITFIELD PreviousVelocityOverridesAnimRootMotion:1;
+    SCRIPT_ALIGN;
+    BYTE Physics;
+    BYTE RootMotionRotationOption;
+    BYTE RootMotionTranslationOption;
+    SCRIPT_ALIGN;
+
+    /** Constructors */
+    FAnimCollisionOptions() {}
+    FAnimCollisionOptions(EEventParm)
+    {
+        appMemzero(this, sizeof(FAnimCollisionOptions));
+    }
+};
+
+struct FAnimCollisionPeriods
+{
+    struct FAnimCollisionOptions Middle;
+    struct FAnimCollisionOptions End;
+
+    /** Constructors */
+    FAnimCollisionPeriods() {}
+    FAnimCollisionPeriods(EEventParm)
+    {
+        appMemzero(this, sizeof(FAnimCollisionPeriods));
     }
 };
 
@@ -702,41 +895,45 @@ public:
     //## BEGIN PROPS AnimSequence
     FName SequenceName;
     TArrayNoInit<struct FAnimNotifyEvent> Notifies;
-    TArrayNoInit<class UAnimMetaData*> MetaData;
-    TArrayNoInit<struct FSkelControlModifier> BoneControlModifiers_DEPRECATED;
-    FLOAT SequenceLength;
-    INT NumFrames;
-    FLOAT RateScale;
-    BITFIELD bNoLoopingInterpolation:1;
+    BITFIELD AudioComplete:1;
     BITFIELD bUseSimpleForwardYaw:1;
     BITFIELD bUseSimpleFloorHeight:1;
     BITFIELD bUseSimpleRootMotionXY:1;
+    BITFIELD bInheritRootMotionFromVelocity:1;
     BITFIELD DisableProportionalMotionDuringBlendOut:1;
     BITFIELD AllowCheekyBlendIn:1;
     BITFIELD AllowCheekyBlendOut:1;
+    BITFIELD EmbeddedFaceFXAnim_AllowAutomaticBlinks:1;
     BITFIELD WeaponSwitchPointEnabled:1;
     BITFIELD Compression_UseLinearInterpolation:1;
     BITFIELD Compression_RelativeToReferencePose:1;
     BITFIELD Compression_UsingTemporaryCompression:1;
-    BITFIELD bIsAdditive:1;
-    BITFIELD bAdditiveBuiltLooping:1;
     BITFIELD bDoNotOverrideCompression:1;
     BITFIELD bHasBeenUsed:1;
+    BITFIELD MetricWasRecorded:1;
+    FLOAT SequenceLength;
+    INT NumFrames;
+    FLOAT RateScale;
     TArrayNoInit<FRawAnimSequenceTrack> RawAnimData_DEPRECATED;
     TArrayNoInit<FRawAnimSequenceTrack> RawAnimationData;
-    TArrayNoInit<struct FTranslationTrack> TranslationData;
-    TArrayNoInit<struct FRotationTrack> RotationData;
     TArrayNoInit<struct FCurveTrack> CurveData;
     class UAnimationCompressionAlgorithm* CompressionScheme;
-    class URAnimZip_Settings* Compression_CustomSettings;
     BYTE TranslationCompressionFormat;
     BYTE RotationCompressionFormat;
+    BYTE Compression_Preset;
     BYTE KeyEncodingFormat;
     TArrayNoInit<INT> CompressedTrackOffsets;
     TArrayNoInit<BYTE> CompressedByteStream;
-    TArrayNoInit<BYTE> AnimZip_Data;
-    FVector AnimZip_LinearOrigin;
-    FVector AnimZip_LinearSpan;
+    FStringNoInit MaxFilePath;
+    FStringNoInit MaxAuthor;
+    FVector ReferencePoint;
+    FLOAT ReferencePointYaw;
+    struct FAnimReferencePeriods ReferenceOptions;
+    FLOAT ProportionalMotionDistanceCap;
+    struct FAnimCollisionPeriods CollisionOptions;
+    FLOAT BlendInDuration;
+    FLOAT BlendOutDuration;
+    class UFaceFXAnimSet* EmbeddedFaceFXAnim;
     FLOAT BlendInPoint;
     FLOAT BlendOutPoint;
     FLOAT ClippedStart;
@@ -748,14 +945,12 @@ public:
     FLOAT ClipRootMotionOutPoint;
     FLOAT CollisionOptionsOutPoint;
     FLOAT WeaponSwitchPoint;
+    class URAnimZip_Settings* Compression_CustomSettings;
+    TArrayNoInit<BYTE> AnimZip_Data;
+    FVector AnimZip_LinearOrigin;
+    FVector AnimZip_LinearSpan;
     FPointer TranslationCodec;
     FPointer RotationCodec;
-    TArrayNoInit<FBoneAtom> AdditiveRefPose_DEPRECATED;
-    TArrayNoInit<FRawAnimSequenceTrack> AdditiveBasePose;
-    FName AdditiveRefName;
-    TArrayNoInit<class UAnimSequence*> AdditiveBasePoseAnimSeq;
-    TArrayNoInit<class UAnimSequence*> AdditiveTargetPoseAnimSeq;
-    TArrayNoInit<class UAnimSequence*> RelatedAdditiveAnimSeqs;
     INT EncodingPkgVersion;
     INT CompressCommandletVersion;
     FLOAT UseScore;
@@ -786,7 +981,7 @@ public:
 
 	/**
 	 * Used by various commandlets to purge editor only and platform-specific data from various objects
-	 * 
+	 *
 	 * @param PlatformsToKeep Platforms for which to keep platform-specific data
 	 * @param bStripLargeEditorData If TRUE, data used in the editor, but large enough to bloat download sizes, will be removed
 	 */
@@ -869,17 +1064,6 @@ public:
 	 * @param	CurveKeys		List of Curve Keys if exists
 	 */
 	void GetBoneAtom(FBoneAtom& OutAtom, INT TrackIndex, FLOAT Time, UBOOL bLooping, UBOOL bUseRawData, FCurveKeyArray* CurveKeys = NULL) const;
-	
-	/**
-	 * Interpolate keyframes in this sequence to find the bone transform (relative to parent).
-	 * This returns the base pose used to create the additive animation.
-	 *
-	 * @param	OutAtom			[out] Output bone transform.
-	 * @param	TrackIndex		Index of track to interpolate.
-	 * @param	Time			Time on track to interpolate to.
-	 * @param	bLooping		TRUE if the animation is looping.
-	 */
-	void GetAdditiveBasePoseBoneAtom(FBoneAtom& OutAtom, INT TrackIndex, FLOAT Time, UBOOL bLooping) const;
 
 	/**
 	 * Interpolate curve weights of the Time in this sequence if curve data exists
@@ -929,8 +1113,8 @@ public:
 	 * @return					TRUE if the operation was successful.
 	 */
 	UBOOL CropRawAnimData( FLOAT CurrentTime, UBOOL bFromStart );
-	/** 
-	 *  Utility function for lossless compression of a FRawAnimSequenceTrack 
+	/**
+	 *  Utility function for lossless compression of a FRawAnimSequenceTrack
 	 *  @return TRUE if keys were removed.
 	 **/
 	UBOOL CompressRawAnimSequenceTrack(FRawAnimSequenceTrack& RawTrack, float MaxPosDiff, float MaxAngleDiff);
@@ -952,15 +1136,7 @@ public:
 	/** Clears any data in the AnimSequence, so it can be recycled when importing a new animation with same name over it. */
 	void RecycleAnimSequence();
 
-	/** 
-	 * Clear references to additive animations.
-	 * This is the following arrays: AdditiveBasePoseAnimSeq, AdditiveTargetPoseAnimSeq and RelatedAdditiveAnimSeqs.
-	 * Handles dependencies, and removes us properly.
-	 */
-	void ClearAdditiveAnimReferences();
-
 	static UBOOL CopyAnimSequenceProperties(UAnimSequence* SourceAnimSeq, UAnimSequence* DestAnimSeq, UBOOL bSkipCopyingNotifies=FALSE);
-	static void CopyMetadata(UAnimSequence* SourceAnimSeq, UAnimSequence* DestAnimSeq);
 	static UBOOL CopyNotifies(UAnimSequence* SourceAnimSeq, UAnimSequence* DestAnimSeq);
 };
 
@@ -1534,14 +1710,6 @@ public:
 
 	virtual FString GetEditorComment() { return TEXT(""); }
 	virtual FColor GetEditorColor() { return NotifyColor; }
-
-	/**
-	 *	Called by the AnimSet viewer when the 'parent' FAnimNotifyEvent is edited.
-	 *
-	 *	@param	NodeSeq			The AnimNodeSequence this notify is associated with.
-	 *	@param	OwnerEvent		The FAnimNotifyEvent that 'owns' this AnimNotify.
-	 */
-	virtual void AnimNotifyEventChanged(class UAnimNodeSequence* NodeSeq, FAnimNotifyEvent* OwnerEvent) {}
 };
 
 class UAnimNotify_CameraEffect : public UAnimNotify
@@ -1570,14 +1738,6 @@ public:
 	// AnimNotify interface.
 	virtual void Notify( class UAnimNodeSequence* NodeSeq );
 	virtual void NotifyEnd( class UAnimNodeSequence* NodeSeq, FLOAT AnimCurrentTime );
-	
-	/**
-	 *	Called by the AnimSet viewer when the 'parent' FAnimNotifyEvent is edited.
-	 *
-	 *	@param	NodeSeq			The AnimNodeSequence this notify is associated with.
-	 *	@param	OwnerEvent		The FAnimNotifyEvent that 'owns' this AnimNotify.
-	 */
-	virtual void AnimNotifyEventChanged(class UAnimNodeSequence* NodeSeq, FAnimNotifyEvent* OwnerEvent);
 };
 
 class UAnimNotify_Footstep : public UAnimNotify
@@ -1879,17 +2039,6 @@ public:
 	 *	@return	UParticleSystemComponent	The particle system component
 	 */
 	UParticleSystemComponent* GetPSysComponent(class UAnimNodeSequence* NodeSeq);
-
-	/**
-	 *	Called by the AnimSet viewer when the 'parent' FAnimNotifyEvent is edited.
-	 *
-	 *	@param	NodeSeq			The AnimNodeSequence this notify is associated with.
-	 *	@param	OwnerEvent		The FAnimNotifyEvent that 'owns' this AnimNotify.
-	 */
-	virtual void AnimNotifyEventChanged(class UAnimNodeSequence* NodeSeq, FAnimNotifyEvent* OwnerEvent);
-
-	/** Store the animation data for the current settings. Editor-only. */
-	void StoreAnimationData(class UAnimNodeSequence* NodeSeq);
 
 	/** Verify the notify is setup correctly for sampling animation data. Editor-only. */
 	UBOOL IsSetupValid(class UAnimNodeSequence* NodeSeq);
@@ -4829,96 +4978,6 @@ public:
 	 * Returns a one line description of an object for viewing in the thumbnail view of the generic browser
 	 */
 	virtual FString GetDesc();
-};
-
-struct FAnimZipErrorBounds
-{
-    FLOAT Rotation;
-    FLOAT Translation;
-    FLOAT Scale;
-
-    /** Constructors */
-    FAnimZipErrorBounds() {}
-    FAnimZipErrorBounds(EEventParm)
-    {
-        appMemzero(this, sizeof(FAnimZipErrorBounds));
-    }
-};
-
-struct FAnimZipTrackSettings
-{
-    struct FAnimZipErrorBounds ErrorBounds;
-    BITFIELD AllowRotationRetargeting:1;
-    SCRIPT_ALIGN;
-
-    /** Constructors */
-    FAnimZipTrackSettings() {}
-    FAnimZipTrackSettings(EEventParm)
-    {
-        appMemzero(this, sizeof(FAnimZipTrackSettings));
-    }
-};
-
-struct FAnimZipNamedTrackSettings
-{
-    FName TrackName;
-    struct FAnimZipTrackSettings Settings;
-
-    /** Constructors */
-    FAnimZipNamedTrackSettings() {}
-    FAnimZipNamedTrackSettings(EEventParm)
-    {
-        appMemzero(this, sizeof(FAnimZipNamedTrackSettings));
-    }
-};
-
-class URAnimZip_Settings : public UObject
-{
-public:
-    //## BEGIN PROPS RAnimZip_Settings
-    FLOAT CompressionAmount;
-    BITFIELD StripTracksIfSameAsReferencePose:1;
-    BITFIELD EnableAdaptiveDownsample:1;
-    BITFIELD ForceDownsample_Enabled:1;
-    BITFIELD EnableAdaptiveDownsampleEnergy:1;
-    BITFIELD EnableRotationRetargeting:1;
-    BITFIELD ForceRotationCodec_Enabled:1;
-    BITFIELD ForceTranslationScaleCodec_Enabled:1;
-    BITFIELD EnableCharacterOptimisations:1;
-    BITFIELD EnableCapeOptimisations:1;
-    BITFIELD Log:1;
-    TArrayNoInit<INT> AdaptiveDownsampleDivisors;
-    TArrayNoInit<INT> AdaptiveDownsampleNumbers;
-    FLOAT ForceDownsample;
-    FLOAT AdaptiveDownsampleEnergyLowScale;
-    FLOAT AdaptiveDownsampleEnergyHighScale;
-    FLOAT AdaptiveDownsampleEnergyPower;
-    struct FAnimZipTrackSettings DefaultTrackSettings;
-    TArrayNoInit<struct FAnimZipNamedTrackSettings> ForcedTrackSettings;
-    struct FAnimZipTrackSettings MotionTrackSettings;
-    BYTE ForceRotationCodec;
-    BYTE ForceTranslationScaleCodec;
-    TArrayNoInit<BYTE> DisableRotationCodecs;
-    TArrayNoInit<BYTE> DisableTranslationScaleCodecs;
-    struct FAnimZipTrackSettings CharacterTrackSettings;
-    struct FAnimZipTrackSettings CharacterTrackSettings_Bip01;
-    struct FAnimZipTrackSettings CharacterTrackSettings_Pelvis;
-    struct FAnimZipTrackSettings CharacterTrackSettings_Spine;
-    struct FAnimZipTrackSettings CharacterTrackSettings_Face;
-    struct FAnimZipTrackSettings CharacterTrackSettings_Head;
-    struct FAnimZipTrackSettings CharacterTrackSettings_Clavicle;
-    struct FAnimZipTrackSettings CharacterTrackSettings_Arm;
-    struct FAnimZipTrackSettings CharacterTrackSettings_Hand;
-    struct FAnimZipTrackSettings CharacterTrackSettings_Finger;
-    struct FAnimZipTrackSettings CharacterTrackSettings_Gundummy;
-    struct FAnimZipTrackSettings CharacterTrackSettings_Leg;
-    struct FAnimZipTrackSettings CharacterTrackSettings_Foot;
-    struct FAnimZipTrackSettings CharacterTrackSettings_Toe;
-    struct FAnimZipTrackSettings CapeTrackSettings;
-    //## END PROPS RAnimZip_Settings
-
-    DECLARE_CLASS(URAnimZip_Settings,UObject,0,Engine)
-    NO_DEFAULT_CONSTRUCTOR(URAnimZip_Settings)
 };
 
 #undef DECLARE_CLASS

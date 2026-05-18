@@ -280,37 +280,10 @@ void UAnimNodeSequence::SetAnim(FName InSequenceName)
 		}
 	}
 
-	// If we have changed AnimSeq, update MetaData
 	if( OldAnimSeq != AnimSeq )
 	{
 		// Animation updated, clear cached data
 		ConditionalClearCachedData();
-
-		// AnimMetadata AnimUnSet
-		if( OldAnimSeq )
-		{
-			for(INT Index=0; Index<OldAnimSeq->MetaData.Num(); Index++)
-			{
-				UAnimMetaData* AnimMetadata = OldAnimSeq->MetaData(Index);
-				if( AnimMetadata )
-				{
-					AnimMetadata->AnimUnSet(this);
-				}
-			}
-		}
-
-		// AnimMetadata AnimSet
-		if( AnimSeq )
-		{
-			for(INT Index=0; Index<AnimSeq->MetaData.Num(); Index++)
-			{
-				UAnimMetaData* AnimMetadata = AnimSeq->MetaData(Index);
-				if( AnimMetadata )
-				{
-					AnimMetadata->AnimSet(this);
-				}
-			}
-		}
 	}
 }
 
@@ -366,19 +339,6 @@ void UAnimNodeSequence::TickAnim(FLOAT DeltaSeconds)
 
 				// Add this node to our Update Queue for this frame
 				AnimGroup.SeqNodes.AddItem(this);
-			}
-		}
-	}
-
-	// AnimMetadata Update
-	if( AnimSeq )
-	{
-		for(INT Index=0; Index<AnimSeq->MetaData.Num(); Index++)
-		{
-			UAnimMetaData* AnimMetadata = AnimSeq->MetaData(Index);
-			if( AnimMetadata )
-			{
-				AnimMetadata->TickMetaData(this);
 			}
 		}
 	}
@@ -619,8 +579,7 @@ void UAnimNodeSequence::GetAnimationPose(UAnimSequence* InAnimSeq, INT& InAnimLi
 
 	// Handle Last Frame to First Frame interpolation when looping.
 	// It is however disabled for the Root Bone.
-	// And the 'bNoLoopingInterpolation' flag on the animation can also disable that behavior.
-	const UBOOL bLoopingInterpolation = bLooping && !InAnimSeq->bNoLoopingInterpolation;
+	const UBOOL bLoopingInterpolation = bLooping;
 
 	// Never process bone indices higher than our static array size to avoid crashes for malformed assets
 	const INT DesiredBoneCount = Min( MAX_BONES, DesiredBones.Num() );
@@ -663,7 +622,7 @@ void UAnimNodeSequence::GetAnimationPose(UAnimSequence* InAnimSeq, INT& InAnimLi
 			if (BoneIndex > 0)
 			{
 				const INT TrackIndex = AnimLinkup->BoneToTrackTable(BoneIndex);
-				if (TrackIndex != INDEX_NONE && !InAnimSeq->bIsAdditive
+				if (TrackIndex != INDEX_NONE
 					&& ((bAnimRotationOnly && !AnimSet->BoneUseAnimTranslation(TrackIndex))
 						|| AnimSet->ForceUseMeshTranslation(TrackIndex)))
 				{
@@ -700,14 +659,7 @@ void UAnimNodeSequence::GetAnimationPose(UAnimSequence* InAnimSeq, INT& InAnimLi
 			if( TrackIndex == INDEX_NONE )
 			{
 				// use the default rotation and translation for this bone
-				if( InAnimSeq->bIsAdditive )
-				{
-					Atoms(BoneIndex).SetIdentity();
-				}
-				else
-				{
-					Atoms(BoneIndex).SetComponents(RefSkel(BoneIndex).BonePos.Orientation, RefSkel(BoneIndex).BonePos.Position);
-				}
+				Atoms(BoneIndex).SetComponents(RefSkel(BoneIndex).BonePos.Orientation, RefSkel(BoneIndex).BonePos.Position);
 			}
 			else if (BoneIndex > 0)
 			{
@@ -715,7 +667,7 @@ void UAnimNodeSequence::GetAnimationPose(UAnimSequence* InAnimSeq, INT& InAnimLi
 				RotationPairs.AddItem(BoneTrackPair(BoneIndex, TrackIndex));
 
 				// If doing 'rotation only' case, use ref pose for all non-root bones that are not in the BoneUseAnimTranslation array.
-				if(	!InAnimSeq->bIsAdditive && ((bAnimRotationOnly && !AnimSet->BoneUseAnimTranslation(TrackIndex)) || AnimSet->ForceUseMeshTranslation(TrackIndex)) )
+				if(	((bAnimRotationOnly && !AnimSet->BoneUseAnimTranslation(TrackIndex)) || AnimSet->ForceUseMeshTranslation(TrackIndex)) )
 				{
 					// use the default translation for this bone
 					Atoms(BoneIndex).SetComponents(FQuat::Identity, RefSkel(BoneIndex).BonePos.Position);  //@TODO: mnoland - Altered behavior to avoid relying on uninitialized memory
@@ -793,16 +745,9 @@ void UAnimNodeSequence::GetAnimationPose(UAnimSequence* InAnimSeq, INT& InAnimLi
 		// If there is no track for this bone, we just use the reference pose.
 		if( TrackIndex == INDEX_NONE )
 		{
-			if( InAnimSeq->bIsAdditive )
-			{
-				Atoms(BoneIndex).SetIdentity();
-			}
-			else
-			{
-				Atoms(BoneIndex).SetComponents(RefSkel(BoneIndex).BonePos.Orientation, RefSkel(BoneIndex).BonePos.Position);
-			}
+			Atoms(BoneIndex).SetComponents(RefSkel(BoneIndex).BonePos.Orientation, RefSkel(BoneIndex).BonePos.Position);
 		}
-		else 
+		else
 		{
 			// Non Root Bone
 			if( BoneIndex > 0 )
@@ -811,7 +756,7 @@ void UAnimNodeSequence::GetAnimationPose(UAnimSequence* InAnimSeq, INT& InAnimLi
 				InAnimSeq->GetBoneAtom(Atoms(BoneIndex), TrackIndex, CurrentTime, bLoopingInterpolation, bUseRawData);
 
 				// If doing 'rotation only' case, use ref pose for all non-root bones that are not in the BoneUseAnimTranslation array.
-				if(	!InAnimSeq->bIsAdditive && ((bAnimRotationOnly && !AnimSet->BoneUseAnimTranslation(TrackIndex)) || AnimSet->ForceUseMeshTranslation(TrackIndex)) )
+				if(	((bAnimRotationOnly && !AnimSet->BoneUseAnimTranslation(TrackIndex)) || AnimSet->ForceUseMeshTranslation(TrackIndex)) )
 				{
  					Atoms(BoneIndex).SetTranslation(RefSkel(BoneIndex).BonePos.Position);
 				}
@@ -861,58 +806,6 @@ void UAnimNodeSequence::GetAnimationPose(UAnimSequence* InAnimSeq, INT& InAnimLi
 	{
 		const INT	BoneIndex = DesiredBones(i);
 		check( Atoms(BoneIndex).IsRotationNormalized() );
-	}
-#endif
-
-// In Editor, show additive animation added to its ref pose
-// Made into a separate branch, so we don't add a branch test for each bone when we only care about this in the editor.
-#if 1 && !CONSOLE
-	if( bEditorOnlyAddRefPoseToAdditiveAnimation && InAnimSeq->bIsAdditive )
-	{
-		for( INT i=0; i<DesiredBoneCount; i++ )
-		{
-			const INT	BoneIndex = DesiredBones(i);
-			// Find which track in the sequence we look in for this bones data
-			const INT	TrackIndex = AnimLinkup->BoneToTrackTable(BoneIndex);
-
-			if( TrackIndex == INDEX_NONE )
-			{
-				Atoms(BoneIndex).SetComponents(RefSkel(BoneIndex).BonePos.Orientation, RefSkel(BoneIndex).BonePos.Position);				
-			}
-			else
-			{
-				FBoneAtom	RefBoneAtom;
-				InAnimSeq->GetAdditiveBasePoseBoneAtom(RefBoneAtom, TrackIndex, CurrentTime, bLoopingInterpolation);
-
-				// If doing 'rotation only' case, use ref pose for all non-root bones that are not in the BoneUseAnimTranslation array.
-				if(	BoneIndex > 0 && ((bAnimRotationOnly && !AnimSet->BoneUseAnimTranslation(TrackIndex)) || AnimSet->ForceUseMeshTranslation(TrackIndex)) )
-				{
-					Atoms(BoneIndex).AddToTranslation(RefSkel(BoneIndex).BonePos.Position);
-				}
-				else
-				{
-					Atoms(BoneIndex).AddToTranslation(RefBoneAtom.GetTranslation());
-				}
-
-				// Apply quaternion fix for ActorX-exported quaternions.
-				FQuat RefRot = RefBoneAtom.GetRotation();
-				if( BoneIndex > 0 )
-				{
-					RefRot.W *= -1.0f;
-				}
-
-				// Add ref pose relative animation to base animation, only if rotation is significant.
-				if( Square(Atoms(BoneIndex).GetRotation().W) < 1.f - DELTA * DELTA )
-				{
-					Atoms(BoneIndex).ConcatenateRotation(RefRot);
-					Atoms(BoneIndex).NormalizeRotation();
-				}
-				else
-				{
-					Atoms(BoneIndex).SetRotation(RefRot);
-				}
-			}
-		}
 	}
 #endif
 
@@ -1369,36 +1262,6 @@ void UAnimNodeSequence::IssueNotifies(FLOAT DeltaTime)
 	// Set flag to show we are firing notifies.
 	bIsIssuingNotifies = TRUE;
 
-	// Separate pass to look for any notifies with an active duration
-	// NOTE: durations are clamped to the sequence length, so we can opt out of the looping edge cases
-	for(INT i=0; i<NumNotifies; i++)
-	{
-		// Check to see if this is a notify with a duration
-		if (AnimSeq->Notifies(i).Duration > 0.f)
-		{
-			const FLOAT AnimNotifyStartTime = AnimSeq->Notifies(i).Time;
-			const FLOAT AnimNotifyEndTime = AnimNotifyStartTime + AnimSeq->Notifies(i).Duration;
-			//debugf(TEXT("notify: current %.4f, delta %.4f, end %.4f"),CurrentTime,DeltaTime,AnimNotifyEndTime);
-			if ((CurrentTime < AnimNotifyEndTime) && (CurrentTime > AnimNotifyStartTime))
-			{
-				UAnimNotify* AnimNotify = AnimSeq->Notifies(i).Notify;
-				if (AnimNotify != NULL)
-				{
-					AnimNotify->NotifyTick(this,CurrentTime,Min<FLOAT>(DeltaTime,AnimSeq->Notifies(i).Duration), AnimSeq->Notifies(i).Duration);
-					if (CurrentTime + DeltaTime >= AnimNotifyEndTime)
-					{
-						AnimNotify->NotifyEnd(this,CurrentTime);
-					}
-					if (AnimSeq != AnimSeqNotify)
-					{
-						//debugf(NAME_Warning,TEXT("Animation sequence changed from notify, aborting further duration notifies"));
-						break;
-					}
-				}
-			}
-		}
-	}
-
 	// If there is no potential next notify, do nothing.
 	// This can only happen if there are no notifies (and we would have returned at start) or the anim is not looping.
 	if(NextNotifyIndex == INDEX_NONE)
@@ -1414,8 +1277,6 @@ void UAnimNodeSequence::IssueNotifies(FLOAT DeltaTime)
 	// Then keep walking forwards until we run out of time.
 	while( TimeToGo > 0.0f )
 	{
-		//debugf( TEXT("NOTIFY: %d %s %f"), NextNotifyIndex, *(AnimSeqNotify->Notifies(NextNotifyIndex).Comment.ToString()), TimeToGo );
-
 		// Execute this notify. NextNotifyIndex will be the soonest notify inside the current TimeToGo interval.
 		UAnimNotify* AnimNotify = AnimSeqNotify->Notifies(NextNotifyIndex).Notify;
 		if( AnimNotify )
@@ -1423,7 +1284,7 @@ void UAnimNodeSequence::IssueNotifies(FLOAT DeltaTime)
 			// Call Notify function
 			AnimNotify->Notify( this );
 		}
-		
+
 		// Then find the next one.
 		NextNotifyIndex = (NextNotifyIndex + 1) % NumNotifies; // Assumes notifies are ordered.
 		TimeToNextNotify = AnimSeqNotify->Notifies(NextNotifyIndex).Time - WorkTime;
@@ -1528,8 +1389,6 @@ void UAnimNodeSequence::IssueNegativeRateNotifies(FLOAT DeltaTime)
 	// Then keep walking forwards until we run out of time.
 	while( TimeToGo < 0.0f )
 	{
-		//debugf( TEXT("NOTIFY: %d %s %f"), NextNotifyIndex, *(AnimSeqNotify->Notifies(NextNotifyIndex).Comment.ToString()), TimeToGo );
-
 		// Execute this notify. NextNotifyIndex will be the soonest notify inside the current TimeToGo interval.
 		UAnimNotify* AnimNotify = AnimSeqNotify->Notifies(NextNotifyIndex).Notify;
 		if( AnimNotify )
@@ -1537,7 +1396,7 @@ void UAnimNodeSequence::IssueNegativeRateNotifies(FLOAT DeltaTime)
 			// Call Notify function
 			AnimNotify->Notify( this );
 		}
-		
+
 		// Then find the next one.
 		NextNotifyIndex--; // Assumes notifies are ordered.
 		if(NextNotifyIndex < 0)

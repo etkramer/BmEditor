@@ -164,7 +164,6 @@ defaultproperties
 	// Allowed rotation formats
 	AllowedRotationFormats[0] = ACF_Identity
 	AllowedRotationFormats[1] = ACF_Fixed48NoW
-    AllowedRotationFormats[2] = ACF_Fixed48Max
 
 	// Those below produce too much error (shaking), and have the side effect of producing worse overall compression, so they are being removed for now.
 // 	AllowedRotationFormats[2] = ACF_IntervalFixed32NoW

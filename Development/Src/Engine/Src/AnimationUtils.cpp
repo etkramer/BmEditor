@@ -298,27 +298,6 @@ void FAnimationUtils::ComputeCompressionError(const UAnimSequence* AnimSeq, USke
 						NewAtoms(BoneIndex).FlipSignOfRotationW();
 					}
 
-					// apply the reference bone atom (if needed)
-					if( AnimSeq->bIsAdditive )
-					{
-						FBoneAtom RefBoneAtom;
-						AnimSeq->GetAdditiveBasePoseBoneAtom(RefBoneAtom, TrackIndex, Time, FALSE);
-						
-						// Apply quaternion fix for ActorX-exported quaternions.
-						if( BoneIndex > 0 )
-						{
-							RefBoneAtom.FlipSignOfRotationW();
-						}
-
-						// apply additive amount to the reference pose
-						RawAtoms(BoneIndex).AddToTranslation(RefBoneAtom.GetTranslationV());
-						NewAtoms(BoneIndex).AddToTranslation(RefBoneAtom.GetTranslationV());
-
-						// Add ref pose relative animation to base animation
-						RawAtoms(BoneIndex).ConcatenateRotation(RefBoneAtom.GetRotationV());
-						NewAtoms(BoneIndex).ConcatenateRotation(RefBoneAtom.GetRotationV());
-					}
-
 					UBOOL bSkipTranslationTrack = FALSE;
 
 					// If we don't care about this translation track, because it's going to get skipped, then use RefSkel translation for error measurement.
@@ -395,13 +374,12 @@ void FAnimationUtils::ComputeCompressionError(const UAnimSequence* AnimSeq, USke
 		// That's a big error, log out some information!
  		if( ErrorStats.MaxError > 10.f )
  		{
-			debugf(TEXT("!!! Big error found: %f, Time: %f, BoneIndex: %d, Track: %d, CompressionScheme: %s, additive: %d"), 
+			debugf(TEXT("!!! Big error found: %f, Time: %f, BoneIndex: %d, Track: %d, CompressionScheme: %s"),
  				ErrorStats.MaxError,
 				ErrorStats.MaxErrorTime,
 				ErrorStats.MaxErrorBone,
 				MaxErrorTrack,
-				AnimSeq->CompressionScheme ? *AnimSeq->CompressionScheme->GetFName().ToString() : TEXT("NULL"),
-				AnimSeq->bIsAdditive );
+				AnimSeq->CompressionScheme ? *AnimSeq->CompressionScheme->GetFName().ToString() : TEXT("NULL") );
  			debugf(TEXT("   RawOrigin: %s, NormalOrigin: %s"), *RawTransforms(ErrorStats.MaxErrorBone).GetOrigin().ToString(), *NewTransforms(ErrorStats.MaxErrorBone).GetOrigin().ToString());
  
  			// We shouldn't have a big error with no compression.
@@ -555,8 +533,6 @@ UBOOL FAnimationUtils::GetForcedRecompressionSetting()
 	if( !bKeepNewCompressionMethod )																														\
 	{																																						\
 		/* revert back to the old method by copying back the data we cached */																				\
-		AnimSeq->TranslationData = SavedTranslationData;																									\
-		AnimSeq->RotationData = SavedRotationData;																											\
 		AnimSeq->CompressionScheme = SavedCompressionScheme;																								\
 		AnimSeq->TranslationCompressionFormat = SavedTranslationCompressionFormat;																			\
 		AnimSeq->RotationCompressionFormat = SavedRotationCompressionFormat;																				\
@@ -573,8 +549,6 @@ UBOOL FAnimationUtils::GetForcedRecompressionSetting()
 	else																																					\
 	{																																						\
 		/* backup key information from the sequence */																										\
-		SavedTranslationData				= AnimSeq->TranslationData;																						\
-		SavedRotationData					= AnimSeq->RotationData;																						\
 		SavedCompressionScheme				= AnimSeq->CompressionScheme;																					\
 		SavedTranslationCompressionFormat	= AnimSeq->TranslationCompressionFormat;																		\
 		SavedRotationCompressionFormat		= AnimSeq->RotationCompressionFormat;																			\
@@ -900,8 +874,6 @@ void FAnimationUtils::CompressAnimSequenceExplicit(
 
 			{
 				// backup key information from the sequence
-				TArrayNoInit<struct FTranslationTrack> SavedTranslationData = AnimSeq->TranslationData;
-				TArrayNoInit<struct FRotationTrack> SavedRotationData = AnimSeq->RotationData;
 				class UAnimationCompressionAlgorithm* SavedCompressionScheme = AnimSeq->CompressionScheme;
 				BYTE SavedTranslationCompressionFormat = AnimSeq->TranslationCompressionFormat;
 				BYTE SavedRotationCompressionFormat = AnimSeq->RotationCompressionFormat;
@@ -1544,629 +1516,32 @@ void FAnimationUtils::TestForMissingMeshes(UAnimSequence* AnimSeq, USkeletalMesh
 #endif
 }
 
+
 void FAnimationUtils::InternalSetAnimRebuildInfoForAdditiveAnim(UAnimSequence* AdditiveAnimSeq, TArray<AdditiveAnimRebuildInfo> &AdditiveAnimRebuildList)
 {
-	AdditiveAnimRebuildInfo RebuildInfo;
-	RebuildInfo.AdditivePose = AdditiveAnimSeq;
-	RebuildInfo.BasePose = NULL;
-	RebuildInfo.TargetPose = NULL;
-	RebuildInfo.SkelMesh = NULL;
-
-	if( AdditiveAnimSeq->GetAnimSet()->PreviewSkelMeshName != NAME_None )
-	{
-		RebuildInfo.SkelMesh = LoadObject<USkeletalMesh>(NULL, *AdditiveAnimSeq->GetAnimSet()->PreviewSkelMeshName.ToString(), NULL, LOAD_None, NULL);
-	}
-
-	// Look up a base pose
-	for(INT AnimSeqIdx=0; AnimSeqIdx<AdditiveAnimSeq->AdditiveBasePoseAnimSeq.Num(); AnimSeqIdx++)
-	{
-		UAnimSequence *BasePoseAnimSeq = AdditiveAnimSeq->AdditiveBasePoseAnimSeq(AnimSeqIdx);
-		check(BasePoseAnimSeq);
-		RebuildInfo.BasePose = BasePoseAnimSeq;
-		break;
-	}
-
-	// Look up target pose.
-	for(INT AnimSeqIdx=0; AnimSeqIdx<AdditiveAnimSeq->AdditiveTargetPoseAnimSeq.Num(); AnimSeqIdx++)
-	{
-		UAnimSequence *TargetPoseAnimSeq = AdditiveAnimSeq->AdditiveTargetPoseAnimSeq(AnimSeqIdx);
-		check(TargetPoseAnimSeq);
-		RebuildInfo.TargetPose = TargetPoseAnimSeq;
-		break;
-	}
-
-	if( AdditiveAnimSeq->AdditiveRefName == FName(TEXT("Bind Pose")) )
-	{
-		RebuildInfo.BuildMethod = CTA_RefPose;
-	}
-	else
-	{
-		// Figure out how many frames we used from the base pose.
-		INT BasePoseNumFrames = 0;
-		for(INT TrackIdx=0; TrackIdx<AdditiveAnimSeq->AdditiveBasePose.Num() && BasePoseNumFrames<=1; TrackIdx++)
-		{
-			BasePoseNumFrames = Max<INT>(BasePoseNumFrames, Max<INT>(AdditiveAnimSeq->AdditiveBasePose(TrackIdx).PosKeys.Num(), AdditiveAnimSeq->AdditiveBasePose(TrackIdx).RotKeys.Num()));
-		}
-
-		RebuildInfo.BuildMethod = (BasePoseNumFrames > 1) ? CTA_AnimScaled : CTA_AnimFirstFrame;
-	}
-
-	// If we have a valid rebuild setup, then add the animation to be rebuilt.
-	if( RebuildInfo.SkelMesh && RebuildInfo.TargetPose 
-		&& (RebuildInfo.BasePose || RebuildInfo.BuildMethod == CTA_RefPose) )
-	{
-		AdditiveAnimRebuildList.AddItem( RebuildInfo );
-	}
 }
 
 void FAnimationUtils::GetAdditiveAnimRebuildList(UAnimSequence *AnimSeq, TArray<AdditiveAnimRebuildInfo> &AdditiveAnimRebuildList)
 {
-	check( AnimSeq );
-
-	// Make sure list is empty.
 	AdditiveAnimRebuildList.Empty();
-	
-	// if it's a Target or Base Pose
-	if( !AnimSeq->bIsAdditive )
-	{
-		for(INT AdditiveIndex=0; AdditiveIndex<AnimSeq->RelatedAdditiveAnimSeqs.Num(); AdditiveIndex++)
-		{
-			UAnimSequence *AdditiveAnimSeq = AnimSeq->RelatedAdditiveAnimSeqs(AdditiveIndex);
-			check( AdditiveAnimSeq );
-			check( AdditiveAnimSeq->bIsAdditive );
-
-			FAnimationUtils::InternalSetAnimRebuildInfoForAdditiveAnim(AdditiveAnimSeq, AdditiveAnimRebuildList);
-		}
-	}
-	// If we're already dealing with an Additive Animation.
-	else
-	{
-		FAnimationUtils::InternalSetAnimRebuildInfoForAdditiveAnim(AnimSeq, AdditiveAnimRebuildList);
-	}
 }
-
-// Turn on to enable logging
-#define DEBUG_ADDITIVE_CREATION 0
 
 void FAnimationUtils::RebuildAdditiveAnimations(TArray<AdditiveAnimRebuildInfo> &AdditiveAnimRebuildList)
 {
-	TArray<FName> BuildChoices;
-	BuildChoices.Add(CTA_MAX);
-	BuildChoices(CTA_RefPose) = FName(*LocalizeUnrealEd("AACT_ReferencePose"));
-	BuildChoices(CTA_AnimFirstFrame) = FName(*LocalizeUnrealEd("AACT_AnimationFirstFrame"));
-	BuildChoices(CTA_AnimScaled) = FName(*LocalizeUnrealEd("AACT_AnimationScaled"));
-
-	for(INT i=0; i<AdditiveAnimRebuildList.Num(); i++)
-	{
-		AdditiveAnimRebuildInfo &RebuildInfo = AdditiveAnimRebuildList(i);
-		debugf(TEXT("RebuildAdditiveAnimations Additive: %s, Build Method: %s"), *RebuildInfo.AdditivePose->SequenceName.ToString(), *BuildChoices(RebuildInfo.BuildMethod).ToString());
-		ConvertAnimSeqToAdditive(RebuildInfo.TargetPose, RebuildInfo.AdditivePose, RebuildInfo.BasePose, RebuildInfo.SkelMesh, RebuildInfo.BuildMethod, RebuildInfo.AdditivePose->bAdditiveBuiltLooping, TRUE);
-	}
-}
-
-static void GetBindPoseAtom(FBoneAtom &OutBoneAtom, INT BoneIndex, USkeletalMesh *SkelMesh)
-{
-	const FMeshBone& RefSkelBone = SkelMesh->RefSkeleton(BoneIndex);
-	OutBoneAtom.SetComponents(
-		RefSkelBone.BonePos.Orientation,
-		RefSkelBone.BonePos.Position);
-// #if DEBUG_ADDITIVE_CREATION
-// 	debugf(TEXT("GetBindPoseAtom BoneIndex: %d, OutBoneAtom: %s"), BoneIndex, *OutBoneAtom.ToString());
-// #endif
-}
-
-static void GetRawAnimTrackKey(FBoneAtom &OutBoneAtom, INT BoneIndex, INT KeyIdx, UAnimSequence *AnimSeq, FAnimSetMeshLinkup *AnimLinkup, USkeletalMesh *SkelMesh)
-{
-	const INT SrcTrackIndex = AnimLinkup->BoneToTrackTable(BoneIndex);
-	if( SrcTrackIndex != INDEX_NONE )
-	{
-		FRawAnimSequenceTrack& SourceRawTrack = AnimSeq->RawAnimationData(SrcTrackIndex);
-		OutBoneAtom.SetComponents(
-			SourceRawTrack.RotKeys( KeyIdx < SourceRawTrack.RotKeys.Num() ? KeyIdx : 0 ),
-			SourceRawTrack.PosKeys( KeyIdx < SourceRawTrack.PosKeys.Num() ? KeyIdx : 0 ));
-// #if DEBUG_ADDITIVE_CREATION
-// 		debugf(TEXT("GetRawAnimTrackKey BoneIndex: %d, SrcTrackIndex: %d, KeyIdx: %d, OutBoneAtom: %s"), BoneIndex, SrcTrackIndex, KeyIdx, *OutBoneAtom.ToString());
-// #endif
-	}
-	else
-	{
-		GetBindPoseAtom(OutBoneAtom, BoneIndex, SkelMesh);
-		// Bind Pose Atom doesn't need W flipped. So doing ActorX quat conversion here so the correct rotation is computed below.
-		if( BoneIndex > 0 )
-		{
-			OutBoneAtom.FlipSignOfRotationW();
-		}
-	}
 }
 
 UBOOL FAnimationUtils::ConvertAnimSeqToAdditive
 (
-	UAnimSequence* SourceAnimSeq, 
-	UAnimSequence* DestAnimSeq, 
-	UAnimSequence* RefAnimSeq, 
-	USkeletalMesh* SkelMesh, 
+	UAnimSequence* SourceAnimSeq,
+	UAnimSequence* DestAnimSeq,
+	UAnimSequence* RefAnimSeq,
+	USkeletalMesh* SkelMesh,
 	EConvertToAdditive BuildMethod,
 	UBOOL bIsLoopingAnim,
 	UBOOL bRebuildExisting
 )
 {
-	// We need a reference animation unless we use the reference pose.
-	check(RefAnimSeq || BuildMethod == CTA_RefPose);
-	check( SkelMesh );
-
-	// Make sure source anim sequence is not already additive.
-	if( SourceAnimSeq->bIsAdditive )
-	{
-		appMsgf( AMT_OK, LocalizeSecure(LocalizeUnrealEd("AnimSequenceAlreadyAdditive"), *SourceAnimSeq->SequenceName.ToString()) );
-		return FALSE;
-	}
-
-	// Check if tracks between source and destination match.
-	UAnimSet* SourceAnimSet = SourceAnimSeq->GetAnimSet();
-	INT SourceAnimLinkupIndex = SourceAnimSet->GetMeshLinkupIndex( SkelMesh );
-	FAnimSetMeshLinkup* SourceAnimLinkup = &SourceAnimSet->LinkupCache(SourceAnimLinkupIndex);
-
-	UAnimSet* DestAnimSet = DestAnimSeq->GetAnimSet();
-	INT DestAnimLinkupIndex = DestAnimSet->GetMeshLinkupIndex( SkelMesh );
-	FAnimSetMeshLinkup* DestAnimLinkup = &DestAnimSet->LinkupCache(DestAnimLinkupIndex);
-
-	UAnimSet* RefAnimSet = NULL;
-	INT RefAnimLinkupIndex = INDEX_NONE;
-	FAnimSetMeshLinkup* RefAnimLinkup = NULL;
-	if( RefAnimSeq )
-	{
-		RefAnimSet = RefAnimSeq->GetAnimSet();
-		RefAnimLinkupIndex = RefAnimSet->GetMeshLinkupIndex( SkelMesh );
-		RefAnimLinkup = &RefAnimSet->LinkupCache(RefAnimLinkupIndex);
-	}
-
-	// Make sure we can find all of the destination tracks in the SkelMesh.
-	for(INT DestTrackIdx=0; DestTrackIdx<DestAnimSet->TrackBoneNames.Num(); DestTrackIdx++)
-	{
-		// Figure out which bone this track is mapped to
-		const INT BoneIndex = SkelMesh->MatchRefBone(DestAnimSet->TrackBoneNames(DestTrackIdx));
-		if( BoneIndex == INDEX_NONE )
-		{
-			appMsgf(AMT_OK, LocalizeSecure(LocalizeUnrealEd("Error_CouldNotFindPatchBone"), *DestAnimSet->TrackBoneNames(DestTrackIdx).ToString()));
-			return FALSE;
-		}
-	}
-
-	// Make sure all the tracks from Source exist in Dest. Otherwise we'll lose some data.
-	for(INT SrcTrackIdx=0; SrcTrackIdx<SourceAnimSet->TrackBoneNames.Num(); SrcTrackIdx++)
-	{
-		INT DestTrackIndex = INDEX_NONE;
-		if( !DestAnimSet->TrackBoneNames.FindItem( SourceAnimSet->TrackBoneNames(SrcTrackIdx), DestTrackIndex ) )
-		{
-			UBOOL bDoPatching = appMsgf(AMT_YesNo, LocalizeSecure(LocalizeUnrealEd("Error_CouldNotFindTrack"), *SourceAnimSet->TrackBoneNames(SrcTrackIdx).ToString()));
-			if( bDoPatching )
-			{
-				// Check the selected SkelMesh has a bone called that. If we can't find it - fail.
-				INT PatchBoneIndex = SkelMesh->MatchRefBone(SourceAnimSet->TrackBoneNames(SrcTrackIdx));
-				if( PatchBoneIndex == INDEX_NONE )
-				{
-					appMsgf(AMT_OK, LocalizeSecure(LocalizeUnrealEd("Error_CouldNotFindPatchBone"), *SourceAnimSet->TrackBoneNames(SrcTrackIdx).ToString()));
-					return FALSE;
-				}
-
-				DestAnimSet->TrackBoneNames.AddItem(SourceAnimSet->TrackBoneNames(SrcTrackIdx));
-
-				// Iterate over all existing sequences in this set and add an extra track to the end.
-				for(INT SetAnimIndex=0; SetAnimIndex<DestAnimSet->Sequences.Num(); SetAnimIndex++)
-				{
-					UAnimSequence* ExtendSeq = DestAnimSet->Sequences(SetAnimIndex);
-
-					// Remove any compression on the sequence so that it will be recomputed with the new track.
-					if( ExtendSeq->CompressedTrackOffsets.Num() > 0 )
-					{
-						ExtendSeq->CompressedTrackOffsets.Empty();
-					}
-
-					// Add an extra track to the end, based on the ref skeleton.
-					ExtendSeq->RawAnimationData.AddZeroed();
-					FRawAnimSequenceTrack& RawTrack = ExtendSeq->RawAnimationData( ExtendSeq->RawAnimationData.Num()-1 );
-
-					// Create 1-frame animation from the reference pose of the skeletal mesh.
-					// This is basically what the compression does, so should be fine.
-					if( ExtendSeq->bIsAdditive )
-					{
-						RawTrack.PosKeys.AddItem(FVector(0.f));
-
-						FQuat RefOrientation = FQuat::Identity;
-						// To emulate ActorX-exported animation quat-flipping, we do it here.
-						if( PatchBoneIndex > 0 )
-						{
-							RefOrientation.W *= -1.f;
-						}
-						RawTrack.RotKeys.AddItem(RefOrientation);
-
-						FBoneAtom RefBoneAtom;
-						GetBindPoseAtom(RefBoneAtom, PatchBoneIndex, SkelMesh);
-
-						if( PatchBoneIndex > 0)
-						{
-							RefBoneAtom.FlipSignOfRotationW(); // As above - flip if necessary
-						}
-
-						// Save off RefPose into destination AnimSequence
-						ExtendSeq->AdditiveBasePose.AddZeroed();
-						FRawAnimSequenceTrack& BasePoseTrack = ExtendSeq->AdditiveBasePose( ExtendSeq->AdditiveBasePose.Num()-1 );
-						BasePoseTrack.PosKeys.AddItem(RefBoneAtom.GetTranslation());
-						BasePoseTrack.RotKeys.AddItem(RefBoneAtom.GetRotation());
-					}
-					else
-					{
-						const FVector RefPosition = SkelMesh->RefSkeleton(PatchBoneIndex).BonePos.Position;
-						RawTrack.PosKeys.AddItem(RefPosition);
-
-						FQuat RefOrientation = SkelMesh->RefSkeleton(PatchBoneIndex).BonePos.Orientation;
-						// To emulate ActorX-exported animation quat-flipping, we do it here.
-						if( PatchBoneIndex > 0 )
-						{
-							RefOrientation.W *= -1.f;
-						}
-						RawTrack.RotKeys.AddItem(RefOrientation);
-					}
-				}
-
-				// Update LinkupCache
-				DestAnimSet->LinkupCache.Empty();
-				DestAnimSet->SkelMesh2LinkupCache.Empty();
-				DestAnimLinkupIndex = DestAnimSet->GetMeshLinkupIndex( SkelMesh );
-				DestAnimLinkup = &DestAnimSet->LinkupCache(DestAnimLinkupIndex);
-
-				// We need to re-init any skeletal mesh components now, because they might still have references to linkups in this set.
-				for(TObjectIterator<USkeletalMeshComponent> It;It;++It)
-				{
-					USkeletalMeshComponent* SkelComp = *It;
-					if(!SkelComp->IsPendingKill() && !SkelComp->IsTemplate())
-					{
-						SkelComp->InitAnimTree();
-					}
-				}
-
-				// Recompress any sequences that need it.
-				for( INT SequenceIndex = 0 ; SequenceIndex <DestAnimSet->Sequences.Num(); ++SequenceIndex )
-				{
-					UAnimSequence* AnimSeq = DestAnimSet->Sequences( SequenceIndex );
-					FAnimationUtils::CompressAnimSequence(AnimSeq, NULL, FALSE, FALSE);
-				}
-			}
-			else
-			{
-				return FALSE;
-			}
-		}
-	}
-
-	// Make sure destination is setup correctly
-	DestAnimSeq->RecycleAnimSequence();
-
-	// Copy properties of Source into Dest.
-	UAnimSequence::CopyAnimSequenceProperties(SourceAnimSeq, DestAnimSeq, bRebuildExisting);
-
-	// New name
-	DestAnimSeq->SequenceName = FName( *FString::Printf(TEXT("ADD_%s"), *SourceAnimSeq->SequenceName.ToString()) );
-	DestAnimSeq->bIsAdditive = TRUE;
-	DestAnimSeq->bAdditiveBuiltLooping = bIsLoopingAnim;
-	DestAnimSeq->AdditiveRefName = RefAnimSeq ? RefAnimSeq->SequenceName : FName( TEXT("Bind Pose") );
-
-	// DestAnimSeq is now becoming an additive animation. So we need to update the references accordingly
-
-	// First, remove all references to this new animation, as its status as changed. 
-	// We copied the information from SourceAnimSeq, which could be a base or target pose. That wouldn't apply to this new additive animation.
-	DestAnimSeq->ClearAdditiveAnimReferences();
-
-	// Now setup our references
-	if( RefAnimSeq )
-	{
-		DestAnimSeq->AdditiveBasePoseAnimSeq.AddUniqueItem( RefAnimSeq );
-		RefAnimSeq->RelatedAdditiveAnimSeqs.AddUniqueItem( DestAnimSeq );
-	}
-	DestAnimSeq->AdditiveTargetPoseAnimSeq.AddUniqueItem( SourceAnimSeq );
-	SourceAnimSeq->RelatedAdditiveAnimSeqs.AddUniqueItem( DestAnimSeq );
-
-	// Make sure data is zeroed
-	DestAnimSeq->RawAnimationData.AddZeroed( DestAnimSet->TrackBoneNames.Num() );
-	if( DestAnimSeq->bIsAdditive )
-	{
-		DestAnimSeq->AdditiveBasePose.AddZeroed( DestAnimSet->TrackBoneNames.Num() );
-	}
-
-	// Two path for construction
-	// 1) Base Pose is a fixed frame. Then SourceAnim dictates the number of keys to do.
-	// 2) Base Pose is animated. Then whoever has the most keys dictates how many keys are going to end up there.
-	//		Also requires simple key reduction at the end, to turn some tracks to a single key when needed.
-
-	// Base Pose is a single frame.
-	if( BuildMethod == CTA_RefPose || BuildMethod == CTA_AnimFirstFrame || RefAnimSeq->NumFrames == 1 )
-	{
-		FBoneAtom BindPoseAtom = FBoneAtom::Identity;
-		FBoneAtom RefBoneAtom = FBoneAtom::Identity;
-		FBoneAtom SourceBoneAtom = FBoneAtom::Identity;
-
-		// Import each track.
-		for(INT DestTrackIdx=0; DestTrackIdx<DestAnimSet->TrackBoneNames.Num(); DestTrackIdx++)
-		{
-			// Figure out which bone this track is mapped to
-			const INT BoneIndex = SkelMesh->MatchRefBone(DestAnimSet->TrackBoneNames(DestTrackIdx));
-			check( BoneIndex != INDEX_NONE );
-
-			// Bind Pose Atom
-			GetBindPoseAtom(BindPoseAtom, BoneIndex, SkelMesh);
-			// Bind Pose Atom doesn't need W flipped. So doing ActorX quat conversion here so the correct rotation is computed below.
-			if( BoneIndex > 0 )
-			{
-				BindPoseAtom.FlipSignOfRotationW();
-			}
-
-			// Ref pose 
-			if( BuildMethod == CTA_RefPose )
-			{
-				RefBoneAtom = BindPoseAtom;
-			}
-			// First frame of reference animation
-			else if( BuildMethod == CTA_AnimFirstFrame || RefAnimSeq->NumFrames == 1 )
-			{
-				GetRawAnimTrackKey(RefBoneAtom, BoneIndex, 0, RefAnimSeq, RefAnimLinkup, SkelMesh);
-
-				// Check AnimRotationOnly settings, and adjust Translation component accordingly
-				if( RefAnimSet->bAnimRotationOnly 
-					&& (!RefAnimSet->UseTranslationBoneNames.ContainsItem(DestAnimSet->TrackBoneNames(DestTrackIdx))
-						|| RefAnimSet->ForceMeshTranslationBoneNames.ContainsItem(DestAnimSet->TrackBoneNames(DestTrackIdx))) )
-				{
-					RefBoneAtom.SetTranslation( BindPoseAtom.GetTranslation() );
-				}
-			}
-			else
-			{
-				check(FALSE);
-			}
-			
-			// Go through all keys and turns them into additive
-			// That is the difference to the Reference pose.
-			FRawAnimSequenceTrack& DestRawTrack = DestAnimSeq->RawAnimationData(DestTrackIdx);
-			FRawAnimSequenceTrack& BasePoseTrack = DestAnimSeq->AdditiveBasePose(DestTrackIdx);
-
-			DestRawTrack.PosKeys.Reset();
-			DestRawTrack.RotKeys.Reset();
-
-			FCurveKeyArray DummyCurveKeys;
-			DestRawTrack.PosKeys.Add( SourceAnimSeq->NumFrames );
-			DestRawTrack.RotKeys.Add( SourceAnimSeq->NumFrames );
-
-			// Size AdditiveBasePose Array
-			BasePoseTrack.PosKeys.Add( 1 );
-			BasePoseTrack.RotKeys.Add( 1 );
-
-			// Save off Base Pose into destination AnimSequence for preview in editor
-			BasePoseTrack.PosKeys(0) = RefBoneAtom.GetTranslation();
-			BasePoseTrack.RotKeys(0) = RefBoneAtom.GetRotation();
-
-			for(INT KeyIdx=0; KeyIdx<SourceAnimSeq->NumFrames; KeyIdx++)
-			{
-				GetRawAnimTrackKey(SourceBoneAtom, BoneIndex, KeyIdx, SourceAnimSeq, SourceAnimLinkup, SkelMesh);
-
-				// Check AnimRotationOnly settings, and adjust Translation component accordingly
-				if( SourceAnimSet->bAnimRotationOnly 
-					&& (!SourceAnimSet->UseTranslationBoneNames.ContainsItem(DestAnimSet->TrackBoneNames(DestTrackIdx)) 
-						|| SourceAnimSet->ForceMeshTranslationBoneNames.ContainsItem(DestAnimSet->TrackBoneNames(DestTrackIdx))) )
-				{
-					SourceBoneAtom.SetTranslation( BindPoseAtom.GetTranslation() );
-				}
-
-				// For rotation part. We have this annoying thing to work around...
-				// See UAnimNodeSequence::GetAnimationPose()
-				// Make delta with "quaternion fix for ActorX exported quaternions". Then revert back.
-				if( BoneIndex > 0 )
-				{
-					SourceBoneAtom.FlipSignOfRotationW();
-					RefBoneAtom.FlipSignOfRotationW();
-				}
-
-				// Actual delta.
-				DestRawTrack.RotKeys(KeyIdx) = SourceBoneAtom.GetRotation() * (-RefBoneAtom.GetRotation());
-				DestRawTrack.PosKeys(KeyIdx) = SourceBoneAtom.GetTranslation() - RefBoneAtom.GetTranslation();
-				
-				// Convert back to non "quaternion fix for ActorX exported quaternions".
-				if( BoneIndex > 0 )
-				{
-					DestRawTrack.RotKeys(KeyIdx).W *= -1.f;
-					RefBoneAtom.FlipSignOfRotationW();
-				}
-
-				// Normalize resulting quaternion.
-				DestRawTrack.RotKeys(KeyIdx).Normalize();
-			}
-		}
-	}
-	// Base Pose is animated
-	else if( BuildMethod == CTA_AnimScaled )
-	{
-		FBoneAtom BindPoseAtom = FBoneAtom::Identity;
-		FBoneAtom RefBoneAtom = FBoneAtom::Identity;
-		FBoneAtom SourceBoneAtom = FBoneAtom::Identity;
-	
-		// Uncomment below to be able to scale Source to size of Reference, if Reference is bigger.
-// 		if( RefAnimSeq->NumFrames > SourceAnimSeq->NumFrames )
-// 		{
-// 			DestAnimSeq->NumFrames = RefAnimSeq->NumFrames;
-// 			DestAnimSeq->SequenceLength = RefAnimSeq->SequenceLength;
-// 		}
-
-		const INT NumKeys = DestAnimSeq->NumFrames;
-		debugf(TEXT("Creating additive animation %s. bIsLoopingAnim: %d"), *DestAnimSeq->SequenceName.ToString(), bIsLoopingAnim);
-		debugf(TEXT("Destination. %d frames, length: %f"), NumKeys, DestAnimSeq->SequenceLength);
-		debugf(TEXT("Source: %s. %d frames, length: %f"), *SourceAnimSeq->SequenceName.ToString(), SourceAnimSeq->NumFrames, SourceAnimSeq->SequenceLength);
-		if( RefAnimSeq )
-		{
-			debugf(TEXT("Reference %s. %d frames, length: %f"), *RefAnimSeq->SequenceName.ToString(), RefAnimSeq->NumFrames, RefAnimSeq->SequenceLength);
-		}
-		else
-		{
-			debugf(TEXT("Reference Bind Pose."));
-		}
-
-		// Import each track.
-		for(INT DestTrackIdx=0; DestTrackIdx<DestAnimSet->TrackBoneNames.Num(); DestTrackIdx++)
-		{
-			// Figure out which bone this track is mapped to
-			const INT BoneIndex = SkelMesh->MatchRefBone(DestAnimSet->TrackBoneNames(DestTrackIdx));
-			check( BoneIndex != INDEX_NONE );
-
-			// Bind Pose Atom
-			GetBindPoseAtom(BindPoseAtom, BoneIndex, SkelMesh);
-			// Bind Pose Atom doesn't need W flipped. So doing ActorX quat conversion here so the correct rotation is computed below.
-			if( BoneIndex > 0 )
-			{
-				BindPoseAtom.FlipSignOfRotationW();
-			}
-
-			// Go through all keys and turns them into additive
-			// That is the difference to the Reference pose.
-			FRawAnimSequenceTrack& DestRawTrack = DestAnimSeq->RawAnimationData(DestTrackIdx);
-			FRawAnimSequenceTrack& BasePoseTrack = DestAnimSeq->AdditiveBasePose(DestTrackIdx);
-
-			DestRawTrack.PosKeys.Add(NumKeys);
-			DestRawTrack.RotKeys.Add(NumKeys);
-
-			BasePoseTrack.PosKeys.Add(NumKeys);
-			BasePoseTrack.RotKeys.Add(NumKeys);
-
-#if DEBUG_ADDITIVE_CREATION
-			debugf(TEXT("\tTrack #%3d, Bone #3d, %s"), DestTrackIdx, BoneIndex, *DestAnimSet->TrackBoneNames(DestTrackIdx).ToString());
-#endif
-			for(INT KeyIdx=0; KeyIdx<NumKeys; KeyIdx++)
-			{
-				// Get pose from ref animation
-				// If we have the same number of keys, we can directly use those
-				if( RefAnimSeq->NumFrames == DestAnimSeq->NumFrames )
-				{
-#if DEBUG_ADDITIVE_CREATION
-					debugf(TEXT("\t\t Getting Ref Pose, GetRawAnimTrackKey"));
-#endif
-					GetRawAnimTrackKey(RefBoneAtom, BoneIndex, KeyIdx, RefAnimSeq, RefAnimLinkup, SkelMesh);
-				}
-				// Otherwise we have to scale the animation
-				else
-				{
-					const INT RefTrackIndex = RefAnimLinkup->BoneToTrackTable(BoneIndex);
-					if( RefTrackIndex != INDEX_NONE )
-					{
-#if DEBUG_ADDITIVE_CREATION
-						debugf(TEXT("\t\t Getting Ref Pose, GetBoneAtom. RefTrackIndex %d"), RefTrackIndex);
-#endif
-						const FLOAT Position = (RefAnimSeq->SequenceLength * FLOAT(KeyIdx)) / FLOAT((bIsLoopingAnim || NumKeys==1) ? NumKeys : (NumKeys-1));
-
-						RefAnimSeq->GetBoneAtom(RefBoneAtom, RefTrackIndex, Position, bIsLoopingAnim, TRUE);
-					}
-					else
-					{
-#if DEBUG_ADDITIVE_CREATION
-						debugf(TEXT("\t\t Getting Ref Pose, GetBindPoseAtom"));
-#endif
-						GetBindPoseAtom(RefBoneAtom, BoneIndex, SkelMesh);
-						// Bind Pose Atom doesn't need W flipped. So doing ActorX quat conversion here so the correct rotation is computed below.
-						if( BoneIndex > 0 )
-						{
-							RefBoneAtom.FlipSignOfRotationW();
-						}
-					}
-				}
-
-				// Check AnimRotationOnly settings, and adjust Translation component accordingly
-				if( RefAnimSet->bAnimRotationOnly 
-					&& (!RefAnimSet->UseTranslationBoneNames.ContainsItem(DestAnimSet->TrackBoneNames(DestTrackIdx)) 
-						|| RefAnimSet->ForceMeshTranslationBoneNames.ContainsItem(DestAnimSet->TrackBoneNames(DestTrackIdx))) )
-				{
-					RefBoneAtom.SetTranslation( BindPoseAtom.GetTranslation() );
-				}
-
-				// Get pose from source animation
-				// If we have the same number of keys, we can directly use those
-				if( SourceAnimSeq->NumFrames == DestAnimSeq->NumFrames )
-				{
-#if DEBUG_ADDITIVE_CREATION
-					debugf(TEXT("\t\t Getting Source Pose, GetRawAnimTrackKey"));
-#endif
-					GetRawAnimTrackKey(SourceBoneAtom, BoneIndex, KeyIdx, SourceAnimSeq, SourceAnimLinkup, SkelMesh);
-				}
-				// Otherwise we have to scale the animation
-				else
-				{
-					const INT SourceTrackIndex = SourceAnimLinkup->BoneToTrackTable(BoneIndex);
-					if( SourceTrackIndex != INDEX_NONE )
-					{
-#if DEBUG_ADDITIVE_CREATION
-						debugf(TEXT("\t\t Getting Source Pose, GetBoneAtom. RefTrackIndex %d"), SourceTrackIndex);
-#endif
-						const FLOAT Position = (SourceAnimSeq->SequenceLength * FLOAT(KeyIdx)) / FLOAT((bIsLoopingAnim || NumKeys==1) ? NumKeys : (NumKeys-1));
-
-						SourceAnimSeq->GetBoneAtom(SourceBoneAtom, SourceTrackIndex, Position, bIsLoopingAnim, TRUE);
-					}
-					else
-					{
-#if DEBUG_ADDITIVE_CREATION
-						debugf(TEXT("\t\t Getting Ref Pose, GetBindPoseAtom"));
-#endif
-						GetBindPoseAtom(SourceBoneAtom, BoneIndex, SkelMesh);
-						// Bind Pose Atom doesn't need W flipped. So doing ActorX quat conversion here so the correct rotation is computed below.
-						if( BoneIndex > 0 )
-						{
-							SourceBoneAtom.FlipSignOfRotationW();
-						}
-					}
-				}
-
-				// Check AnimRotationOnly settings, and adjust Translation component accordingly
-				if( SourceAnimSet->bAnimRotationOnly 
-					&& (!SourceAnimSet->UseTranslationBoneNames.ContainsItem(DestAnimSet->TrackBoneNames(DestTrackIdx)) 
-						|| SourceAnimSet->ForceMeshTranslationBoneNames.ContainsItem(DestAnimSet->TrackBoneNames(DestTrackIdx))) )
-				{
-					SourceBoneAtom.SetTranslation( BindPoseAtom.GetTranslation() );
-				}
-
-				// Save pose for editor display.
-				BasePoseTrack.PosKeys(KeyIdx) = RefBoneAtom.GetTranslation();
-				BasePoseTrack.RotKeys(KeyIdx) = RefBoneAtom.GetRotation();
-
-				// For rotation part. We have this annoying thing to work around...
-				// See UAnimNodeSequence::GetAnimationPose()
-				// Make delta with "quaternion fix for ActorX exported quaternions". Then revert back.
-				if( BoneIndex > 0 )
-				{
-					SourceBoneAtom.FlipSignOfRotationW();
-					RefBoneAtom.FlipSignOfRotationW();
-				}
-
-				// Actual delta.
-				DestRawTrack.RotKeys(KeyIdx) = SourceBoneAtom.GetRotation() * (-RefBoneAtom.GetRotation());
-				DestRawTrack.PosKeys(KeyIdx) = SourceBoneAtom.GetTranslation() - RefBoneAtom.GetTranslation();
-				
-				// Convert back to non "quaternion fix for ActorX exported quaternions".
-				if( BoneIndex > 0 )
-				{
-					DestRawTrack.RotKeys(KeyIdx).W *= -1.f;
-					RefBoneAtom.FlipSignOfRotationW();
-				}
-
-				// Normalize resulting quaternion.
-				DestRawTrack.RotKeys(KeyIdx).Normalize();
-			}
-		}
-	}
-	else
-	{
-		check(FALSE && TEXT("UnSupported Build Method"));
-	}
-
-	// Compress Raw Anim data.
-	DestAnimSeq->CompressRawAnimData();
-
-	// See if SourceAnimSeq had a compression Scheme
-	FAnimationUtils::CompressAnimSequence(DestAnimSeq, NULL, FALSE, FALSE);
-
-	return TRUE;
+	return FALSE;
 }
 
 /**
@@ -2193,10 +1568,6 @@ FString FAnimationUtils::GetAnimationCompressionFormatString(AnimationCompressio
 		return FString(TEXT("ACF_Float32NoW"));
 	case ACF_Identity:
 		return FString(TEXT("ACF_Identity"));
-#if BATMAN
-	case ACF_Fixed48Max:
-		return FString(TEXT("ACF_Fixed48Max"));
-#endif
 	default:
 		warnf( TEXT("AnimationCompressionFormat was not found:  %i"), static_cast<INT>(InFormat) );
 	}
@@ -2373,21 +1744,6 @@ void FAnimationUtils::TallyErrorsFromPerturbation(
 					}
 
 					// apply the reference bone atom (if needed)
-					if (AnimSeq->bIsAdditive)
-					{
-						FBoneAtom RefBoneAtom;
-						AnimSeq->GetAdditiveBasePoseBoneAtom(RefBoneAtom, TrackIndex, Time, FALSE);
-
-						if (BoneIndex > 0)
-						{
-							// Apply quaternion fix for ActorX-exported quaternions.
-							RefBoneAtom.FlipSignOfRotationW();
-						}
-
-						RawAtoms(BoneIndex).AddToTranslation(RefBoneAtom.GetTranslationV());
-						RawAtoms(BoneIndex).ConcatenateRotation(RefBoneAtom.GetRotationV());
-					}
-
 					NewAtomsT(BoneIndex) = RawAtoms(BoneIndex);
 					NewAtomsR(BoneIndex) = RawAtoms(BoneIndex);
 

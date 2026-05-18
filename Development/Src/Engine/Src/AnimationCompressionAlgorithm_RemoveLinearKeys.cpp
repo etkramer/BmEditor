@@ -490,64 +490,7 @@ void UAnimationCompressionAlgorithm_RemoveLinearKeys::UpdateBoneAtomList(
  */
 UBOOL UAnimationCompressionAlgorithm_RemoveLinearKeys::ConvertFromRelativeSpace(UAnimSequence* AnimSeq, const struct FAnimSetMeshLinkup& AnimLinkup)
 {
-	// if this is an additive animation, temporarily convert it out of relative-space
-	const UBOOL bAdditiveAnimation = AnimSeq->bIsAdditive;
-	if (bAdditiveAnimation)
-	{
-		// let the sequence believe it is no longer additive
-		AnimSeq->bIsAdditive = FALSE;
-
-		// convert the raw tracks out of additive-space
-		const INT NumTracks = AnimSeq->RawAnimationData.Num();
-		for (INT TrackIndex = 0; TrackIndex < NumTracks; ++TrackIndex)
-		{
-			INT const BoneIndex = AnimLinkup.BoneToTrackTable.FindItemIndex(TrackIndex);
-			UBOOL const bIsRootBone = (BoneIndex == 0);
-
-			FRawAnimSequenceTrack& BasePoseTrack = AnimSeq->AdditiveBasePose(TrackIndex);
-			FRawAnimSequenceTrack& RawTrack	= AnimSeq->RawAnimationData(TrackIndex);
-
-			if( !bIsRootBone )
-			{
-				BasePoseTrack.RotKeys(0).W *= -1.f;
-			}
-
-			// @note: we only extract the first frame, as we don't want to induce motion from the base pose
-			// only the motion from the additive data should matter.
-			const FVector& RefBonePos = BasePoseTrack.PosKeys(0);
-			const FQuat& RefBoneRotation = BasePoseTrack.RotKeys(0);
-
-			// Transform position keys.
-			for (INT PosIndex = 0; PosIndex < RawTrack.PosKeys.Num(); ++PosIndex)
-			{
-				RawTrack.PosKeys(PosIndex) += RefBonePos;
-			}
-
-			// Transform rotation keys.
-			for (INT RotIndex = 0; RotIndex < RawTrack.RotKeys.Num(); ++RotIndex)
-			{
-				if( !bIsRootBone )
-				{
-					RawTrack.RotKeys(RotIndex).W *= -1.f;
-				}
-
-				RawTrack.RotKeys(RotIndex) = RawTrack.RotKeys(RotIndex) * RefBoneRotation;
-				RawTrack.RotKeys(RotIndex).Normalize();
-
-				if( !bIsRootBone )
-				{
-					RawTrack.RotKeys(RotIndex).W *= -1.f;
-				}
-			}
-
-			if( !bIsRootBone )
-			{
-				BasePoseTrack.RotKeys(0).W *= -1.f;
-			}
-		}
-	}
-
-	return bAdditiveAnimation;
+	return FALSE;
 }
 
 /**
@@ -564,82 +507,6 @@ void UAnimationCompressionAlgorithm_RemoveLinearKeys::ConvertToRelativeSpace(
 	TArray<FRotationTrack>& RotationData,
 	const struct FAnimSetMeshLinkup& AnimLinkup)
 {
-	// restore the additive flag in the sequence
-	AnimSeq->bIsAdditive = TRUE;
-
-	// convert the raw tracks back to additive-space
-	const INT NumTracks = AnimSeq->RawAnimationData.Num();
-	for ( INT TrackIndex = 0; TrackIndex < NumTracks; ++TrackIndex )
-	{
-		INT const BoneIndex = AnimLinkup.BoneToTrackTable.FindItemIndex(TrackIndex);
-		UBOOL const bIsRootBone = (BoneIndex == 0);
-
-		FRawAnimSequenceTrack& BasePoseTrack = AnimSeq->AdditiveBasePose(TrackIndex);
-		FRawAnimSequenceTrack& RawTrack	= AnimSeq->RawAnimationData(TrackIndex);
-
-		if( !bIsRootBone )
-		{
-			BasePoseTrack.RotKeys(0).W *= -1.f;
-		}
-
-		// @note: we only extract the first frame, as we don't want to induce motion from the base pose
-		// only the motion from the additive data should matter.
-		const FQuat& InvRefBoneRotation = -BasePoseTrack.RotKeys(0);
-		const FVector& InvRefBoneTranslation = -BasePoseTrack.PosKeys(0);
-
-		// transform position keys.
-		for ( INT PosIndex = 0; PosIndex < RawTrack.PosKeys.Num(); ++PosIndex )
-		{
-			RawTrack.PosKeys(PosIndex) += InvRefBoneTranslation;
-		}
-
-		// transform rotation keys.
-		for ( INT RotIndex = 0; RotIndex < RawTrack.RotKeys.Num(); ++RotIndex )
-		{
-			if( !bIsRootBone )
-			{
-				RawTrack.RotKeys(RotIndex).W *= -1.f;
-			}
-
-			RawTrack.RotKeys(RotIndex) = RawTrack.RotKeys(RotIndex) * InvRefBoneRotation;
-			RawTrack.RotKeys(RotIndex).Normalize();
-
-			if( !bIsRootBone )
-			{
-				RawTrack.RotKeys(RotIndex).W *= -1.f;
-			}
-		}
-
-		// convert the new translation tracks to additive space
-		FTranslationTrack& TranslationTrack = TranslationData(TrackIndex);
-		for (INT KeyIndex = 0; KeyIndex < TranslationTrack.PosKeys.Num(); ++KeyIndex)
-		{
-			TranslationTrack.PosKeys(KeyIndex) += InvRefBoneTranslation;
-		}
-
-		// convert the new rotation tracks to additive space
-		FRotationTrack& RotationTrack = RotationData(TrackIndex);
-		for (INT KeyIndex = 0; KeyIndex < RotationTrack.RotKeys.Num(); ++KeyIndex)
-		{
-			if( !bIsRootBone )
-			{
-				RotationTrack.RotKeys(KeyIndex).W *= -1.f;
-			}
-
-			RotationTrack.RotKeys(KeyIndex) = RotationTrack.RotKeys(KeyIndex) * InvRefBoneRotation;
-			RotationTrack.RotKeys(KeyIndex).Normalize();
-
-			if( !bIsRootBone )
-			{
-				RotationTrack.RotKeys(KeyIndex).W *= -1.f;
-			}
-		}
-
-		if( !bIsRootBone )
-		{
-			BasePoseTrack.RotKeys(0).W *= -1.f;
-		}
-	}
 }
 
 /**

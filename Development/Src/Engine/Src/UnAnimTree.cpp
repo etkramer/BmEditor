@@ -7101,7 +7101,7 @@ void UAnimNodeSlot::MAT_SetAnimPosition(INT ChannelIndex, FName InAnimSeqName, F
 
 		// need to clear mirror skeleton - otherwise previous set of mirror skeleton will be used for this animation
 		Children(ChildNum).bMirrorSkeleton = FALSE;
-		Children(ChildNum).bIsAdditive = SeqNode->AnimSeq ? SeqNode->AnimSeq->bIsAdditive : FALSE;
+		Children(ChildNum).bIsAdditive = FALSE;
 
 		// if root motion is used, set proper value
 		if (SkelComponent)
@@ -7130,19 +7130,6 @@ void UAnimNodeSlot::MAT_SetAnimPosition(INT ChannelIndex, FName InAnimSeqName, F
 		SeqNode->PreviousTime = SeqNode->CurrentTime;
 		// Set new position
 		SeqNode->SetPosition(InPosition, bFireNotifies);
-
-		// AnimMetadata Update -- copy from UAnimSequence::TickAnim()
-		if( SeqNode->AnimSeq )
-		{
-			for(INT Index=0; Index<SeqNode->AnimSeq->MetaData.Num(); Index++)
-			{
-				UAnimMetaData* AnimMetadata = SeqNode->AnimSeq->MetaData(Index);
-				if( AnimMetadata )
-				{
-					AnimMetadata->TickMetaData(SeqNode);
-				}
-			}
-		}
 
 // 		if ( bEnableRootMotion && SkelComponent->GetOwner() )
 // 		{
@@ -7329,7 +7316,7 @@ FLOAT UAnimNodeSlot::PlayCustomAnim(FName AnimName, FLOAT Rate, FLOAT BlendInTim
 				// Set additive flag on this node.
 				if( !bAdditiveAnimationsOverrideSource )
 				{
-					Children(CustomChildIndex).bIsAdditive = SeqNode->AnimSeq->bIsAdditive;
+					Children(CustomChildIndex).bIsAdditive = FALSE;
 				}
 			}
 
@@ -7470,7 +7457,7 @@ void UAnimNodeSlot::SetCustomAnim(FName AnimName)
 			// Set additive flag on this node.
 			if( !bAdditiveAnimationsOverrideSource )
 			{
-				Children(CustomChildIndex).bIsAdditive = SeqNode->AnimSeq ? SeqNode->AnimSeq->bIsAdditive : FALSE;
+				Children(CustomChildIndex).bIsAdditive = FALSE;
 			}
 		}
 	}

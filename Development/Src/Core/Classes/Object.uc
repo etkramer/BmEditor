@@ -81,8 +81,8 @@ struct SparseArray_Mirror
 struct Set_Mirror
 {
 	var native const SparseArray_Mirror Elements;
-	var native const int InlineHash;
 	var native const pointer Hash;
+	var native const int InlineHash;
 	var native const int HashSize;
 };
 
@@ -99,18 +99,16 @@ struct MultiMap_Mirror
 struct UntypedBulkData_Mirror
 {
 	var native const pointer	VfTable;
-	var native const int		BulkDataFlags;
+	var native const int		BulkDataFlags_LockStatus_ShouldFreeOnEmpty;
 	var native const int		ElementCount;
 	var native const int		BulkDataOffsetInFile;
 	var native const int 		BulkDataSizeOnDisk;
-	var native const int		SavedBulkDataFlags;
-	var native const int		SavedElementCount;
-	var native const int		SavedBulkDataOffsetInFile;
-	var native const int		SavedBulkDataSizeOnDisk;
+	var editoronly native const int	SavedBulkDataFlags;
+	var editoronly native const int	SavedElementCount;
+	var editoronly native const int	SavedBulkDataOffsetInFile;
+	var editoronly native const int	SavedBulkDataSizeOnDisk;
 	var native const pointer	BulkData;
-	var native const int		LockStatus;
 	var native const pointer	AttachedAr;
-	var native const int		bShouldFreeOnEmpty;
 };
 
 struct RenderCommandFence_Mirror
@@ -330,6 +328,12 @@ struct immutable Box
 	var byte IsValid;
 };
 
+struct SimpleBox
+{
+	var vector Min;
+	var vector Max;
+};
+
 // A bounding box and bounding sphere with the same origin.
 struct BoxSphereBounds
 {
@@ -467,6 +471,54 @@ struct RawDistribution
 	var float LookupTableStartTime;
 };
 
+struct RChannel8
+{
+	var() bool Channel;
+	var() bool Channel_1;
+	var() bool Channel_2;
+	var() bool Channel_3;
+	var() bool Channel_4;
+	var() bool Channel_5;
+	var() bool Channel_6;
+	var() bool Channel_7;
+};
+
+struct RChannel32
+{
+	var() bool Channel;
+	var() bool Channel_1;
+	var() bool Channel_2;
+	var() bool Channel_3;
+	var() bool Channel_4;
+	var() bool Channel_5;
+	var() bool Channel_6;
+	var() bool Channel_7;
+	var() bool Channel_8;
+	var() bool Channel_9;
+	var() bool Channel_10;
+	var() bool Channel_11;
+	var() bool Channel_12;
+	var() bool Channel_13;
+	var() bool Channel_14;
+	var() bool Channel_15;
+	var() bool Channel_16;
+	var() bool Channel_17;
+	var() bool Channel_18;
+	var() bool Channel_19;
+	var() bool Channel_20;
+	var() bool Channel_21;
+	var() bool Channel_22;
+	var() bool Channel_23;
+	var() bool Channel_24;
+	var() bool Channel_25;
+	var() bool Channel_26;
+	var() bool Channel_27;
+	var() bool Channel_28;
+	var() bool Channel_29;
+	var() bool Channel_30;
+	var() bool Channel_31;
+};
+
 /** A fence used to track rendering thread command execution. */
 struct RenderCommandFence
 {
@@ -509,6 +561,13 @@ const InvAspectRatio4x3 = 0.75;
 const InvAspectRatio5x4 = 0.8;
 const InvAspectRatio16x9 = 0.56249;
 
+const RadToUnA = 10430.378350470452724949;
+const UnAToRad = 0.000095873799242852;
+const DegToUnA = 182.044444444444444444;
+const UnAToDeg = 0.0054931640625;
+const TwoPi = 6.283185307179586476;
+const HalfPi = 1.570796326794896619;
+
 //=============================================================================
 // Logging Severity Levels.
 
@@ -521,6 +580,7 @@ enum ETickingGroup
 	 * Any item that needs to be updated before asynchronous work is done
 	 */
 	TG_PreAsyncWork,
+	TG_PreAsyncWork2,
 	/**
 	 * Any item that can be run in parallel of our async work
 	 */

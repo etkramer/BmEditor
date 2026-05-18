@@ -138,26 +138,7 @@ INT UAnimSequence::GetApproxRawSize() const
  */
 INT UAnimSequence::GetApproxReducedSize() const
 {
-	INT Total =
-		sizeof(FTranslationTrack) * TranslationData.Num() +
-		sizeof(FRotationTrack) * RotationData.Num();
-
-	for (INT i=0;i<TranslationData.Num();++i)
-	{
-		const FTranslationTrack& TranslationTrack = TranslationData(i);
-		Total +=
-			sizeof( FVector ) * TranslationTrack.PosKeys.Num() +
-			sizeof( FLOAT ) * TranslationTrack.Times.Num();
-	}
-
-	for (INT i=0;i<RotationData.Num();++i)
-	{
-		const FRotationTrack& RotationTrack = RotationData(i);
-		Total +=
-			sizeof( FQuat ) * RotationTrack.RotKeys.Num() +
-			sizeof( FLOAT ) * RotationTrack.Times.Num();
-	}
-	return Total;
+	return 0;
 }
 
 
@@ -1989,8 +1970,6 @@ void AnimZip_Compress(UAnimSequence* Seq)
 		Seq->RawAnimationData(t).RotKeys.Empty();
 	}
 	Seq->RawAnimationData.Empty();
-	Seq->TranslationData.Empty();
-	Seq->RotationData.Empty();
 	Seq->CompressedTrackOffsets.Empty();
 	Seq->CompressedByteStream.Empty();
 
@@ -2106,19 +2085,6 @@ void UAnimSequence::StripData(UE3::EPlatformType PlatformsToKeep, UBOOL bStripLa
 			RawTrack.RotKeys.Empty();
 		}
 		RawAnimationData.Empty();
-
-		// Remove any key-reduced data.
-		TranslationData.Empty();
-		RotationData.Empty();
-
-		// Remove raw animation data.
-		for(INT TrackIndex = 0; TrackIndex < AdditiveBasePose.Num(); ++TrackIndex)
-		{
-			FRawAnimSequenceTrack& BasePoseTrack = AdditiveBasePose(TrackIndex);
-			BasePoseTrack.PosKeys.Empty();
-			BasePoseTrack.RotKeys.Empty();
-		}
-		AdditiveBasePose.Empty();
 	}
 }
 
@@ -2148,119 +2114,12 @@ void UAnimSequence::PostLoad()
 #endif
 
 #if !CONSOLE
-	// Convert to new base pose for additive animations if needed
-	if( bIsAdditive && GetLinkerVersion() < VER_NEW_BASE_POSE_ADDITIVE_ANIM_FORMAT )
-	{
-		if( AdditiveRefPose_DEPRECATED.Num() > 0 && AdditiveBasePose.Num() == 0 )
-		{
-			AdditiveBasePose.AddZeroed( AdditiveRefPose_DEPRECATED.Num() );
-			for(INT TrackIndex = 0; TrackIndex < AdditiveBasePose.Num(); ++TrackIndex)
-			{
-				FRawAnimSequenceTrack& BasePoseTrack = AdditiveBasePose(TrackIndex);
-				BasePoseTrack.PosKeys.AddItem( AdditiveRefPose_DEPRECATED(TrackIndex).GetTranslation() );
-				BasePoseTrack.RotKeys.AddItem( AdditiveRefPose_DEPRECATED(TrackIndex).GetRotation() );
-			}
-
-			AdditiveRefPose_DEPRECATED.Empty();
-			bMarkDirty = TRUE;
-		}
-	}
-#endif
-
-#if !CONSOLE
-	// Fix bad additive base pose data
-	if( bIsAdditive && GIsEditor && GetLinkerVersion() < VER_FIXED_BAD_ADDITIVE_DATA )
-	{
-		UAnimSet* AnimSet = GetAnimSet();
-
-		// Make sure AdditiveBasePose matches RawAnimationData length.
-		if( AdditiveBasePose.Num() != RawAnimationData.Num() )
-		{
-			const INT NumAdditiveBasePose = AdditiveBasePose.Num();
-			const INT NumRawAnimationData = RawAnimationData.Num();
-			debugf(TEXT("Detected bad AdditiveBasePose Length (%d vs %d) for animation %s in AnimSet %s"), AdditiveBasePose.Num(), RawAnimationData.Num(), *SequenceName.ToString(), *AnimSet->GetFName().ToString());
-			if( NumAdditiveBasePose > NumRawAnimationData )
-			{
-				AdditiveBasePose.Remove(NumRawAnimationData, NumAdditiveBasePose - NumRawAnimationData);
-				AdditiveBasePose.Shrink();
-				check( AdditiveBasePose.Num() == RawAnimationData.Num() );
-			}
-			else
-			{
-				FRawAnimSequenceTrack BasePoseTrack;
-				BasePoseTrack.PosKeys.AddItem( FVector::ZeroVector );
-				BasePoseTrack.RotKeys.AddItem( FQuat::Identity );
-
-				for(INT i=0; i<(NumRawAnimationData-NumAdditiveBasePose); i++)
-				{
-					AdditiveBasePose.AddItem(BasePoseTrack);
-				}
-				check( AdditiveBasePose.Num() == RawAnimationData.Num() );
-			}
-
-			bMarkDirty = TRUE;
-		}
-	}
-#endif
-
-#if !CONSOLE
 	// If RAW animation data exists, and needs to be recompressed, do so.
 	if( GIsEditor && GetLinkerVersion() < VER_FIXED_MALFORMED_RAW_ANIM_DATA && RawAnimationData.Num() > 0 )
 	{
 		// Recompress Raw Animation data w/ lossless compression.
 		// If some keys have been removed, then recompress animsequence with its original compression algorithm
 		CompressRawAnimData();
-	}
-#endif
-
-	// Convert AnimSequences BoneControlModifiers to AnimMetadata system
-	if( GetLinkerVersion() < VER_ADDED_ANIM_METADATA_FIXED_QUATERROR && BoneControlModifiers_DEPRECATED.Num() > 0 )
-	{
-		for(INT ModifierIndex=0; ModifierIndex<BoneControlModifiers_DEPRECATED.Num(); ModifierIndex++)
-		{
-			FSkelControlModifier& Modifier = BoneControlModifiers_DEPRECATED(ModifierIndex);
-			if( Modifier.Modifiers.Num() > 0 )
-			{
-				UAnimMetaData_SkelControlKeyFrame* MetadataObject = ConstructObject<UAnimMetaData_SkelControlKeyFrame>(UAnimMetaData_SkelControlKeyFrame::StaticClass(), this);
-				this->MetaData.AddItem(MetadataObject);
-
-				MetadataObject->SkelControlNameList.AddItem(Modifier.SkelControlName);
-				MetadataObject->KeyFrames = Modifier.Modifiers;
-
-				bMarkDirty = TRUE;
-				warnf( TEXT("Converted BoneControlModifier to AnimMetaData_SkelControlKeyFrame (%s) for sequence %s (%s)"), *Modifier.SkelControlName.ToString(), *SequenceName.ToString(), (GetOuter() ? *GetOuter()->GetFullName() : *GetFullName()) );
-			}
-		}
-	}
-
-	// Fix up 'Bake and Prune' animations where their num frames doesn't match NumKeys.
-#if !CONSOLE && !FINAL_RELEASE
-	if( bIsAdditive && GetLinkerVersion() < VER_FIX_BAKEANDPRUNE_NUMFRAMES )
-	{
-		for(INT i=0; i<RawAnimationData.Num(); i++)
-		{
-			const INT NumPosKeys = RawAnimationData(i).PosKeys.Num();
-			const INT NumRotKeys = RawAnimationData(i).RotKeys.Num();
-
-			if( NumPosKeys > 1 || NumRotKeys > 1 )
-			{
-				if( (NumPosKeys != 1 && NumPosKeys != NumFrames) || (NumRotKeys != 1 && NumRotKeys != NumFrames) )
-				{
-					UPackage* AnimSeqPackage = GetOutermost();
-					warnf(TEXT("Found animation (%s, %s, %s) where NumFrames doesn't match NumKeys!! NumFrames: %i, NumPosKeys: %i, NumRotKeys: %i"), 
-						*SequenceName.ToString(), *GetAnimSet()->GetFName().ToString(), *AnimSeqPackage->GetFName().ToString(), NumFrames, NumPosKeys, NumRotKeys);
-
-					// If saved into a level, then we know it was baked and pruned, so we just fix up NumFrames in that case
-					if( AnimSeqPackage->ContainsMap() )
-					{
-						NumFrames = (NumPosKeys >= NumRotKeys) ? NumPosKeys : NumRotKeys;
-						warnf(TEXT("Was detected as a Bake and Prune error, fixing up! NumFrames: %d"), NumFrames);
-						bMarkDirty = TRUE;
-					}
-				}
-				break;
-			}
-		}
 	}
 #endif
 
@@ -2356,18 +2215,6 @@ void UAnimSequence::PostLoad()
 			
 			RawAnimationData.Empty();
 #endif // CONSOLE
-		}
-
-		// Remove raw animation data for additive base pose.
-		if( AdditiveBasePose.Num() > 0 )
-		{
-			for(INT TrackIndex = 0; TrackIndex < AdditiveBasePose.Num(); ++TrackIndex)
-			{
-				FRawAnimSequenceTrack& BasePoseTrack = AdditiveBasePose(TrackIndex);
-				BasePoseTrack.PosKeys.Empty();
-				BasePoseTrack.RotKeys.Empty();
-			}
-			AdditiveBasePose.Empty();
 		}
 	}
 
@@ -2695,120 +2542,7 @@ void UAnimSequence::GetBoneAtom(FBoneAtom& OutAtom, INT TrackIndex, FLOAT Time, 
 	}
 }
 
-/**
- * Interpolate keyframes in this sequence to find the bone transform (relative to parent).
- * This returns the base pose used to create the additive animation.
- *
- * @param	OutAtom			[out] Output bone transform.
- * @param	TrackIndex		Index of track to interpolate.
- * @param	Time			Time on track to interpolate to.
- * @param	bLooping		TRUE if the animation is looping.
- */
-void UAnimSequence::GetAdditiveBasePoseBoneAtom(FBoneAtom& OutAtom, INT TrackIndex, FLOAT Time, UBOOL bLooping) const
-{
-	// Make sure that if we call this, the animation is additive.
-	if( !bIsAdditive )
-	{
-		OutAtom.SetIdentity();
-		return;
-	}
-
-	OutAtom.SetScale(1.f);
-
-	// Bail out if the animation data doesn't exists (e.g. was stripped by the cooker).
-	if( AdditiveBasePose.Num() == 0 )
-	{
-		debugf( TEXT("UAnimSequence::GetAdditiveBasePoseBoneAtom : No anim data in AnimSequence!") );
-		OutAtom.SetIdentity();
-		return;
-	}
-
-	const FRawAnimSequenceTrack& RawTrack = RawAnimationData(TrackIndex);
-	const FRawAnimSequenceTrack& BasePoseTrack = AdditiveBasePose(TrackIndex);
-
-	// Bail out (with rather wacky data) if data is empty for some reason.
-	if( BasePoseTrack.PosKeys.Num() == 0 ||
-		BasePoseTrack.RotKeys.Num() == 0 )
-	{
-		debugf( TEXT("UAnimSequence::GetAdditiveBasePoseBoneAtom : No anim data in AnimSequence!") );
-		OutAtom.SetIdentity();
-		return;
-	}
-
-   	// Check for 1-frame, before-first-frame and after-last-frame cases.
-	if( Time <= 0.f || NumFrames == 1 )
-	{
-		OutAtom.SetRotation( BasePoseTrack.RotKeys(0) );
-		OutAtom.SetTranslation( BasePoseTrack.PosKeys(0) );
-		return;
-	}
-
-	const INT LastIndex		= NumFrames - 1;
-	const INT LastPosIndex	= ::Min(LastIndex, BasePoseTrack.PosKeys.Num()-1);
-	const INT LastRotIndex	= ::Min(LastIndex, BasePoseTrack.RotKeys.Num()-1);
-	if( Time >= SequenceLength )
-	{
-		// If we're not looping, key n-1 is the final key.
-		// If we're looping, key 0 is the final key.
-		OutAtom.SetRotation( BasePoseTrack.RotKeys( bLooping ? 0 : LastRotIndex ) );
-		OutAtom.SetTranslation( BasePoseTrack.PosKeys( bLooping ? 0 : LastPosIndex ) );
-		return;
-	}
-
-	// This assumes that all keys are equally spaced (ie. won't work if we have dropped unimportant frames etc).
-	// by default, for looping animation, the last frame has a duration, and interpolates back to the first one.
-	const INT NumKeys = bLooping ? NumFrames : NumFrames - 1;
-	const FLOAT KeyPos = ((FLOAT)NumKeys * Time) / SequenceLength;
-
-	// Find the integer part (ensuring within range) and that gives us the 'starting' key index.
-	const INT KeyIndex1 = Clamp<INT>( appFloor(KeyPos), 0, NumFrames-1 );  // @todo should be changed to appTrunc
-
-	// The alpha (fractional part) is then just the remainder.
-	const FLOAT Alpha = KeyPos - (FLOAT)KeyIndex1;
-
-	INT KeyIndex2 = KeyIndex1 + 1;
-
-	// If we have gone over the end, do different things in case of looping
-	if( KeyIndex2 == NumFrames )
-	{
-		// If looping, interpolate between last and first frame
-		if( bLooping )
-		{
-			KeyIndex2 = 0;
-		}
-		// If not looping - hold the last frame.
-		else
-		{
-			KeyIndex2 = KeyIndex1;
-		}
-	}
-
-	const INT PosKeyIndex1 = ::Min(KeyIndex1, BasePoseTrack.PosKeys.Num()-1);
-	const INT RotKeyIndex1 = ::Min(KeyIndex1, BasePoseTrack.RotKeys.Num()-1);
-	const INT PosKeyIndex2 = ::Min(KeyIndex2, BasePoseTrack.PosKeys.Num()-1);
-	const INT RotKeyIndex2 = ::Min(KeyIndex2, BasePoseTrack.RotKeys.Num()-1);
-
-	OutAtom.SetTranslation(Lerp(BasePoseTrack.PosKeys(PosKeyIndex1), BasePoseTrack.PosKeys(PosKeyIndex2), Alpha));
-
-#if !USE_SLERP
-	// Fast linear quaternion interpolation.
-	// To ensure the 'shortest route', we make sure the dot product between the two keys is positive.
-	if( (BasePoseTrack.RotKeys(RotKeyIndex1) | BasePoseTrack.RotKeys(RotKeyIndex2)) < 0.f )
-	{
-		// To clarify the code here: a slight optimization of inverting the parametric variable as opposed to the quaternion.
-		OutAtom.SetRotation( (BasePoseTrack.RotKeys(RotKeyIndex1) * (1.f-Alpha)) + (BasePoseTrack.RotKeys(RotKeyIndex2) * -Alpha) );
-	}
-	else
-	{
-		OutAtom.SetRotation( (BasePoseTrack.RotKeys(RotKeyIndex1) * (1.f-Alpha)) + (BasePoseTrack.RotKeys(RotKeyIndex2) * Alpha) );
-	}
-#else
-	OutAtom.SetRotation( SlerpQuat( BasePoseTrack.RotKeys(RotKeyIndex1), BasePoseTrack.RotKeys(RotKeyIndex2), Alpha ) );
-#endif
-	OutAtom.NormalizeRotation();
-}
-
-IMPLEMENT_COMPARE_CONSTREF( FAnimNotifyEvent, UnSkeletalAnim, 
+IMPLEMENT_COMPARE_CONSTREF( FAnimNotifyEvent, UnSkeletalAnim,
 {
 	if		(A.Time > B.Time)	return 1;
 	else if	(A.Time < B.Time)	return -1;
@@ -2926,14 +2660,7 @@ UBOOL UAnimSequence::CropRawAnimData( FLOAT CurrentTime, UBOOL bFromStart )
 	// Iterate over tracks removing keys from each one.
 	for(INT i=0; i<RawAnimationData.Num(); i++)
 	{
-		// Update NumFrames below to reflect actual number of keys while we crop the anim data
 		CropRawTrack(RawAnimationData(i), StartKey, NumKeys, TotalNumOfFrames);
-
-		// Do the same with additive data.
-		if( bIsAdditive )
-		{
-			CropRawTrack(AdditiveBasePose(i), StartKey, NumKeys, TotalNumOfFrames);
-		}
 	}
 
 	// Double check that everything is fine
@@ -2942,14 +2669,6 @@ UBOOL UAnimSequence::CropRawAnimData( FLOAT CurrentTime, UBOOL bFromStart )
 		FRawAnimSequenceTrack& RawTrack = RawAnimationData(i);
 		check(RawTrack.PosKeys.Num() == 1 || RawTrack.PosKeys.Num() == NumFrames);
 		check(RawTrack.RotKeys.Num() == 1 || RawTrack.RotKeys.Num() == NumFrames);
-
-		// Do the same with additive data.
-		if( bIsAdditive )
-		{
-			FRawAnimSequenceTrack& BasePoseRawTrack = AdditiveBasePose(i);
-			check(BasePoseRawTrack.PosKeys.Num() == 1 || BasePoseRawTrack.PosKeys.Num() == NumFrames);
-			check(BasePoseRawTrack.RotKeys.Num() == 1 || BasePoseRawTrack.RotKeys.Num() == NumFrames);
-		}
 	}
 
 	// Crop curve data 
@@ -3078,15 +2797,6 @@ UBOOL UAnimSequence::CompressRawAnimData(float MaxPosDiff, float MaxAngleDiff)
 		bRemovedKeys = CompressRawAnimSequenceTrack( RawAnimationData(i), MaxPosDiff, MaxAngleDiff ) || bRemovedKeys;
 	}
 
-	// Additive base pose
-	if( bIsAdditive )
-	{
-		for(INT i=0; i<AdditiveBasePose.Num(); i++)
-		{
-			bRemovedKeys = CompressRawAnimSequenceTrack( AdditiveBasePose(i), MaxPosDiff, MaxAngleDiff ) || bRemovedKeys;
-		}
-	}
-
 	return bRemovedKeys;
 }
 
@@ -3107,85 +2817,11 @@ void UAnimSequence::RecycleAnimSequence()
 {
 	// Clear RawAnimData
 	RawAnimationData.Empty();
-
-	// Clear additive animation information
-	bIsAdditive = FALSE;
-
-	// Remove raw animation data.
-	for(INT TrackIndex = 0; TrackIndex < AdditiveBasePose.Num(); ++TrackIndex)
-	{
-		FRawAnimSequenceTrack& BasePoseTrack = AdditiveBasePose(TrackIndex);
-		BasePoseTrack.PosKeys.Empty();
-		BasePoseTrack.RotKeys.Empty();
-	}
-	AdditiveBasePose.Empty();
-
-	// Clear additive animation references, and remove ourselves from the animations referencing us.
-	ClearAdditiveAnimReferences();
-}
-
-/** 
- * Clear references to additive animations.
- * This is the following arrays: AdditiveBasePoseAnimSeq, AdditiveTargetPoseAnimSeq and RelatedAdditiveAnimSeqs.
- * Handles dependencies, and removes us properly.
- */
-void UAnimSequence::ClearAdditiveAnimReferences()
-{
-	// Go through our references for base poses.
-	for(INT i=0; i<AdditiveBasePoseAnimSeq.Num(); i++)
-	{
-		UAnimSequence* AnimSeq = AdditiveBasePoseAnimSeq(i);
-		if( AnimSeq )
-		{
-			if( AnimSeq->RelatedAdditiveAnimSeqs.RemoveItem( this ) != INDEX_NONE && GIsEditor )
-			{
-				AnimSeq->MarkPackageDirty();
-			}
-		}
-	}
-	AdditiveBasePoseAnimSeq.Empty();
-
-	// Go through our references for target poses.
-	for(INT i=0; i<AdditiveTargetPoseAnimSeq.Num(); i++)
-	{
-		UAnimSequence* AnimSeq = AdditiveTargetPoseAnimSeq(i);
-		if( AnimSeq )
-		{
-			if( AnimSeq->RelatedAdditiveAnimSeqs.RemoveItem( this ) != INDEX_NONE && GIsEditor )
-			{
-				AnimSeq->MarkPackageDirty();
-			}
-		}
-	}
-	AdditiveTargetPoseAnimSeq.Empty();
-
-	// Go through our additive animation references
-	for(INT i=0; i<RelatedAdditiveAnimSeqs.Num(); i++)
-	{
-		UAnimSequence* AnimSeq = RelatedAdditiveAnimSeqs(i);
-		if( AnimSeq )
-		{
-			if( AnimSeq->AdditiveBasePoseAnimSeq.RemoveItem( this ) != INDEX_NONE && GIsEditor )
-			{
-				AnimSeq->MarkPackageDirty();
-			}
-			if( AnimSeq->AdditiveTargetPoseAnimSeq.RemoveItem( this ) != INDEX_NONE && GIsEditor )
-			{
-				AnimSeq->MarkPackageDirty();
-			}
-		}
-	}
-	RelatedAdditiveAnimSeqs.Empty();
-
-	if( GIsEditor )
-	{
-		MarkPackageDirty();
-	}
 }
 
 /** 
  * Utility function to copy all UAnimSequence properties from Source to Destination.
- * Does not copy however RawAnimData, CompressedAnimData and AdditiveBasePose.
+ * Does not copy however RawAnimData and CompressedAnimData.
  */
 UBOOL UAnimSequence::CopyAnimSequenceProperties(UAnimSequence* SourceAnimSeq, UAnimSequence* DestAnimSeq, UBOOL bSkipCopyingNotifies)
 {
@@ -3194,9 +2830,6 @@ UBOOL UAnimSequence::CopyAnimSequenceProperties(UAnimSequence* SourceAnimSeq, UA
 	DestAnimSeq->SequenceLength				= SourceAnimSeq->SequenceLength;
 	DestAnimSeq->NumFrames					= SourceAnimSeq->NumFrames;
 	DestAnimSeq->RateScale					= SourceAnimSeq->RateScale;
-	DestAnimSeq->bNoLoopingInterpolation	= SourceAnimSeq->bNoLoopingInterpolation;
-	DestAnimSeq->bIsAdditive				= SourceAnimSeq->bIsAdditive;
-	DestAnimSeq->AdditiveRefName			= SourceAnimSeq->AdditiveRefName;
 	DestAnimSeq->bDoNotOverrideCompression	= SourceAnimSeq->bDoNotOverrideCompression;
 
 	// Copy Compression Settings
@@ -3204,62 +2837,8 @@ UBOOL UAnimSequence::CopyAnimSequenceProperties(UAnimSequence* SourceAnimSeq, UA
 	DestAnimSeq->TranslationCompressionFormat	= SourceAnimSeq->TranslationCompressionFormat;
 	DestAnimSeq->RotationCompressionFormat		= SourceAnimSeq->RotationCompressionFormat;
 
-	// Transfer additive animation references
-
-	// Transfer RelatedAdditiveAnimSeqs array
-	DestAnimSeq->RelatedAdditiveAnimSeqs = SourceAnimSeq->RelatedAdditiveAnimSeqs;
-	// This is additive animations we have built. We are either a base pose or target pose.
-	// Since we created a copy of Source, also add Dest as either another base or target pose for those additive animations.
-	for(INT i=0; i<SourceAnimSeq->RelatedAdditiveAnimSeqs.Num(); i++)
-	{
-		UAnimSequence* AdditiveAnimSeq = SourceAnimSeq->RelatedAdditiveAnimSeqs(i);
-		if( AdditiveAnimSeq )
-		{
-			if( AdditiveAnimSeq->AdditiveBasePoseAnimSeq.FindItemIndex(SourceAnimSeq) != INDEX_NONE  )
-			{
-				// If Source was used as a Base pose for AdditiveAnimSeq, then also add Dest as well
-				AdditiveAnimSeq->AdditiveBasePoseAnimSeq.AddUniqueItem( DestAnimSeq );
-				AdditiveAnimSeq->MarkPackageDirty();
-			}
-			if( AdditiveAnimSeq->AdditiveTargetPoseAnimSeq.FindItemIndex(SourceAnimSeq) != INDEX_NONE )
-			{
-				// If Source was used as a Target pose for AdditiveAnimSeq, then also add Dest as well
-				AdditiveAnimSeq->AdditiveTargetPoseAnimSeq.AddUniqueItem( DestAnimSeq );
-				AdditiveAnimSeq->MarkPackageDirty();
-			}
-		}
-	}
-
-	// Transfer AdditiveBasePoseAnimSeq array 
-	DestAnimSeq->AdditiveBasePoseAnimSeq = SourceAnimSeq->AdditiveBasePoseAnimSeq;
-	// If we're an additive animation, this is a list of the base pose animations used to build us.
-	// Add us to them, so they know they're built us.
-	for(INT i=0; i<SourceAnimSeq->AdditiveBasePoseAnimSeq.Num(); i++)
-	{
-		UAnimSequence* BaseAnimSeq = SourceAnimSeq->AdditiveBasePoseAnimSeq(i);
-		if( BaseAnimSeq )
-		{
-			BaseAnimSeq->RelatedAdditiveAnimSeqs.AddUniqueItem( DestAnimSeq );
-		}
-	}
-
-	// Transfer AdditiveTargetPoseAnimSeq array 
-	DestAnimSeq->AdditiveTargetPoseAnimSeq = SourceAnimSeq->AdditiveTargetPoseAnimSeq;
-	// If we're an additive animation, this is a list of the target pose animations used to build us.
-	// Add us to them, so they know they're built us.
-	for(INT i=0; i<SourceAnimSeq->AdditiveTargetPoseAnimSeq.Num(); i++)
-	{
-		UAnimSequence* BaseAnimSeq = SourceAnimSeq->AdditiveTargetPoseAnimSeq(i);
-		if( BaseAnimSeq )
-		{
-			BaseAnimSeq->RelatedAdditiveAnimSeqs.AddUniqueItem( DestAnimSeq );
-		}
-	}
-
 	if( !bSkipCopyingNotifies )
 	{
-		// Copy Metadata information
-		CopyMetadata(SourceAnimSeq, DestAnimSeq);
 		CopyNotifies(SourceAnimSeq, DestAnimSeq);
 	}
 
@@ -3271,50 +2850,7 @@ UBOOL UAnimSequence::CopyAnimSequenceProperties(UAnimSequence* SourceAnimSeq, UA
 	return TRUE;
 }
 
-void UAnimSequence::CopyMetadata(UAnimSequence* SourceAnimSeq, UAnimSequence* DestAnimSeq)
-{
-	// Don't need to do anything if they're the same!!
-	if( SourceAnimSeq == DestAnimSeq )
-	{
-		return;
-	}
-
-	// If the destination sequence contains any metadata, ask the user if they'd like
-	// to delete the existing metadata before copying over from the source sequence.
-	if( DestAnimSeq->MetaData.Num() > 0 )
-	{
-		const UBOOL bDeleteExistingMetadata = appMsgf( AMT_YesNo, LocalizeSecure(LocalizeUnrealEd("DestSeqAlreadyContainsMetadataMergeQ"), DestAnimSeq->MetaData.Num()) );
-		if( bDeleteExistingMetadata )
-		{
-			DestAnimSeq->MetaData.Empty();
-			DestAnimSeq->MarkPackageDirty();
-		}
-	}
-
-	// Do the copy.
-	TArray<INT> NewMetadataIndices;
-
-	for(INT MetadataIndex=0; MetadataIndex<SourceAnimSeq->MetaData.Num(); ++MetadataIndex)
-	{
-		INT NewMetadataIndex = DestAnimSeq->MetaData.AddZeroed();
-
-		// Copy the notify itself, and point the new one at it.
-		if( SourceAnimSeq->MetaData(MetadataIndex) )
-		{
-			FObjectDuplicationParameters DupParams( SourceAnimSeq->MetaData(MetadataIndex), DestAnimSeq );
-			DestAnimSeq->MetaData(NewMetadataIndex) = CastChecked<UAnimMetaData>( UObject::StaticDuplicateObjectEx(DupParams) );
-		}
-		else
-		{
-			DestAnimSeq->MetaData(NewMetadataIndex) = NULL;
-		}
-	}
-
-	// Make sure editor knows we've changed something.
-	DestAnimSeq->MarkPackageDirty();
-}
-
-/** 
+/**
  * Copy AnimNotifies from one UAnimSequence to another.
  */
 UBOOL UAnimSequence::CopyNotifies(UAnimSequence* SourceAnimSeq, UAnimSequence* DestAnimSeq)
@@ -3390,10 +2926,8 @@ UBOOL UAnimSequence::CopyNotifies(UAnimSequence* SourceAnimSeq, UAnimSequence* D
 		// Create a new empty on in the array.
 		DestAnimSeq->Notifies.InsertZeroed(NewNotifyIndex);
 
-		// Copy time and comment.
+		// Copy time.
 		DestAnimSeq->Notifies(NewNotifyIndex).Time = SrcNotifyEvent.Time;
-		DestAnimSeq->Notifies(NewNotifyIndex).Comment = SrcNotifyEvent.Comment;
-		DestAnimSeq->Notifies(NewNotifyIndex).Duration = SrcNotifyEvent.Duration;
 
 		// Copy the notify itself, and point the new one at it.
 		if( SrcNotifyEvent.Notify )
@@ -3437,7 +2971,7 @@ FLOAT UAnimSequence::GetNotifyTimeByClass( UClass* NotifyClass, FLOAT PlayRate, 
 			}
 			if( out_Duration != NULL )
 			{
-				*out_Duration = Notifies(i).Duration;
+				*out_Duration = 0.f;
 			}
 
 			return NotifyTime;
@@ -4663,11 +4197,6 @@ void UAnimNotify_ClothingMaxDistanceScale::NotifyEnd( class UAnimNodeSequence* N
 	NodeSeq->SkelComponent->SetApexClothingMaxDistanceScale(EndScale, EndScale, static_cast<EMaxDistanceScaleMode>(ScaleMode), 0.0f);
 }
 
-void UAnimNotify_ClothingMaxDistanceScale::AnimNotifyEventChanged(class UAnimNodeSequence* NodeSeq, FAnimNotifyEvent* OwnerEvent)
-{
-	Super::AnimNotifyEventChanged(NodeSeq, OwnerEvent);
-	Duration = OwnerEvent->Duration;
-}
 IMPLEMENT_CLASS(UAnimNotify_ClothingMaxDistanceScale);
 
 //
@@ -5022,158 +4551,6 @@ UParticleSystemComponent* UAnimNotify_Trails::GetPSysComponent(class UAnimNodeSe
 	}
 
 	return NULL;
-}
-
-/**
- *	Called by the AnimSet viewer when the 'parent' FAnimNotifyEvent is edited.
- *
- *	@param	NodeSeq			The AnimNodeSequence this notify is associated with.
- *	@param	OwnerEvent		The FAnimNotifyEvent that 'owns' this AnimNotify.
- */
-void UAnimNotify_Trails::AnimNotifyEventChanged(class UAnimNodeSequence* NodeSeq, FAnimNotifyEvent* OwnerEvent)
-{
-	Super::AnimNotifyEventChanged(NodeSeq, OwnerEvent);
-	UBOOL bRecalculateAnimationData = FALSE;
-	if (OwnerEvent->Time != LastStartTime)
-	{
-		LastStartTime = OwnerEvent->Time;
-		bRecalculateAnimationData = TRUE;
-	}
-	if (OwnerEvent->Duration != (LastStartTime - EndTime))
-	{
-		EndTime = LastStartTime + OwnerEvent->Duration;
-		bRecalculateAnimationData = TRUE;
-	}
-	if (TrailSampledData.Num() == 0)
-	{
-		bRecalculateAnimationData = TRUE;
-	}
-
-	if (bRecalculateAnimationData == TRUE)
-	{
-		StoreAnimationData(NodeSeq);
-	}
-}
-
-/** Store the animation data for the current settings. Editor-only. */
-void UAnimNotify_Trails::StoreAnimationData(class UAnimNodeSequence* NodeSeq)
-{
-	if (IsSetupValid(NodeSeq) == FALSE)
-	{
-		return;
-	}
-
-	// Sample the animation starting at LastStartTime until EndTime using SampleTimeStep
-	// Retrieve each sockets position and velocity at each time step
-	FLOAT SampleTimeStep = 1.0f / SamplesPerSecond;
-#define DEBUG_ANIMNOTIFY_TRAILS
-#ifdef DEBUG_ANIMNOTIFY_TRAILS
-	debugf(TEXT("UAnimNotify_Trails Sampling %s"), *(NodeSeq->GetName()));
-	debugf(TEXT("\tStartTime %8.6f, EndTime %8.6f, TimeStep = %8.6f"), LastStartTime, EndTime, SampleTimeStep);
-#endif	//DEBUG_ANIMNOTIFY_TRAILS
-
-	if ((FirstEdgeSocketName == NAME_None) || (SecondEdgeSocketName == NAME_None) || (ControlPointSocketName == NAME_None))
-	{
-		warnf(TEXT("Unable to sample animation data... Missing require EdgeSocket names!"));
-		return;
-	}
-
-	FLOAT TimeDiff = EndTime - LastStartTime;
-	if (TimeDiff <= 0.0f)
-	{
-		warnf(TEXT("Unable to sample animation data... Invalid time range!"));
-		return;
-	}
-
-	INT NumberOfSteps = appTrunc(TimeDiff / SampleTimeStep) + 2;
-	TrailSampledData.Empty(NumberOfSteps);
-	TrailSampledData.AddZeroed(NumberOfSteps);
-
-	FMatrix BoneMatrix = NodeSeq->SkelComponent->GetBoneMatrix(0);
-	FMatrix BoneMatrixInv = BoneMatrix.InverseSafe();
-	FVector FirstPreLocation;
-	FVector SecondPreLocation;
-	FVector ControlPreLocation;
-	FLOAT PreStep = LastStartTime - SampleTimeStep;
-	if (PreStep >= 0.0f)
-	{
-		NodeSeq->SetPosition(PreStep, FALSE);
-	}
-	else
-	{
-		NodeSeq->SetPosition(0.0f, FALSE);
-	}
-	NodeSeq->SkelComponent->ForceSkelUpdate();
-	NodeSeq->SkelComponent->GetSocketWorldLocationAndRotation(FirstEdgeSocketName, FirstPreLocation, NULL, 0);
-	NodeSeq->SkelComponent->GetSocketWorldLocationAndRotation(SecondEdgeSocketName, SecondPreLocation, NULL, 0);
-	NodeSeq->SkelComponent->GetSocketWorldLocationAndRotation(ControlPointSocketName, ControlPreLocation, NULL, 0);
-
-	FirstPreLocation = BoneMatrixInv.TransformFVector(FirstPreLocation);
-	SecondPreLocation = BoneMatrixInv.TransformFVector(SecondPreLocation);
-	ControlPreLocation = BoneMatrixInv.TransformFVector(ControlPreLocation);
-
-	INT StoreCount = 0;
-	FLOAT CurrTime = 0.0f;
-	// Force it to sample exactly at the EndTime as well!
-	for (FLOAT TimeStep = LastStartTime; TimeStep < (EndTime + SampleTimeStep); TimeStep += SampleTimeStep)
-	{
-		if (TimeStep > EndTime)
-		{
-			TimeStep = EndTime;
-		}
-		NodeSeq->SetPosition(TimeStep, FALSE);
-		NodeSeq->SkelComponent->ForceSkelUpdate();
-
-		BoneMatrix = NodeSeq->SkelComponent->GetBoneMatrix(0);
-		BoneMatrixInv = BoneMatrix.InverseSafe();
-
-		FVector FirstLocation;
-		FVector SecondLocation;
-		FVector ControlLocation;
-
-		NodeSeq->SkelComponent->GetSocketWorldLocationAndRotation(FirstEdgeSocketName, FirstLocation, NULL, 0);
-		NodeSeq->SkelComponent->GetSocketWorldLocationAndRotation(SecondEdgeSocketName, SecondLocation, NULL, 0);
-		NodeSeq->SkelComponent->GetSocketWorldLocationAndRotation(ControlPointSocketName, ControlLocation, NULL, 0);
-
-		FirstLocation = BoneMatrixInv.TransformFVector(FirstLocation);
-		SecondLocation = BoneMatrixInv.TransformFVector(SecondLocation);
-		ControlLocation = BoneMatrixInv.TransformFVector(ControlLocation);
-
-		// Store off the location
-		if (StoreCount >= TrailSampledData.Num())
-		{
-			warnf(TEXT("SampleAnimationData: Stepping more than calculated! StoreCount = %3d, ArrayCount = %3d, TimeStep = %15.10f, StartTime = %15.10f, EndTime = %15.10f, SampleTimeStep = %15.10f"),
-				StoreCount, TrailSampledData.Num(), TimeStep, LastStartTime, EndTime, SampleTimeStep);
-			TrailSampledData.AddZeroed(1);
-		}
-		FTrailSample& SamplePoint = TrailSampledData(StoreCount);
-		SamplePoint.RelativeTime = CurrTime;
-		SamplePoint.FirstEdgeSample = FirstLocation;
-		SamplePoint.SecondEdgeSample = SecondLocation;
-		SamplePoint.ControlPointSample = ControlLocation;
-
-		StoreCount++;
-		CurrTime += SampleTimeStep;
-	}
-	//check(StoreCount <= NumberOfSteps);
-
-#ifdef DEBUG_ANIMNOTIFY_TRAILS
-	for (INT DumpIdx = 0; DumpIdx < TrailSampledData.Num(); DumpIdx++)
-	{
-		FTrailSample* CurrSamplePoint = &(TrailSampledData(DumpIdx));
-		debugf(TEXT("\t%8.6f: First   %8.6f,%8.6f,%8.6f"), 
-			CurrSamplePoint->RelativeTime, 
-			CurrSamplePoint->FirstEdgeSample.X, CurrSamplePoint->FirstEdgeSample.Y, CurrSamplePoint->FirstEdgeSample.Z);
-		debugf(TEXT("\t%8.6f: Second  %8.6f,%8.6f,%8.6f"), 
-			CurrSamplePoint->RelativeTime, 
-			CurrSamplePoint->SecondEdgeSample.X, CurrSamplePoint->SecondEdgeSample.Y, CurrSamplePoint->SecondEdgeSample.Z);
-		debugf(TEXT("\t%8.6f: Control %8.6f,%8.6f,%8.6f"), 
-			CurrSamplePoint->RelativeTime, 
-			CurrSamplePoint->ControlPointSample.X, CurrSamplePoint->ControlPointSample.Y, CurrSamplePoint->ControlPointSample.Z);
-	}
-#endif	//DEBUG_ANIMNOTIFY_TRAILS
-
-	bResampleRequired = FALSE;
 }
 
 /** Verify the notify is setup correctly for sampling animation data. Editor-only. */

@@ -131,36 +131,6 @@ static UBOOL GetTrackMapAndExtend(UAnimSet* AnimSet, TArray<FName> &RawBoneNames
 
 						// Create 1-frame animation from the reference pose of the skeletal mesh.
 						// This is basically what the compression does, so should be fine.
-						if( ExtendSeq->bIsAdditive )
-						{
-							RawTrack.PosKeys.AddItem(FVector(0.f));
-
-							FQuat RefOrientation = FQuat::Identity;
-							// To emulate ActorX-exported animation quat-flipping, we do it here.
-							if( PatchBoneIndex > 0 )
-							{
-								RefOrientation.W *= -1.f;
-							}
-							RawTrack.RotKeys.AddItem(RefOrientation);
-
-							// Extend AdditiveBasePose
-							const FMeshBone& RefSkelBone = FillInMesh->RefSkeleton(PatchBoneIndex);
-
-							FBoneAtom RefBoneAtom(
-								RefSkelBone.BonePos.Orientation,
-								RefSkelBone.BonePos.Position);
-							if( PatchBoneIndex > 0)
-							{
-								RefBoneAtom.FlipSignOfRotationW(); // As above - flip if necessary
-							}
-
-							// Save off RefPose into destination AnimSequence
-							ExtendSeq->AdditiveBasePose.AddZeroed();
-							FRawAnimSequenceTrack& BasePoseTrack = ExtendSeq->AdditiveBasePose( ExtendSeq->AdditiveBasePose.Num()-1 );
-							BasePoseTrack.PosKeys.AddItem(RefBoneAtom.GetTranslation());
-							BasePoseTrack.RotKeys.AddItem(RefBoneAtom.GetRotation());
-						}
-						else
 						{
 							const FVector RefPosition = FillInMesh->RefSkeleton(PatchBoneIndex).BonePos.Position;
 							RawTrack.PosKeys.AddItem(RefPosition);

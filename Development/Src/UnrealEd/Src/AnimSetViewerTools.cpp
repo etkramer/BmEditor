@@ -2773,19 +2773,6 @@ extern FParticleDataManager	GParticleDataManager;
 
 void WxAnimSetViewer::TickViewer(FLOAT DeltaSeconds)
 {
-	if ((bResampleAnimNotifyData == TRUE) && (SelectedAnimSeq != NULL))
-	{
-		for (INT NotifyIdx = 0; NotifyIdx < SelectedAnimSeq->Notifies.Num(); NotifyIdx++)
-		{
-			FAnimNotifyEvent* OwnerEvent = &(SelectedAnimSeq->Notifies(NotifyIdx));
-			if (OwnerEvent && OwnerEvent->Notify)
-			{
-				OwnerEvent->Notify->AnimNotifyEventChanged(PreviewAnimNode, OwnerEvent);
-			}
-		}
-		bResampleAnimNotifyData = FALSE;
-	}
-
 	// Tick the PreviewSkelComp to move animation forwards, then Update to update bone locations.
 	PreviewSkelComp->TickAnimNodes(DeltaSeconds);
 	
@@ -3015,13 +3002,6 @@ void WxAnimSetViewer::DeleteTrackFromSelectedSet()
 						UAnimSequence* Seq = SelectedAnimSet->Sequences( SequenceIndex );
 						check( Seq->RawAnimationData.Num() == SelectedAnimSet->TrackBoneNames.Num() );
 						Seq->RawAnimationData.Remove( SelectedTrackIndex );
-
-						// Keep AdditiveBasePose in sync.
-						if( Seq->bIsAdditive )
-						{
-							check( Seq->AdditiveBasePose.Num() == SelectedAnimSet->TrackBoneNames.Num() );
-							Seq->AdditiveBasePose.Remove( SelectedTrackIndex );
-						}
 					}
 
 					// Delete corresponding track bone name as well.
@@ -3133,10 +3113,6 @@ void WxAnimSetViewer::AnalyzeAnimSet()
 
 		const INT NumTracks = AnimSeq->RawAnimationData.Num();
 		NumTotalTracks += NumTracks;
-		if( AnimSeq->bIsAdditive )
-		{
-			NumAdditiveTracks += NumTracks;
-		}
 
 		NumNoTrackData += (RefSkel.Num() - NumTracks);
 		NumTotalBones += RefSkel.Num();
@@ -3148,22 +3124,6 @@ void WxAnimSetViewer::AnalyzeAnimSet()
 
 			if( RawTrack.PosKeys.Num() == 1 && RawTrack.RotKeys.Num() == 1 )
 			{
-				if( AnimSeq->bIsAdditive )
-				{
-					FLOAT const TranslationError = RawTrack.PosKeys(0).Size();
-					FLOAT const RotationError = FQuatError(FQuat::Identity, RawTrack.RotKeys(0));
-					TrackLargestTranslationError(TrackIndex) = Max<FLOAT>(TrackLargestTranslationError(TrackIndex), TranslationError);
-					TrackLargestRotationError(TrackIndex) = Max<FLOAT>(TrackLargestRotationError(TrackIndex), RotationError);
-					if( TranslationError <= MAXPOSDIFF && RotationError <= MAXANGLEDIFF )
-					{
-						NumDeletedTracks++;
-						NumDeletedAdditiveTracks++;
-						DeletedTracksArray(TrackIndex)++;
-						DeletedAdditiveTracksArray(TrackIndex)++;
-						bTrackIsNeeded = FALSE;
-					}
-				}
-				else
 				{
 					if( AnimLinkup.BoneToTrackTable.FindItem(TrackIndex, BoneIndex) )
 					{
@@ -3279,16 +3239,16 @@ void WxAnimSetViewer::AnalyzeAnimSet()
 
 			for(INT KeyIdx=0; KeyIdx<RawTrack.PosKeys.Num(); KeyIdx++)
 			{
-				FLOAT const TranslationError = AnimSeq->bIsAdditive ? RawTrack.PosKeys(KeyIdx).Size() : (RawTrack.PosKeys(KeyIdx) - RefBoneTranslation).Size();
+				FLOAT const TranslationError = (RawTrack.PosKeys(KeyIdx) - RefBoneTranslation).Size();
 				MaxTranslationError = Max<FLOAT>(MaxTranslationError, TranslationError);
 				AnimTranslationError = Max<FLOAT>(AnimTranslationError, TranslationError);
 			}
 			for(INT KeyIdx=0; KeyIdx<RawTrack.RotKeys.Num(); KeyIdx++)
 			{
-				FLOAT const RotationError = FQuatError(AnimSeq->bIsAdditive ? FQuat::Identity : RefBoneRotation, RawTrack.RotKeys(KeyIdx));
+				FLOAT const RotationError = FQuatError(RefBoneRotation, RawTrack.RotKeys(KeyIdx));
 				MaxRotationError = Max<FLOAT>(MaxRotationError, RotationError);
 				AnimRotationError = Max<FLOAT>(AnimRotationError, RotationError);
-			}	
+			}
 
 			// This is good to be skipped!! Verify that we actually reduced those to 1 frame
 			if( AnimTranslationError <= MAXPOSDIFF && AnimRotationError <= MAXANGLEDIFF )
@@ -3424,36 +3384,8 @@ void WxAnimSetViewer::DeleteSelectedSequence()
 	SelectedAnimSet->MarkPackageDirty();
 }
 
-/* When copying of moving sequences, we want to make sure none of the selected sequences are additive or related to additive sequences */
 UBOOL WxAnimSetViewer::RemoveAdditiveSequences(TArray<UAnimSequence*>& Sequences, UAnimSet* DestAnimSet)
 {
-	check(DestAnimSet);
-	if (SelectedAnimSet->GetOutermost() != DestAnimSet->GetOutermost())
-	{
-		INT InitialNumberOfSequences = Sequences.Num();
-		FString RemovedSequenceNames = TEXT("\n");
-		for (INT SeqIdx = Sequences.Num() - 1; SeqIdx >= 0; --SeqIdx)
-		{
-			UAnimSequence* Sequence = Sequences(SeqIdx);
-			if (Sequence->bIsAdditive || (Sequence->RelatedAdditiveAnimSeqs.Num() > 0))
-			{
-				RemovedSequenceNames = FString::Printf(TEXT("%s %s\n"), *RemovedSequenceNames, *Sequence->SequenceName.ToString());
-				Sequences.Remove(SeqIdx);
-			}
-		}
-
-		if (Sequences.Num() != InitialNumberOfSequences)
-		{
-			FString WarningMessage = FString::Printf(LocalizeSecure(LocalizeUnrealEd("Prompt_CantCopyAdditiveSequence"), *RemovedSequenceNames, *DestAnimSet->GetName()));
-			appMsgf(AMT_OK, *WarningMessage);
-
-			if( Sequences.Num() == 0 )
-			{
-				return FALSE;
-			}
-		}
-	}
-
 	return TRUE;
 }
 
@@ -3869,35 +3801,6 @@ UBOOL WxAnimSetViewer::CopyAnimSequence(UAnimSequence* SourceAnimSeq, UAnimSeque
 
 						// Create 1-frame animation from the reference pose of the skeletal mesh.
 						// This is basically what the compression does, so should be fine.
-						if( ExtendSeq->bIsAdditive )
-						{
-							RawTrack.PosKeys.AddItem(FVector(0.f));
-
-							FQuat RefOrientation = FQuat::Identity;
-							// To emulate ActorX-exported animation quat-flipping, we do it here.
-							if( PatchBoneIndex > 0 )
-							{
-								RefOrientation.W *= -1.f;
-							}
-							RawTrack.RotKeys.AddItem(RefOrientation);
-
-							// Extend AdditiveBasePose
-							const FMeshBone& RefSkelBone = FillInMesh->RefSkeleton(PatchBoneIndex);
-
-							FBoneAtom RefBoneAtom(RefSkelBone.BonePos.Orientation,
-								RefSkelBone.BonePos.Position);
-							if( PatchBoneIndex > 0)
-							{
-								RefBoneAtom.FlipSignOfRotationW(); // As above - flip if necessary
-							}
-
-							// Save off RefPose into destination AnimSequence
-							ExtendSeq->AdditiveBasePose.AddZeroed();
-							FRawAnimSequenceTrack& BasePoseTrack = ExtendSeq->AdditiveBasePose( ExtendSeq->AdditiveBasePose.Num()-1 );
-							BasePoseTrack.PosKeys.AddItem(RefBoneAtom.GetTranslation());
-							BasePoseTrack.RotKeys.AddItem(RefBoneAtom.GetRotation());
-						}
-						else
 						{
 							const FVector RefPosition = FillInMesh->RefSkeleton(PatchBoneIndex).BonePos.Position;
 							RawTrack.PosKeys.AddItem(RefPosition);
@@ -3939,10 +3842,6 @@ UBOOL WxAnimSetViewer::CopyAnimSequence(UAnimSequence* SourceAnimSeq, UAnimSeque
 
 	// Make sure data is zeroed
 	DestAnimSeq->RawAnimationData.AddZeroed( DestAnimSet->TrackBoneNames.Num() );
-	if( DestAnimSeq->bIsAdditive )
-	{
-		DestAnimSeq->AdditiveBasePose.AddZeroed( DestAnimSet->TrackBoneNames.Num() );
-	}
 
 	// Structure of data is this:
 	// RawAnimKeys contains all keys. 
@@ -3966,32 +3865,6 @@ UBOOL WxAnimSetViewer::CopyAnimSequence(UAnimSequence* SourceAnimSeq, UAnimSeque
 
 			// Create 1-frame animation from the reference pose of the skeletal mesh.
 			// This is basically what the compression does, so should be fine.
-			if( DestAnimSeq->bIsAdditive )
-			{
-				RawTrack.PosKeys.AddItem(FVector(0.f));
-
-				FQuat RefOrientation = FQuat::Identity;
-				// To emulate ActorX-exported animation quat-flipping, we do it here.
-				if( PatchBoneIndex > 0 )
-				{
-					RefOrientation.W *= -1.f;
-				}
-				RawTrack.RotKeys.AddItem(RefOrientation);
-
-				// Extend AdditiveBasePose
-				const FMeshBone& RefSkelBone = FillInMesh->RefSkeleton(PatchBoneIndex);
-
-				FBoneAtom RefBoneAtom(RefSkelBone.BonePos.Orientation, RefSkelBone.BonePos.Position);
-				if( PatchBoneIndex > 0)
-				{
-					RefBoneAtom.FlipSignOfRotationW(); // As above - flip if necessary
-				}
-
-				// Save off RefPose into destination AnimSequence
-				DestAnimSeq->AdditiveBasePose(TrackIdx).PosKeys.AddItem(RefBoneAtom.GetTranslation());
-				DestAnimSeq->AdditiveBasePose(TrackIdx).RotKeys.AddItem(RefBoneAtom.GetRotation());
-			}
-			else
 			{
 				const FVector RefPosition = FillInMesh->RefSkeleton(PatchBoneIndex).BonePos.Position;
 				RawTrack.PosKeys.AddItem(RefPosition);
@@ -4014,12 +3887,6 @@ UBOOL WxAnimSetViewer::CopyAnimSequence(UAnimSequence* SourceAnimSeq, UAnimSeque
 			{
 				// Direct copy
 				DestAnimSeq->RawAnimationData(TrackIdx) = SourceAnimSeq->RawAnimationData(SrcTrackIndex);
-
-				// Remap the additive ref pose
-				if( DestAnimSeq->bIsAdditive )
-				{
-					DestAnimSeq->AdditiveBasePose(TrackIdx) = SourceAnimSeq->AdditiveBasePose(SrcTrackIndex);
-				}
 			}
 			else
 			{
@@ -4168,19 +4035,16 @@ void WxAnimSetViewer::RebuildAdditiveAnimation()
 		INT SelIndex = Selection.Item(i);
 
 		UAnimSequence* AnimSeq = (UAnimSequence*)AnimSeqList->GetClientData(SelIndex);
-		// Make sure selected animations are additive.
-		if( AnimSeq && AnimSeq->bIsAdditive )
+		if( AnimSeq )
 		{
 			check( AnimSeq->GetOuter() == SelectedAnimSet );
 			check( SelectedAnimSet->Sequences.ContainsItem(AnimSeq) );
 
-			// Checks out, so add item...
 			Sequences.AddItem(AnimSeq);
 			SeqListString = FString::Printf( TEXT("%s\n %s"), *SeqListString, *AnimSeq->SequenceName.ToString());
 		}
 	}
 
-	// If no sequences found, just abort
 	if( Sequences.Num() == 0 )
 	{
 		appMsgf( AMT_OK, TEXT("No Additive Animations Selected") );
@@ -4319,9 +4183,6 @@ UBOOL WxAnimSetViewer::AddAdditiveAnimation
 	check(SourceAnimSeq->GetOuter() == DestAnimSeq->GetOuter());
 	check(SourceAnimSeq->GetOuter() == AdditiveAnimSeq->GetOuter());
 	
-	// Make sure the additive animation is additive. :)
-	check( AdditiveAnimSeq->bIsAdditive );
-
 	// AnimSet those animsequences belong to
 	UAnimSet* AnimSet = SourceAnimSeq->GetAnimSet();
 
@@ -4334,19 +4195,11 @@ UBOOL WxAnimSetViewer::AddAdditiveAnimation
 		// Copy properties of Source into Dest.
 		UAnimSequence::CopyAnimSequenceProperties(SourceAnimSeq, DestAnimSeq);
 
-		// Dest won't have anything to do with Source anymore, so clear all additive animation references.
-		DestAnimSeq->ClearAdditiveAnimReferences();
-
 		// New name
 		DestAnimSeq->SequenceName = AnimationName;
 
 		// Copy animation data from source
 		DestAnimSeq->RawAnimationData = SourceAnimSeq->RawAnimationData;
-		// Copy additive base pose if source animation is additive	
-		if( SourceAnimSeq->bIsAdditive )
-		{
-			DestAnimSeq->AdditiveBasePose = SourceAnimSeq->AdditiveBasePose;
-		}
 	}
 
 	// Verify that number of tracks are matching.

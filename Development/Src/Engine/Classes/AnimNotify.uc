@@ -20,14 +20,6 @@ cpptext
 
 	virtual FString GetEditorComment() { return TEXT(""); }
 	virtual FColor GetEditorColor() { return NotifyColor; }
-
-	/**
-	 *	Called by the AnimSet viewer when the 'parent' FAnimNotifyEvent is edited.
-	 *
-	 *	@param	NodeSeq			The AnimNodeSequence this notify is associated with.
-	 *	@param	OwnerEvent		The FAnimNotifyEvent that 'owns' this AnimNotify.
-	 */
-	virtual void AnimNotifyEventChanged(class UAnimNodeSequence* NodeSeq, FAnimNotifyEvent* OwnerEvent) {}
 }
 
 simulated function bool FindNextNotifyOfClass(AnimNodeSequence AnimSeqInstigator, class<AnimNotify> NotifyClass, out AnimNotifyEvent OutEvent)

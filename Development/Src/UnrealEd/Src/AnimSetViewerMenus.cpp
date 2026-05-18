@@ -2931,10 +2931,10 @@ void WxAddAdditiveAnimDialog::UpdateAnimationList()
 	{
 		UAnimSet* SelectedAnimSet = AnimSetViewer->SelectedAnimSet;
 		for(INT i=0; i<SelectedAnimSet->Sequences.Num(); i++)
-		{		
+		{
 			UAnimSequence* Seq = SelectedAnimSet->Sequences(i);
 
-			if( Seq && Seq->bIsAdditive )
+			if( Seq )
 			{
 				FString SeqString = FString::Printf( TEXT("%s"), *Seq->SequenceName.ToString());
 				AnimListCtrl->Append( *SeqString, Seq );

@@ -431,34 +431,22 @@ private:
 		Member variables.
 	-----------------------------------------------------------------------------*/
 
-	/** Serialized flags for bulk data																					*/
-	DWORD				BulkDataFlags;
-	/** Number of elements in bulk data array																			*/
+public:
+	// BM2 layout: packs bShouldFreeOnEmpty (u8) + LockStatus (u8) + BulkDataFlags (u16) into one DWORD slot.
+	BYTE				bShouldFreeOnEmpty;
+	BYTE				LockStatus;
+	WORD				BulkDataFlags;
 	INT					ElementCount;
-	/** Offset of bulk data into file or INDEX_NONE if no association													*/
 	INT					BulkDataOffsetInFile;
-	/** Size of bulk data on disk or INDEX_NONE if no association														*/
 	INT					BulkDataSizeOnDisk;
 
-	/** From last saving or StoreInSeparateFile call: Serialized flags for bulk data									*/
 	DWORD				SavedBulkDataFlags;
-	/** From last saving or StoreInSeparateFile call: Number of elements in bulk data array								*/
 	INT					SavedElementCount;
-	/** From last saving or StoreInSeparateFile call: Offset of bulk data into file or INDEX_NONE if no association		*/
 	INT					SavedBulkDataOffsetInFile;
-	/** From last saving or StoreInSeparateFile call: Size of bulk data on disk or INDEX_NONE if no association			*/
 	INT					SavedBulkDataSizeOnDisk;
 
-	/** Pointer to cached bulk data																						*/
 	void*				BulkData;
-	/** Current lock status																								*/
-	DWORD				LockStatus;
-	/** Archive associated with bulk data for serialization																*/
 	FArchive*			AttachedAr;
-
-protected:
-	/** TRUE when data has been allocated internally by the bulk data and does not come from a preallocated resource	*/
-	UBOOL				bShouldFreeOnEmpty;
 };
 
 
