@@ -1618,10 +1618,9 @@ void AnimZip_Compress(UAnimSequence* Seq)
 		TransInterm.AddItem(IT);
 	}
 
-	// --- Build motion intermediate tracks (run codec selection with MotionTrackSettings). ---
-	// Motion rotation is yaw-only (GetMotionTrack BmGame.exe.c:11456887); the
-	// motion translation uses raw root translation. Both go through SelectCodec
-	// against Settings->MotionTrackSettings (sub_24174E0 motion call site 11512860).
+	// Motion bundles (GetMotionTrack BmGame.exe.c:11456727 + codec select 11512860).
+	// TODO: yaw/XYZ should read URMotion options (StartYaw/EndYaw etc.) but we
+	// don't have those fields yet — approximating from raw root track instead.
 	FResolvedTrackSettings MotionRS = AnimZip_ResolveTrackSettings(
 		EffSettings, FName(TEXT("Motion")), bRootIsBip01, bRootIsCape, TRUE);
 
@@ -1879,27 +1878,22 @@ void AnimZip_Compress(UAnimSequence* Seq)
 		}
 	}
 
-	// AnimZip_LinearOrigin / AnimZip_LinearSpan: precomputed linear
-	// approximation of root motion, expressed in the first frame's local space.
-	// Matches the reference encoder at BmGame.exe.c:11513269-11513421:
-	//   M = TRS(firstQ, firstT); LinearOrigin = M^-1 * (mean - 0.5*span);
-	//   LinearSpan = M^-1_rot * span. The runtime composes these with the
-	//   motion bundle sample in GetAnimOrigin / GetLinearOrigin.
-	if (bHasMotionRot && bHasMotionTrans)
+	// LinearOrigin/Span (BmGame.exe.c:11513269): M = TRS(MotionRot[0], MotionTrans[0]),
+	// LinearOrigin = M^-1 * (mean - 0.5*span), LinearSpan = M^-1_rot * span.
+	if (bHasMotionRot && bHasMotionTrans
+		&& MotionRotIT.Samples.Num() > 0 && MotionTransIT.Samples.Num() > 0)
 	{
-		FQuat FirstQRaw = RootTrack.RotKeys(0);
-		FirstQRaw.Normalize();
-		const FQuat   FirstQ    = AnimZip_ExtractYawQuat(FirstQRaw);
-		const FVector FirstT    = RootTrack.PosKeys(0);
-		const FVector LastT     = RootTrack.PosKeys(RootTrack.PosKeys.Num() - 1);
-		const FVector Span      = LastT - FirstT;
+		const FQuat   FirstQ = MotionRotIT.Samples(0);
+		const FVector FirstT = MotionTransIT.Samples(0);
+		const FVector LastT  = MotionTransIT.Samples(MotionTransIT.Samples.Num() - 1);
+		const FVector Span   = LastT - FirstT;
 
 		FVector Sum(0, 0, 0);
-		for (INT f = 0; f < RootTrack.PosKeys.Num(); f++)
+		for (INT f = 0; f < MotionTransIT.Samples.Num(); f++)
 		{
-			Sum += RootTrack.PosKeys(f);
+			Sum += MotionTransIT.Samples(f);
 		}
-		const FVector Mean = Sum / (FLOAT)RootTrack.PosKeys.Num();
+		const FVector Mean = Sum / (FLOAT)MotionTransIT.Samples.Num();
 
 		const FQuat FirstQInv = FirstQ.Inverse();
 		Seq->AnimZip_LinearOrigin = FirstQInv.RotateVector((Mean - 0.5f * Span) - FirstT);
