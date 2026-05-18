@@ -611,6 +611,52 @@ void AnimZip_Sample_Track(const UAnimSequence* Seq, INT TrackIndex, FLOAT Normal
 	Out->SetScale(1.0f);
 }
 
+// AnimZip stores root motion separately from regular bone tracks: a yaw-only
+// quat per frame in the rotation bundle and absolute translation in the
+// translation bundle, each with a single track.
+UBOOL AnimZip_Sample_Motion(const UAnimSequence* Seq, FLOAT NormalizedTime, FBoneAtom* Out)
+{
+	Out->SetRotation(FQuat::Identity);
+	Out->SetTranslation(FVector::ZeroVector);
+	Out->SetScale(1.0f);
+
+	if (Seq->AnimZip_Data.Num() < (INT)sizeof(FAnim))
+	{
+		return FALSE;
+	}
+
+	const BYTE* Data = Seq->AnimZip_Data.GetData();
+	const FAnim* Anim = (const FAnim*)Data;
+	const INT RotOffset = Anim->MotionRotationBundleOffset;
+	const INT TransOffset = Anim->MotionTranslationScaleBundleOffset;
+	if (RotOffset < 0 && TransOffset < 0)
+	{
+		return FALSE;
+	}
+
+	NormalizedTime = Clamp(NormalizedTime, 0.0f, 1.0f - (FLOAT)SMALL_NUMBER);
+
+	if (RotOffset >= 0)
+	{
+		const FBundle& B = *(const FBundle*)&Data[RotOffset];
+		FResolvedBundle RB;
+		RB.Resolve(Data, B);
+		FCatmullRomTime Time = FCatmullRomTime::Make(NormalizedTime, B.NumFrames);
+		Out->SetRotation(SampleRotationBundle(RB, B.Codec, 0, B.NumTracks, Time));
+	}
+
+	if (TransOffset >= 0)
+	{
+		const FBundle& B = *(const FBundle*)&Data[TransOffset];
+		FResolvedBundle RB;
+		RB.Resolve(Data, B);
+		FCatmullRomTime Time = FCatmullRomTime::Make(NormalizedTime, B.NumFrames);
+		Out->SetTranslation(SampleTranslationBundle(RB, B.Codec, 0, B.NumTracks, Time));
+	}
+
+	return TRUE;
+}
+
 // --- Core sampling: batch (all bones) ---
 
 void AnimZip_Sample(const UAnimSequence* Seq, USkeletalMesh* SkelMesh,
@@ -1186,6 +1232,16 @@ static void AnimZip_GroupIntoBundles(
 	}
 }
 
+// Extract a pure yaw (Z-axis) quaternion from a full 3D rotation. Matches
+// GetMotionTrack at BmGame.exe.c:11456887, which stores the motion bundle's
+// rotation as (0, 0, sin(yaw/2), cos(yaw/2)). Pitch/roll are discarded.
+static FQuat AnimZip_ExtractYawQuat(const FQuat& Q)
+{
+	const FVector F = Q.RotateVector(FVector(1, 0, 0));
+	const FLOAT HalfYaw = 0.5f * appAtan2(F.Y, F.X);
+	return FQuat(0.0f, 0.0f, appSin(HalfYaw), appCos(HalfYaw));
+}
+
 // --- Main AnimZip compression entry point ---
 
 void AnimZip_Compress(UAnimSequence* Seq)
@@ -1250,10 +1306,12 @@ void AnimZip_Compress(UAnimSequence* Seq)
 	}
 
 	// --- Determine which translation tracks to include ---
-	// Always include root (track 0). Include non-root tracks that differ from ref pose.
+	// Matches reference ShouldStripTranslation (BmGame.exe.c:11489910): a track is
+	// stripped when StripTracksIfSameAsReferencePose is set and its max distance
+	// from the refpose is under the per-track tolerance. Applies uniformly to all
+	// tracks including track 0 (Bip01) — the reference does NOT force-include root.
 	TArray<INT> IncludedTransTracks;
-	IncludedTransTracks.AddItem(0); // Root bone always included
-	for (INT t = 1; t < NumTracks; t++)
+	for (INT t = 0; t < NumTracks; t++)
 	{
 		FName BoneName = AnimSet->TrackBoneNames(t);
 		if (AnimZip_ShouldAutoDeleteTrack(BoneName))
@@ -1261,17 +1319,21 @@ void AnimZip_Compress(UAnimSequence* Seq)
 			continue;
 		}
 		const FRawAnimSequenceTrack& Track = Seq->RawAnimationData(t);
+
+		UBOOL bInclude = TRUE;
 		if (RefMesh && Track.PosKeys.Num() > 0)
 		{
 			INT BoneIdx = RefMesh->MatchRefBone(BoneName);
 			if (BoneIdx != INDEX_NONE)
 			{
 				FVector RefPos = RefMesh->RefSkeleton(BoneIdx).BonePos.Position;
-				if (TranslationTrackDiffersFromRefPose(Track, RefPos))
-				{
-					IncludedTransTracks.AddItem(t);
-				}
+				bInclude = TranslationTrackDiffersFromRefPose(Track, RefPos);
 			}
+		}
+
+		if (bInclude)
+		{
+			IncludedTransTracks.AddItem(t);
 		}
 	}
 
@@ -1449,12 +1511,12 @@ void AnimZip_Compress(UAnimSequence* Seq)
 	Anim->NumTranslationScaleBundles = NumTransBundles;
 	Anim->TranslationScaleBundlesOffset = TransBundlesOffset;
 
-	// --- Motion bundles (still delta-from-first-frame — see TODO above) ---
+	// Motion bundles store ABSOLUTE root pose. Rotation is YAW-ONLY (pure Z-axis
+	// quat), matching GetMotionTrack at BmGame.exe.c:11456887. GetRootMotion
+	// (Default.xex.c:2942408) extracts yaw via EulerYawRadians and treats
+	// pitch/roll as noise, so we strip them here.
 	if (bHasMotionRot)
 	{
-		const FQuat RootFirstRot = RootTrack.RotKeys(0);
-		const FQuat RootFirstRotInv(-RootFirstRot.X, -RootFirstRot.Y, -RootFirstRot.Z, RootFirstRot.W);
-
 		FBundle* MB = (FBundle*)&Data[MotionRotBundleOffset];
 		MB->Codec = AZRC_QuatMax_48;
 		MB->NumTracks = 1;
@@ -1467,10 +1529,9 @@ void AnimZip_Compress(UAnimSequence* Seq)
 		for (INT f = 0; f < NumFrames; f++)
 		{
 			INT KeyIdx = (RootTrack.RotKeys.Num() > 1) ? Min(f, RootTrack.RotKeys.Num() - 1) : 0;
-			FQuat Q = RootTrack.RotKeys(KeyIdx);
-			Q = Q * RootFirstRotInv;
-			Q.Normalize();
-			// Shortest-arc flip — same reasoning as the regular rotation loop.
+			FQuat Raw = RootTrack.RotKeys(KeyIdx);
+			Raw.Normalize();
+			FQuat Q = AnimZip_ExtractYawQuat(Raw);
 			if (f > 0 && (PrevMotion | Q) < 0.0f)
 			{
 				Q = FQuat(-Q.X, -Q.Y, -Q.Z, -Q.W);
@@ -1481,8 +1542,6 @@ void AnimZip_Compress(UAnimSequence* Seq)
 	}
 	if (bHasMotionTrans)
 	{
-		const FVector RootFirstPos = RootTrack.PosKeys(0);
-
 		FBundle* MB = (FBundle*)&Data[MotionTransBundleOffset];
 		MB->Codec = AZTSC_NoScale_Float_96;
 		MB->NumTracks = 1;
@@ -1494,7 +1553,7 @@ void AnimZip_Compress(UAnimSequence* Seq)
 		for (INT f = 0; f < NumFrames; f++)
 		{
 			INT KeyIdx = (RootTrack.PosKeys.Num() > 1) ? Min(f, RootTrack.PosKeys.Num() - 1) : 0;
-			FVector Pos = RootTrack.PosKeys(KeyIdx) - RootFirstPos;
+			const FVector& Pos = RootTrack.PosKeys(KeyIdx);
 			FLOAT* Dst = (FLOAT*)&Data[MotionTransKeyframesOffset + 12 * f];
 			Dst[0] = Pos.X; Dst[1] = Pos.Y; Dst[2] = Pos.Z;
 		}
@@ -1573,9 +1632,37 @@ void AnimZip_Compress(UAnimSequence* Seq)
 		}
 	}
 
-	// --- Set linear transform (identity — no additional transform) ---
-	Seq->AnimZip_LinearOrigin = FVector(0, 0, 0);
-	Seq->AnimZip_LinearSpan = FVector(1, 1, 1);
+	// AnimZip_LinearOrigin / AnimZip_LinearSpan: precomputed linear
+	// approximation of root motion, expressed in the first frame's local space.
+	// Matches the reference encoder at BmGame.exe.c:11513269-11513421:
+	//   M = TRS(firstQ, firstT); LinearOrigin = M^-1 * (mean - 0.5*span);
+	//   LinearSpan = M^-1_rot * span. The runtime composes these with the
+	//   motion bundle sample in GetAnimOrigin / GetLinearOrigin.
+	if (bHasMotionRot && bHasMotionTrans)
+	{
+		FQuat FirstQRaw = RootTrack.RotKeys(0);
+		FirstQRaw.Normalize();
+		const FQuat   FirstQ    = AnimZip_ExtractYawQuat(FirstQRaw);
+		const FVector FirstT    = RootTrack.PosKeys(0);
+		const FVector LastT     = RootTrack.PosKeys(RootTrack.PosKeys.Num() - 1);
+		const FVector Span      = LastT - FirstT;
+
+		FVector Sum(0, 0, 0);
+		for (INT f = 0; f < RootTrack.PosKeys.Num(); f++)
+		{
+			Sum += RootTrack.PosKeys(f);
+		}
+		const FVector Mean = Sum / (FLOAT)RootTrack.PosKeys.Num();
+
+		const FQuat FirstQInv = FirstQ.Inverse();
+		Seq->AnimZip_LinearOrigin = FirstQInv.RotateVector((Mean - 0.5f * Span) - FirstT);
+		Seq->AnimZip_LinearSpan   = FirstQInv.RotateVector(Span);
+	}
+	else
+	{
+		Seq->AnimZip_LinearOrigin = FVector(0, 0, 0);
+		Seq->AnimZip_LinearSpan   = FVector(0, 0, 0);
+	}
 
 	// --- Set clipping/blend properties that the retail game expects ---
 	// Without these, GetBoneAtom's AnimZip path computes NormTime=0 always

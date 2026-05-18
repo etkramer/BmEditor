@@ -22,6 +22,7 @@
 #include "UnrealEd.h"
 #include "EnginePhysicsClasses.h"
 #include "EngineAnimClasses.h"
+#include "AnimationEncodingFormat.h"
 #include "AnimSetViewer.h"
 #include "MouseDeltaTracker.h"
 #include "PropertyWindow.h"
@@ -1254,6 +1255,31 @@ void FASVViewportClient::Draw(const FSceneView* View,FPrimitiveDrawInterface* PD
 		DrawClothMovementDistanceScale(PDI, AnimSetViewer->PreviewSkelComp);
 	}
 
+#if BATMAN
+	// AnimZip motion track preview: a small RGB axis tripod following the
+	// dedicated motion bundles as the animation plays.
+	if (AnimSetViewer->SelectedAnimSeq && AnimSetViewer->PreviewAnimNode && AnimSetViewer->PreviewSkelComp)
+	{
+		UAnimSequence* Seq = AnimSetViewer->SelectedAnimSeq;
+		const FLOAT Length = Seq->SequenceLength;
+		if (Seq->AnimZip_Data.Num() > 0 && Length > 0.0f)
+		{
+			const FLOAT NormTime = Clamp(AnimSetViewer->PreviewAnimNode->CurrentTime / Length, 0.0f, 1.0f);
+			FBoneAtom Motion;
+			if (AnimZip_Sample_Motion(Seq, NormTime, &Motion))
+			{
+				const FMatrix MotionLocal = Motion.ToMatrix();
+				const FMatrix MotionWorld = MotionLocal * AnimSetViewer->PreviewSkelComp->LocalToWorld;
+				const FVector Origin = MotionWorld.GetOrigin();
+				const FLOAT AxisLen = 8.f;
+				PDI->DrawLine(Origin, Origin + MotionWorld.GetAxis(0) * AxisLen, FColor(255, 64, 64), SDPG_World);
+				PDI->DrawLine(Origin, Origin + MotionWorld.GetAxis(1) * AxisLen, FColor(64, 255, 64), SDPG_World);
+				PDI->DrawLine(Origin, Origin + MotionWorld.GetAxis(2) * AxisLen, FColor(64, 64, 255), SDPG_World);
+			}
+		}
+	}
+#endif
+
 	//FEditorLevelViewportClient::Draw(View, PDI);
 }
 
@@ -2144,6 +2170,14 @@ void FASVViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 
 					CurYOffset += YL + 2;
 					DrawString(Canvas, 5, CurYOffset, *InfoString, GEngine->SmallFont, FColor(255,255,255) );
+
+#if BATMAN
+					if( AnimSeq->AnimZip_Data.Num() > 0 )
+					{
+						CurYOffset += YL + 2;
+						DrawString(Canvas, 5, CurYOffset, TEXT("AnimZip in use"), GEngine->SmallFont, FColor(255,255,0) );
+					}
+#endif
 
 					Mark.Pop();
 				}
