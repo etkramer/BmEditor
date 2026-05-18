@@ -1087,10 +1087,441 @@ static FResolvedTrackSettings AnimZip_ResolveTrackSettings(
 // Phase 2
 static void AnimZip_MassageTracks(UAnimSequence* /*Seq*/, TArray<FRawAnimSequenceTrack>& /*OutTracks*/)
 { /* stub */ }
-static void AnimZip_GetMotionTrack(UAnimSequence* /*Seq*/, TArray<FQuat>& /*OutRot*/, TArray<FVector>& /*OutTrans*/)
-{ /* stub */ }
 static void AnimZip_ClipTracks(UAnimSequence* /*Seq*/, TArray<FRawAnimSequenceTrack>& /*Tracks*/)
 { /* stub */ }
+
+// --- 1:1 port of GetMotionTrack (BmGame.exe.c:11456727) and its helpers ---
+//
+// Notify-driven branches (URAnimNotify_ForwardYaw/FloorHeight/MotionExtractionType/
+// MotionExtractionOffset) and CentreOfMass (FBoneMass body-mass table) are not
+// ported yet; assume the target animation has no notifies and BoneMass is empty.
+// In Gangland that means sub_23CBA50/CBB40 return [0, BlendOutPoint],
+// sub_23C5240 returns 1.0, sub_23C52F0 returns zero, and v45 = (0,0,0).
+
+// sub_23CBA50 / sub_23CBB40 (no-notify path): time range = [0, BlendOutPoint].
+static void AnimZip_URMotion_GetTimeRange(UAnimSequence* Seq, FLOAT& OutStart, FLOAT& OutEnd)
+{
+	OutStart = 0.0f;
+	OutEnd   = Seq->BlendOutPoint;
+	if (OutStart > OutEnd)
+	{
+		OutEnd   = 0.5f * (OutStart + OutEnd);
+		OutStart = OutEnd;
+	}
+}
+
+// RescaleTime (BmGame.exe.c:11386834): saturating linear map of a1 to [a2,a3]→[0,1].
+static FLOAT AnimZip_RescaleTime(FLOAT t, FLOAT lo, FLOAT hi)
+{
+	if (lo > t) return 0.0f;
+	if (t > hi) return 1.0f;
+	const FLOAT Span = hi - lo;
+	if (Span >= 0.00000001f)
+	{
+		const FLOAT v = (t - lo) / Span;
+		if (v >= 1.0f) return 1.0f;
+		if (v <= 0.0f) return 0.0f;
+		return v;
+	}
+	return t >= 0.5f ? 1.0f : 0.0f;
+}
+
+// EaseInOut (BmGame.exe.c:11387292): 3t^2 - 2t^3, clamped to [0,1].
+static FLOAT AnimZip_EaseInOut(FLOAT t)
+{
+	if (t < 0.0f) t = 0.0f;
+	if ((t - 1.0f) < 0.0f) return (3.0f - 2.0f * t) * t * t;
+	return 1.0f;
+}
+
+// GetWrappedAngle (BmGame.exe.c:11386980): wrap to (-PI, PI].
+static FLOAT AnimZip_GetWrappedAngle(FLOAT a)
+{
+	if (a > 0.0f) return appFmod(a + (FLOAT)PI, 2.0f * (FLOAT)PI) - (FLOAT)PI;
+	if (a >= 0.0f) return 0.0f;
+	return -(appFmod((FLOAT)PI - a, 2.0f * (FLOAT)PI) - (FLOAT)PI);
+}
+
+// GetAngleFromTo (BmGame.exe.c:11387007): wrapped delta from a→b.
+static FLOAT AnimZip_GetAngleFromTo(FLOAT a, FLOAT b)
+{
+	const FLOAT d = b - a;
+	if (d > 0.0f) return appFmod(d + (FLOAT)PI, 2.0f * (FLOAT)PI) - (FLOAT)PI;
+	if (d >= 0.0f) return 0.0f;
+	return -(appFmod((FLOAT)PI - d, 2.0f * (FLOAT)PI) - (FLOAT)PI);
+}
+
+// CanMoveInZ (BmGame.exe.c:11383455): true for Flying/Floating/Falling/Ceiling.
+static UBOOL AnimZip_CanMoveInZ(BYTE Physics)
+{
+	return Physics == 1 || Physics == 2 || Physics == 3 || Physics == 4;
+}
+
+// GetCollisionOptions (BmGame.exe.c:11383432): pick Middle or End by time.
+static FAnimCollisionOptions AnimZip_GetCollisionOptions(UAnimSequence* Seq, FLOAT NormTime)
+{
+	return (NormTime < Seq->CollisionOptionsOutPoint)
+		? Seq->CollisionOptions.Middle
+		: Seq->CollisionOptions.End;
+}
+
+// Sample Bip01 raw atom at a normalized time. Linear interp between adjacent
+// keys; assumes encoding hasn't mutated RawAnimationData yet.
+static void AnimZip_SampleBip01Raw(UAnimSequence* Seq, FLOAT NormTime, FQuat& OutQ, FVector& OutT)
+{
+	const FRawAnimSequenceTrack& Root = Seq->RawAnimationData(0);
+	const INT NumKeys = Seq->NumFrames;
+	const FLOAT KeyPos = (NumKeys > 1) ? Clamp(NormTime, 0.0f, 1.0f) * (NumKeys - 1) : 0.0f;
+	const INT K1 = Clamp<INT>(appFloor(KeyPos), 0, NumKeys - 1);
+	const INT K2 = Min(K1 + 1, NumKeys - 1);
+	const FLOAT A = KeyPos - (FLOAT)K1;
+
+	const INT PK1 = (Root.PosKeys.Num() > 1) ? Min(K1, Root.PosKeys.Num() - 1) : 0;
+	const INT PK2 = (Root.PosKeys.Num() > 1) ? Min(K2, Root.PosKeys.Num() - 1) : 0;
+	OutT = Lerp(Root.PosKeys(PK1), Root.PosKeys(PK2), A);
+
+	const INT RK1 = (Root.RotKeys.Num() > 1) ? Min(K1, Root.RotKeys.Num() - 1) : 0;
+	const INT RK2 = (Root.RotKeys.Num() > 1) ? Min(K2, Root.RotKeys.Num() - 1) : 0;
+	FQuat Q1 = Root.RotKeys(RK1); Q1.Normalize();
+	FQuat Q2 = Root.RotKeys(RK2); Q2.Normalize();
+	if ((Q1 | Q2) < 0.0f) Q2 = FQuat(-Q2.X, -Q2.Y, -Q2.Z, -Q2.W);
+	OutQ.X = Q1.X + (Q2.X - Q1.X) * A;
+	OutQ.Y = Q1.Y + (Q2.Y - Q1.Y) * A;
+	OutQ.Z = Q1.Z + (Q2.Z - Q1.Z) * A;
+	OutQ.W = Q1.W + (Q2.W - Q1.W) * A;
+	OutQ.Normalize();
+}
+
+// sub_23ABCA0 (BmGame.exe.c:11424811): Bip01 translation at a normalized time.
+static FVector AnimZip_GetBip01Translation(UAnimSequence* Seq, FLOAT NormTime)
+{
+	FQuat Q; FVector T;
+	AnimZip_SampleBip01Raw(Seq, NormTime, Q, T);
+	return T;
+}
+
+// sub_23B0E30 (BmGame.exe.c:11429726): Bip01 yaw at a normalized time. Reads
+// rotation matrix columns and atan2's the (mostly horizontal) Y axis.
+static FLOAT AnimZip_GetBip01Yaw(UAnimSequence* Seq, FLOAT NormTime)
+{
+	FQuat Q; FVector T;
+	AnimZip_SampleBip01Raw(Seq, NormTime, Q, T);
+	const FQuatRotationTranslationMatrix M(Q, FVector(0, 0, 0));
+	const FLOAT YZ = M.M[1][2];
+	FLOAT Yaw;
+	if (Abs(YZ) <= 0.99000001f)
+	{
+		Yaw = appAtan2(M.M[1][1], M.M[1][0]) + (FLOAT)PI;
+	}
+	else
+	{
+		Yaw = appAtan2(M.M[0][1], M.M[0][0]) - 0.5f * (FLOAT)PI;
+	}
+	return AnimZip_GetWrappedAngle(Yaw);
+}
+
+// sub_23CF6A0 (BmGame.exe.c:11453464): simple URMotion yaw — lerp ReferenceOptions.Start/End yaw.
+static FLOAT AnimZip_URMotion_GetYawSimple(UAnimSequence* Seq, FLOAT NormTime)
+{
+	FLOAT Lo, Hi; AnimZip_URMotion_GetTimeRange(Seq, Lo, Hi);
+	const FAnimReferenceOptions& S = Seq->ReferenceOptions.Start;
+	const FAnimReferenceOptions& E = Seq->ReferenceOptions.End;
+	FLOAT YawS = S.ForwardYaw * (FLOAT)(PI / 180.0);
+	if (S.ForwardYawDirection == 1) YawS = -YawS;
+	FLOAT YawE = E.ForwardYaw * (FLOAT)(PI / 180.0);
+	if (E.ForwardYawDirection == 1) YawE = -YawE;
+	return YawS + (YawE - YawS) * AnimZip_RescaleTime(NormTime, Lo, Hi);
+}
+
+// sub_23CF760 (BmGame.exe.c:11453487): full URMotion yaw — lerp delta from Bip01 yaw at
+// start/end, then add Bip01 yaw at clamped time.
+static FLOAT AnimZip_URMotion_GetYawFull(UAnimSequence* Seq, FLOAT NormTime)
+{
+	FLOAT Lo, Hi; AnimZip_URMotion_GetTimeRange(Seq, Lo, Hi);
+	const FAnimReferenceOptions& S = Seq->ReferenceOptions.Start;
+	const FAnimReferenceOptions& E = Seq->ReferenceOptions.End;
+	FLOAT YawS = S.ForwardYaw * (FLOAT)(PI / 180.0);
+	if (S.ForwardYawDirection == 1) YawS = -YawS;
+	FLOAT YawE = E.ForwardYaw * (FLOAT)(PI / 180.0);
+	if (E.ForwardYawDirection == 1) YawE = -YawE;
+	const FLOAT BipS = AnimZip_GetBip01Yaw(Seq, Lo);
+	const FLOAT BipE = AnimZip_GetBip01Yaw(Seq, Hi);
+	const FLOAT DeltaS = AnimZip_GetAngleFromTo(BipS, YawS);
+	const FLOAT DeltaE = AnimZip_GetAngleFromTo(BipE, YawE);
+	const FLOAT T = AnimZip_RescaleTime(NormTime, Lo, Hi);
+	const FLOAT Delta = DeltaS + (DeltaE - DeltaS) * T;
+	const FLOAT ClampT = Clamp(NormTime, Lo, Hi);
+	return AnimZip_GetBip01Yaw(Seq, ClampT) + Delta;
+}
+
+// sub_23CF8B0 (BmGame.exe.c:11453536): URMotion floor height.
+static FLOAT AnimZip_URMotion_GetFloorHeight(UAnimSequence* Seq, FLOAT NormTime)
+{
+	FLOAT Lo, Hi; AnimZip_URMotion_GetTimeRange(Seq, Lo, Hi);
+	const FAnimReferencePeriods& Ref = Seq->ReferenceOptions;
+	const FLOAT Zs = Ref.Start.AutomaticFloorHeight
+		? AnimZip_GetBip01Translation(Seq, Lo).Z - 120.0f
+		: Ref.Start.FloorHeight;
+	const FLOAT Ze = Ref.End.AutomaticFloorHeight
+		? AnimZip_GetBip01Translation(Seq, Hi).Z - 120.0f
+		: Ref.End.FloorHeight;
+	const FLOAT T = AnimZip_EaseInOut(AnimZip_RescaleTime(NormTime, Lo, Hi));
+	FLOAT Z = Zs + (Ze - Zs) * T;
+	if (Ref.EnforceMinimumFloorHeight && Z < Ref.MinimumFloorHeight)
+	{
+		Z = Ref.MinimumFloorHeight;
+	}
+	return Z;
+}
+
+// sub_23CF9D0 (BmGame.exe.c:11453588): URMotion floor offset for CanMoveInZ physics.
+// Adds the (start/end FloorHeight − Bip01.Z) offset onto Bip01.Z at the current time.
+static FLOAT AnimZip_URMotion_GetFloorOffsetInZ(UAnimSequence* Seq, FLOAT NormTime)
+{
+	const FAnimCollisionOptions& Mid = Seq->CollisionOptions.Middle;
+	const FLOAT EndT = (Mid.RootMotionTranslationOption == 3 || Mid.RootMotionTranslationOption == 1)
+		? 1.0f : Seq->BlendOutPoint;
+	FLOAT Lo = 0.0f;
+	FLOAT Hi = EndT;
+	if (Lo > Hi) { Hi = 0.5f * (Lo + Hi); Lo = Hi; }
+
+	const FAnimReferencePeriods& Ref = Seq->ReferenceOptions;
+	const FLOAT OffsetS = Ref.Start.AutomaticFloorHeight
+		? -120.0f
+		: Ref.Start.FloorHeight - AnimZip_GetBip01Translation(Seq, Lo).Z;
+	const FLOAT OffsetE = Ref.End.AutomaticFloorHeight
+		? Ref.End.FloorHeight - AnimZip_GetBip01Translation(Seq, Hi).Z
+		: -120.0f;
+	const FLOAT T = AnimZip_EaseInOut(AnimZip_RescaleTime(NormTime, Lo, Hi));
+	const FLOAT Offset = OffsetS + (OffsetE - OffsetS) * T;
+	const FLOAT ClampT = Clamp(NormTime, Lo, Hi);
+	FLOAT Result = AnimZip_GetBip01Translation(Seq, ClampT).Z + Offset;
+	if (Ref.EnforceMinimumFloorHeight && Result < Ref.MinimumFloorHeight)
+	{
+		Result = Ref.MinimumFloorHeight;
+	}
+	return Result;
+}
+
+// NamedBoneMasses[17] (Default.xex.c:250259 + dynamic_initializer + AllocateNameEntry).
+struct FBmNamedBoneMass { const TCHAR* Name; FLOAT Mass; };
+static const FBmNamedBoneMass GBmNamedBoneMasses[17] =
+{
+	{ TEXT("Bip01_Pelvis"),     0.2124f  },
+	{ TEXT("Bip01_Spine1"),     0.1062f  },
+	{ TEXT("Bip01_Spine2"),     0.1062f  },
+	{ TEXT("Bip01_Spine3"),     0.2832f  },
+	{ TEXT("Bip01_Head"),       0.081f   },
+	{ TEXT("Bip01_L_UpperArm"), 0.007f   },
+	{ TEXT("Bip01_L_Forearm"),  0.011f   },
+	{ TEXT("Bip01_L_Hand"),     0.007f   },
+	{ TEXT("Bip01_L_Thigh"),    0.025f   },
+	{ TEXT("Bip01_L_Calf"),     0.03675f },
+	{ TEXT("Bip01_L_Foot"),     0.01925f },
+	{ TEXT("Bip01_R_UpperArm"), 0.007f   },
+	{ TEXT("Bip01_R_Forearm"),  0.011f   },
+	{ TEXT("Bip01_R_Hand"),     0.007f   },
+	{ TEXT("Bip01_R_Thigh"),    0.025f   },
+	{ TEXT("Bip01_R_Calf"),     0.03675f },
+	{ TEXT("Bip01_R_Foot"),     0.01925f },
+};
+
+struct FBmBoneMass { INT TrackIndex; FLOAT Mass; };
+
+// sub_23B1090 / sub_23B1020: AnimSet-track parent chain. For each track,
+// walk RefMesh's parents upward until we hit another tracked bone.
+static void AnimZip_BuildParentChain(UAnimSet* AnimSet, USkeletalMesh* RefMesh, TArray<INT>& OutParents)
+{
+	const INT N = AnimSet->TrackBoneNames.Num();
+	OutParents.Empty(N); OutParents.AddZeroed(N);
+	for (INT i = 0; i < N; i++) { OutParents(i) = -1; }
+	if (!RefMesh) { return; }
+
+	TArray<INT> Track2Mesh; Track2Mesh.Empty(N); Track2Mesh.AddZeroed(N);
+	for (INT i = 0; i < N; i++)
+	{
+		Track2Mesh(i) = RefMesh->MatchRefBone(AnimSet->TrackBoneNames(i));
+	}
+
+	for (INT i = 0; i < N; i++)
+	{
+		const INT MeshIdx = Track2Mesh(i);
+		if (MeshIdx <= 0) { continue; }
+		INT P = RefMesh->RefSkeleton(MeshIdx).ParentIndex;
+		while (P >= 0)
+		{
+			const FName PName = RefMesh->RefSkeleton(P).Name;
+			const INT TrackIdx = AnimSet->TrackBoneNames.FindItemIndex(PName);
+			if (TrackIdx != INDEX_NONE) { OutParents(i) = TrackIdx; break; }
+			if (P == 0) { break; }
+			P = RefMesh->RefSkeleton(P).ParentIndex;
+		}
+	}
+}
+
+// sub_23C5180 + sub_23D2AC0: resolve NamedBoneMasses, sum Total mass.
+static void AnimZip_ResolveBoneMasses(UAnimSet* AnimSet, TArray<FBmBoneMass>& OutMasses, FLOAT& OutTotalMass)
+{
+	OutMasses.Empty(17);
+	OutTotalMass = 0.0f;
+	for (INT i = 0; i < 17; i++)
+	{
+		const INT Idx = AnimSet->TrackBoneNames.FindItemIndex(FName(GBmNamedBoneMasses[i].Name));
+		if (Idx == INDEX_NONE) { continue; }
+		FBmBoneMass M; M.TrackIndex = Idx; M.Mass = GBmNamedBoneMasses[i].Mass;
+		OutMasses.AddItem(M);
+		OutTotalMass += GBmNamedBoneMasses[i].Mass;
+	}
+}
+
+// Sample raw track i's local atom at NormTime.
+static void AnimZip_SampleLocalAtom(const FRawAnimSequenceTrack& Track, INT NumKeys, FLOAT NormTime, FBoneAtom& Out)
+{
+	const FLOAT KeyPos = (NumKeys > 1) ? Clamp(NormTime, 0.0f, 1.0f) * (NumKeys - 1) : 0.0f;
+	const INT K1 = Clamp<INT>(appFloor(KeyPos), 0, NumKeys - 1);
+	const INT K2 = Min(K1 + 1, NumKeys - 1);
+	const FLOAT A = KeyPos - (FLOAT)K1;
+
+	FVector T(0, 0, 0);
+	if (Track.PosKeys.Num() > 0)
+	{
+		const INT P1 = Min(K1, Track.PosKeys.Num() - 1);
+		const INT P2 = Min(K2, Track.PosKeys.Num() - 1);
+		T = Lerp(Track.PosKeys(P1), Track.PosKeys(P2), A);
+	}
+
+	FQuat Q(0, 0, 0, 1);
+	if (Track.RotKeys.Num() > 0)
+	{
+		const INT R1 = Min(K1, Track.RotKeys.Num() - 1);
+		const INT R2 = Min(K2, Track.RotKeys.Num() - 1);
+		FQuat Q1 = Track.RotKeys(R1);
+		FQuat Q2 = Track.RotKeys(R2);
+		if ((Q1 | Q2) < 0.0f) { Q2 = FQuat(-Q2.X, -Q2.Y, -Q2.Z, -Q2.W); }
+		Q.X = Q1.X + (Q2.X - Q1.X) * A;
+		Q.Y = Q1.Y + (Q2.Y - Q1.Y) * A;
+		Q.Z = Q1.Z + (Q2.Z - Q1.Z) * A;
+		Q.W = Q1.W + (Q2.W - Q1.W) * A;
+		Q.Normalize();
+	}
+	Out = FBoneAtom(Q, T, 1.0f);
+}
+
+// sub_23B1460: SpaceBase[i] = Local[i] * SpaceBase[Parent[i]]. Requires parents
+// to appear before children in the track order (the standard SkelMesh layout).
+static void AnimZip_ComposeSpaceBases(UAnimSequence* Seq, const TArray<INT>& Parents, FLOAT NormTime, TArray<FBoneAtom>& OutSpaceBases)
+{
+	const INT N = Parents.Num();
+	const INT NumKeys = Seq->NumFrames;
+	const INT NumTracks = Seq->RawAnimationData.Num();
+	OutSpaceBases.Empty(N); OutSpaceBases.AddZeroed(N);
+
+	for (INT i = 0; i < N; i++)
+	{
+		FBoneAtom Local;
+		if (i < NumTracks) { AnimZip_SampleLocalAtom(Seq->RawAnimationData(i), NumKeys, NormTime, Local); }
+		else { Local = FBoneAtom::Identity; }
+
+		// ActorX W-flip for non-root bones (BmGame.exe.c:11456469, mask = (1,1,1,-1)).
+		if (i != 0)
+		{
+			FQuat Q = Local.GetRotation();
+			Local.SetRotation(FQuat(Q.X, Q.Y, Q.Z, -Q.W));
+		}
+
+		const INT P = Parents(i);
+		if (P >= 0 && P < i) { OutSpaceBases(i) = Local * OutSpaceBases(P); }
+		else                 { OutSpaceBases(i) = Local; }
+	}
+}
+
+// sub_23D2C10 + GetCentreOfMass: per-frame CoM array.
+static void AnimZip_BuildCentreOfMassArray(
+	UAnimSequence* Seq, UAnimSet* AnimSet, USkeletalMesh* RefMesh,
+	TArray<FVector>& OutCoM)
+{
+	const INT NumFrames = Seq->NumFrames;
+	OutCoM.Empty(NumFrames); OutCoM.AddZeroed(NumFrames);
+
+	TArray<FBmBoneMass> Masses; FLOAT TotalMass = 0.0f;
+	AnimZip_ResolveBoneMasses(AnimSet, Masses, TotalMass);
+	if (Masses.Num() == 0 || TotalMass <= 0.00000001f || !RefMesh) { return; }
+
+	TArray<INT> Parents;
+	AnimZip_BuildParentChain(AnimSet, RefMesh, Parents);
+
+	const FLOAT InvTotal = 1.0f / TotalMass;
+	TArray<FBoneAtom> SpaceBases;
+	for (INT f = 0; f < NumFrames; f++)
+	{
+		const FLOAT NormTime = (NumFrames > 1) ? (FLOAT)f / (FLOAT)(NumFrames - 1) : 0.0f;
+		AnimZip_ComposeSpaceBases(Seq, Parents, NormTime, SpaceBases);
+
+		FVector Sum(0, 0, 0);
+		for (INT k = 0; k < Masses.Num(); k++)
+		{
+			const INT TI = Masses(k).TrackIndex;
+			if (TI >= 0 && TI < SpaceBases.Num()) { Sum += SpaceBases(TI).GetTranslation() * Masses(k).Mass; }
+		}
+		OutCoM(f) = Sum * InvTotal;
+	}
+}
+
+// Main 1:1 port of GetMotionTrack (BmGame.exe.c:11456727). Yaw-only quat +
+// (XY=v45, Z=URMotion floor) translation per frame.
+static void AnimZip_GetMotionTrack(UAnimSequence* Seq, UAnimSet* AnimSet, USkeletalMesh* RefMesh,
+	TArray<FQuat>& OutRot, TArray<FVector>& OutTrans)
+{
+	const INT NumFrames = Seq->NumFrames;
+	OutRot.Empty(NumFrames);   OutRot.Add(NumFrames);
+	OutTrans.Empty(NumFrames); OutTrans.Add(NumFrames);
+
+	const BITFIELD UseSimpleYaw = Seq->bUseSimpleForwardYaw;
+	const BITFIELD UseSimpleFloor = Seq->bUseSimpleFloorHeight;
+	const BITFIELD UseSimpleXY = Seq->bUseSimpleRootMotionXY;
+
+	// sub_23D3160 v45 array. Weight=1 (no MotionExtractionType notify) → v45 = CoM.
+	TArray<FVector> V45;
+	AnimZip_BuildCentreOfMassArray(Seq, AnimSet, RefMesh, V45);
+
+	for (INT f = 0; f < NumFrames; f++)
+	{
+		const FLOAT NormTime = (NumFrames > 1) ? (FLOAT)f / (FLOAT)(NumFrames - 1) : 0.0f;
+		const FAnimCollisionOptions Col = AnimZip_GetCollisionOptions(Seq, NormTime);
+
+		const FLOAT Yaw = (Col.RootMotionRotationOption == 2 || UseSimpleYaw)
+			? AnimZip_URMotion_GetYawSimple(Seq, NormTime)
+			: AnimZip_URMotion_GetYawFull(Seq, NormTime);
+		const FLOAT Half = 0.5f * Yaw;
+		OutRot(f) = FQuat(0.0f, 0.0f, appSin(Half), appCos(Half));
+
+		const FLOAT Z = (Col.RootMotionTranslationOption == 2)
+			? AnimZip_URMotion_GetFloorHeight(Seq, NormTime)
+			: (UseSimpleFloor || !AnimZip_CanMoveInZ(Col.Physics))
+				? AnimZip_URMotion_GetFloorHeight(Seq, NormTime)
+				: AnimZip_URMotion_GetFloorOffsetInZ(Seq, NormTime);
+
+		FVector XY(0, 0, 0);
+		if (V45.Num() == NumFrames)
+		{
+			if (UseSimpleXY)
+			{
+				FLOAT Lo, Hi; AnimZip_URMotion_GetTimeRange(Seq, Lo, Hi);
+				const FLOAT T = AnimZip_EaseInOut(AnimZip_RescaleTime(NormTime, Lo, Hi));
+				XY = V45(0) + (V45(NumFrames - 1) - V45(0)) * T;
+			}
+			else
+			{
+				XY = V45(f);
+			}
+		}
+
+		FLOAT X = XY.X, Y = XY.Y;
+		if (Col.RootMotionTranslationOption == 2) { X = 0.0f; Y = 0.0f; }
+
+		OutTrans(f) = FVector(X, Y, Z);
+	}
+}
 
 // Build the per-call rotation codec list. 1:1 port of sub_23FFB10 limited to
 // the codecs we implement (QuatMax_40, QuatMax_48). If ForceRotationCodec_Enabled
@@ -1402,16 +1833,6 @@ static void AnimZip_GroupIntoBundles(
 	}
 }
 
-// Extract a pure yaw (Z-axis) quaternion from a full 3D rotation. Matches
-// GetMotionTrack at BmGame.exe.c:11456887, which stores the motion bundle's
-// rotation as (0, 0, sin(yaw/2), cos(yaw/2)). Pitch/roll are discarded.
-static FQuat AnimZip_ExtractYawQuat(const FQuat& Q)
-{
-	const FVector F = Q.RotateVector(FVector(1, 0, 0));
-	const FLOAT HalfYaw = 0.5f * appAtan2(F.Y, F.X);
-	return FQuat(0.0f, 0.0f, appSin(HalfYaw), appCos(HalfYaw));
-}
-
 // --- Main AnimZip compression entry point ---
 
 void AnimZip_Compress(UAnimSequence* Seq)
@@ -1545,7 +1966,6 @@ void AnimZip_Compress(UAnimSequence* Seq)
 		IT.AnimTrackIndex = (BYTE)AnimTrack;
 		IT.NumFrames = NumFrames;
 		IT.Samples.Empty(NumFrames);
-		FQuat Prev(0, 0, 0, 1);
 		for (INT f = 0; f < NumFrames; f++)
 		{
 			INT KeyIdx = (Track.RotKeys.Num() > 1) ? Min(f, Track.RotKeys.Num() - 1) : 0;
@@ -1556,16 +1976,10 @@ void AnimZip_Compress(UAnimSequence* Seq)
 				Q.W = -Q.W;
 			}
 			Q.Normalize();
-			// Shortest-arc W-flip (MassageTracks step from the original encoder).
-			// The game's decoder uses plain nlerp between adjacent keys, so any
-			// pair with dot(prev, curr) < 0 slerps the long way around. Negate
-			// `Q` (same rotation, opposite sign) whenever that happens so every
-			// consecutive pair stays in the same hemisphere as the first frame.
-			if (f > 0 && (Prev | Q) < 0.0f)
-			{
-				Q = FQuat(-Q.X, -Q.Y, -Q.Z, -Q.W);
-			}
-			Prev = Q;
+			// Keep the imported sign sequence intact. The runtime Catmull-Rom sampler
+			// already aligns surrounding keys to K1's hemisphere per sample; forcing a
+			// global consecutive-key hemisphere pass here changes the interpolated path
+			// without changing the exact frame keys, which is especially visible on Bip01 yaw.
 			IT.Samples.AddItem(Q);
 		}
 
@@ -1599,32 +2013,33 @@ void AnimZip_Compress(UAnimSequence* Seq)
 		TransInterm.AddItem(IT);
 	}
 
+	// Set clipping/blend properties that the retail game expects. Must happen
+	// before AnimZip_GetMotionTrack, which reads BlendOutPoint as the URMotion
+	// period upper bound (in NORMALIZED [0,1] time — see sub_23CBA50). Without
+	// these, ClippedLength=0 collapses NormTime to 0 in the decoder, and
+	// BlendOutPoint=0 collapses GetMotionTrack to a constant.
+	Seq->ClippedStart = 0.0f;
+	Seq->ClippedLength = Seq->SequenceLength;
+	Seq->BlendInPoint = 0.0f;
+	Seq->BlendOutPoint = 1.0f;
+
 	// Motion bundles (GetMotionTrack BmGame.exe.c:11456727 + codec select 11512860).
-	// TODO: yaw/XYZ should read URMotion options (StartYaw/EndYaw etc.) but we
-	// don't have those fields yet — approximating from raw root track instead.
 	FResolvedTrackSettings MotionRS = AnimZip_ResolveTrackSettings(
 		EffSettings, FName(TEXT("Motion")), bRootIsBip01, bRootIsCape, TRUE);
+
+	TArray<FQuat> MotionRotSamples;
+	TArray<FVector> MotionTransSamples;
+	if (bHasMotionRot || bHasMotionTrans)
+	{
+		AnimZip_GetMotionTrack(Seq, AnimSet, RefMesh, MotionRotSamples, MotionTransSamples);
+	}
 
 	FIntermediateRotationTrack MotionRotIT;
 	if (bHasMotionRot)
 	{
 		MotionRotIT.AnimTrackIndex = 0;
 		MotionRotIT.NumFrames = NumFrames;
-		MotionRotIT.Samples.Empty(NumFrames);
-		FQuat PrevM(0, 0, 0, 1);
-		for (INT f = 0; f < NumFrames; f++)
-		{
-			INT KeyIdx = (RootTrack.RotKeys.Num() > 1) ? Min(f, RootTrack.RotKeys.Num() - 1) : 0;
-			FQuat Raw = RootTrack.RotKeys(KeyIdx);
-			Raw.Normalize();
-			FQuat Q = AnimZip_ExtractYawQuat(Raw);
-			if (f > 0 && (PrevM | Q) < 0.0f)
-			{
-				Q = FQuat(-Q.X, -Q.Y, -Q.Z, -Q.W);
-			}
-			PrevM = Q;
-			MotionRotIT.Samples.AddItem(Q);
-		}
+		MotionRotIT.Samples = MotionRotSamples;
 		AnimZip_SelectRotationCodec(MotionRotIT.Samples, MotionRS, EffSettings, MotionRotIT);
 		AnimZip_EncodeRotationTrack(MotionRotIT);
 	}
@@ -1634,12 +2049,7 @@ void AnimZip_Compress(UAnimSequence* Seq)
 	{
 		MotionTransIT.AnimTrackIndex = 0;
 		MotionTransIT.NumFrames = NumFrames;
-		MotionTransIT.Samples.Empty(NumFrames);
-		for (INT f = 0; f < NumFrames; f++)
-		{
-			INT KeyIdx = (RootTrack.PosKeys.Num() > 1) ? Min(f, RootTrack.PosKeys.Num() - 1) : 0;
-			MotionTransIT.Samples.AddItem(RootTrack.PosKeys(KeyIdx));
-		}
+		MotionTransIT.Samples = MotionTransSamples;
 		AnimZip_SelectTransScaleCodec(MotionTransIT.Samples, MotionRS, EffSettings, MotionTransIT);
 		AnimZip_EncodeTransScaleTrack(MotionTransIT);
 	}
@@ -1886,13 +2296,6 @@ void AnimZip_Compress(UAnimSequence* Seq)
 		Seq->AnimZip_LinearSpan   = FVector(0, 0, 0);
 	}
 
-	// --- Set clipping/blend properties that the retail game expects ---
-	// Without these, GetBoneAtom's AnimZip path computes NormTime=0 always
-	// (ClippedLength=0 → NormTime fallback to 0).
-	Seq->ClippedStart = 0.0f;
-	Seq->ClippedLength = Seq->SequenceLength;
-	Seq->BlendInPoint = 0.0f;
-	Seq->BlendOutPoint = Seq->SequenceLength;
 
 	// --- Round-trip verification ---
 #if DO_CHECK
@@ -1963,13 +2366,8 @@ void AnimZip_Compress(UAnimSequence* Seq)
 		*Seq->SequenceName.ToString(), NQ48, NQ40, NumRotBundles, NF96, NI48, NumTransBundles, NumFrames, TotalSize);
 #endif
 
-	// Clear RawAnimationData so AnimZip is the sole playback path.
-	for (INT t = 0; t < Seq->RawAnimationData.Num(); t++)
-	{
-		Seq->RawAnimationData(t).PosKeys.Empty();
-		Seq->RawAnimationData(t).RotKeys.Empty();
-	}
-	Seq->RawAnimationData.Empty();
+	// Keep RawAnimationData around in the editor so PostEditChangeProperty can re-encode.
+	// The cooker strips it via UAnimSequence::StripData.
 	Seq->CompressedTrackOffsets.Empty();
 	Seq->CompressedByteStream.Empty();
 
@@ -2104,12 +2502,11 @@ void UAnimSequence::PostLoad()
 	Super::PostLoad();
 
 #if BATMAN
-	// AnimZip_Data stays compressed for runtime sampling.
-	// Clear standard compressed data so we don't accidentally use the wrong path.
+	// AnimZip_Data is the playback path; ensure stale standard-compressed data isn't used.
+	// RawAnimationData is kept in the editor so PostEditChangeProperty can re-encode.
 	if (AnimZip_Data.Num())
 	{
 		CompressedTrackOffsets.Empty();
-		RawAnimationData.Empty();
 	}
 #endif
 
@@ -2284,6 +2681,15 @@ void UAnimSequence::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 	{
 		// Make sure package is marked dirty when doing stuff like adding/removing notifies
 		MarkPackageDirty();
+
+#if BATMAN
+		// Mirror BmGame.exe.c:6517748 - re-encode AnimZip when sequence properties change
+		// so edits to Compression_Preset / Compression_CustomSettings take effect immediately.
+		if (NumFrames > 0 && RawAnimationData.Num() > 0)
+		{
+			AnimZip_Compress(this);
+		}
+#endif
 	}
 }
 

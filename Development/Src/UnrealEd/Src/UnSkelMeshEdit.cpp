@@ -158,8 +158,8 @@ static UBOOL GetTrackMapAndExtend(UAnimSet* AnimSet, TArray<FName> &RawBoneNames
 static void PostProcessSequence(UAnimSequence* DestSeq, TArray<AdditiveAnimRebuildInfo> &AdditiveAnimRebuildList, UBOOL bSilence = FALSE)
 {
 #if BATMAN
-	// Build AnimZip_Data directly from RawAnimationData, then clear raw data
-	// so AnimZip is the sole playback path (matching the retail game).
+	// Build AnimZip_Data from RawAnimationData. Raw is retained in the editor so
+	// PostEditChangeProperty can re-encode after compression-setting edits.
 	extern void AnimZip_Compress(UAnimSequence* Seq);
 	AnimZip_Compress(DestSeq);
 #else
