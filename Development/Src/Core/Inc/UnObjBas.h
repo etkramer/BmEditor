@@ -440,85 +440,88 @@ extern FString PerfMemRunResultStrings[4];
 ----------------------------------------------------------------------------*/
 
 //
-// Globally unique identifier.
+// Full on-disk GUID representation. BM2 still serializes 16 bytes for GUIDs even
+// though in-memory FGuid only retains the first DWORD.
+//
+struct FGuidImplementation
+{
+	DWORD A, B, C, D;
+	friend FArchive& operator<<( FArchive& Ar, FGuidImplementation& G )
+	{
+		return Ar << G.A << G.B << G.C << G.D;
+	}
+};
+
+//
+// Globally unique identifier. Matches BM2 layout: a single DWORD in memory.
+// The full 16 bytes are read/written via FGuidImplementation; only A is retained.
 //
 class FGuid
 {
 public:
-	DWORD A,B,C,D;
+	DWORD A;
 	FGuid()
 	{}
-	FGuid( DWORD InA, DWORD InB, DWORD InC, DWORD InD )
-	: A(InA), B(InB), C(InC), D(InD)
+	// 4-arg ctor kept for back-compat with FGuid(0,0,0,0) literals; only A is stored.
+	FGuid( DWORD InA, DWORD /*InB*/ = 0, DWORD /*InC*/ = 0, DWORD /*InD*/ = 0 )
+	: A(InA)
 	{}
 	explicit FORCEINLINE FGuid(EEventParm)
-	: A(0), B(0), C(0), D(0)
-    {
-    }
-
-	/**
-	 * Returns whether this GUID is valid or not. We reserve an all 0 GUID to represent "invalid".
-	 *
-	 * @return TRUE if valid, FALSE otherwise
-	 */
-	UBOOL IsValid() const
+	: A(0)
 	{
-		return (A | B | C | D) != 0;
 	}
 
-	/** Invalidates the GUID. */
+	UBOOL IsValid() const
+	{
+		return A != 0;
+	}
+
 	void Invalidate()
 	{
-		A = B = C = D = 0;
+		A = 0;
 	}
 
 	friend UBOOL operator==(const FGuid& X, const FGuid& Y)
 	{
-		return ((X.A ^ Y.A) | (X.B ^ Y.B) | (X.C ^ Y.C) | (X.D ^ Y.D)) == 0;
+		return X.A == Y.A;
 	}
 	friend UBOOL operator!=(const FGuid& X, const FGuid& Y)
 	{
-		return ((X.A ^ Y.A) | (X.B ^ Y.B) | (X.C ^ Y.C) | (X.D ^ Y.D)) != 0;
+		return X.A != Y.A;
 	}
 	DWORD& operator[]( INT Index )
 	{
-		checkSlow(Index>=0);
-		checkSlow(Index<4);
-		switch(Index)
-		{
-		case 0: return A;
-		case 1: return B;
-		case 2: return C;
-		case 3: return D;
-		}
-
+		checkSlow(Index==0);
 		return A;
 	}
 	const DWORD& operator[]( INT Index ) const
 	{
-		checkSlow(Index>=0);
-		checkSlow(Index<4);
-		switch(Index)
-		{
-		case 0: return A;
-		case 1: return B;
-		case 2: return C;
-		case 3: return D;
-		}
-
+		checkSlow(Index==0);
 		return A;
 	}
 	friend FArchive& operator<<( FArchive& Ar, FGuid& G )
 	{
-		return Ar << G.A << G.B << G.C << G.D;
+		FGuidImplementation Impl;
+		if( Ar.IsLoading() )
+		{
+			Ar << Impl;
+			G.A = Impl.A;
+		}
+		else
+		{
+			Impl.A = G.A;
+			Impl.B = Impl.C = Impl.D = 0;
+			Ar << Impl;
+		}
+		return Ar;
 	}
 	FString String() const
 	{
-		return FString::Printf( TEXT("%08X%08X%08X%08X"), A, B, C, D );
+		return FString::Printf( TEXT("%08X"), A );
 	}
 	friend DWORD GetTypeHash(const FGuid& Guid)
 	{
-		return appMemCrc(&Guid,sizeof(FGuid));
+		return Guid.A;
 	}
 };
 

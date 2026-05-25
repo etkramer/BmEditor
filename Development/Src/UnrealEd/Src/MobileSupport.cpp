@@ -694,11 +694,7 @@ UBOOL ShouldCompressToPVRTC(UTexture2D* Texture)
 
 	if (!bForceThisTexture)
 	{
-		// Don't need to convert if already converted
-		if (Texture->CachedPVRTCMips.Num() == Texture->Mips.Num())
-		{
-			return FALSE;
-		}
+		// BM2 has no CachedPVRTCMips; never short-circuit on a cached PVRTC chain.
 	}
 
 	
@@ -712,8 +708,6 @@ UBOOL ShouldCompressToPVRTC(UTexture2D* Texture)
 	// don't cache non-simple lightmaps
 	if (bIsLightmap && !Texture->GetName().StartsWith("Simple"))
 	{
-		// make sure previously cached non-simple lightmaps are cleaned up
-		Texture->CachedPVRTCMips.Empty();
 		return FALSE;
 	}
 
@@ -793,8 +787,8 @@ UBOOL ConditionalCachePVRTCTextures(UTexture2D* Texture, UBOOL bUseFastCompressi
 		return FALSE;
 	}
 
-	// clear any existing data
-	Texture->CachedPVRTCMips.Empty();
+	// BM2 has no CachedPVRTCMips; the PVRTC output is discarded.
+	TIndirectArray<FTexture2DMipMap> CachedPVRTCMips;
 
 	// cache some values
 	UINT TexSizeX = Texture->SizeX;
@@ -1071,7 +1065,7 @@ UBOOL ConditionalCachePVRTCTextures(UTexture2D* Texture, UBOOL bUseFastCompressi
 			// both are 8 bytes per block
 			UINT MipSize = BlocksX * BlocksY * 8;
 
-			FTexture2DMipMap* NewMipMap = new(Texture->CachedPVRTCMips) FTexture2DMipMap;
+			FTexture2DMipMap* NewMipMap = new(CachedPVRTCMips) FTexture2DMipMap;
 
 			// fill out the mip using data from the converted file
 			NewMipMap->SizeX = MipSizeX;
@@ -1122,8 +1116,8 @@ UBOOL ConditionalCacheATITCTextures(UTexture2D* Texture, UBOOL bUseFastCompressi
 		return FALSE;
 	}
 
-	// clear any existing data
-	Texture->CachedPVRTCMips.Empty();
+	// BM2 has no CachedPVRTCMips; the ATITC output is discarded.
+	TIndirectArray<FTexture2DMipMap> CachedPVRTCMips;
 
 	// cache some values
 	UINT TexSizeX = Texture->SizeX;
@@ -1425,7 +1419,7 @@ UBOOL ConditionalCacheATITCTextures(UTexture2D* Texture, UBOOL bUseFastCompressi
 			// both are 8 bytes per block
 			UINT MipSize = BlocksX * BlocksY * GPixelFormats[Texture->Format].BlockBytes;
 
-			FTexture2DMipMap* NewMipMap = new(Texture->CachedPVRTCMips) FTexture2DMipMap;
+			FTexture2DMipMap* NewMipMap = new(CachedPVRTCMips) FTexture2DMipMap;
 
 			// fill out the mip using data from the converted file
 			NewMipMap->SizeX = MipSizeX;

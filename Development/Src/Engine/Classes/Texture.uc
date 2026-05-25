@@ -259,11 +259,6 @@ enum ETextureMipCount
 var()	bool							SRGB;
 var		bool							RGBE;
 
-var()	float							UnpackMin[4],
-										UnpackMax[4];
-
-var native const UntypedBulkData_Mirror	SourceArt{FByteBulkData};
-
 /** Has uncompressed source art? */
 var		bool							bIsSourceArtUncompressed;
 
@@ -272,8 +267,10 @@ var		bool							CompressionNone;
 var		deprecated bool					CompressionNoMipmaps;
 var()	bool							CompressionFullDynamicRange;
 var()	bool							DeferCompression;
+var()	bool							ForceOldCompression;
 
-var		bool							NeverStream;
+var()	bool							NeverStream;
+var()	bool							NeverStreamPCOnceCooked;
 
 /** When TRUE, the alpha channel of mip-maps and the base image are dithered for smooth LOD transitions. */
 var()	bool							bDitherMipMapAlpha;
@@ -290,7 +287,15 @@ var		const bool						bNoTiling;
 var(Mobile) bool						bForcePVRTC4;
 
 /** Whether the async resource release process has already been kicked off or not */
-var		transient const private bool	bAsyncResourceReleaseHasBeenStarted;
+var		private const transient bool	bAsyncResourceReleaseHasBeenStarted;
+
+/** Whether to use the extra cinematic quality mip-levels, when we're forcing mip-levels to be resident. */
+var		private const transient bool	bUseCinematicMipLevels;
+
+var()	float							UnpackMin[4],
+										UnpackMax[4];
+
+var native const UntypedBulkData_Mirror	SourceArt{FByteBulkData};
 
 var()	TextureCompressionSettings		CompressionSettings;
 
@@ -299,6 +304,9 @@ var()	TextureFilter					Filter;
 
 /** Texture group this texture belongs to for LOD bias */
 var()	TextureGroup					LODGroup;
+
+/** Per asset specific setting to define the mip-map generation properties like sharpening and kernel size. */
+var()	TextureMipGenSettings			MipGenSettings;
 
 /** A bias to the index of the top mip level to use. */
 var()	int								LODBias;
@@ -309,11 +317,9 @@ var		transient int					CachedCombinedLODBias;
 /** Number of mip-levels to use for cinematic quality. */
 var()	int								NumCinematicMipLevels;
 
-/** Whether to use the extra cinematic quality mip-levels, when we're forcing mip-levels to be resident. */
-var private transient const bool		bUseCinematicMipLevels;
-
-var()	editconst editoronly string				SourceFilePath;         // Path to the resource used to construct this texture
-var()	editconst editoronly string				SourceFileTimestamp;    // Date/Time-stamp of the file from the last import
+var()	editoronly string				SourceFilePath;         // Path to the resource used to construct this texture
+var()	editoronly editconst string		SourceFileTimestamp;    // Date/Time-stamp of the file from the last import
+var()	editoronly string				SourceAuthor;
 
 /** The texture's resource. */
 var native const pointer				Resource{FTextureResource};
@@ -341,9 +347,6 @@ var() float AdjustHue;
 
 /** Internal LOD bias already applied by the texture format (eg TC_NormalMapUncompressed). Used to adjust MinLODMipCount and MaxLODMipCount in CalculateLODBias */
 var const int InternalFormatLODBias;
-
-/** Per asset specific setting to define the mip-map generation properties like sharpening and kernel size. */
-var() TextureMipGenSettings MipGenSettings;
 
 cpptext
 {

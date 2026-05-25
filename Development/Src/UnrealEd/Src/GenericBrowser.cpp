@@ -2139,7 +2139,7 @@ UBOOL WxGenericBrowser::SaveAsCookedSelectedPackages()
 				const INT OldLicenseeVersion = GPackageFileLicenseeVersion;
 
 				Package->PackageFlags |= PKG_Cooked;
-				GPackageFileLicenseeVersion = VER_BATMAN3;
+				GPackageFileLicenseeVersion = VER_BATMAN2;
 
 				UBOOL bSaved = UObject::SavePackage( Package, NULL, RF_Standalone, *SaveFileName, GError );
 

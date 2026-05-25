@@ -360,7 +360,9 @@ public:
     BITFIELD CompressionNoMipmaps_DEPRECATED:1;
     BITFIELD CompressionFullDynamicRange:1;
     BITFIELD DeferCompression:1;
+    BITFIELD ForceOldCompression:1;
     BITFIELD NeverStream:1;
+    BITFIELD NeverStreamPCOnceCooked:1;
     BITFIELD bDitherMipMapAlpha:1;
     BITFIELD bPreserveBorderR:1;
     BITFIELD bPreserveBorderG:1;
@@ -382,6 +384,7 @@ public:
     INT NumCinematicMipLevels;
     FStringNoInit SourceFilePath;
     FStringNoInit SourceFileTimestamp;
+    FStringNoInit SourceAuthor;
     FTextureResource* Resource;
     FGuid LightingGuid;
     FLOAT AdjustBrightness;
@@ -552,17 +555,18 @@ public:
 struct FTexture2DMipMap
 {
     FTextureMipBulkData Data;
-    INT SizeX;
-    INT SizeY;
 
-		/**
-		 * Special serialize function passing the owning UObject along as required by FUnytpedBulkData
-		 * serialization.
-		 *
-		 * @param	Ar		Archive to serialize with
-		 * @param	Owner	UObject this structure is serialized within
-		 * @param	MipIdx	Current mip being serialized
-		 */
+		// BM2 packs SizeX/SizeY as two WORDs into the noexport `Size` slot (offset 0x2C).
+		union
+		{
+			INT Size;
+			struct
+			{
+				WORD SizeX;
+				WORD SizeY;
+			};
+		};
+
 		void Serialize( FArchive& Ar, UObject* Owner, INT MipIdx );
 	
 };
@@ -572,21 +576,22 @@ class UTexture2D : public UTexture
 public:
     //## BEGIN PROPS Texture2D
     TIndirectArray<FTexture2DMipMap> Mips;
-    TIndirectArray<FTexture2DMipMap> CachedPVRTCMips;
     INT SizeX;
     INT SizeY;
     INT OriginalSizeX;
     INT OriginalSizeY;
+    INT AutoLODSizeX;
+    INT AutoLODSizeY;
     BYTE Format;
     BYTE AddressX;
     BYTE AddressY;
     SCRIPT_ALIGN;
+    BITFIELD XboxForcePWLCorrection:1;
     BITFIELD bIsStreamable:1;
     BITFIELD bHasCancelationPending:1;
     BITFIELD bHasBeenLoadedFromPersistentArchive:1;
     BITFIELD bForceMiplevelsToBeResident:1;
     BITFIELD bGlobalForceMipLevelsToBeResident:1;
-    BITFIELD bIsCompositingSource:1;
     FLOAT ForceMipLevelsToBeResidentTimestamp;
     FName TextureFileCacheName;
     FGuid TextureFileCacheGuid;

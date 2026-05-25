@@ -1183,9 +1183,10 @@ void appCleanFileCache()
 //
 FGuid appCreateGuid()
 {
-	FGuid Result(0,0,0,0);
-	verify( CoCreateGuid( (GUID*)&Result )==S_OK );
-	return Result;
+	FGuidImplementation Full;
+	verify( CoCreateGuid( (GUID*)&Full )==S_OK );
+	// BM2 in-memory FGuid retains only the first DWORD.
+	return FGuid(Full.A);
 }
 
 /*-----------------------------------------------------------------------------

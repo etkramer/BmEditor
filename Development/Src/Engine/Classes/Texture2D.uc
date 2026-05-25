@@ -10,29 +10,28 @@ class Texture2D extends Texture
  */
 struct native Texture2DMipMap
 {
-	var native UntypedBulkData_Mirror Data{FTextureMipBulkData};	
-	var native int SizeX;
-	var native int SizeY;
+	var native UntypedBulkData_Mirror Data{FTextureMipBulkData};
+	var noexport int Size;
 
 	structcpptext
 	{
-		/**
-		 * Special serialize function passing the owning UObject along as required by FUnytpedBulkData
-		 * serialization.
-		 *
-		 * @param	Ar		Archive to serialize with
-		 * @param	Owner	UObject this structure is serialized within
-		 * @param	MipIdx	Current mip being serialized
-		 */
+		// BM2 packs SizeX/SizeY as two WORDs into the noexport `Size` slot (offset 0x2C).
+		union
+		{
+			INT Size;
+			struct
+			{
+				WORD SizeX;
+				WORD SizeY;
+			};
+		};
+
 		void Serialize( FArchive& Ar, UObject* Owner, INT MipIdx );
 	}
 };
 
 /** The texture's mip-map data.												*/
 var native const IndirectArray_Mirror Mips{TIndirectArray<FTexture2DMipMap>};
-
-/** Cached PVRTC compressed texture data										*/
-var native const IndirectArray_Mirror CachedPVRTCMips{TIndirectArray<FTexture2DMipMap>};
 
 /** The width of the texture.												*/
 var const int SizeX;
@@ -46,6 +45,8 @@ var const int OriginalSizeX;
 /** The original height of the texture source art we imported from.			*/
 var const int OriginalSizeY;
 
+var() editoronly int AutoLODSizeX;
+var() editoronly int AutoLODSizeY;
 
 /** The format of the texture data.											*/
 var const EPixelFormat Format;
@@ -55,6 +56,8 @@ var() TextureAddress AddressX;
 
 /** The addressing mode to use for the Y axis.								*/
 var() TextureAddress AddressY;
+
+var() bool XboxForcePWLCorrection;
 
 /** Whether the texture is currently streamable or not.						*/
 var transient const bool						bIsStreamable;
@@ -71,11 +74,8 @@ var transient const bool						bHasBeenLoadedFromPersistentArchive;
 var transient bool								bForceMiplevelsToBeResident;
 /** Global/ serialized version of ForceMiplevelsToBeResident.				*/
 var() const bool								bGlobalForceMipLevelsToBeResident;
-/** WorldInfo timestamp that tells the streamer to force all miplevels to be resident up until that time. */ 
+/** WorldInfo timestamp that tells the streamer to force all miplevels to be resident up until that time. */
 var private transient float						ForceMipLevelsToBeResidentTimestamp;
-
-/** Allows texture to be a source for Texture2DComposite.  Will NOT be available for use in rendering! */
-var() const bool								bIsCompositingSource;
 
 /** Name of texture file cache texture mips are stored in, NAME_None if it is not part of one. */
 var		name									TextureFileCacheName;

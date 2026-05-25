@@ -607,8 +607,16 @@ FTexture2DResourceMem* UTexture2D::InitResourceMem(INT FirstMipIdx)
 void FTexture2DMipMap::Serialize( FArchive& Ar, UObject* Owner, INT MipIdx )
 {
 	Data.Serialize( Ar, Owner, MipIdx );
-	Ar << SizeX;
-	Ar << SizeY;
+	// On disk both are 4-byte ints; in memory they share a single packed INT as two WORDs.
+	INT TempSizeX = SizeX;
+	INT TempSizeY = SizeY;
+	Ar << TempSizeX;
+	Ar << TempSizeY;
+	if( Ar.IsLoading() )
+	{
+		SizeX = (WORD)TempSizeX;
+		SizeY = (WORD)TempSizeY;
+	}
 }
 
 /**
@@ -706,11 +714,6 @@ void UTexture2D::Serialize(FArchive& Ar)
 		}
 	}
 
-	// serialize the PVRTC data
-	if (Ar.Ver() >= VER_ADDED_CACHED_IPHONE_DATA)
-	{
-		CachedPVRTCMips.Serialize(Ar, this);
-	}
 }
 
 void UTexture2D::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
@@ -729,12 +732,6 @@ void UTexture2D::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 		GWorld->Scene->UpdateImageReflectionTextureArray(this);
 	}
 
-	const UProperty* PropertyThatChanged = PropertyChangedEvent.Property;
-	if( !( PropertyThatChanged && ( PropertyThatChanged->GetName() == TEXT("LODGroup") || PropertyThatChanged->GetName() == TEXT("LODBias") ) ) )
-	{
-		// always clear out the cached iphone mips unless we are just changing the lod group or lod bias
-		CachedPVRTCMips.Empty();
-	}
 }
 
 /**
@@ -760,11 +757,6 @@ void UTexture2D::StripData(UE3::EPlatformType PlatformsToKeep, UBOOL bStripLarge
 		Mips.Empty();
 	}
 
-	// toss PVRTC if not keeping iPhone data
-	if (!(PlatformsToKeep & UE3::PLATFORM_IPhone))
-	{
-		CachedPVRTCMips.Empty();
-	}
 }
 
 /**
@@ -1738,13 +1730,6 @@ FTextureResource* UTexture2D::CreateResource()
 	// been loaded from disk.
 	bIsStreamable		= FALSE;
 
-	//Because texture can be referenced by the start up package, GEngine can be NULL and bIsStreamable will be turned on by mistake.
-	//This forces it off without exception of what package it is in
-	if ( bIsCompositingSource )
-	{
-		NeverStream = TRUE;
-	}
-
 	// We can only stream textures that have been loaded from "disk" (aka a persistent archive).
 	if( bHasBeenLoadedFromPersistentArchive 
 	// Disregard textures that are marked as not being streamable.
@@ -2292,8 +2277,7 @@ void FTexture2DResource::InitRHI()
 		EffectiveFormat = PF_DXT5;
 	}
 
-	//d3d source can be grabbed from the RHI, but ES2 cannot
-	UBOOL bSkipRHITextureCreation = Owner->bIsCompositingSource && GUsingES2RHI;
+	UBOOL bSkipRHITextureCreation = FALSE;
 	if (GIsEditor || (!bSkipRHITextureCreation))
 	{
 		// create texture with ResourceMem data when available

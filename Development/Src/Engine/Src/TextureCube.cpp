@@ -113,7 +113,7 @@ void UTextureCube::Validate()
 					const INT FirstMip = FaceTexture->Mips.Num() - NumMips; 
 					if( FirstMip >= 0 )
 					{
-						SizeX = Min(FaceTexture->Mips(FirstMip).SizeX, SizeX);
+						SizeX = Min<INT>(FaceTexture->Mips(FirstMip).SizeX, SizeX);
 					}
 					else
 					{

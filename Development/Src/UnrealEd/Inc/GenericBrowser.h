@@ -975,7 +975,7 @@ public:
 	UBOOL SaveAsSelectedPackages();
 
 	/**
-	 * Saves selected packages in cooked format with VER_BATMAN3 licensee version.
+	 * Saves selected packages in cooked format with VER_BATMAN2 licensee version.
 	 *
 	 * @return		TRUE if all selected packages were successfully saved, FALSE otherwise.
 	 */

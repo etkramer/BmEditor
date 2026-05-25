@@ -696,12 +696,10 @@ enum EUnrealEngineObjectVersion
 #if BATMAN
 enum ELicenseeVersion
 {
-	// - BM2 release
-	VER_BATMAN2 = 101,
-	// - BM3 release
-    VER_BATMAN3 = 138,
 	// - Fake/unused version for packages produced by the editor
-	VER_BATMAN_EDITOR = 137
+	VER_BATMAN_EDITOR = 100,
+	// - BM2 release
+	VER_BATMAN2 = 101
 };
 #endif
 

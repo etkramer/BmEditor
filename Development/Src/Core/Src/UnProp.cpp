@@ -4102,8 +4102,15 @@ void UStructProperty::SerializeItem( FArchive& Ar, void* Value, INT MaxReadBytes
 		}
 		return;
 	}
+	// In-memory FGuid is 4 bytes but on-disk format is always 16 bytes (FGuidImplementation).
+	// Route to the native operator<< so script-side property walking can't shrink the read.
+	if (Struct->GetFName() == NAME_Guid)
+	{
+		Ar << *(FGuid*)Value;
+		return;
+	}
 #endif
-	UBOOL bUseBinarySerialization =	!(Ar.IsLoading() || Ar.IsSaving()) 
+	UBOOL bUseBinarySerialization =	!(Ar.IsLoading() || Ar.IsSaving())
 								||	Ar.WantBinaryPropertySerialization()
 								||  ((Struct->StructFlags & STRUCT_ImmutableWhenCooked) != 0 && (Ar.ContainsCookedData() || (GIsCooking && Ar.IsSaving())))
 								||	((Struct->StructFlags & STRUCT_Immutable) != 0

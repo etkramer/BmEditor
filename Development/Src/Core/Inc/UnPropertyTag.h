@@ -19,6 +19,11 @@ struct FPropertyTag
 	INT		Size;       // Property size.
 	INT		ArrayIndex;	// Index if an array; else 0.
 	INT		SizeOffset;	// location in stream of tag size member
+#if BATMAN
+	// BM2 cooked tag carries a 16-bit offset of the property within its parent struct.
+	// Only valid when read/written from a BM2 cooked archive.
+	WORD	PropertyOffset;
+#endif
 
 	// Constructors.
 	FPropertyTag()
@@ -31,6 +36,9 @@ struct FPropertyTag
 	,	Size		(0)
 	,	ArrayIndex	(InIndex)
 	,	SizeOffset	(INDEX_NONE)
+#if BATMAN
+	,	PropertyOffset(Property ? (WORD)Property->Offset : 0)
+#endif
 	{
 		// Handle structs.
 		UStructProperty* StructProperty = Cast<UStructProperty>(Property, CLASS_IsAUStructProperty);
@@ -51,89 +59,118 @@ struct FPropertyTag
 		BoolVal = (Bool && (*(BITFIELD*)Value & Bool->BitMask)) ? TRUE : FALSE;
 	}
 
+#if BATMAN
+	// BM2 cooked tag: when the Type is one of these "simple" intrinsic property
+	// types, the tag has no Name/Size/ArrayIndex and the value is read directly
+	// at obj+PropertyOffset. Mirrors BmGame.exe.c sub_5FC160.
+	static FORCEINLINE UBOOL IsBmSimpleType(INT TypeIndex)
+	{
+		return TypeIndex == NAME_IntProperty
+			|| TypeIndex == NAME_FloatProperty
+			|| TypeIndex == NAME_NameProperty
+			|| TypeIndex == NAME_VectorProperty
+			|| TypeIndex == NAME_RotatorProperty
+			|| TypeIndex == NAME_StrProperty
+			|| TypeIndex == NAME_ObjectNCRProperty;
+	}
+#endif
+
 	// Serializer.
 	friend FArchive& operator<<( FArchive& Ar, FPropertyTag& Tag )
 	{
 #if BATMAN
-		// Batman3 SP (807.138) uses different property tag format:
-		// INT16 Type, FName Name, INT Size, INT ArrayIndex, [BYTE BoolVal]
+		// BM2 cooked property tag (FCookedPropertyTag in the original game):
+		//   INT16 Type                            (0 = end-of-properties marker)
+		//   INT16 PropertyOffset
+		//   For non-simple types:
+		//     FName Name
+		//     INT32 Size
+		//     INT32 ArrayIndex
+		//   If Type == BoolProperty: BYTE BoolVal
 		if (Ar.IsBmCooked(TRUE, FALSE))
 		{
 			if (Ar.IsLoading())
 			{
-				// Read INT16 Type first (0 = end marker)
 				SWORD TypeIndex = 0;
 				Ar << TypeIndex;
 
 				if (TypeIndex == 0)
 				{
-					Tag.Name = NAME_None;
 					Tag.Type = NAME_None;
+					Tag.Name = NAME_None;
+					Tag.PropertyOffset = 0;
 					return Ar;
 				}
 
-				// Validate type range
 				if (TypeIndex < 0 || TypeIndex > NAME_GUIDProperty)
 				{
-					warnf(NAME_Warning, TEXT("FPropertyTag: TypeIndex %d out of range [1,%d], treating as end of properties"), (INT)TypeIndex, (INT)NAME_GUIDProperty);
-					Tag.Name = NAME_None;
+					warnf(NAME_Warning, TEXT("FPropertyTag: TypeIndex %d out of range, treating as end of properties"), (INT)TypeIndex);
 					Tag.Type = NAME_None;
+					Tag.Name = NAME_None;
+					Tag.PropertyOffset = 0;
 					return Ar;
 				}
 
-				// Convert int16 type index to FName (indices match NAME_ enum)
 				Tag.Type = FName((EName)TypeIndex);
 
-				// Read property name, size, array index
-				Ar << Tag.Name;
-				if (!Tag.Name.IsValid())
-				{
-					warnf(NAME_Warning, TEXT("FPropertyTag: Invalid property name after TypeIndex %d, treating as end of properties"), (INT)TypeIndex);
-					Tag.Name = NAME_None;
-					Tag.Type = NAME_None;
-					return Ar;
-				}
-				Ar << Tag.Size << Tag.ArrayIndex;
+				WORD OffsetWord = 0;
+				Ar << OffsetWord;
+				Tag.PropertyOffset = OffsetWord;
 
-				// Bool properties store value in tag
+				if (IsBmSimpleType(TypeIndex))
+				{
+					// Simple intrinsic: data follows directly, no name/size/array index.
+					Tag.Name = NAME_None;
+					Tag.Size = 0;
+					Tag.ArrayIndex = 0;
+				}
+				else
+				{
+					Ar << Tag.Name;
+					Ar << Tag.Size << Tag.ArrayIndex;
+				}
+
 				if (TypeIndex == NAME_BoolProperty)
 				{
 					Ar << Tag.BoolVal;
 				}
 
-				// Initialize to NAME_None - recovered from property defs later
+				// Recovered from property defs later when needed.
 				Tag.StructName = NAME_None;
 				Tag.EnumName = NAME_None;
 			}
 			else // Saving
 			{
-				if (Tag.Name == NAME_None)
+				if (Tag.Type == NAME_None)
 				{
-					// Write end marker
+					// End-of-properties marker.
 					SWORD EndMarker = 0;
 					Ar << EndMarker;
 					return Ar;
 				}
 
-				// Write INT16 Type
 				SWORD TypeIndex = (SWORD)Tag.Type.GetIndex();
 				Ar << TypeIndex;
 
-				// Write property name
-				Ar << Tag.Name;
+				WORD OffsetWord = Tag.PropertyOffset;
+				Ar << OffsetWord;
 
-				// Remember size offset for later update
-				Tag.SizeOffset = Ar.Tell();
+				if (IsBmSimpleType(TypeIndex))
+				{
+					// No tag fields beyond Type+Offset; no size fixup needed.
+					Tag.SizeOffset = INDEX_NONE;
+				}
+				else
+				{
+					Ar << Tag.Name;
+					Tag.SizeOffset = Ar.Tell();
+					Ar << Tag.Size << Tag.ArrayIndex;
+				}
 
-				// Write size and array index
-				Ar << Tag.Size << Tag.ArrayIndex;
-
-				// Bool properties store value in tag
 				if (TypeIndex == NAME_BoolProperty)
 				{
 					Ar << Tag.BoolVal;
 				}
-				// Note: StructName and EnumName are NOT serialized in Batman3 format
 			}
 			return Ar;
 		}

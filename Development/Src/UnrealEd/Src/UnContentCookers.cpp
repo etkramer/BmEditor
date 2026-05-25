@@ -2295,39 +2295,9 @@ void UCookPackagesCommandlet::CookTexture( UPackage* Package, UTexture2D* Textur
 					ConditionalCachePVRTCTextures(Texture2D, !ParseParam(appCmdLine(), TEXT("slowpvrtc")));
 				}
 				
-				// if any textures were cached, then we just use those instead (otherwise, could be other format, etc)
-				if (Texture2D->CachedPVRTCMips.Num())
-				{
-					check(Texture2D->CachedPVRTCMips.Num() == Texture2D->Mips.Num());
-
-					// make sure the cached data is loaded
-					for (INT MipLevel = 0; MipLevel < Texture2D->CachedPVRTCMips.Num(); MipLevel++)
-					{
-						Texture2D->CachedPVRTCMips(MipLevel).Data.MakeSureBulkDataIsLoaded();
-						Texture2D->Mips(MipLevel).SizeX = Texture2D->CachedPVRTCMips(MipLevel).SizeX;
-						Texture2D->Mips(MipLevel).SizeY = Texture2D->CachedPVRTCMips(MipLevel).SizeY;
-						Texture2D->Mips(MipLevel).Data = Texture2D->CachedPVRTCMips(MipLevel).Data;
-					}
-
-					// we don't need to recook the texture, but we still want to do the mip stripping, etc
-					bSkipCookerOperations = TRUE;
-
-					// make the texture square (the mips were already squarified in ConditionalCachePVRTCTextures(
-					Texture2D->SizeX = Texture2D->SizeY = Max(Texture2D->SizeX, Texture2D->SizeY);
-
-					// force an 8x8 texture to be PVRTC4 (their mip data will already be PVRTC4)
-					if (Texture2D->SizeX == 8 && Texture2D->SizeY == 8)
-					{
-						Texture2D->bForcePVRTC4 = TRUE;
-					}
-				}
-
 				// disable streaming on iphone
 				Texture2D->NeverStream = TRUE;
 			}
-
-			// no platforms need the cached PVRTC data at this point (IPhone has already copied them over as needed)
-			Texture2D->CachedPVRTCMips.Empty();
 
 			// disable streaming on Android
 			if (Platform == PLATFORM_Android)
@@ -5714,8 +5684,8 @@ void UCookPackagesCommandlet::PrepareForSaving( UPackage* Package, UObject* Obje
 			// Track max size saved out.
 			if( !bUnusedMipLevel )
 			{
-				SizeX = Max( SizeX, Mip.SizeX );
-				SizeY = Max( SizeY, Mip.SizeY );
+				SizeX = Max<INT>( SizeX, Mip.SizeX );
+				SizeY = Max<INT>( SizeY, Mip.SizeY );
 			}
 
 			// Miplevels that are saved into the map/ seekfree package shouldn't be individually compressed as we're not going

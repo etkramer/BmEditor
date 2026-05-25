@@ -150,10 +150,17 @@ struct InlinePointerArray_Mirror
 	var private const Array_Mirror SecondaryData;
 };
 
-// A globally unique identifier.
-struct immutable Guid
+// Full 16-byte GUID data as serialized on disk.
+struct immutable GuidImplementation
 {
 	var int A, B, C, D;
+};
+
+// A globally unique identifier. BM2 truncates to a single DWORD in memory;
+// the full 16 bytes are read via GuidImplementation and only A is retained.
+struct immutable Guid
+{
+	var pointer A;
 };
 
 // A point or direction vector in 3d space.

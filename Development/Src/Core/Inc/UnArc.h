@@ -314,8 +314,8 @@ public:
 		}
 
         return IncludeNonCooked
-			? (LicenseeVer() == VER_BATMAN3)
-			: (LicenseeVer() == VER_BATMAN3) && ArContainsCookedData;
+			? (LicenseeVer() == VER_BATMAN2)
+			: (LicenseeVer() == VER_BATMAN2) && ArContainsCookedData;
     }
 
 	/**
