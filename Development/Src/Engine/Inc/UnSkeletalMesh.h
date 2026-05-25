@@ -3350,8 +3350,10 @@ struct FSkeletalMeshLODInfo
 	TArray<BYTE>						OLD_TriangleSorting;	// deprecated
 	TArray<FTriangleSortSettings>		TriangleSortSettings;
 
-	/** If true, use 16 bit XYZs to save memory. If false, use 32 bit XYZs */
-	BITFIELD							bDisableCompression:1;
+	/** BM: Author recorded on the source asset. */
+	FString								SourceAuthor;
+	/** BM: Full source path recorded on the asset. */
+	FString								MaxFilePath;
 };
 
 struct FBoneMirrorInfo
@@ -3362,6 +3364,30 @@ struct FBoneMirrorInfo
 	BYTE	BoneFlipAxis;
 };
 template <> struct TIsPODType<FBoneMirrorInfo> { enum { Value = true }; };
+
+/** BM: Per-bone bounding box used for frustum culling. */
+struct FBoneBounds
+{
+	INT		BoneIndex;
+	FVector	BoxMin;
+	FVector	BoxMax;
+
+	friend FArchive& operator<<(FArchive& Ar, FBoneBounds& B)
+	{
+		return Ar << B.BoneIndex << B.BoxMin << B.BoxMax;
+	}
+};
+template <> struct TIsPODType<FBoneBounds> { enum { Value = true }; };
+
+/** BM: Per-frame stretch applied to a specific bone. */
+struct FStretchDescription
+{
+	FName	Bone;
+	FVector	Translation;
+	FLOAT	Scale;
+	BYTE	Phase;
+};
+template <> struct TIsPODType<FStretchDescription> { enum { Value = true }; };
 
 struct FBoneMirrorExport
 {
@@ -3507,12 +3533,18 @@ class USkeletalMesh : public UObject
 	DECLARE_CLASS_NOEXPORT(USkeletalMesh, UObject, CLASS_SafeReplace | 0, Engine)
 
 	FBoxSphereBounds				Bounds;
+	/** BM: Conservative bounding sphere radius used for frustum culling. */
+	FLOAT							ConservativeBounds;
+	/** BM: Per-bone bounding boxes used for frustum culling. */
+	TArray<FBoneBounds>				PerBoneBounds;
 	/** List of materials applied to this mesh. */
 	TArray<UMaterialInterface*>		Materials;
-	/** List of clothing assets associated with each corresponding material */	
+	/** List of clothing assets associated with each corresponding material */
 	TArray<class UApexClothingAsset *>	ClothingAssets;
+	/** BM: Bones that pin cloth back to the mesh when teleporting. */
+	TArray<FName>					ClothingTeleportRefBones;
 	/** Origin in original coordinate system */
-	FVector 						Origin;				
+	FVector 						Origin;
 	/** Amount to rotate when importing (mostly for yawing) */
 	FRotator						RotOrigin;			
 	/** Reference skeleton */
@@ -3526,7 +3558,9 @@ class USkeletalMesh : public UObject
 	/** Static LOD models */
 	TIndirectArray<FStaticLODModel>	LODModels;
 	/** Reference skeleton precomputed bases. */
-	TArray<FBoneAtom>					RefBasesInvMatrix;	// @todo: wasteful ?! 
+	TArray<FBoneAtom>					RefBasesInvMatrix;	// @todo: wasteful ?!
+	/** BM: Maps FaceFX bone index to RefSkeleton index. */
+	TArray<INT>						FaceFXBoneToRefBone;
 	/** List of bones that should be mirrored. */
 	TArray<FBoneMirrorInfo>			SkelMirrorTable;
 	BYTE							SkelMirrorAxis;
@@ -3573,12 +3607,34 @@ class USkeletalMesh : public UObject
 
 	/** If true, use 32 bit UVs. If false, use 16 bit UVs to save memory */
 	BITFIELD						bUseFullPrecisionUVs:1;
+	/** BM: Packed-position skinning flag. */
+	BITFIELD						bUsePackedPosition:1;
+	/** BM: Force-shadow-volume flag. */
+	BITFIELD						ForceShadowVolumes:1;
+	/** BM: Per-bone bounds toggle. */
+	BITFIELD						EnablePerBoneBounds:1;
+	/** BM: FaceFX toggle. */
+	BITFIELD						EnableFaceFX:1;
+	/** BM: FaceFX bone scaling toggle. */
+	BITFIELD						EnableFaceFXBoneScaling:1;
+	/** BM: Twist-bone fixers toggle. */
+	BITFIELD						EnableTwistBoneFixers:1;
+	/** BM: Clavicle fixer toggle. */
+	BITFIELD						EnableClavicleFixer:1;
+	/** BM: Stretches toggle. */
+	BITFIELD						EnableStretches:1;
 
 	/** FaceFX animation asset */
 	UFaceFXAsset*					FaceFXAsset;
-	
+
+	/** BM: Driven-material-parameter config object. */
+	UObject*						DrivenMaterialParameterConfig;
+
 	/** Asset used for previewing bounds in AnimSetViewer. Makes setting up LOD distance factors more reliable. */
-	UPhysicsAsset*					BoundsPreviewAsset;
+	UPhysicsAsset*					PreviewBoundsPhysicsAsset;
+
+	/** BM: Preview bounds type. */
+	BYTE							PreviewBoundsType;
 
 	/** Asset used for previewing morph target animations in AnimSetViewer. Only for editor. */
 	TArray<UMorphTargetSet*>		PreviewMorphSets;
@@ -3589,6 +3645,10 @@ class USkeletalMesh : public UObject
 	INT								LODBiasPS3;
 	/** LOD bias to use for Xbox 360.				*/
 	INT								LODBiasXbox360;
+	/** BM: Max bones per draw batch. */
+	INT								MaxBonesPerBatch;
+	/** BM: Cached package path name. */
+	FName							CachedPathName;
 
 	/** Path to the resource used to construct this skeletal mesh */
 	FStringNoInit					SourceFilePath;
@@ -3794,7 +3854,12 @@ class USkeletalMesh : public UObject
  */
 	TMap<QWORD,INT>					ClothTornTriMap;
 
-	/** Mapping between each vertex of the simulated soft-body's surface-mesh and the graphics mesh. */ 	
+	/** BM: Author recorded on the source asset. */
+	FString							SourceAuthor;
+	/** BM: Full source path recorded on the asset. */
+	FString							MaxFilePath;
+
+	/** Mapping between each vertex of the simulated soft-body's surface-mesh and the graphics mesh. */
 	TArray<INT>								SoftBodySurfaceToGraphicsVertMap;
 
 	/** Index buffer of the triangles of the soft-body's surface mesh. */
@@ -3867,6 +3932,29 @@ class USkeletalMesh : public UObject
 
 	/** Runtime UID for this SkeletalMeshm, used when linking meshes to AnimSets. */
 	QWORD							SkelMeshRUID;
+
+	/** BM: Per-frame stretches applied to specific bones. */
+	TArray<FStretchDescription>		Stretches;
+
+	/** BM: ApexClothing flag. */
+	BITFIELD						bUseClothingAssetMaterial:1;
+	/** BM: ApexClothing flag. */
+	BITFIELD						bUseClothCollisionChannels:1;
+
+	/** BM: D3D11 tessellation desired mode. */
+	BYTE							DesiredTessellationMode;
+	/** BM: D3D11 tessellation override-watertight-normals flag. */
+	BITFIELD						EnableWatertightNormalsOverride:1;
+	/** BM: D3D11 tessellation enable-mesh-dicing flag. */
+	BITFIELD						EnableMeshDicingForTessellation:1;
+	/** BM: D3D11 tessellation dicing target map width. */
+	INT								DicingTargetMapWidth;
+	/** BM: D3D11 tessellation dicing target map height. */
+	INT								DicingTargetMapHeight;
+	/** BM: D3D11 tessellation dicing target texels per edge. */
+	FLOAT							DicingTexelsPerEdge;
+	/** BM: D3D11 tessellation desired distance. */
+	FLOAT							DesiredTessellationDistance;
 
 	/**
 	* Initialize the mesh's render resources.

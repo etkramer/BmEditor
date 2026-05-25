@@ -12,10 +12,24 @@ class SkeletalMesh extends Object
 
 var		const native			BoxSphereBounds			Bounds;
 
+/** BM: Conservative bounding sphere radius used for frustum culling. */
+var		const native			float					ConservativeBounds;
+
+/** BM: Per-bone bounding boxes used for frustum culling. */
+struct native BoneBounds
+{
+	var int BoneIndex;
+	var vector BoxMin;
+	var vector BoxMax;
+};
+var(Bounds) const native		array<BoneBounds>		PerBoneBounds;
+
 /** List of materials applied to this mesh. */
 var()	const native			array<MaterialInterface>	Materials;
 /** List of clothing assets associated with each material int this mesh. */
 var()	const native			array<ApexClothingAsset>    ClothingAssets;
+/** BM: Bones that pin cloth back to the mesh when teleporting. */
+var()	array<name>				ClothingTeleportRefBones;
 /** Origin in original coordinate system */
 var()	const native			vector					Origin;
 /** Amount to rotate when importing (mostly for yawing) */
@@ -27,6 +41,8 @@ var		const native			map{FName,INT}			NameIndexMap;
 
 var		const native private	IndirectArray_Mirror	LODModels;		// FStaticLODModel
 var		const native			array<AnimNode.BoneAtom>			RefBasesInvMatrix;
+/** BM: Maps FaceFX bone index to RefSkeleton index. */
+var		const					array<int>				FaceFXBoneToRefBone;
 
 struct native BoneMirrorInfo
 {
@@ -114,8 +130,10 @@ struct native SkeletalMeshLODInfo
 	/** Per-section sorting options */
 	var		deprecated array<TriangleSortOption>	TriangleSorting;
 	var()	editfixedsize array<TriangleSortSettings> TriangleSortSettings;
-	/** Use compressed position XYZs(4 bytes saving 8 bytes). This is only useful for GPU skinning.*/
-	var()	bool						bDisableCompressions;
+	/** BM: Author recorded on the source asset. */
+	var()	editoronly string			SourceAuthor;
+	/** BM: Full source path recorded on the asset. */
+	var()	editoronly string			MaxFilePath;
 };
 
 /** Struct containing information for each LOD level, such as materials to use, whether to cast shadows, and when use the LOD. */
@@ -147,12 +165,33 @@ var()	const bool	bForceCPUSkinning;
 
 /** If true, use 32 bit UVs. If false, use 16 bit UVs to save memory */
 var()	const bool	bUseFullPrecisionUVs;
+/** BM: Packed-position skinning flag. */
+var()	const bool	bUsePackedPosition;
+/** BM: Force-shadow-volume flag. */
+var()	const bool	ForceShadowVolumes;
+/** BM: Per-bone bounds toggle. */
+var(Bounds) const bool EnablePerBoneBounds;
+/** BM: FaceFX toggle. */
+var(FaceFX) const bool EnableFaceFX;
+/** BM: FaceFX bone scaling toggle. */
+var(FaceFX) const bool EnableFaceFXBoneScaling;
+/** BM: Twist-bone fixers toggle. */
+var()	const bool	EnableTwistBoneFixers;
+/** BM: Clavicle fixer toggle. */
+var()	const bool	EnableClavicleFixer;
+/** BM: Stretches toggle. */
+var()	const bool	EnableStretches;
 
 /** The FaceFX asset the skeletal mesh uses for FaceFX operations. */
 var() FaceFXAsset FaceFXAsset;
 
+/** BM: Driven-material-parameter config (typed as Object pending RSkeletalMeshDrivenMaterialParameterConfig port). */
+var()	Object		DrivenMaterialParameterConfig;
+
 /** Asset used for previewing bounds in AnimSetViewer. Makes setting up LOD distance factors more reliable. */
-var()	editoronly PhysicsAsset		BoundsPreviewAsset;
+var(Bounds)	editoronly PhysicsAsset		PreviewBoundsPhysicsAsset;
+
+var(Bounds) transient RSkeletalMeshComponent_Export.ESkeletalMeshComponentBoundsType PreviewBoundsType;
 
 /** Asset used for previewing morph target animations in AnimSetViewer. Only for editor. */
 var()	editoronly array<MorphTargetSet>	PreviewMorphSets;
@@ -163,6 +202,10 @@ var() int LODBiasPC;
 var() int LODBiasPS3;
 /** LOD bias to use for Xbox 360. */
 var() int LODBiasXbox360;
+/** BM: Max bones per draw batch. */
+var() int MaxBonesPerBatch;
+/** BM: Cached package path name. */
+var() transient name CachedPathName;
 
 /** Path to the resource used to construct this skeletal mesh */
 var() const editconst editoronly string	SourceFilePath;
@@ -395,6 +438,11 @@ var(Cloth)	Vector			ValidBoundsMax;
  */
 var			const native Map_Mirror ClothTornTriMap {TMap<QWORD,INT>};
 
+/** BM: Author recorded on the source asset. */
+var			editoronly string		SourceAuthor;
+/** BM: Full source path recorded on the asset. */
+var			editoronly string		MaxFilePath;
+
 struct native SoftBodyTetraLink
 {
 	var int Index;
@@ -559,6 +607,29 @@ var const native transient int			ReleaseResourcesFence;
 /** Runtime UID for this SkeletalMeshm, used when linking meshes to AnimSets. */
 var const transient qword				SkelMeshRUID;
 
+/** BM: Per-frame stretches applied to specific bones. */
+var()	array<RSkeletalMeshComponent_Export.StretchDescription>		Stretches;
+
+/** BM: ApexClothing flag. */
+var(ApexClothing) const bool			bUseClothingAssetMaterial;
+/** BM: ApexClothing flag. */
+var(ApexClothing) const bool			bUseClothCollisionChannels;
+
+/** BM: D3D11 tessellation desired mode. */
+var(D3D11Tessellation) const EMaterialTessellationMode	DesiredTessellationMode;
+/** BM: D3D11 tessellation override-watertight-normals flag. */
+var(D3D11Tessellation) const bool		EnableWatertightNormalsOverride;
+/** BM: D3D11 tessellation enable-mesh-dicing flag. */
+var(D3D11Tessellation) const bool		EnableMeshDicingForTessellation;
+/** BM: D3D11 tessellation dicing target map width. */
+var(D3D11Tessellation) const int		DicingTargetMapWidth;
+/** BM: D3D11 tessellation dicing target map height. */
+var(D3D11Tessellation) const int		DicingTargetMapHeight;
+/** BM: D3D11 tessellation dicing target texels per edge. */
+var(D3D11Tessellation) const float		DicingTexelsPerEdge;
+/** BM: D3D11 tessellation desired distance. */
+var(D3D11Tessellation) const float		DesiredTessellationDistance;
+
 defaultproperties
 {
 	SkelMirrorAxis=AXIS_X
@@ -579,6 +650,19 @@ defaultproperties
 
 	bUseSimpleLineCollision=true
 	bUseSimpleBoxCollision=true
+
+	// BM
+	bUsePackedPosition=true
+	EnableFaceFX=true
+	EnableFaceFXBoneScaling=true
+	EnableTwistBoneFixers=true
+	EnableClavicleFixer=true
+	EnableStretches=true
+	PreviewBoundsType=SMCBT_Editor
+	bUseClothCollisionChannels=true
+	DicingTargetMapWidth=512
+	DicingTargetMapHeight=512
+	DicingTexelsPerEdge=128.0
 
 	bEnableClothOrthoBendConstraints = FALSE
 	bEnableClothSelfCollision = FALSE

@@ -1065,7 +1065,7 @@ FArchive& operator<<(FArchive& Ar, FMultiSizeIndexContainer& Buffer)
 #if BATMAN
 	else if (Ar.IsBmCooked(TRUE))
 	{
-		// BM3 format only serializes NeedsCPUAccess; DataTypeSize is implicitly WORD
+		// BM2 format only serializes NeedsCPUAccess; DataTypeSize is implicitly WORD
 		Ar << Buffer.NeedsCPUAccess;
 		Buffer.DataTypeSize = sizeof(WORD);
 	}
@@ -1189,7 +1189,7 @@ void FStaticLODModel::Serialize( FArchive& Ar, UObject* Owner, INT Idx )
 #if BATMAN
 	else if (Ar.IsBmCooked(TRUE))
 	{
-		// Saving BM3 format: write as WORD bulk data to match what BM3 expects on load
+		// Saving BM2 format: write as WORD bulk data to match what BM2 expects on load
 		INT ElementCount = RawPointIndices.GetElementCount();
 		LegacyRawPointIndices.Lock(LOCK_READ_WRITE);
 		WORD* Dest = (WORD*)LegacyRawPointIndices.Realloc(ElementCount);
@@ -1807,17 +1807,10 @@ void USkeletalMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 	// reassure if UsePackedPosition == FALSE when ForceCPUSkinning == TRUE
 	// if so, turn PackedPosition off to ensure users see same result as how it works internally
 	if ( GIsEditor &&
-		PropertyThatChanged && bForceCPUSkinning ) 
+		PropertyThatChanged && bForceCPUSkinning && bUsePackedPosition )
 	{
-		// make sure compression is disabled
-		for( INT LODIndex = 0;LODIndex < LODModels.Num();LODIndex++ )
-		{
-			if ( !LODInfo(LODIndex).bDisableCompression )
-			{
-				LODInfo(LODIndex).bDisableCompression = TRUE;
-				warnf(TEXT("Compression isn't supported for CPU skinning"));			
-			}
-		}
+		bUsePackedPosition = FALSE;
+		warnf(TEXT("Packed position isn't supported for CPU skinning"));
 	}
 
 	if( GIsEditor &&
@@ -1848,7 +1841,7 @@ void USkeletalMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 	// rebuild vertex buffers
 	for( INT LODIndex = 0;LODIndex < LODModels.Num();LODIndex++ )
 	{
-		LODModels(LODIndex).BuildVertexBuffers(this, !LODInfo(LODIndex).bDisableCompression);
+		LODModels(LODIndex).BuildVertexBuffers(this, bUsePackedPosition);
 	}
 
 	// Reinitialize the mesh's render resources.
@@ -1908,23 +1901,8 @@ UBOOL USkeletalMesh::IsReadyForFinishDestroy()
 	return ReleaseResourcesFence.GetNumPendingFences() == 0;
 }
 
-#if BATMAN
-struct FBoneBounds
-{
-	INT					BoneIndex;
-	// FSimpleBox
-	FVector				Min;
-	FVector				Max;
-
-	friend FArchive& operator<<(FArchive& Ar, FBoneBounds& B)
-	{
-		return Ar << B.BoneIndex << B.Min << B.Max;
-	}
-};
-#endif
-
-/** 
-* Serialize 
+/**
+* Serialize
 */
 void USkeletalMesh::Serialize( FArchive& Ar )
 {
@@ -1932,7 +1910,7 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 
 	Ar << Bounds;
 #if BATMAN
-	// BM3 populates ConservativeBounds and PerBoneBounds in USkeletalMesh::
+	// BM2 populates ConservativeBounds and PerBoneBounds in USkeletalMesh::
 	// CalculateBounds(): per-bone bounding boxes in bone-local space plus a
 	// worst-case (BoneDistFromRoot + localVertexLen) used for frustum culling.
 	// When the editor resaves a mesh we can't easily replay the full skinning
@@ -1941,9 +1919,6 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 	// ConservativeBounds large enough to never cull.
 	if (Ar.IsBmCooked(TRUE))
 	{
-		float ConservativeBounds;
-		TArray<FBoneBounds> PerBoneBounds;
-
 		if (Ar.IsSaving())
 		{
 			ConservativeBounds = Bounds.SphereRadius * 2.0f;
@@ -1955,8 +1930,8 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 			{
 				FBoneBounds& BB = *new(PerBoneBounds) FBoneBounds;
 				BB.BoneIndex = BoneIdx;
-				BB.Min = BigMin;
-				BB.Max = BigMax;
+				BB.BoxMin = BigMin;
+				BB.BoxMax = BigMax;
 			}
 		}
 
@@ -1998,6 +1973,20 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 
 	Ar << NameIndexMap;
 	Ar << PerPolyBoneKDOPs;
+
+#if BATMAN
+	// BM2 emits a standalone DWORD here carrying a single packed-bool flag
+	// (bUseFullPrecisionUVs) between PerPolyBoneKDOPs and BoneBreakNames.
+	if (Ar.IsBmCooked(TRUE))
+	{
+		UBOOL bFlag = bUseFullPrecisionUVs;
+		Ar << bFlag;
+		if (Ar.IsLoading())
+		{
+			bUseFullPrecisionUVs = bFlag ? TRUE : FALSE;
+		}
+	}
+#endif
 
 	if (Ar.Ver() >= VER_ADDED_EXTRA_SKELMESH_VERTEX_INFLUENCE_MAPPING)
 	{

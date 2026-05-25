@@ -97,15 +97,12 @@ UBOOL FSkeletalMeshMerge::DoMerge()
 		if( SrcMesh )
 		{
 #if CONSOLE
-			for ( INT LODId=0; LODId < SrcMesh->LODInfo.Num(); ++LODId )
+			if ( SrcMesh->bUsePackedPosition )
 			{
-				if ( !SrcMesh->LODInfo(LODId).bDisableCompression )
-				{
-	 				// compression is turned on for source mesh, return false with error message
- 					debugf(NAME_Error, TEXT("Error in merging meshes. Turn on bDisableCompress in LODInfo for Source Mesh (%s)"), *SrcMesh->GetPathName());
- 					return FALSE;
-				}
- 			}
+				// BM: packed position must be off to merge meshes
+				debugf(NAME_Error, TEXT("Error in merging meshes. Turn off bUsePackedPosition on Source Mesh (%s)"), *SrcMesh->GetPathName());
+				return FALSE;
+			}
 #endif
 			if( bMaxNumLODsInit )
 			{

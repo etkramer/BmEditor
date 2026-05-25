@@ -4132,9 +4132,9 @@ void USkeletalMeshComponent::UpdateBounds()
 	}
 
 	// For AnimSet Viewer, use 'bounds preview' physics asset if present.
-	if(SkeletalMesh && SkeletalMesh->BoundsPreviewAsset && bCanUsePhysicsAsset)
+	if(SkeletalMesh && SkeletalMesh->PreviewBoundsPhysicsAsset && bCanUsePhysicsAsset)
 	{
-		Bounds = FBoxSphereBounds(SkeletalMesh->BoundsPreviewAsset->CalcAABB(this));
+		Bounds = FBoxSphereBounds(SkeletalMesh->PreviewBoundsPhysicsAsset->CalcAABB(this));
 	}
 	// If we have a PhysicsAsset, and we can use it, do so to calc bounds.
 	else if( PhysicsAsset && bCanUsePhysicsAsset && bHasValidBones )

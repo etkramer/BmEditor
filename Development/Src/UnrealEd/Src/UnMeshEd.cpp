@@ -1017,7 +1017,7 @@ struct ExistingSkelMeshData
 	TArray<UMaterialInterface*>			ExistingMaterials;
 	UFaceFXAsset*						ExistingFaceFXAsset;
 	TArray<UMorphTargetSet*>			ExistingPreviewMorphTargetSets;
-	UPhysicsAsset*						ExistingBoundsPreviewAsset;
+	UPhysicsAsset*						ExistingPreviewBoundsPhysicsAsset;
 	UBOOL								bExistingForceCPUSkinning;
 	TArray<FName>						ExistingPerPolyCollisionBones;
 	TArray<FName>						ExistingAddToParentPerPolyCollisionBone;
@@ -1156,7 +1156,7 @@ ExistingSkelMeshData* SaveExistingSkelMeshData(USkeletalMesh* ExistingSkelMesh)
 #endif // WITH_FACEFX
 		}
 
-		ExistingMeshDataPtr->ExistingBoundsPreviewAsset = ExistingSkelMesh->BoundsPreviewAsset;
+		ExistingMeshDataPtr->ExistingPreviewBoundsPhysicsAsset = ExistingSkelMesh->PreviewBoundsPhysicsAsset;
 		ExistingMeshDataPtr->bExistingForceCPUSkinning = ExistingSkelMesh->bForceCPUSkinning;
 		ExistingMeshDataPtr->ExistingPerPolyCollisionBones = ExistingSkelMesh->PerPolyCollisionBones;
 		ExistingMeshDataPtr->ExistingAddToParentPerPolyCollisionBone = ExistingSkelMesh->AddToParentPerPolyCollisionBone;
@@ -1398,7 +1398,7 @@ void RestoreExistingSkelMeshData(ExistingSkelMeshData* MeshData, USkeletalMesh* 
 #endif // WITH_FACEFX
 		}
 
-		SkeletalMesh->BoundsPreviewAsset = MeshData->ExistingBoundsPreviewAsset;
+		SkeletalMesh->PreviewBoundsPhysicsAsset = MeshData->ExistingPreviewBoundsPhysicsAsset;
 		SkeletalMesh->bForceCPUSkinning = MeshData->bExistingForceCPUSkinning;
 		SkeletalMesh->PerPolyCollisionBones = MeshData->ExistingPerPolyCollisionBones;
 		SkeletalMesh->AddToParentPerPolyCollisionBone = MeshData->ExistingAddToParentPerPolyCollisionBone;
@@ -1508,7 +1508,7 @@ UObject* USkeletalMeshFactory::FactoryCreateBinary
 	TArray<UMaterialInterface*>			ExistingMaterials;
 	UFaceFXAsset*						ExistingFaceFXAsset = NULL;
 	TArray<UMorphTargetSet*>			ExistingPreviewMorphTargetSets;
-	UPhysicsAsset*						ExistingBoundsPreviewAsset = NULL;
+	UPhysicsAsset*						ExistingPreviewBoundsPhysicsAsset = NULL;
 	UBOOL								bExistingForceCPUSkinning = FALSE;
 	TArray<FName>						ExistingPerPolyCollisionBones;
 	TArray<FName>						ExistingAddToParentPerPolyCollisionBone;

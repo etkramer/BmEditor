@@ -671,7 +671,11 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 					UProperty* OffsetProp = NULL;
 					for (UProperty* P = PropertyLink; P; P = P->PropertyLinkNext)
 					{
-						if ((WORD)P->Offset == Tag.PropertyOffset)
+						// BM: cooked tags for fixed-array elements carry the per-element
+						// offset (BaseOffset + Index * ElementSize), so accept any tag
+						// offset that lands inside this property's footprint.
+						const INT PropEnd = P->Offset + P->ArrayDim * P->ElementSize;
+						if ((INT)Tag.PropertyOffset >= P->Offset && (INT)Tag.PropertyOffset < PropEnd)
 						{
 							OffsetProp = P;
 							break;
@@ -688,7 +692,7 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 							(UINT)Tag.PropertyOffset, *Tag.Type.ToString(), *GetName(), *Ar.GetArchiveName());
 					}
 
-					BYTE* Dest = Data + OffsetProp->Offset;
+					BYTE* Dest = Data + Tag.PropertyOffset;
 					switch ((INT)Tag.Type.GetIndex())
 					{
 					case NAME_IntProperty:
