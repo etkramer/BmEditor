@@ -714,6 +714,14 @@ void UTexture2D::Serialize(FArchive& Ar)
 		}
 	}
 
+#if BATMAN
+	// BM2: discarded cached mips array (was used for PVRTC on mobile)
+	if( Ar.IsBmCooked() )
+	{
+		TIndirectArray<FTexture2DMipMap> CachedMips;
+		CachedMips.Serialize( Ar, this );
+	}
+#endif
 }
 
 void UTexture2D::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)

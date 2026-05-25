@@ -760,11 +760,9 @@ void UAnimationCompressionAlgorithm::FilterAnimRotationOnlyKeys(TArray<FTranslat
 		if( Track.Times.Num() > 1 )
 		{
 			FName const BoneName = AnimSet->TrackBoneNames(TrackIndex);
-			UBOOL bReduceTranslationTrack = (AnimSet->ForceMeshTranslationBoneNames.FindItemIndex( BoneName ) != INDEX_NONE);
-
 			INT const BoneIndex = SkelMesh ? SkelMesh->MatchRefBone( BoneName ) : TrackIndex;
 			UBOOL const bIsRootBone = (BoneIndex == 0);
-			bReduceTranslationTrack = bReduceTranslationTrack || (!bIsRootBone && AnimSet->bAnimRotationOnly && AnimSet->UseTranslationBoneNames.FindItemIndex(BoneName) == INDEX_NONE);
+			UBOOL bReduceTranslationTrack = (!bIsRootBone && AnimSet->bAnimRotationOnly);
 
 			// If it's a bAnimRotationOnly track, then reduce it to one key.
 			if( bReduceTranslationTrack )	

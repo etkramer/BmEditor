@@ -4331,10 +4331,7 @@ struct CompressAnimationsFunctor
 								USkeletalMesh* DefaultSkeletalMesh = LoadObject<USkeletalMesh>(NULL, *AnimSet->PreviewSkelMeshName.ToString(), NULL, LOAD_None, NULL);
 								INT const BoneIndex = DefaultSkeletalMesh->MatchRefBone( BoneName );
 
-								if( BoneIndex > 0 
-									&& ((AnimSet->UseTranslationBoneNames.Num() > 0 && AnimSet->UseTranslationBoneNames.FindItemIndex(BoneName) == INDEX_NONE) 
-										|| (AnimSet->ForceMeshTranslationBoneNames.FindItemIndex(BoneName) != INDEX_NONE)) 
-									)
+								if( BoneIndex > 0 && AnimSet->bAnimRotationOnly )
 								{
 									RotationOnlySavings += (BytesPerKey * NumKeys);
 									if( NumKeys > 1 )

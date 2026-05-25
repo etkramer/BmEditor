@@ -837,19 +837,12 @@ void UAnimationCompressionAlgorithm_PerTrackCompression::CompressUsingUnderlying
 
 		// See if we can skip saving translation track.
 		UBOOL bSkipTranslationTrack = FALSE;
-#if( SKIP_FORCEMESHTRANSLATION_TRACKS || SKIP_ANIMROTATIONONLY_TRACKS )
+#if( SKIP_ANIMROTATIONONLY_TRACKS )
 		{
 			UAnimSet* AnimSet = AnimSeq->GetAnimSet();
-			FName const BoneName = AnimSet->TrackBoneNames(TrackIndex);
-	#if( SKIP_FORCEMESHTRANSLATION_TRACKS )
-			bSkipTranslationTrack = (AnimSet->ForceMeshTranslationBoneNames.FindItemIndex( BoneName ) != INDEX_NONE);
-	#endif
-
-	#if( SKIP_ANIMROTATIONONLY_TRACKS )
 			INT const BoneIndex = AnimLinkup.BoneToTrackTable.FindItemIndex( TrackIndex );
 			UBOOL const bIsRootBone = (BoneIndex == 0);
-			bSkipTranslationTrack = bSkipTranslationTrack || (!bIsRootBone && AnimSet->bAnimRotationOnly && AnimSet->UseTranslationBoneNames.FindItemIndex(BoneName) == INDEX_NONE);
-	#endif
+			bSkipTranslationTrack = (!bIsRootBone && AnimSet->bAnimRotationOnly);
 		}
 #endif
 

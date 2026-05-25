@@ -300,20 +300,15 @@ void FAnimationUtils::ComputeCompressionError(const UAnimSequence* AnimSeq, USke
 
 					UBOOL bSkipTranslationTrack = FALSE;
 
-					// If we don't care about this translation track, because it's going to get skipped, then use RefSkel translation for error measurement.
-#if( SKIP_FORCEMESHTRANSLATION_TRACKS )		
-					bSkipTranslationTrack = AnimSet->ForceUseMeshTranslation(TrackIndex);
-#endif
-
 #if( SKIP_ANIMROTATIONONLY_TRACKS )
-					bSkipTranslationTrack = bSkipTranslationTrack || (BoneIndex > 0 && AnimSet->bAnimRotationOnly && !AnimSet->BoneUseAnimTranslation(TrackIndex));
+					bSkipTranslationTrack = (BoneIndex > 0 && AnimSet->bAnimRotationOnly);
 #endif
 
 					// If we forcibly reduced the translation track to one key, make sure we don't introduce error if it was animated previously.
 					// So short-circuit RAW data for error measuring past that first key.
 					UBOOL bReducedTranslationTrack = FALSE;
 #if( REDUCE_ANIMROTATIONONLY_TRACKS )
-					bReducedTranslationTrack = (BoneIndex > 0 && AnimSet->bAnimRotationOnly && !AnimSet->BoneUseAnimTranslation(TrackIndex));
+					bReducedTranslationTrack = (BoneIndex > 0 && AnimSet->bAnimRotationOnly);
 #endif
 
 					// bAnimRotationOnly tracks - ignore translation data always use Ref Skeleton.

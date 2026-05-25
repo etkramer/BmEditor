@@ -591,7 +591,7 @@ void UAnimNodeSequence::GetAnimationPose(UAnimSequence* InAnimSeq, INT& InAnimLi
 			? Clamp(CurrentTime / InAnimSeq->SequenceLength, 0.0f, 1.0f) : 0.0f;
 
 		AnimZip_Sample(InAnimSeq, SkelComponent->SkeletalMesh, NormTime,
-			AnimLinkup->AnimTrackToBone, NumBones, &Atoms(0));
+			AnimLinkup->TrackToBoneTable, NumBones, &Atoms(0));
 
 		// NOTE: No FlipSignOfRotationW here. AnimZip stores quaternions in "natural"
 		// convention which is already correct. The standard pipeline's FlipSignOfRotationW
@@ -615,18 +615,19 @@ void UAnimNodeSequence::GetAnimationPose(UAnimSequence* InAnimSeq, INT& InAnimLi
 			}
 		}
 
-		// bAnimRotationOnly: override translation with ref pose for applicable bones
-		for (INT i = 0; i < DesiredBoneCount; i++)
+		// bAnimRotationOnly: override translation with ref pose for non-root bones.
+		if (bAnimRotationOnly)
 		{
-			const INT BoneIndex = DesiredBones(i);
-			if (BoneIndex > 0)
+			for (INT i = 0; i < DesiredBoneCount; i++)
 			{
-				const INT TrackIndex = AnimLinkup->BoneToTrackTable(BoneIndex);
-				if (TrackIndex != INDEX_NONE
-					&& ((bAnimRotationOnly && !AnimSet->BoneUseAnimTranslation(TrackIndex))
-						|| AnimSet->ForceUseMeshTranslation(TrackIndex)))
+				const INT BoneIndex = DesiredBones(i);
+				if (BoneIndex > 0)
 				{
-					Atoms(BoneIndex).SetTranslation(RefSkel(BoneIndex).BonePos.Position);
+					const INT TrackIndex = AnimLinkup->BoneToTrackTable(BoneIndex);
+					if (TrackIndex != INDEX_NONE)
+					{
+						Atoms(BoneIndex).SetTranslation(RefSkel(BoneIndex).BonePos.Position);
+					}
 				}
 			}
 		}
@@ -666,8 +667,8 @@ void UAnimNodeSequence::GetAnimationPose(UAnimSequence* InAnimSeq, INT& InAnimLi
 				NonRootEncountered = TRUE;
 				RotationPairs.AddItem(BoneTrackPair(BoneIndex, TrackIndex));
 
-				// If doing 'rotation only' case, use ref pose for all non-root bones that are not in the BoneUseAnimTranslation array.
-				if(	((bAnimRotationOnly && !AnimSet->BoneUseAnimTranslation(TrackIndex)) || AnimSet->ForceUseMeshTranslation(TrackIndex)) )
+				// If doing 'rotation only' case, use ref pose for all non-root bones.
+				if( bAnimRotationOnly )
 				{
 					// use the default translation for this bone
 					Atoms(BoneIndex).SetComponents(FQuat::Identity, RefSkel(BoneIndex).BonePos.Position);  //@TODO: mnoland - Altered behavior to avoid relying on uninitialized memory
@@ -755,8 +756,8 @@ void UAnimNodeSequence::GetAnimationPose(UAnimSequence* InAnimSeq, INT& InAnimLi
 				// Otherwise read it from the sequence.
 				InAnimSeq->GetBoneAtom(Atoms(BoneIndex), TrackIndex, CurrentTime, bLoopingInterpolation, bUseRawData);
 
-				// If doing 'rotation only' case, use ref pose for all non-root bones that are not in the BoneUseAnimTranslation array.
-				if(	((bAnimRotationOnly && !AnimSet->BoneUseAnimTranslation(TrackIndex)) || AnimSet->ForceUseMeshTranslation(TrackIndex)) )
+				// If doing 'rotation only' case, use ref pose for all non-root bones.
+				if( bAnimRotationOnly )
 				{
  					Atoms(BoneIndex).SetTranslation(RefSkel(BoneIndex).BonePos.Position);
 				}

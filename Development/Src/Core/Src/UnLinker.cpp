@@ -3742,6 +3742,9 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 			LoadClass->GetName() == "PhysicsAsset" ||
 			LoadClass->GetName() == "RB_BodySetup" ||
 
+			LoadClass->GetName() == "ParticleSystem" ||
+			LoadClass->GetName() == "PhysicalMaterial" ||
+
 			LoadClass->GetName() == "SeqAct_Interp" ||
 			LoadClass->GetName() == "NavigationMeshBase" ||
 

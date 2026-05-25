@@ -717,7 +717,7 @@ void AnimZip_Sample_Track(const class UAnimSequence* Seq, INT TrackIndex, FLOAT 
 
 /** AnimZip runtime sampling: batch sample all bones, pre-filling with reference pose */
 void AnimZip_Sample(const class UAnimSequence* Seq, class USkeletalMesh* SkelMesh,
-	FLOAT NormalizedTime, const TArray<INT>& AnimTrackToBone, INT NumBones, class FBoneAtom* Out_Bones);
+	FLOAT NormalizedTime, const TArray<INT>& TrackToBoneTable, INT NumBones, class FBoneAtom* Out_Bones);
 
 /** AnimZip runtime sampling: sample the dedicated motion bundles (yaw + delta translation from start). Returns FALSE if no motion data. */
 UBOOL AnimZip_Sample_Motion(const class UAnimSequence* Seq, FLOAT NormalizedTime, class FBoneAtom* Out);

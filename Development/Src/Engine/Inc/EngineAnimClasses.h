@@ -4811,11 +4811,26 @@ public:
 struct FAnimSetMeshLinkup
 {
     TArrayNoInit<INT> BoneToTrackTable;
-    TArrayNoInit<INT> AnimTrackToBone;
+    TArrayNoInit<INT> TrackToBoneTable;
 
 		/** Reset this linkup and re-create between the provided skeletal mesh and anim set. */
 		void BuildLinkup(USkeletalMesh* InSkelMesh, UAnimSet* InAnimSet);
 	
+};
+
+struct FAnimSetPreviewPartner
+{
+    FName SkelMeshName;
+    FName ExtraSkelMesh1Name;
+    FName AnimSetName;
+    FStringNoInit AnimPostfixName;
+
+    /** Constructors */
+    FAnimSetPreviewPartner() {}
+    FAnimSetPreviewPartner(EEventParm)
+    {
+        appMemzero(this, sizeof(FAnimSetPreviewPartner));
+    }
 };
 
 class UAnimSet : public UObject
@@ -4823,19 +4838,26 @@ class UAnimSet : public UObject
 public:
     //## BEGIN PROPS AnimSet
     BITFIELD bAnimRotationOnly:1;
+    BITFIELD bReferenceFullAnimSetInIdleConfigs:1;
+    BITFIELD AutoDeleteTracks_Face:1;
+    BITFIELD AutoDeleteTracks_Eyes:1;
+    BITFIELD AutoDeleteTracks_Nubs:1;
+    BITFIELD AutoDeleteTracks_Flappy:1;
+    BITFIELD Compression_OverrideIndividualAnimSettings:1;
     TArrayNoInit<FName> TrackBoneNames;
     TArrayNoInit<class UAnimSequence*> Sequences;
     TMap< FName,INT > SequenceCache;
     TArrayNoInit<struct FAnimSetMeshLinkup> LinkupCache;
     TMap< FName,INT > SkelMesh2LinkupCache;
-    TArrayNoInit<BYTE> BoneUseAnimTranslation;
-    TArrayNoInit<BYTE> ForceUseMeshTranslation;
-    TArrayNoInit<FName> UseTranslationBoneNames;
-    TArrayNoInit<FName> ForceMeshTranslationBoneNames;
     FName PreviewSkelMeshName;
-    class URAnimZip_Settings* Compression_CustomSettings;
     FName PreviewExtraSkelMesh1Name;
+    FName PreviewExtraSkelMesh2Name;
+    FName PreviewExtraSkelMesh3Name;
     FName BestRatioSkelMeshName;
+    TArrayNoInit<struct FAnimSetPreviewPartner> PreviewPartners2;
+    FStringNoInit PreCookingPathName;
+    BYTE Compression_Preset;
+    class URAnimZip_Settings* Compression_CustomSettings;
     //## END PROPS AnimSet
 
     DECLARE_CLASS(UAnimSet,UObject,0,Engine)
@@ -4843,13 +4865,13 @@ public:
 	virtual void PostLoad();
 	virtual void BeginDestroy();
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent);
-	
+
 	// UAnimSet interface
 	/**
 	 * See if we can play sequences from this AnimSet on the provided SkeletalMesh.
 	 * Returns true if there is a bone in SkelMesh for every track in the AnimSet,
 	 * or there is a track of animation for every bone of the SkelMesh.
-	 * 
+	 *
 	 * @param	SkelMesh	SkeletalMesh to compare the AnimSet against.
 	 * @return				TRUE if animation set can play on supplied SkeletalMesh, FALSE if not.
 	 */
@@ -4860,13 +4882,13 @@ public:
 
 	/**
 	 * Returns the AnimSequence with the specified name in this set.
-	 * 
+	 *
 	 * @param		SequenceName	Name of sequence to find.
 	 * @return						Pointer to AnimSequence with desired name, or NULL if sequence was not found.
 	 */
 	UAnimSequence* FindAnimSequence(FName SequenceName);
 
-	/** 
+	/**
 	 * Find a mesh linkup table (mapping of sequence tracks to bone indices) for a particular SkeletalMesh
 	 * If one does not already exist, create it now.
 	 */
@@ -4891,7 +4913,7 @@ public:
 	 * Clears all sequences and resets the TrackBoneNames table.
 	 */
 	void ResetAnimSet();
-	/** 
+	/**
 	 * Properly remove an AnimSequence from an AnimSet, and updates references it might have.
 	 * @return TRUE if AnimSequence was properly removed, FALSE if it wasn't found.
 	 */
@@ -4899,15 +4921,15 @@ public:
 
 	/** Util that find all AnimSets and flushes their LinkupCache, then calls InitAnimTree on all SkeletalMeshComponents. */
 	static void ClearAllAnimSetLinkupCaches();
-	
+
 	/**
 	 * Animation Usage Tracking
 	 */
 	void	TraceAnimationUsage();
-	void	RecordAnimationUsage();	
+	void	RecordAnimationUsage();
 
-	static void OutputAnimationUsage();	
-	static void CleanUpAnimationUsage();	
+	static void OutputAnimationUsage();
+	static void CleanUpAnimationUsage();
 	static void TickAnimationUsage();
 };
 
@@ -5621,7 +5643,7 @@ VERIFY_CLASS_OFFSET_NODIE(UAnimSequence,AnimSequence,SequenceName)
 VERIFY_CLASS_OFFSET_NODIE(UAnimSequence,AnimSequence,AnimTags)
 VERIFY_CLASS_SIZE_NODIE(UAnimSequence)
 VERIFY_CLASS_OFFSET_NODIE(UAnimSet,AnimSet,TrackBoneNames)
-VERIFY_CLASS_OFFSET_NODIE(UAnimSet,AnimSet,BestRatioSkelMeshName)
+VERIFY_CLASS_OFFSET_NODIE(UAnimSet,AnimSet,Compression_CustomSettings)
 VERIFY_CLASS_SIZE_NODIE(UAnimSet)
 VERIFY_CLASS_OFFSET_NODIE(UMorphTarget,MorphTarget,MorphLODModels)
 VERIFY_CLASS_OFFSET_NODIE(UMorphTarget,MorphTarget,MaterialSlotId)

@@ -641,7 +641,7 @@ UBOOL AnimZip_Sample_Motion(const UAnimSequence* Seq, FLOAT NormalizedTime, FBon
 // --- Core sampling: batch (all bones) ---
 
 void AnimZip_Sample(const UAnimSequence* Seq, USkeletalMesh* SkelMesh,
-	FLOAT NormalizedTime, const TArray<INT>& AnimTrackToBone, INT NumBones, FBoneAtom* Out_Bones)
+	FLOAT NormalizedTime, const TArray<INT>& TrackToBoneTable, INT NumBones, FBoneAtom* Out_Bones)
 {
 	// Pre-fill all bones with reference pose
 	const TArray<FMeshBone>& RefSkel = SkelMesh->RefSkeleton;
@@ -675,7 +675,7 @@ void AnimZip_Sample(const UAnimSequence* Seq, USkeletalMesh* SkelMesh,
 		for (INT t = 0; t < B.NumTracks; t++)
 		{
 			INT AnimTrack = RB.TrackToAnimTrack[t];
-			INT BoneIdx = (AnimTrack < AnimTrackToBone.Num()) ? AnimTrackToBone(AnimTrack) : INDEX_NONE;
+			INT BoneIdx = (AnimTrack < TrackToBoneTable.Num()) ? TrackToBoneTable(AnimTrack) : INDEX_NONE;
 			if (BoneIdx != INDEX_NONE && BoneIdx < NumBones)
 			{
 				FQuat Q = SampleRotationBundle(RB, B.Codec, t, B.NumTracks, Time);
@@ -701,7 +701,7 @@ void AnimZip_Sample(const UAnimSequence* Seq, USkeletalMesh* SkelMesh,
 		for (INT t = 0; t < B.NumTracks; t++)
 		{
 			INT AnimTrack = RB.TrackToAnimTrack[t];
-			INT BoneIdx = (AnimTrack < AnimTrackToBone.Num()) ? AnimTrackToBone(AnimTrack) : INDEX_NONE;
+			INT BoneIdx = (AnimTrack < TrackToBoneTable.Num()) ? TrackToBoneTable(AnimTrack) : INDEX_NONE;
 			if (BoneIdx != INDEX_NONE && BoneIdx < NumBones)
 			{
 				FVector V = SampleTranslationBundle(RB, B.Codec, t, B.NumTracks, Time);
@@ -3408,43 +3408,22 @@ void FAnimSetMeshLinkup::BuildLinkup(USkeletalMesh* InSkelMesh, UAnimSet* InAnim
 		BoneToTrackTable(i) = InAnimSet->FindTrackWithName(BoneName);
 	}
 
-	// Build inverse mapping: AnimTrackToBone (anim track index -> bone index in this mesh)
+	// Build inverse mapping: TrackToBoneTable (anim track index -> bone index in this mesh)
 	{
 		INT const NumTracks = InAnimSet->TrackBoneNames.Num();
-		AnimTrackToBone.Empty(NumTracks);
-		AnimTrackToBone.Add(NumTracks);
+		TrackToBoneTable.Empty(NumTracks);
+		TrackToBoneTable.Add(NumTracks);
 		for (INT t = 0; t < NumTracks; t++)
 		{
-			AnimTrackToBone(t) = INDEX_NONE;
+			TrackToBoneTable(t) = INDEX_NONE;
 		}
 		for (INT b = 0; b < NumBones; b++)
 		{
 			INT t = BoneToTrackTable(b);
 			if (t != INDEX_NONE && t < NumTracks)
 			{
-				AnimTrackToBone(t) = b;
+				TrackToBoneTable(t) = b;
 			}
-		}
-	}
-
-	// Check here if we've properly cached those arrays.
-	if( InAnimSet->BoneUseAnimTranslation.Num() != InAnimSet->TrackBoneNames.Num() )
-	{
-		INT const NumTracks = InAnimSet->TrackBoneNames.Num();
-
-		InAnimSet->BoneUseAnimTranslation.Empty(NumTracks);
-		InAnimSet->BoneUseAnimTranslation.Add(NumTracks);
-
-		InAnimSet->ForceUseMeshTranslation.Empty(NumTracks);
-		InAnimSet->ForceUseMeshTranslation.Add(NumTracks);
-
-		for(INT TrackIndex = 0; TrackIndex<NumTracks; TrackIndex++)
-		{
-			FName const TrackBoneName = InAnimSet->TrackBoneNames(TrackIndex);
-
-			// Cache whether to use the translation from this bone or from ref pose.
-			InAnimSet->BoneUseAnimTranslation(TrackIndex) = InAnimSet->UseTranslationBoneNames.ContainsItem(TrackBoneName);
-			InAnimSet->ForceUseMeshTranslation(TrackIndex) = InAnimSet->ForceMeshTranslationBoneNames.ContainsItem(TrackBoneName);
 		}
 	}
 

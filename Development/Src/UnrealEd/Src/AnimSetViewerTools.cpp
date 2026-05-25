@@ -3056,8 +3056,6 @@ void WxAnimSetViewer::CopyTranslationBoneNamesToAnimSet()
 		return;
 	}
 
-	DestAnimSet->UseTranslationBoneNames = SelectedAnimSet->UseTranslationBoneNames;
-	DestAnimSet->ForceMeshTranslationBoneNames = SelectedAnimSet->ForceMeshTranslationBoneNames;
 	DestAnimSet->MarkPackageDirty();
 }
 
@@ -3142,7 +3140,7 @@ void WxAnimSetViewer::AnalyzeAnimSet()
 							DeletedTracksArray(TrackIndex)++;
 							bTrackIsNeeded = FALSE;
 						}
-						else if( (SelectedAnimSet->ForceMeshTranslationBoneNames.FindItemIndex(RefSkel(BoneIndex).Name) != INDEX_NONE || (SelectedAnimSet->bAnimRotationOnly && SelectedAnimSet->UseTranslationBoneNames.FindItemIndex(RefSkel(BoneIndex).Name) == INDEX_NONE))
+						else if( (BoneIndex > 0 && SelectedAnimSet->bAnimRotationOnly)
 							&& RotationError <= MAXANGLEDIFF )
 						{
 							NumDeletedTracks++;

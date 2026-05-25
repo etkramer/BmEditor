@@ -681,10 +681,10 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 							break;
 						}
 
-						if (Ar.ContainsCookedData())
-						{
-							warnf(NAME_Warning, TEXT("BM2 offset %s: %d"), *P->GetName(), P->Offset);
-						}
+						// if (Ar.ContainsCookedData())
+						// {
+						// 	warnf(NAME_Warning, TEXT("BM2 offset %s: %d"), *P->GetName(), P->Offset);
+						// }
 					}
 					if (!OffsetProp)
 					{

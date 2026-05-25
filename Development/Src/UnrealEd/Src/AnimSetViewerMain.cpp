@@ -4572,12 +4572,9 @@ void WxAnimSetViewer::NotifyPostChange( void* Src, UProperty* PropertyThatChange
 
 	}
 
-	// Might have changed UseTranslationBoneNames array. We have to fix any existing FAnimSetMeshLinkup objects in selected AnimSet.
-	// Would be nice to not do this all the time, but PropertyThatChanged seems flaky when editing arrays (sometimes NULL)
+	// Force LinkupCache rebuilds so any property edits propagate.
 	if( SelectedAnimSet)
 	{
-		SelectedAnimSet->BoneUseAnimTranslation.Empty();
-		SelectedAnimSet->ForceUseMeshTranslation.Empty();
 		SelectedAnimSet->LinkupCache.Empty();
 		SelectedAnimSet->SkelMesh2LinkupCache.Empty();
 
