@@ -32,7 +32,10 @@ struct KBoxElem
 {
 	var() editconst Matrix	TM;
 	var() editconst float	X, Y, Z; // length (not radius)
-	
+
+	var				bool	bIsAxisAligned;
+	var				bool	bHasCookedAlignmentData;
+
 	/** Disable rigid body collision for this shape. */
 	var()			bool	bNoRBCollision;
 
@@ -91,6 +94,9 @@ struct KConvexElem
 
 	/** Bounding box of this convex hull. */
 	var	box						ElemBox;
+
+	/** Disable rigid body collision for this shape. */
+	var() bool					bNoRBCollision;
 };
 
 struct KAggregateGeom
@@ -102,7 +108,7 @@ struct KAggregateGeom
 	var native nontransactional noimport pointer	RenderInfo;
 
 	/** Collision against this geom will not specially handle the "close and parallel" case.  Special-case. */
-	var() bool										bSkipCloseAndParallelChecks; 
+	var() bool										bSkipCloseAndParallelChecks;
 };
 
 var() vector			COMNudge; // User-entered offset. UNREAL UNITS

@@ -1089,6 +1089,9 @@ struct FStaticMeshLODElement
 	/** Material to use for this section of this LOD. */
 	UMaterialInterface*	Material;
 
+	/** BM: Optional x-ray material override for this section of this LOD. */
+	UMaterialInterface*	XRayMaterial;
+
 	/** Whether to enable shadow casting for this section of this LOD. */
 	UBOOL bEnableShadowCasting;
 
@@ -1153,6 +1156,9 @@ public:
 	/** Incremented any time a change in the static mesh causes vertices to change position, such as a reimport */
 	INT										VertexPositionVersionNumber;
 
+	/** BM: Per-section material overrides. */
+	TArray<UMaterialInterface*>				MaterialOverrides;
+
 	// Collision data.
 
 //	typedef TkDOPTree<class FStaticMeshCollisionDataProvider,WORD>	kDOPTreeType;
@@ -1170,14 +1176,49 @@ public:
 	/** Scale of each PhysMesh entry. Arrays should be same size. */
 	TArray<FVector>							PhysMeshScale3D;
 
+	/** BM: Ledge collision setup object (URLedgeSetup; typed as UObject* until that class is ported). */
+	UObject*								LedgeSetup;
+
 	// Artist-accessible options.
 
-	UBOOL									UseSimpleLineCollision,
-											UseSimpleBoxCollision,
-											UseSimpleRigidBodyCollision,
-											UseFullPrecisionUVs;
+	UBOOL									UseSimpleLineCollision;
+	UBOOL									UseSimpleBoxCollision;
+	UBOOL									UseSimpleRigidBodyCollision;
+
+	/** BM: Force use of simple collision even for traces that would normally use complex collision. */
+	UBOOL									UseSimpleCollisionAlways;
+	/** BM: Strip complex collision data at cook time. */
+	UBOOL									ForceStripComplexCollision;
+	/** BM: Keep UVs around so the physical material texture lookup can run. */
+	UBOOL									StoreUVsForPhysicalMaterialTexture;
+
+	/** BM: D3D11 tessellation mode (EMaterialTessellationMode). */
+	BYTE									DesiredTessellationMode;
+	/** BM: Apply displacement on smooth-meshed surfaces during tessellation. */
+	UBOOL									EnableDisplacementOnSmoothMeshes;
+	/** BM: Allow mesh dicing for tessellation. */
+	UBOOL									EnableMeshDicingForTessellation;
+	/** BM: Detect open edges during tessellation (game-side typo kept intentionally). */
+	UBOOL									EnableOpenEdgeDetecion;
+	/** BM: Dicing target texture width. */
+	INT										DicingTargetMapWidth;
+	/** BM: Dicing target texture height. */
+	INT										DicingTargetMapHeight;
+	/** BM: Dicing texels per edge. */
+	FLOAT									DicingTexelsPerEdge;
+	/** BM: Desired tessellation distance. */
+	FLOAT									DesiredTessellationDistance;
+
+	UBOOL									UseFullPrecisionUVs;
 	UBOOL									bUsedForInstancing;
-	
+
+	/** BM: Cooker may strip per-vertex normals/tangents and recompute at load time. */
+	UBOOL									CanStripNormalsAndTangents;
+	/** BM: Cooker may store positions in a compressed form. */
+	UBOOL									CanCompressPositions;
+	/** BM: Skip this mesh when auto-generating LODs. */
+	UBOOL									HideFromLodGeneration;
+
 	/** True if mesh should use a less-conservative method of mip LOD texture factor computation.
 	    requires mesh to be resaved to take effect as algorithm is applied on save. */
 	UBOOL									bUseMaximumStreamingTexelRatio;
@@ -1188,8 +1229,8 @@ public:
 	 */
 	UBOOL									bPartitionForEdgeGeometry;
 
-	/** 
-	 * Whether this mesh should be able to become dynamic when placed as a static mesh 
+	/**
+	 * Whether this mesh should be able to become dynamic when placed as a static mesh
 	 * Meshes with bCanBecomeDynamic=true will temporarily turn into KActors and react using PhysX physics when shot or pushed, giving the environment a more interactive feel.
      *
 	 * The advantages of this implementation are:
@@ -1204,6 +1245,17 @@ public:
 
 	/** If true during a rebuild, we will remove degenerate triangles.  Otherwise they will be kept */
 	UBOOL									bRemoveDegenerates;
+
+	/** BM: Force shadow-volume rendering for this mesh. */
+	UBOOL									ForceShadowVolumes;
+	/** BM: Bake this mesh into the auto-LOD background pass. */
+	UBOOL									BakeIntoBackgroundForAutoLOD;
+	/** BM: Use the AutoLODOverride mesh before simplification rather than after. */
+	UBOOL									AutoLODOverrideBeforeSimplification;
+	/** BM: Use improved-quality auto-LOD generation. */
+	UBOOL									AutoLODImprovedQuality;
+	/** BM: Apply moire fix during auto-LOD generation. */
+	UBOOL									AutoLODFixMoire;
 
 	/**
 	 * Allows artists to adjust the distance where textures using UV 0 are streamed in/out.
@@ -1232,11 +1284,20 @@ public:
 	/** Date/Time-stamp of the file from the last import */
 	FString SourceFileTimestamp;
 
+	/** BM: Author recorded on the source asset. */
+	FString SourceAuthor;
+
 	/** For simplified meshes, this is the CRC of the high res mesh we were originally duplicated from. */
 	DWORD HighResSourceMeshCRC;
 
 	/** Unique ID for tracking/caching this mesh during distributed lighting */
 	FGuid LightingGuid;
+
+	/** BM: UV set to use when generating per-triangle collision UVs. */
+	INT										CollisionUVSet;
+
+	/** BM: Pre-baked mesh used as the source for auto-LOD generation. */
+	UStaticMesh*							AutoLODOverride;
 
 	// UObject interface.
 

@@ -416,8 +416,6 @@ UBOOL FLightSceneInfoCompact::AffectsPrimitive(const FPrimitiveSceneInfoCompact&
 	const UBOOL bCompositeDynamicLight =
 		!CompactPrimitiveSceneInfo.bLightEnvironmentForceNonCompositeDynamicLights
 		&& GSystemSettings.bUseCompositeDynamicLights
-		// Only composite lights that have compositing enabled (most lights. not Muzzle Flashes)
-		&& (LightSceneInfo->LightComponent->bAllowCompositingIntoDLE)
 		// Don't composite dominant lights on primitives that allow dominant light influence
 		&& !(IsDominantLightType(LightSceneInfo->LightType) && LightSceneInfo->LightComponent == PrimitiveSceneInfo->AffectingDominantLight)
 		// Don't composite lights that have a light function

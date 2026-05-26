@@ -1561,39 +1561,89 @@ void UStaticMesh::StaticConstructor()
 	new(GetClass()->HideCategories) FName(NAME_Object);
 #endif
 
-	UProperty* UseSimpleLineCollisionProp = new(GetClass(),TEXT("UseSimpleLineCollision"), RF_Public)		UBoolProperty( CPP_PROPERTY(UseSimpleLineCollision), TEXT(""), CPF_Edit );
-	UProperty* UseSimpleBoxCollisionProp = new(GetClass(),TEXT("UseSimpleBoxCollision"),RF_Public)			UBoolProperty(CPP_PROPERTY(UseSimpleBoxCollision),TEXT(""),CPF_Edit);
-	UProperty* UseSimpleRigidBodyCollisionProp = new(GetClass(),TEXT("UseSimpleRigidBodyCollision"),RF_Public)	UBoolProperty(CPP_PROPERTY(UseSimpleRigidBodyCollision),TEXT(""),CPF_Edit);
-	UProperty* UseFullPrecisionUVsProp = new(GetClass(),TEXT("UseFullPrecisionUVs"),RF_Public)			UBoolProperty(CPP_PROPERTY(UseFullPrecisionUVs),TEXT(""),CPF_Edit);
-	UProperty* UsedForInstancingProp = new(GetClass(),TEXT("bUsedForInstancing"),RF_Public)			UBoolProperty(CPP_PROPERTY(bUsedForInstancing),TEXT(""),CPF_Edit);
-	UProperty* UseMaximumStreamingTexelRatioProp = new(GetClass(),TEXT("bUseMaximumStreamingTexelRatio"),RF_Public)UBoolProperty(CPP_PROPERTY(bUseMaximumStreamingTexelRatio),TEXT(""),CPF_Edit);
-	UProperty* PartitionForEdgeGeometryProp = new(GetClass(),TEXT("bPartitionForEdgeGeometry"),RF_Public)		UBoolProperty(CPP_PROPERTY(bPartitionForEdgeGeometry),TEXT(""),CPF_Edit);
-	UProperty* CanBecomeDynamicProp = new(GetClass(),TEXT("bCanBecomeDynamic"),RF_Public)		UBoolProperty(CPP_PROPERTY(bCanBecomeDynamic),TEXT(""),CPF_Edit);
+	// Properties are registered in the same declaration order as the BM2 (Arkham City) UStaticMesh,
+	// per the BmGame.exe.c decomp. Order matters for the BM2 cooked property tag format, which
+	// addresses simple-typed properties by offset within the class.
 
-	UProperty* LightMapResolutionProp = new(GetClass(),TEXT("LightMapResolution"),RF_Public)			UIntProperty(CPP_PROPERTY(LightMapResolution),TEXT(""),CPF_Edit);
-	UProperty* LightMapCoordinateIndexProp = new(GetClass(),TEXT("LightMapCoordinateIndex"),RF_Public)		UIntProperty(CPP_PROPERTY(LightMapCoordinateIndex),TEXT(""),CPF_Edit);
-	UProperty* LODDistanceRatioProp = new(GetClass(),TEXT("LODDistanceRatio"),RF_Public)				UFloatProperty(CPP_PROPERTY(LODDistanceRatio),TEXT(""),CPF_Edit);
-	UProperty* LODMaxRangeRatioProp = new(GetClass(),TEXT("LODMaxRange"),RF_Public)				UFloatProperty(CPP_PROPERTY(LODMaxRange),TEXT(""),CPF_Edit);
-	UProperty* StreamingDistanceMultiplierProp = new(GetClass(),TEXT("StreamingDistanceMultiplier"),RF_Public)UFloatProperty(CPP_PROPERTY(StreamingDistanceMultiplier),TEXT(""),CPF_Edit);
+	new(GetClass(),TEXT("LODDistanceRatio"),RF_Public)			UFloatProperty(CPP_PROPERTY(LODDistanceRatio),TEXT(""),CPF_Edit);
+	new(GetClass(),TEXT("LODMaxRange"),RF_Public)				UFloatProperty(CPP_PROPERTY(LODMaxRange),TEXT(""),CPF_Edit);
+	new(GetClass(),TEXT("LightMapResolution"),RF_Public)		UIntProperty(CPP_PROPERTY(LightMapResolution),TEXT(""),CPF_Edit);
+	new(GetClass(),TEXT("LightMapCoordinateIndex"),RF_Public)	UIntProperty(CPP_PROPERTY(LightMapCoordinateIndex),TEXT(""),CPF_Edit);
 
-	/**
-	 * The following code creates a dynamic array of structs, where the struct contains a dynamic array of MaterialInstances...In unrealscript, this declaration
-	 * would look something like this:
-	 *
-	 *	struct StaticMeshLODInfo
-	 *	{
-	 *		var() editfixedsize native array<MaterialInterface> EditorMaterials;
-	 *	};
-	 * 
-	 *	var() editfixedsize native array<StaticMeshLODInfo> LODInfo;
-	 *
-	 */
+	// BM: Per-section material overrides.
+	UArrayProperty* MaterialOverridesProp = new(GetClass(),TEXT("MaterialOverrides"),RF_Public) UArrayProperty(CPP_PROPERTY(MaterialOverrides),TEXT(""),CPF_Edit);
+	MaterialOverridesProp->Inner = new(MaterialOverridesProp,TEXT("ObjectProperty0"),RF_Public) UObjectProperty(EC_CppProperty,0,TEXT(""),0,UMaterialInterface::StaticClass());
+
+	// Add physics body setup
+	new(GetClass(),TEXT("BodySetup"),RF_Public)					UObjectProperty(CPP_PROPERTY(BodySetup),TEXT(""),CPF_Edit | CPF_EditInline, URB_BodySetup::StaticClass());
+
+	UClass* TheClass = GetClass();
+	TheClass->EmitObjectReference( STRUCT_OFFSET( UStaticMesh, BodySetup ) ); //@todo rtgc: is this needed seeing that BodySetup is exposed above?
+
+	// BM: Ledge collision setup (URLedgeSetup class not yet ported - typed as UObject).
+	new(GetClass(),TEXT("LedgeSetup"),RF_Public)				UObjectProperty(CPP_PROPERTY(LedgeSetup),TEXT(""),CPF_Edit | CPF_EditInline, UObject::StaticClass());
+
+	new(GetClass(),TEXT("UseSimpleLineCollision"),RF_Public)		UBoolProperty(CPP_PROPERTY(UseSimpleLineCollision),TEXT(""),CPF_Edit);
+	new(GetClass(),TEXT("UseSimpleBoxCollision"),RF_Public)			UBoolProperty(CPP_PROPERTY(UseSimpleBoxCollision),TEXT(""),CPF_Edit);
+	new(GetClass(),TEXT("UseSimpleRigidBodyCollision"),RF_Public)	UBoolProperty(CPP_PROPERTY(UseSimpleRigidBodyCollision),TEXT(""),CPF_Edit);
+
+	// BM: Additional collision toggles.
+	new(GetClass(),TEXT("UseSimpleCollisionAlways"),RF_Public)			UBoolProperty(CPP_PROPERTY(UseSimpleCollisionAlways),TEXT(""),CPF_Edit);
+	new(GetClass(),TEXT("ForceStripComplexCollision"),RF_Public)		UBoolProperty(CPP_PROPERTY(ForceStripComplexCollision),TEXT(""),CPF_Edit);
+	new(GetClass(),TEXT("StoreUVsForPhysicalMaterialTexture"),RF_Public)	UBoolProperty(CPP_PROPERTY(StoreUVsForPhysicalMaterialTexture),TEXT(""),CPF_Edit);
+
+	// BM: D3D11 tessellation block. DesiredTessellationMode uses the EMaterialTessellationMode enum
+	// (defined inline here to match the inline enum the game registers).
+	UEnum* TessellationModeEnum = new(GetClass(),TEXT("EMaterialTessellationMode"),RF_Public) UEnum();
+	{
+		TArray<FName> EnumNames;
+		new(EnumNames) FName(TEXT("MTM_NoTessellation"));
+		new(EnumNames) FName(TEXT("MTM_FlatTessellation"));
+		new(EnumNames) FName(TEXT("MTM_PNTriangles"));
+		new(EnumNames) FName(TEXT("MTM_PhongTessellation"));
+		TessellationModeEnum->SetEnums(EnumNames);
+	}
+	new(GetClass(),TEXT("DesiredTessellationMode"),RF_Public) UByteProperty(CPP_PROPERTY(DesiredTessellationMode),TEXT("D3D11Tessellation"),CPF_Edit,TessellationModeEnum);
+
+	new(GetClass(),TEXT("EnableDisplacementOnSmoothMeshes"),RF_Public)	UBoolProperty(CPP_PROPERTY(EnableDisplacementOnSmoothMeshes),TEXT("D3D11Tessellation"),CPF_Edit);
+	new(GetClass(),TEXT("EnableMeshDicingForTessellation"),RF_Public)	UBoolProperty(CPP_PROPERTY(EnableMeshDicingForTessellation),TEXT("D3D11Tessellation"),CPF_Edit);
+	new(GetClass(),TEXT("EnableOpenEdgeDetecion"),RF_Public)			UBoolProperty(CPP_PROPERTY(EnableOpenEdgeDetecion),TEXT("D3D11Tessellation"),CPF_Edit);
+	new(GetClass(),TEXT("DicingTargetMapWidth"),RF_Public)				UIntProperty(CPP_PROPERTY(DicingTargetMapWidth),TEXT("D3D11Tessellation"),CPF_Edit);
+	new(GetClass(),TEXT("DicingTargetMapHeight"),RF_Public)				UIntProperty(CPP_PROPERTY(DicingTargetMapHeight),TEXT("D3D11Tessellation"),CPF_Edit);
+	new(GetClass(),TEXT("DicingTexelsPerEdge"),RF_Public)				UFloatProperty(CPP_PROPERTY(DicingTexelsPerEdge),TEXT("D3D11Tessellation"),CPF_Edit);
+	new(GetClass(),TEXT("DesiredTessellationDistance"),RF_Public)		UFloatProperty(CPP_PROPERTY(DesiredTessellationDistance),TEXT("D3D11Tessellation"),CPF_Edit);
+
+	new(GetClass(),TEXT("UseFullPrecisionUVs"),RF_Public)			UBoolProperty(CPP_PROPERTY(UseFullPrecisionUVs),TEXT(""),CPF_Edit);
+	new(GetClass(),TEXT("bUsedForInstancing"),RF_Public)			UBoolProperty(CPP_PROPERTY(bUsedForInstancing),TEXT(""),CPF_Edit);
+
+	// BM: Cooker hints, ordered between bUsedForInstancing and bUseMaximumStreamingTexelRatio per BM2.
+	new(GetClass(),TEXT("CanStripNormalsAndTangents"),RF_Public)	UBoolProperty(CPP_PROPERTY(CanStripNormalsAndTangents),TEXT(""),CPF_Edit);
+	new(GetClass(),TEXT("CanCompressPositions"),RF_Public)			UBoolProperty(CPP_PROPERTY(CanCompressPositions),TEXT(""),CPF_Edit);
+	new(GetClass(),TEXT("HideFromLodGeneration"),RF_Public)			UBoolProperty(CPP_PROPERTY(HideFromLodGeneration),TEXT(""),CPF_Edit);
+
+	new(GetClass(),TEXT("bUseMaximumStreamingTexelRatio"),RF_Public)	UBoolProperty(CPP_PROPERTY(bUseMaximumStreamingTexelRatio),TEXT(""),CPF_Edit);
+	new(GetClass(),TEXT("bPartitionForEdgeGeometry"),RF_Public)		UBoolProperty(CPP_PROPERTY(bPartitionForEdgeGeometry),TEXT(""),CPF_Edit);
+	new(GetClass(),TEXT("bCanBecomeDynamic"),RF_Public)				UBoolProperty(CPP_PROPERTY(bCanBecomeDynamic),TEXT(""),CPF_Edit);
+
+	// BM: Additional rendering/auto-LOD toggles.
+	new(GetClass(),TEXT("ForceShadowVolumes"),RF_Public)			UBoolProperty(CPP_PROPERTY(ForceShadowVolumes),TEXT(""),CPF_Edit);
+	new(GetClass(),TEXT("BakeIntoBackgroundForAutoLOD"),RF_Public)	UBoolProperty(CPP_PROPERTY(BakeIntoBackgroundForAutoLOD),TEXT(""),CPF_Edit);
+	new(GetClass(),TEXT("AutoLODOverrideBeforeSimplification"),RF_Public)	UBoolProperty(CPP_PROPERTY(AutoLODOverrideBeforeSimplification),TEXT(""),CPF_Edit);
+	new(GetClass(),TEXT("AutoLODImprovedQuality"),RF_Public)		UBoolProperty(CPP_PROPERTY(AutoLODImprovedQuality),TEXT(""),CPF_Edit);
+	new(GetClass(),TEXT("AutoLODFixMoire"),RF_Public)				UBoolProperty(CPP_PROPERTY(AutoLODFixMoire),TEXT(""),CPF_Edit);
+
+	new(GetClass(),TEXT("StreamingDistanceMultiplier"),RF_Public)	UFloatProperty(CPP_PROPERTY(StreamingDistanceMultiplier),TEXT(""),CPF_Edit);
 
 	//////////////////////////////////////////////////////////////////////////
-	// First create StaticMeshLODElement struct
+	// FStaticMeshLODElement struct, then FStaticMeshLODInfo, then the LODInfo array
+	// (registered last per BM2, after all simple-typed properties).
+
 	UScriptStruct* LODElementStruct = new(GetClass(),TEXT("StaticMeshLODElement"),RF_Public|RF_Transient|RF_Native) UScriptStruct(NULL);
 	INT StructPropertyOffset = 0;
 	new(LODElementStruct,TEXT("Material"),RF_Public)				UObjectProperty(EC_CppProperty,StructPropertyOffset,TEXT(""),CPF_Edit,UMaterialInterface::StaticClass());
+	StructPropertyOffset += sizeof(UMaterialInterface*);
+	// BM: X-ray material override slot.
+	new(LODElementStruct,TEXT("XRayMaterial"),RF_Public)			UObjectProperty(EC_CppProperty,StructPropertyOffset,TEXT(""),CPF_Edit,UMaterialInterface::StaticClass());
 	StructPropertyOffset += sizeof(UMaterialInterface*);
 	new(LODElementStruct,TEXT("bEnableShadowCasting"),RF_Public)	UBoolProperty(EC_CppProperty,StructPropertyOffset,TEXT(""),CPF_Edit | CPF_Native);
 	StructPropertyOffset += sizeof(UBOOL);
@@ -1601,44 +1651,30 @@ void UStaticMesh::StaticConstructor()
 	StructPropertyOffset += sizeof(UBOOL);
 	new(LODElementStruct,TEXT("bEnableCollision"),RF_Public)		UBoolProperty(EC_CppProperty,StructPropertyOffset,TEXT(""),CPF_Edit | CPF_Native);
 
-	// We're finished adding properties to the FStaticMeshLODElement struct - now we link the struct's properties (which sets the PropertiesSize for the struct) and initialize its defaults
 	LODElementStruct->SetPropertiesSize(sizeof(FStaticMeshLODElement));
 	LODElementStruct->AllocateStructDefaults();
 	FArchive ArDummy0;
 	LODElementStruct->Link(ArDummy0,0);
 
-	//////////////////////////////////////////////////////////////////////////
-	// Then create the StaticMeshLODInfo struct
 	UScriptStruct* LODStruct = new(GetClass(),TEXT("StaticMeshLODInfo"),RF_Public|RF_Transient|RF_Native) UScriptStruct(NULL);
-
-	// Next, create the dynamic array of LODElements - use the struct as the outer for the new array property so that the array is contained by the struct
 	UArrayProperty*	ElementsProp = new(LODStruct,TEXT("Elements"),RF_Public) UArrayProperty(EC_CppProperty,0,TEXT(""),CPF_Edit | CPF_EditFixedSize | CPF_Native);
-
-	// Dynamic arrays have an Inner property which corresponds to the array type.
 	ElementsProp->Inner	= new(ElementsProp,TEXT("StructProperty1"),RF_Public) UStructProperty(EC_CppProperty,0,TEXT(""),CPF_Edit,LODElementStruct);
 
-	// Link defaults
 	LODStruct->SetPropertiesSize(sizeof(FStaticMeshLODInfo));
 	LODStruct->AllocateStructDefaults();
 	FArchive ArDummy1;
 	LODStruct->Link(ArDummy1,0);
 
-	//////////////////////////////////////////////////////////////////////////
-	// Finally add array property to the StaticMesh class itself.
-
-	// Next, create the dynamic array of StaticMeshLODInfo structs...same procedure as creating the Materials array above, except that this time, we use the class as the Outer for
-	// the array, so that the property becomes a member of the class
 	UArrayProperty*	InfoProp = new(GetClass(),TEXT("LODInfo"),RF_Public) UArrayProperty(CPP_PROPERTY(LODInfo),TEXT(""),CPF_Edit | CPF_EditFixedSize | CPF_Native);
 	InfoProp->Inner = new(InfoProp,TEXT("StructProperty0"),RF_Public) UStructProperty(EC_CppProperty,0,TEXT(""),CPF_Edit,LODStruct);
 
-	// Add physics body setup
-	new(GetClass(),TEXT("BodySetup"),RF_Public)							UObjectProperty(CPP_PROPERTY(BodySetup),TEXT(""),CPF_Edit | CPF_EditInline, URB_BodySetup::StaticClass());
-
-	UClass* TheClass = GetClass();
-	TheClass->EmitObjectReference( STRUCT_OFFSET( UStaticMesh, BodySetup ) ); //@todo rtgc: is this needed seeing that BodySetup is exposed above?
-
-	new(GetClass(), TEXT("SourceFilePath"), RF_Public)	UStrProperty(CPP_PROPERTY(SourceFilePath),TEXT(""),CPF_Edit|CPF_EditorOnly|CPF_EditConst);
+	new(GetClass(), TEXT("SourceFilePath"), RF_Public)		UStrProperty(CPP_PROPERTY(SourceFilePath),TEXT(""),CPF_Edit|CPF_EditorOnly|CPF_EditConst);
 	new(GetClass(), TEXT("SourceFileTimestamp"), RF_Public)	UStrProperty(CPP_PROPERTY(SourceFileTimestamp),TEXT(""),CPF_Edit|CPF_EditorOnly|CPF_EditConst);
+
+	// BM: Additional source/auto-LOD properties.
+	new(GetClass(), TEXT("SourceAuthor"), RF_Public)		UStrProperty(CPP_PROPERTY(SourceAuthor),TEXT(""),CPF_Edit|CPF_EditorOnly|CPF_EditConst);
+	new(GetClass(), TEXT("CollisionUVSet"), RF_Public)		UIntProperty(CPP_PROPERTY(CollisionUVSet),TEXT(""),CPF_Edit);
+	new(GetClass(), TEXT("AutoLODOverride"), RF_Public)		UObjectProperty(CPP_PROPERTY(AutoLODOverride),TEXT(""),CPF_Edit|CPF_EditorOnly,UStaticMesh::StaticClass());
 }
 
 /**
@@ -1666,6 +1702,31 @@ void UStaticMesh::InitializeIntrinsicPropertyValues()
 	StreamingDistanceMultiplier = 1.0f;
 	VertexPositionVersionNumber = 0;
 	bRemoveDegenerates			= TRUE;
+
+	// BM defaults, mirrored from UStaticMesh::InitializeIntrinsicPropertyValues in BmGame.exe.c.
+	LedgeSetup						= NULL;
+	UseSimpleCollisionAlways		= FALSE;
+	ForceStripComplexCollision		= FALSE;
+	StoreUVsForPhysicalMaterialTexture = FALSE;
+	DesiredTessellationMode			= 0;	// MTM_NoTessellation
+	EnableDisplacementOnSmoothMeshes = FALSE;
+	EnableMeshDicingForTessellation	= FALSE;
+	EnableOpenEdgeDetecion			= TRUE;
+	DicingTargetMapWidth			= 512;
+	DicingTargetMapHeight			= 512;
+	DicingTexelsPerEdge				= 128.0f;
+	DesiredTessellationDistance		= 0.0f;
+	CanStripNormalsAndTangents		= FALSE;
+	CanCompressPositions			= FALSE;
+	HideFromLodGeneration			= FALSE;
+	ForceShadowVolumes				= FALSE;
+	BakeIntoBackgroundForAutoLOD	= FALSE;
+	AutoLODOverrideBeforeSimplification = FALSE;
+	AutoLODImprovedQuality			= FALSE;
+	AutoLODFixMoire					= FALSE;
+	SourceAuthor					= TEXT("");
+	CollisionUVSet					= 0;
+	AutoLODOverride					= NULL;
 }
 
 /**

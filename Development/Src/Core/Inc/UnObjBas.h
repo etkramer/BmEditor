@@ -439,89 +439,146 @@ extern FString PerfMemRunResultStrings[4];
 	Core types.
 ----------------------------------------------------------------------------*/
 
-//
-// Full on-disk GUID representation. BM2 still serializes 16 bytes for GUIDs even
-// though in-memory FGuid only retains the first DWORD.
-//
-struct FGuidImplementation
-{
-	DWORD A, B, C, D;
-	friend FArchive& operator<<( FArchive& Ar, FGuidImplementation& G )
-	{
-		return Ar << G.A << G.B << G.C << G.D;
-	}
-};
-
-//
-// Globally unique identifier. Matches BM2 layout: a single DWORD in memory.
-// The full 16 bytes are read/written via FGuidImplementation; only A is retained.
-//
-class FGuid
+class FGuidImplementation
 {
 public:
-	DWORD A;
-	FGuid()
+	DWORD A,B,C,D;
+	FGuidImplementation()
 	{}
-	// 4-arg ctor kept for back-compat with FGuid(0,0,0,0) literals; only A is stored.
-	FGuid( DWORD InA, DWORD /*InB*/ = 0, DWORD /*InC*/ = 0, DWORD /*InD*/ = 0 )
-	: A(InA)
+	FGuidImplementation( DWORD InA, DWORD InB, DWORD InC, DWORD InD )
+	: A(InA), B(InB), C(InC), D(InD)
 	{}
-	explicit FORCEINLINE FGuid(EEventParm)
-	: A(0)
-	{
-	}
+	explicit FORCEINLINE FGuidImplementation(EEventParm)
+	: A(0), B(0), C(0), D(0)
+	{}
 
 	UBOOL IsValid() const
 	{
-		return A != 0;
+		return (A | B | C | D) != 0;
 	}
 
 	void Invalidate()
 	{
-		A = 0;
+		A = B = C = D = 0;
 	}
 
-	friend UBOOL operator==(const FGuid& X, const FGuid& Y)
+	friend UBOOL operator==(const FGuidImplementation& X, const FGuidImplementation& Y)
 	{
-		return X.A == Y.A;
+		return ((X.A ^ Y.A) | (X.B ^ Y.B) | (X.C ^ Y.C) | (X.D ^ Y.D)) == 0;
 	}
-	friend UBOOL operator!=(const FGuid& X, const FGuid& Y)
+	friend UBOOL operator!=(const FGuidImplementation& X, const FGuidImplementation& Y)
 	{
-		return X.A != Y.A;
+		return ((X.A ^ Y.A) | (X.B ^ Y.B) | (X.C ^ Y.C) | (X.D ^ Y.D)) != 0;
 	}
 	DWORD& operator[]( INT Index )
 	{
-		checkSlow(Index==0);
+		checkSlow(Index>=0);
+		checkSlow(Index<4);
+		switch(Index)
+		{
+		case 0: return A;
+		case 1: return B;
+		case 2: return C;
+		case 3: return D;
+		}
 		return A;
 	}
 	const DWORD& operator[]( INT Index ) const
 	{
-		checkSlow(Index==0);
+		checkSlow(Index>=0);
+		checkSlow(Index<4);
+		switch(Index)
+		{
+		case 0: return A;
+		case 1: return B;
+		case 2: return C;
+		case 3: return D;
+		}
 		return A;
+	}
+	friend FArchive& operator<<( FArchive& Ar, FGuidImplementation& G )
+	{
+		return Ar << G.A << G.B << G.C << G.D;
+	}
+	FString String() const
+	{
+		return FString::Printf( TEXT("%08X%08X%08X%08X"), A, B, C, D );
+	}
+	friend DWORD GetTypeHash(const FGuidImplementation& Guid)
+	{
+		return appMemCrc(&Guid,sizeof(FGuidImplementation));
+	}
+};
+
+// Globally unique identifier. BM2 compacts FGuid down to 32 bits in memory;
+// the full 16 bytes are still serialized on disk via FGuidImplementation.
+class FGuid
+{
+public:
+	DWORD SmallGuid;
+	FGuid()
+	{}
+	FGuid(FGuidImplementation InGuid)
+	: SmallGuid(InGuid.A ^ InGuid.B ^ InGuid.C ^ InGuid.D)
+	{}
+	FGuid( DWORD InA, DWORD InB = 0, DWORD InC = 0, DWORD InD = 0 )
+	: SmallGuid(InA ^ InB ^ InC ^ InD)
+	{}
+	explicit FORCEINLINE FGuid(EEventParm)
+	: SmallGuid(0)
+	{}
+
+	UBOOL IsValid() const
+	{
+		return SmallGuid != 0;
+	}
+
+	void Invalidate()
+	{
+		SmallGuid = 0;
+	}
+
+	friend UBOOL operator==(const FGuid& X, const FGuid& Y)
+	{
+		return (X.SmallGuid ^ Y.SmallGuid) == 0;
+	}
+	friend UBOOL operator!=(const FGuid& X, const FGuid& Y)
+	{
+		return (X.SmallGuid ^ Y.SmallGuid) != 0;
+	}
+	DWORD& operator[]( INT Index )
+	{
+		checkSlow(Index>=0);
+		checkSlow(Index<4);
+		return SmallGuid;
+	}
+	const DWORD& operator[]( INT Index ) const
+	{
+		checkSlow(Index>=0);
+		checkSlow(Index<4);
+		return SmallGuid;
 	}
 	friend FArchive& operator<<( FArchive& Ar, FGuid& G )
 	{
-		FGuidImplementation Impl;
-		if( Ar.IsLoading() )
+		FGuidImplementation Impl(G.SmallGuid,0,0,0);
+		if ( Ar.IsLoading() || Ar.IsSaving() )
 		{
 			Ar << Impl;
-			G.A = Impl.A;
+			G.SmallGuid = Impl.A;
 		}
-		else
+		else if ( Ar.IsCountingMemory() )
 		{
-			Impl.A = G.A;
-			Impl.B = Impl.C = Impl.D = 0;
-			Ar << Impl;
+			Ar.CountBytes(4, 4);
 		}
 		return Ar;
 	}
 	FString String() const
 	{
-		return FString::Printf( TEXT("%08X"), A );
+		return FString::Printf( TEXT("%08X"), SmallGuid );
 	}
 	friend DWORD GetTypeHash(const FGuid& Guid)
 	{
-		return Guid.A;
+		return appMemCrc(&Guid,sizeof(FGuid));
 	}
 };
 

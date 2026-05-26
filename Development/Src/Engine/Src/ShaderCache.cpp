@@ -445,11 +445,11 @@ void UShaderCache::FinishDestroy()
 
 IMPLEMENT_COMPARE_CONSTREF(FStaticParameterSet,SortMaterialsByStaticParamSet,
 {
-	if ( A.BaseMaterialId.A > B.BaseMaterialId.A )
+	if ( A.BaseMaterialId.SmallGuid > B.BaseMaterialId.SmallGuid )
 	{
 		return 1;
 	}
-	else if ( A.BaseMaterialId.A < B.BaseMaterialId.A )
+	else if ( A.BaseMaterialId.SmallGuid < B.BaseMaterialId.SmallGuid )
 	{
 		return -1;
 	}

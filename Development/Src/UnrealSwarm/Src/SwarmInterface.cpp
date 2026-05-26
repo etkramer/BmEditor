@@ -1919,10 +1919,7 @@ INT FSwarmInterfaceManagedImpl::SendMessage( const FMessage& NativeMessage )
 				case MESSAGE_TASK_STATE:
 				{
 					const FTaskState& NativeTaskStateMessage = ( const FTaskState& )NativeMessage;
-					AgentGuid^ ManagedTaskGuid = gcnew AgentGuid( NativeTaskStateMessage.TaskGuid.A,
-																  NativeTaskStateMessage.TaskGuid.B,
-																  NativeTaskStateMessage.TaskGuid.C,
-																  NativeTaskStateMessage.TaskGuid.D );
+					AgentGuid^ ManagedTaskGuid = gcnew AgentGuid( NativeTaskStateMessage.TaskGuid.SmallGuid, 0, 0, 0 );
 					EJobTaskState TaskState = ( EJobTaskState )NativeTaskStateMessage.TaskState;
 					AgentTaskState^ ManagedTaskStateMessage = gcnew AgentTaskState( nullptr, ManagedTaskGuid, TaskState );
 
@@ -1956,16 +1953,10 @@ INT FSwarmInterfaceManagedImpl::SendMessage( const FMessage& NativeMessage )
 				{
 					// Create the managed version of the alert message
 					const FAlertMessage& NativeAlertMessage = (const FAlertMessage&)NativeMessage;
-					AgentGuid^ JobGuid = gcnew AgentGuid(	NativeAlertMessage.JobGuid.A,
-															NativeAlertMessage.JobGuid.B,
-															NativeAlertMessage.JobGuid.C,
-															NativeAlertMessage.JobGuid.D);
+					AgentGuid^ JobGuid = gcnew AgentGuid( NativeAlertMessage.JobGuid.SmallGuid, 0, 0, 0 );
 					AgentAlertMessage^ ManagedAlertMessage = gcnew AgentAlertMessage(JobGuid);
 					ManagedAlertMessage->AlertLevel = (EAlertLevel)(NativeAlertMessage.AlertLevel);
-					AgentGuid^ ObjectGuid = gcnew AgentGuid(NativeAlertMessage.ObjectGuid.A,
-															NativeAlertMessage.ObjectGuid.B,
-															NativeAlertMessage.ObjectGuid.C,
-															NativeAlertMessage.ObjectGuid.D);
+					AgentGuid^ ObjectGuid = gcnew AgentGuid( NativeAlertMessage.ObjectGuid.SmallGuid, 0, 0, 0 );
 					ManagedAlertMessage->ObjectGuid = ObjectGuid;
 					ManagedAlertMessage->TypeId = NativeAlertMessage.TypeId;
 					if (NativeAlertMessage.TextMessage != NULL)
@@ -2228,7 +2219,7 @@ INT FSwarmInterfaceManagedImpl::OpenJob( const FGuid& JobGuid )
 		StartTiming( gcnew String( "OpenJob-Remote" ), FALSE );
 		try
 		{
-			AgentGuid^ ManagedJobGuid = gcnew AgentGuid( JobGuid.A, JobGuid.B, JobGuid.C, JobGuid.D );
+			AgentGuid^ ManagedJobGuid = gcnew AgentGuid( JobGuid.SmallGuid, 0, 0, 0 );
 			ReturnValue = Connection->OpenJob( ConnectionHandle, ManagedJobGuid );
 			if( ReturnValue >= 0 )
 			{
@@ -2431,10 +2422,7 @@ INT FSwarmInterfaceManagedImpl::AddTask( const FTaskSpecification& Specification
 		if( ConnectionConfiguration->AgentJobGuid != nullptr )
 		{
 			// Convert the parameters from native to managed
-			AgentGuid^ TaskGuid = gcnew AgentGuid( Specification.TaskGuid.A,
-												   Specification.TaskGuid.B,
-												   Specification.TaskGuid.C,
-												   Specification.TaskGuid.D );
+			AgentGuid^ TaskGuid = gcnew AgentGuid( Specification.TaskGuid.SmallGuid, 0, 0, 0 );
 
 			String^ Parameters = gcnew String( Specification.Parameters );
 

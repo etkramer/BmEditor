@@ -107,9 +107,6 @@ public:
 	,	ShadowRadiusMultiplier( Component->ShadowRadiusMultiplier )
 	{
 		UpdateRadius(Component->Radius,Component->MinShadowFalloffRadius);
-		// Convert LightSourceRadius into uniform penumbra size, since LightSourceRadius doesn't have any meaning for distance field shadowed lights
-		DistanceFieldShadowMapPenumbraSize = Clamp(Component->LightmassSettings.LightSourceRadius / 100.0f, 0.001f, 1.0f);
-		DistanceFieldShadowMapShadowExponent = Component->LightmassSettings.ShadowExponent;
 	}
 
 	/**

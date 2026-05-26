@@ -651,35 +651,36 @@ void UTexture2D::Serialize(FArchive& Ar)
 
 		// Open TFC for reading
 		FArchive* FileReader = GFileManager->CreateFileReader(*Filename);
-		check(FileReader);
-
-		// Unset TextureFileCacheName
-		TextureFileCacheName = NAME_None;
-
-		for (INT i = 0; i < Mips.Num(); i++)
+		if (FileReader != NULL)
 		{
-			FTexture2DMipMap& MipMap = Mips(i);
+			// Unset TextureFileCacheName
+			TextureFileCacheName = NAME_None;
 
-			// Skip resident/non-streamed mips
-			if (!MipMap.Data.IsStoredInSeparateFile() || MipMap.Data.GetBulkDataOffsetInFile() == INDEX_NONE)
+			for (INT i = 0; i < Mips.Num(); i++)
 			{
-				continue;
+				FTexture2DMipMap& MipMap = Mips(i);
+
+				// Skip resident/non-streamed mips
+				if (!MipMap.Data.IsStoredInSeparateFile() || MipMap.Data.GetBulkDataOffsetInFile() == INDEX_NONE)
+				{
+					continue;
+				}
+
+				// Read raw bytes from disk
+				TArray<BYTE> RawData(MipMap.Data.GetBulkDataSize());
+				FileReader->Seek(MipMap.Data.GetBulkDataOffsetInFile());
+				FileReader->SerializeCompressed(RawData.GetData(), MipMap.Data.GetBulkDataSizeOnDisk(), MipMap.Data.GetDecompressionFlags());
+
+				// Copy raw bytes to new bulk data
+				FTextureMipBulkData NewBulkData;
+				NewBulkData.Lock(LOCK_READ_WRITE);
+				appMemcpy(NewBulkData.Realloc(MipMap.Data.GetBulkDataSize()), RawData.GetData(), MipMap.Data.GetBulkDataSize());
+				NewBulkData.Unlock();
+
+				// Use this new bulk data
+				MipMap.Data.ClearBulkDataFlags(BULKDATA_StoreInSeparateFile);
+				MipMap.Data = NewBulkData;
 			}
-
-			// Read raw bytes from disk
-			TArray<BYTE> RawData(MipMap.Data.GetBulkDataSize());
-			FileReader->Seek(MipMap.Data.GetBulkDataOffsetInFile());
-			FileReader->SerializeCompressed(RawData.GetData(), MipMap.Data.GetBulkDataSizeOnDisk(), MipMap.Data.GetDecompressionFlags());
-
-			// Copy raw bytes to new bulk data
-			FTextureMipBulkData NewBulkData;
-			NewBulkData.Lock(LOCK_READ_WRITE);
-			appMemcpy(NewBulkData.Realloc(MipMap.Data.GetBulkDataSize()), RawData.GetData(), MipMap.Data.GetBulkDataSize());
-			NewBulkData.Unlock();
-
-			// Use this new bulk data
-			MipMap.Data.ClearBulkDataFlags(BULKDATA_StoreInSeparateFile);
-			MipMap.Data = NewBulkData;
 		}
 	}
 #endif

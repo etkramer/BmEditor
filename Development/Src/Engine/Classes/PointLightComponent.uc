@@ -20,13 +20,7 @@ var float MinShadowFalloffRadius;
 var   const matrix							CachedParentToWorld; //@todo remove me please
 var() const vector							Translation;
 
-/** Plane used for planar shadows on mobile.  */
-var const plane ShadowPlane;
-
 var const DrawLightRadiusComponent PreviewLightRadius;
-
-/** The Lightmass settings for this object. */
-var(Lightmass) LightmassPointLightSettings LightmassSettings <ScriptOrder=true>;
 var const DrawLightRadiusComponent PreviewLightSourceRadius;
 
 cpptext
@@ -87,5 +81,4 @@ defaultproperties
 	FalloffExponent=2
 	ShadowFalloffExponent=2
 	ShadowRadiusMultiplier=1.1
-	ShadowPlane=(X=0,Y=0,Z=1,W=0)
 }

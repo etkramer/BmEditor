@@ -21,10 +21,7 @@ struct LightingChannelContainer
 	var()	bool	Skybox;
 	var()	bool	Unnamed_1;
 	var()	bool	Unnamed_2;
-	var()	bool	Unnamed_3;
 	var()	bool	Unnamed_4;
-	var()	bool	Unnamed_5;
-	var()	bool	Unnamed_6;
 	var()	bool	Cinematic_1;
 	var()	bool	Cinematic_2;
 	var()	bool	Cinematic_3;
@@ -37,15 +34,24 @@ struct LightingChannelContainer
 	var()	bool	Cinematic_10;
 	var()	bool	Gameplay_1;
 	var()	bool	Gameplay_2;
-	var()	bool	Gameplay_3;
-	var()	bool	Gameplay_4;
+	var()	bool	StaticProp;
 	var()	bool	Crowd;
+	var()	bool	Door;
+	var()	bool	Plant;
+	var()	bool	Prop;
+	var()	bool	Character;
+	var()	bool	CinematicExclusive_1;
+	var()	bool	CinematicExclusive_2;
+	var()	bool	TVExclusive;
+	var()	bool	PhysX;
 };
 
 var native private	transient noimport const pointer	SceneInfo;
 
 var native const	transient matrix			WorldToLight;
 var native const	transient matrix			LightToWorld;
+
+var native const OctreeElementId OctreeId;
 
 /**
  * GUID used to associate a light component with precomputed shadowing information across levels.
@@ -135,6 +141,11 @@ var bool bUseVolumes;
 /** Whether to render light shafts from this light.  Only non-static lights can render light shafts (toggleable, movable or dominant types). */
 var(LightShafts) bool bRenderLightShafts;
 
+var bool ForceShadowVolumes;
+var() bool ForceDynamicShadows;
+var() editconst bool bCastStaticModulatedShadows;
+var() bool bCheapLight;
+
 /** Whether to replace this light's analytical specular with image based specular on materials that support it. */
 var(ImageReflection) bool bUseImageReflectionSpecular <bShowOnlyWhenTrue=bShowD3D11Properties>;
 
@@ -144,8 +155,8 @@ var protected const bool bPrecomputedLightingIsValid;
 /** Whether this light is being used as the OverrideLightComponent on a primitive and shouldn't affect any other primitives. */
 var protected const bool bExplicitlyAssignedLight;
 
-/** Whether this light can be combined into the DLE normally.  Overriden to false in the case of muzzle flashes to prevent SH artifacts */
-var bool bAllowCompositingIntoDLE;
+var const bool bCinematicLightType;
+var() bool BypassLightEnvironment;
 
 /**
  * The light environment which the light affects.
@@ -233,6 +244,8 @@ var float ModShadowFadeoutExponent;
  */
 var const native duplicatetransient int LightListIndex;
 
+var native const int CharacterLightListIndex;
+
 enum EShadowProjectionTechnique
 {
 	/** Shadow projection is rendered using either PCF/VSM based on global settings  */
@@ -280,6 +293,9 @@ var() int MaxShadowResolution;
  */
 var() int ShadowFadeResolution;
 
+var(LightShafts) float CoreSize;
+var(LightShafts) float OmniFadeRadiusFactor;
+
 /** Everything closer to the camera than this distance will occlude light shafts for directional lights. */
 var(LightShafts) float OcclusionDepthRange;
 
@@ -311,8 +327,7 @@ var(LightShafts) float RadialBlurPercent;
  */
 var(LightShafts) interp float OcclusionMaskDarkness;
 
-/** Scales the contribution of the reflection specular highlight. */
-var(ImageReflection) float ReflectionSpecularBrightness <bShowOnlyWhenTrue=bShowD3D11Properties>;
+var() StaticMesh CheapLightMesh;
 
 /**
  * Toggles the light on or off
@@ -388,9 +403,6 @@ defaultproperties
 	UseDirectLightMap=FALSE
 	bPrecomputedLightingIsValid=TRUE
 
-	//All lights default to being able to be composited normally.
-	bAllowCompositingIntoDLE=TRUE
-
 	LightingChannels=(BSP=TRUE,Static=TRUE,Dynamic=TRUE,CompositeDynamic=TRUE,bInitialized=TRUE)
 
 	// Use cheap modulated shadowing by default
@@ -410,7 +422,6 @@ defaultproperties
 	OcclusionMaskDarkness=.3
 
 	bUseImageReflectionSpecular=false
-	ReflectionSpecularBrightness=.2
 }
 
 

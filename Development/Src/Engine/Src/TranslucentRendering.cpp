@@ -336,12 +336,8 @@ UBOOL FTranslucencyDrawingPolicyFactory::DrawDynamicMesh(
 					}
 					else if (Light != MergedDynamicLight)
 					{
-						//skip lights that have compositing disabled (muzzle flashes)
-						if (Light->LightComponent && Light->LightComponent->bAllowCompositingIntoDLE)
-						{
-							// Composite all other lights into an SH environment as an approximation of their influence
-							Light->CompositeInfluence(PrimitiveSceneInfo->Bounds.Origin, CompositedDynamicLighting);
-						}
+						// Composite all other lights into an SH environment as an approximation of their influence
+						Light->CompositeInfluence(PrimitiveSceneInfo->Bounds.Origin, CompositedDynamicLighting);
 					}
 				}
 			}

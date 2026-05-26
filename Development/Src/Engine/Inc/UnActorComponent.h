@@ -334,10 +334,7 @@ struct FLightingChannelContainer
 			BITFIELD Skybox:1;
 			BITFIELD Unnamed_1:1;
 			BITFIELD Unnamed_2:1;
-			BITFIELD Unnamed_3:1;
 			BITFIELD Unnamed_4:1;
-			BITFIELD Unnamed_5:1;
-			BITFIELD Unnamed_6:1;
 			BITFIELD Cinematic_1:1;
 			BITFIELD Cinematic_2:1;
 			BITFIELD Cinematic_3:1;
@@ -350,9 +347,16 @@ struct FLightingChannelContainer
 			BITFIELD Cinematic_10:1;
 			BITFIELD Gameplay_1:1;
 			BITFIELD Gameplay_2:1;
-			BITFIELD Gameplay_3:1;
-			BITFIELD Gameplay_4:1;
+			BITFIELD StaticProp:1;
 			BITFIELD Crowd:1;
+			BITFIELD Door:1;
+			BITFIELD Plant:1;
+			BITFIELD Prop:1;
+			BITFIELD Character:1;
+			BITFIELD CinematicExclusive_1:1;
+			BITFIELD CinematicExclusive_2:1;
+			BITFIELD TVExclusive:1;
+			BITFIELD PhysX:1;
 		};
 		DWORD Bitfield;
 	};
@@ -464,6 +468,8 @@ public:
 	FMatrix WorldToLight;
 	FMatrix LightToWorld;
 
+	FOctreeElementId OctreeId;
+
 	/**
 	 * GUID used to associate a light component with precomputed shadowing information across levels.
 	 * The GUID changes whenever the light position changes.
@@ -529,8 +535,13 @@ public:
 	/** Whether to use the inclusion/ exclusion volumes. */
 	BITFIELD bUseVolumes : 1;
 
-	/** Whether to render light shafts from this light. */
+		/** Whether to render light shafts from this light. */
 	BITFIELD bRenderLightShafts : 1;
+
+	BITFIELD ForceShadowVolumes : 1;
+	BITFIELD ForceDynamicShadows : 1;
+	BITFIELD bCastStaticModulatedShadows : 1;
+	BITFIELD bCheapLight : 1;
 
 	/** Whether to replace this light's analytical specular with image based specular on materials that support it. */
 	BITFIELD bUseImageReflectionSpecular : 1;
@@ -541,8 +552,8 @@ public:
 	/** Whether this light is being used as the OverrideLightComponent on a primitive and shouldn't affect any other primitives. */
 	BITFIELD bExplicitlyAssignedLight : 1;
 
-	/** Whether this light can be combined into the DLE normally.  Overriden to false in the case of muzzle flashes to prevent SH artifacts */
-	BITFIELD bAllowCompositingIntoDLE : 1;
+	BITFIELD bCinematicLightType : 1;
+	BITFIELD BypassLightEnvironment : 1;
 
 	/**
 	 * The light environment which the light affects.
@@ -609,6 +620,8 @@ private:
 	INT LightListIndex;
 
 public:
+	INT CharacterLightListIndex;
+
 	/** Type of shadow projection to use for this light */
 	BYTE ShadowProjectionTechnique;
 
@@ -635,6 +648,9 @@ public:
 	 */
 	INT ShadowFadeResolution;
 
+	FLOAT CoreSize;
+	FLOAT OmniFadeRadiusFactor;
+
 	/** Everything closer to the camera than this distance will occlude light shafts. */
 	FLOAT OcclusionDepthRange;
 
@@ -660,8 +676,7 @@ public:
 	/** Controls how dark the occlusion masking is, a value of .5 would mean that an occlusion of 0 only darkens underlying color by half. */
 	FLOAT OcclusionMaskDarkness;
 
-	/** Scales the contribution of the reflection specular highlight. */
-	FLOAT ReflectionSpecularBrightness;
+	class UStaticMesh* CheapLightMesh;
 
 	/**
 	 * Creates a proxy to represent the light to the scene manager in the rendering thread.

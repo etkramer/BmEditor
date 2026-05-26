@@ -978,10 +978,6 @@ void FLightmassExporter::WriteLights( INT Channel )
 		Lightmass::FLightData LightData;
 		Lightmass::FPointLightData PointData;
 		Copy( Light, LightData );
-		Copy( Light->LightmassSettings.IndirectLightingScale, LightData.IndirectLightingScale );
-		Copy( Light->LightmassSettings.IndirectLightingSaturation, LightData.IndirectLightingSaturation );
-		Copy( Light->LightmassSettings.ShadowExponent, LightData.ShadowExponent );
-		Copy( Light->LightmassSettings.LightSourceRadius, LightData.LightSourceRadius );
 		Copy( Light->Radius, PointData.Radius );
 		Copy( Light->FalloffExponent, PointData.FalloffExponent );
 		Swarm.WriteChannel( Channel, &LightData, sizeof(LightData) );
@@ -996,11 +992,7 @@ void FLightmassExporter::WriteLights( INT Channel )
 		Lightmass::FLightData LightData;
 		Lightmass::FPointLightData PointData;
 		Lightmass::FSpotLightData SpotData;
-		Copy( Light, LightData ); 
-		Copy( Light->LightmassSettings.IndirectLightingScale, LightData.IndirectLightingScale );
-		Copy( Light->LightmassSettings.IndirectLightingSaturation, LightData.IndirectLightingSaturation );
-		Copy( Light->LightmassSettings.ShadowExponent, LightData.ShadowExponent );
-		Copy( Light->LightmassSettings.LightSourceRadius, LightData.LightSourceRadius );
+		Copy( Light, LightData );
 		Copy( Light->Radius, PointData.Radius );
 		Copy( Light->FalloffExponent, PointData.FalloffExponent );
 		Copy( Light->InnerConeAngle, SpotData.InnerConeAngle ); 

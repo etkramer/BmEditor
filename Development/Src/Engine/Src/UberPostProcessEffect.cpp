@@ -342,7 +342,6 @@ public:
 		checkSlow(IsInGameThread());
 		check(InEffect);
 
-		SET_POSTPROCESS_PROPERTY1(Scene, TonemapperScale);
 		SET_POSTPROCESS_PROPERTY2(Scene, ImageGrainScale);
 
 		ColorTransform.Shadows = GET_POSTPROCESS_PROPERTY2(Scene, Shadows);
@@ -365,12 +364,10 @@ public:
 				MotionBlurParams.bFullMotionBlur = WorldSettings->MotionBlur_FullMotionBlur;
 			}
 
-			//currently only 2 settings.  Change to be a direct copy if more depth of field modes are added.
-			bProxyTwoLayerSimpleDepthOfField = WorldSettings->bTwoLayerSimpleDepthOfField ? TRUE : FALSE;
+			bProxyTwoLayerSimpleDepthOfField = FALSE;
 		}
 		else
 		{
-			//default low depth of field quality
 			bProxyTwoLayerSimpleDepthOfField = FALSE;
 		}
 

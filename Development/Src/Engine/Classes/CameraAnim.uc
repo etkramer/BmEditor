@@ -47,12 +47,14 @@ defaultproperties
 
 	// override nothing unless explicitly chosen
 	BasePPSettings={(
+		bOverride_InterpolateOverDistance=FALSE,
+		bOverride_InterpolateOverDistanceFade=FALSE,
+		bOverride_bEnableHighQualityDOF=FALSE,
 		bOverride_EnableBloom=FALSE,
 		bOverride_EnableDOF=FALSE,
 		bOverride_EnableMotionBlur=FALSE,
 		bOverride_EnableSceneEffect=FALSE,
 		bOverride_AllowAmbientOcclusion=FALSE,
-		bOverride_OverrideRimShaderColor=FALSE,
 		bOverride_Bloom_Scale=FALSE,
 		bOverride_Bloom_Threshold=FALSE,
 		bOverride_Bloom_Tint=FALSE,
@@ -63,6 +65,7 @@ defaultproperties
 		bOverride_DOF_BlurBloomKernelSize=FALSE,
 		bOverride_DOF_MaxNearBlurAmount=FALSE,
 		bOverride_DOF_MaxFarBlurAmount=FALSE,
+		bOverride_DOF_ModulateBlurColor=FALSE,
 		bOverride_DOF_FocusType=FALSE,
 		bOverride_DOF_FocusInnerRadius=FALSE,
 		bOverride_DOF_FocusDistance=FALSE,
@@ -75,13 +78,10 @@ defaultproperties
 		bOverride_MotionBlur_CameraTranslationThreshold=FALSE,
 		bOverride_MotionBlur_InterpolationDuration=FALSE,
 		bOverride_Scene_Desaturation=FALSE,
-		bOverride_Scene_TonemapperScale=FALSE,
 		bOverride_Scene_ImageGrainScale=FALSE,
 		bOverride_Scene_HighLights=FALSE,
 		bOverride_Scene_MidTones=FALSE,
 		bOverride_Scene_Shadows=FALSE,
 		bOverride_Scene_InterpolationDuration=FALSE,
-		bOverride_RimShader_Color=FALSE,
-		bOverride_RimShader_InterpolationDuration=FALSE,
 	)}
 }

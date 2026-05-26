@@ -29,7 +29,6 @@ namespace
 	static const FName NAME_DOF_FocusDistance						= FName( TEXT("DOF_FocusDistance") );
 	static const FName NAME_DOF_FocusPosition						= FName( TEXT("DOF_FocusPosition") );
 	static const FName NAME_DOF_InterpolationDuration				= FName( TEXT("DOF_InterpolationDuration") );
-	static const FName NAME_DOF_BokehTexture						= FName( TEXT("DOF_BokehTexture") );
 
 	static const FName NAME_EnableMotionBlur						= FName( TEXT("bEnableMotionBlur") );
 	static const FName NAME_MotionBlur_MaxVelocity					= FName( TEXT("MotionBlur_MaxVelocity") );
@@ -42,7 +41,6 @@ namespace
 	static const FName NAME_EnableSceneEffect						= FName( TEXT("bEnableSceneEffect") );
 	static const FName NAME_Scene_Desaturation						= FName( TEXT("Scene_Desaturation") );
 	static const FName NAME_Scene_Colorize							= FName( TEXT("Scene_Colorize") );
-	static const FName NAME_Scene_TonemapperScale					= FName( TEXT("Scene_TonemapperScale") );
 	static const FName NAME_Scene_ImageGrainScale					= FName( TEXT("Scene_ImageGrainScale") );
 	static const FName NAME_Scene_HighLights						= FName( TEXT("Scene_HighLights") );
 	static const FName NAME_Scene_MidTones							= FName( TEXT("Scene_MidTones") );
@@ -51,10 +49,6 @@ namespace
 	static const FName NAME_Scene_ColorGradingLUT					= FName( TEXT("Scene_ColorGradingLUT") );
 
 	static const FName NAME_AllowAmbientOcclusion					= FName( TEXT("bAllowAmbientOcclusion") );
-
-	static const FName NAME_OverrideRimShaderColor					= FName( TEXT("bOverrideRimShaderColor") );
-	static const FName NAME_RimShader_Color							= FName( TEXT("RimShader_Color") );
-	static const FName NAME_RimShader_InterpolationDuration			= FName( TEXT("RimShader_InterpolationDuration") );
 }
 
 /*-----------------------------------------------------------------------------
@@ -299,12 +293,8 @@ void FPostProcessSettings::OverrideSettingsFor( FPostProcessSettings& ToOverride
 	{
 		ToOverride.bEnableDOF = bEnableDOF;
 	}
-	if( bTwoLayerSimpleDepthOfField )
-	{
-		ToOverride.bTwoLayerSimpleDepthOfField = bTwoLayerSimpleDepthOfField;
-	}
 	if (ToOverride.bEnableDOF)
-	{		
+	{
 		LERP_POSTPROCESS(DOF, FalloffExponent)
 		LERP_POSTPROCESS(DOF, BlurKernelSize)
 		LERP_POSTPROCESS(DOF, MaxNearBlurAmount)
@@ -315,7 +305,6 @@ void FPostProcessSettings::OverrideSettingsFor( FPostProcessSettings& ToOverride
 		LERP_POSTPROCESS(DOF, FocusDistance)
 		LERP_POSTPROCESS(DOF, FocusPosition)
 		LERP_POSTPROCESS(DOF, InterpolationDuration)
-		SET_POSTPROCESS(DOF, BokehTexture)
 	}
 
 	// MOTION BLUR OVERRIDES
@@ -346,24 +335,12 @@ void FPostProcessSettings::OverrideSettingsFor( FPostProcessSettings& ToOverride
 		LERP_POSTPROCESS(Scene, Desaturation)
 		LERP_POSTPROCESS(Scene, Colorize)
 		LERP_POSTPROCESS(Scene, InterpolationDuration)
-		LERP_POSTPROCESS(Scene, TonemapperScale)
 		LERP_POSTPROCESS(Scene, ImageGrainScale)
 	}
 
 	if( bOverride_AllowAmbientOcclusion )
 	{
 		ToOverride.bAllowAmbientOcclusion = bAllowAmbientOcclusion;
-	}
-
-	// RIM SHADER OVERRIDES
-	if( bOverride_OverrideRimShaderColor )
-	{
-		ToOverride.bOverrideRimShaderColor = bOverrideRimShaderColor;
-	}
-	if (ToOverride.bOverrideRimShaderColor)
-	{
-		LERP_POSTPROCESS(RimShader, Color)
-		LERP_POSTPROCESS(RimShader, InterpolationDuration)
 	}
 
 	if(bOverride_Scene_ColorGradingLUT)
@@ -507,13 +484,6 @@ void FPostProcessSettings::EnableOverrideSetting( const FName& PropertyName )
 		return;
 	}
 
-	if( PropertyName == NAME_DOF_BokehTexture )
-	{
-		bOverride_DOF_BokehTexture = TRUE;
-		EnableDOF();
-		return;
-	}
-
 	if( PropertyName == NAME_EnableMotionBlur )
 	{
 		EnableMotionBlur();
@@ -582,13 +552,6 @@ void FPostProcessSettings::EnableOverrideSetting( const FName& PropertyName )
 		return;
 	}
 
-	if( PropertyName == NAME_Scene_TonemapperScale )
-	{
-		bOverride_Scene_TonemapperScale = TRUE;
-		EnableSceneEffect();
-		return;
-	}
-
 	if( PropertyName == NAME_Scene_ImageGrainScale )
 	{
 		bOverride_Scene_ImageGrainScale = TRUE;
@@ -634,26 +597,6 @@ void FPostProcessSettings::EnableOverrideSetting( const FName& PropertyName )
 	if( PropertyName == NAME_AllowAmbientOcclusion )
 	{
 		bOverride_AllowAmbientOcclusion = TRUE;
-		return;
-	}
-
-	if( PropertyName == NAME_OverrideRimShaderColor )
-	{
-		EnableRimShader();
-		return;
-	}
-
-	if( PropertyName == NAME_RimShader_Color )
-	{
-		bOverride_RimShader_Color = TRUE;
-		EnableRimShader();
-		return;
-	}
-
-	if( PropertyName == NAME_RimShader_InterpolationDuration )
-	{
-		bOverride_RimShader_InterpolationDuration = TRUE;
-		EnableRimShader();
 		return;
 	}
 }
@@ -789,14 +732,6 @@ void FPostProcessSettings::DisableOverrideSetting( const FName& PropertyName )
 		return;
 	}
 
-	if( PropertyName == NAME_DOF_BokehTexture )
-	{
-		bOverride_DOF_BokehTexture = FALSE;
-		DisableDOFOverrideConditional();
-		return;
-	}
-
-
 	if( PropertyName == NAME_EnableMotionBlur )
 	{
 		DisableMotionBlurOverrideConditional();
@@ -865,13 +800,6 @@ void FPostProcessSettings::DisableOverrideSetting( const FName& PropertyName )
 		return;
 	}
 
-	if( PropertyName == NAME_Scene_TonemapperScale )
-	{
-		bOverride_Scene_TonemapperScale = FALSE;
-		DisableSceneEffectOverrideConditional();
-		return;
-	}
-
 	if( PropertyName == NAME_Scene_ImageGrainScale )
 	{
 		bOverride_Scene_ImageGrainScale = FALSE;
@@ -919,26 +847,6 @@ void FPostProcessSettings::DisableOverrideSetting( const FName& PropertyName )
 		bOverride_AllowAmbientOcclusion = FALSE;
 		return;
 	}
-
-	if( PropertyName == NAME_OverrideRimShaderColor )
-	{
-		DisableRimShaderOverrideConditional();
-		return;
-	}
-
-	if( PropertyName == NAME_RimShader_Color )
-	{
-		bOverride_RimShader_Color = FALSE;
-		DisableRimShaderOverrideConditional();
-		return;
-	}
-
-	if( PropertyName == NAME_RimShader_InterpolationDuration )
-	{
-		bOverride_RimShader_InterpolationDuration = FALSE;
-		DisableRimShaderOverrideConditional();
-		return;
-	}
 }
 
 /**
@@ -969,7 +877,6 @@ void FPostProcessSettings::DisableAllOverrides()
 	bOverride_DOF_FocusDistance = FALSE;
 	bOverride_DOF_FocusPosition = FALSE;
 	bOverride_DOF_InterpolationDuration = FALSE;
-	bOverride_DOF_BokehTexture = FALSE;
 
 	// Disable motion blur overrides
 	bOverride_EnableMotionBlur = FALSE;
@@ -984,7 +891,6 @@ void FPostProcessSettings::DisableAllOverrides()
 	bOverride_EnableSceneEffect = FALSE;
 	bOverride_Scene_Desaturation = FALSE;
 	bOverride_Scene_Colorize = FALSE;
-	bOverride_Scene_TonemapperScale = FALSE;
 	bOverride_Scene_ImageGrainScale = FALSE;
 	bOverride_Scene_HighLights = FALSE;
 	bOverride_Scene_MidTones = FALSE;
@@ -993,11 +899,6 @@ void FPostProcessSettings::DisableAllOverrides()
 	bOverride_Scene_ColorGradingLUT = FALSE;
 
 	bOverride_AllowAmbientOcclusion = FALSE;
-
-	// Disable Rim Shader overrides
-	bOverride_OverrideRimShaderColor = FALSE;
-	bOverride_RimShader_Color = FALSE;
-	bOverride_RimShader_InterpolationDuration = FALSE;
 }
 
 /**
@@ -1027,8 +928,7 @@ void FPostProcessSettings::DisableDOFOverrideConditional()
 	&&	!bOverride_DOF_FocusInnerRadius
 	&&	!bOverride_DOF_FocusDistance
 	&&	!bOverride_DOF_FocusPosition
-	&&	!bOverride_DOF_InterpolationDuration 
-	&&	!bOverride_DOF_BokehTexture)
+	&&	!bOverride_DOF_InterpolationDuration )
 	{
 		bOverride_EnableDOF = FALSE;
 		bEnableDOF = FALSE;
@@ -1067,17 +967,5 @@ void FPostProcessSettings::DisableSceneEffectOverrideConditional()
 	{
 		bOverride_EnableSceneEffect = FALSE;
 		bEnableSceneEffect = FALSE;
-	}
-}
-
-/**
- * Disables the override to enable rim shader if no overrides are set for rim shader settings.
- */
-void FPostProcessSettings::DisableRimShaderOverrideConditional()
-{
-	if( !bOverride_RimShader_Color && !bOverride_RimShader_InterpolationDuration )
-	{
-		bOverride_OverrideRimShaderColor = FALSE;
-		bOverrideRimShaderColor = FALSE;
 	}
 }

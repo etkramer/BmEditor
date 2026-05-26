@@ -5158,7 +5158,7 @@ struct FLUTBlender
 		}
 
 		/**
-		* Clean the container and adds the neutral LUT. 
+		* Clean the container and adds the neutral LUT.
 		* should be called after the render thread copied the data
 		*/
 		void Reset();
@@ -5171,8 +5171,8 @@ struct FLUTBlender
 		*/
 		void SetLUT(UTexture *Texture);
 
-		/** 
-		* add a LUT to the ones that are blended together 
+		/**
+		* add a LUT to the ones that are blended together
 		*
 		* @param Texture can be 0 then the call is ignored
 		* @param Weight 0..1
@@ -5189,12 +5189,14 @@ struct FLUTBlender
 
 struct FPostProcessSettings
 {
+    BITFIELD bOverride_InterpolateOverDistance:1;
+    BITFIELD bOverride_InterpolateOverDistanceFade:1;
+    BITFIELD bOverride_bEnableHighQualityDOF:1;
     BITFIELD bOverride_EnableBloom:1;
     BITFIELD bOverride_EnableDOF:1;
     BITFIELD bOverride_EnableMotionBlur:1;
     BITFIELD bOverride_EnableSceneEffect:1;
     BITFIELD bOverride_AllowAmbientOcclusion:1;
-    BITFIELD bOverride_OverrideRimShaderColor:1;
     BITFIELD bOverride_Bloom_Scale:1;
     BITFIELD bOverride_Bloom_Threshold:1;
     BITFIELD bOverride_Bloom_Tint:1;
@@ -5206,12 +5208,12 @@ struct FPostProcessSettings
     BITFIELD bOverride_DOF_MaxNearBlurAmount:1;
     BITFIELD bOverride_DOF_MinBlurAmount:1;
     BITFIELD bOverride_DOF_MaxFarBlurAmount:1;
+    BITFIELD bOverride_DOF_ModulateBlurColor:1;
     BITFIELD bOverride_DOF_FocusType:1;
     BITFIELD bOverride_DOF_FocusInnerRadius:1;
     BITFIELD bOverride_DOF_FocusDistance:1;
     BITFIELD bOverride_DOF_FocusPosition:1;
     BITFIELD bOverride_DOF_InterpolationDuration:1;
-    BITFIELD bOverride_DOF_BokehTexture:1;
     BITFIELD bOverride_MotionBlur_MaxVelocity:1;
     BITFIELD bOverride_MotionBlur_Amount:1;
     BITFIELD bOverride_MotionBlur_FullMotionBlur:1;
@@ -5220,22 +5222,82 @@ struct FPostProcessSettings
     BITFIELD bOverride_MotionBlur_InterpolationDuration:1;
     BITFIELD bOverride_Scene_Desaturation:1;
     BITFIELD bOverride_Scene_Colorize:1;
-    BITFIELD bOverride_Scene_TonemapperScale:1;
     BITFIELD bOverride_Scene_ImageGrainScale:1;
     BITFIELD bOverride_Scene_HighLights:1;
     BITFIELD bOverride_Scene_MidTones:1;
     BITFIELD bOverride_Scene_Shadows:1;
     BITFIELD bOverride_Scene_InterpolationDuration:1;
     BITFIELD bOverride_Scene_ColorGradingLUT:1;
-    BITFIELD bOverride_RimShader_Color:1;
-    BITFIELD bOverride_RimShader_InterpolationDuration:1;
+    BITFIELD bEnableInterpolateOverDistance:1;
+    FLOAT InterpolateOverDistanceFade;
     BITFIELD bEnableBloom:1;
     BITFIELD bEnableDOF:1;
-    BITFIELD bTwoLayerSimpleDepthOfField:1;
+    BITFIELD bEnableHighQualityDOF:1;
     BITFIELD bEnableMotionBlur:1;
     BITFIELD bEnableSceneEffect:1;
     BITFIELD bAllowAmbientOcclusion:1;
-    BITFIELD bOverrideRimShaderColor:1;
+    BITFIELD bOverride_EnableAtmosD1:1;
+    BITFIELD bAtmosD1:1;
+    BITFIELD bOverride_EnableAtmosD1Col:1;
+    SCRIPT_ALIGN;
+    FColor AtmosD1_Colour;
+    BITFIELD bOverride_EnableAtmosD1Den:1;
+    FLOAT AtmosD1_Density;
+    BITFIELD bOverride_EnableAtmosD1Start:1;
+    FLOAT AtmosD1_DistanceStart;
+    BITFIELD bOverride_EnableAtmosD1End:1;
+    FLOAT AtmosD1_DistanceEnd;
+    BITFIELD bOverride_EnableAtmosD2:1;
+    BITFIELD bAtmosD2:1;
+    BITFIELD bOverride_EnableAtmosD2Col:1;
+    SCRIPT_ALIGN;
+    FColor AtmosD2_Colour;
+    BITFIELD bOverride_EnableAtmosD2Den:1;
+    FLOAT AtmosD2_Density;
+    BITFIELD bOverride_EnableAtmosD2Start:1;
+    FLOAT AtmosD2_DistanceStart;
+    BITFIELD bOverride_EnableAtmosD2End:1;
+    FLOAT AtmosD2_DistanceEnd;
+    BITFIELD bOverride_EnableAtmosH1:1;
+    BITFIELD bAtmosH1:1;
+    BITFIELD bOverride_EnableAtmosH1Col:1;
+    SCRIPT_ALIGN;
+    FColor AtmosH1_Colour;
+    BITFIELD bOverride_EnableAtmosH1Den:1;
+    FLOAT AtmosH1_Density;
+    BITFIELD bOverride_EnableAtmosH1Size:1;
+    FLOAT AtmosH1_GradientSize;
+    BITFIELD bOverride_EnableAtmosH1Pos:1;
+    FLOAT AtmosH1_GradientPosition;
+    BITFIELD bOverride_EnableAtmosH2:1;
+    BITFIELD bAtmosH2:1;
+    BITFIELD bOverride_EnableAtmosH2Col:1;
+    SCRIPT_ALIGN;
+    FColor AtmosH2_Colour;
+    BITFIELD bOverride_EnableAtmosH2Den:1;
+    FLOAT AtmosH2_Density;
+    BITFIELD bOverride_EnableAtmosH2Size:1;
+    FLOAT AtmosH2_GradientSize;
+    BITFIELD bOverride_EnableAtmosH2Pos:1;
+    FLOAT AtmosH2_GradientPosition;
+    BITFIELD bOverride_EnableAtmosNoise:1;
+    BITFIELD AtmosNoise:1;
+    BITFIELD bOverride_EnableAtmosNoiseWind:1;
+    SCRIPT_ALIGN;
+    FVector AtmosNoiseWind;
+    BITFIELD bOverride_EnableAtmosNoiseOffset:1;
+    SCRIPT_ALIGN;
+    FVector AtmosNoiseOffset;
+    BITFIELD bOverride_EnableAtmosNoiseFade:1;
+    FLOAT AtmosNoiseFade;
+    BITFIELD bOverride_EnableAtmosGlobal_Gradient_Colour:1;
+    SCRIPT_ALIGN;
+    FColor AtmosGlobal_Gradient_Colour;
+    BITFIELD bOverride_EnableAtmosGlobal_Gradient_Direction:1;
+    SCRIPT_ALIGN;
+    FVector AtmosGlobal_Gradient_Direction;
+    BITFIELD bOverride_EnableAtmosGlobal_Gradient_Density:1;
+    FLOAT AtmosGlobal_Gradient_Density;
     FLOAT Bloom_Scale;
     FLOAT Bloom_Threshold;
     FColor Bloom_Tint;
@@ -5247,12 +5309,12 @@ struct FPostProcessSettings
     FLOAT DOF_MaxNearBlurAmount;
     FLOAT DOF_MinBlurAmount;
     FLOAT DOF_MaxFarBlurAmount;
+    FColor DOF_ModulateBlurColor;
     BYTE DOF_FocusType;
     FLOAT DOF_FocusInnerRadius;
     FLOAT DOF_FocusDistance;
     FVector DOF_FocusPosition;
     FLOAT DOF_InterpolationDuration;
-    class UTexture2D* DOF_BokehTexture;
     FLOAT MotionBlur_MaxVelocity;
     FLOAT MotionBlur_Amount;
     BITFIELD MotionBlur_FullMotionBlur:1;
@@ -5261,14 +5323,11 @@ struct FPostProcessSettings
     FLOAT MotionBlur_InterpolationDuration;
     FLOAT Scene_Desaturation;
     FVector Scene_Colorize;
-    FLOAT Scene_TonemapperScale;
     FLOAT Scene_ImageGrainScale;
     FVector Scene_HighLights;
     FVector Scene_MidTones;
     FVector Scene_Shadows;
     FLOAT Scene_InterpolationDuration;
-    FLinearColor RimShader_Color;
-    FLOAT RimShader_InterpolationDuration;
     class UTexture* ColorGrading_LookupTable;
     struct FLUTBlender ColorGradingLUT;
 
@@ -5279,12 +5338,14 @@ struct FPostProcessSettings
 		/* second constructor, supposed to be used by C++ */
 		FPostProcessSettings(INT A)
 		{
+			bOverride_InterpolateOverDistance = FALSE;
+			bOverride_InterpolateOverDistanceFade = FALSE;
+			bOverride_bEnableHighQualityDOF = TRUE;
 			bOverride_EnableBloom = TRUE;
 			bOverride_EnableDOF = TRUE;
 			bOverride_EnableMotionBlur = TRUE;
 			bOverride_EnableSceneEffect = TRUE;
 			bOverride_AllowAmbientOcclusion = TRUE;
-			bOverride_OverrideRimShaderColor = TRUE;
 
 			bOverride_Bloom_Scale = TRUE;
 			bOverride_Bloom_Threshold = TRUE;
@@ -5298,12 +5359,12 @@ struct FPostProcessSettings
 			bOverride_DOF_MaxNearBlurAmount = TRUE;
 			bOverride_DOF_MinBlurAmount = FALSE;
 			bOverride_DOF_MaxFarBlurAmount = TRUE;
+			bOverride_DOF_ModulateBlurColor = TRUE;
 			bOverride_DOF_FocusType = TRUE;
 			bOverride_DOF_FocusInnerRadius = TRUE;
 			bOverride_DOF_FocusDistance = TRUE;
 			bOverride_DOF_FocusPosition = TRUE;
 			bOverride_DOF_InterpolationDuration = TRUE;
-			bOverride_DOF_BokehTexture = FALSE;
 
 			bOverride_MotionBlur_MaxVelocity = FALSE;
 			bOverride_MotionBlur_Amount = FALSE;
@@ -5313,23 +5374,22 @@ struct FPostProcessSettings
 			bOverride_MotionBlur_InterpolationDuration = FALSE;
 			bOverride_Scene_Desaturation = TRUE;
 			bOverride_Scene_Colorize = FALSE;
-			bOverride_Scene_TonemapperScale = FALSE;
 			bOverride_Scene_ImageGrainScale = FALSE;
 			bOverride_Scene_HighLights = TRUE;
 			bOverride_Scene_MidTones = TRUE;
 			bOverride_Scene_Shadows = TRUE;
 			bOverride_Scene_InterpolationDuration = TRUE;
 			bOverride_Scene_ColorGradingLUT = FALSE;
-			bOverride_RimShader_Color = TRUE;
-			bOverride_RimShader_InterpolationDuration = TRUE;
+
+			bEnableInterpolateOverDistance=FALSE;
+			InterpolateOverDistanceFade=2500.0f;
 
 			bEnableBloom=TRUE;
 			bEnableDOF=FALSE;
-			bTwoLayerSimpleDepthOfField=FALSE;
+			bEnableHighQualityDOF=FALSE;
 			bEnableMotionBlur=TRUE;
 			bEnableSceneEffect=TRUE;
 			bAllowAmbientOcclusion=TRUE;
-			bOverrideRimShaderColor=FALSE;
 
 			Bloom_Scale=1;
 			Bloom_Threshold=1;
@@ -5343,6 +5403,7 @@ struct FPostProcessSettings
 			DOF_MaxNearBlurAmount=1;
 			DOF_MinBlurAmount=0;
 			DOF_MaxFarBlurAmount=1;
+			DOF_ModulateBlurColor=FColor(255,255,255,255);
 			DOF_FocusType=FOCUS_Distance;
 			DOF_FocusInnerRadius=2000;
 			DOF_FocusDistance=0;
@@ -5351,27 +5412,23 @@ struct FPostProcessSettings
 			MotionBlur_MaxVelocity=1.0f;
 			MotionBlur_Amount=0.5f;
 			MotionBlur_FullMotionBlur=TRUE;
-			MotionBlur_CameraRotationThreshold=90.0f;
+			MotionBlur_CameraRotationThreshold=45.0f;
 			MotionBlur_CameraTranslationThreshold=10000.0f;
 			MotionBlur_InterpolationDuration=1;
 
 			Scene_Desaturation=0;
 			Scene_Colorize=FVector(1,1,1);
-			Scene_TonemapperScale=1.0f;
 			Scene_ImageGrainScale=0.0f;
 			Scene_HighLights=FVector(1,1,1);
 			Scene_MidTones=FVector(1,1,1);
 			Scene_Shadows=FVector(0,0,0);
 			Scene_InterpolationDuration=1;
-
-			RimShader_Color=FLinearColor(0.470440f,0.585973f,0.827726f,1.0f);
-			RimShader_InterpolationDuration=1;
 		}
 
 		/**
 		 * Blends the settings on this structure marked as override setting onto the given settings
 		 *
-		 * @param	ToOverride	The settings that get overridden by the overridable settings on this structure. 
+		 * @param	ToOverride	The settings that get overridden by the overridable settings on this structure.
 		 * @param	Alpha		The opacity of these settings. If Alpha is 1, ToOverride will equal this setting structure.
 		 */
 		void OverrideSettingsFor( FPostProcessSettings& ToOverride, FLOAT Alpha=1.f ) const;
@@ -5393,7 +5450,7 @@ struct FPostProcessSettings
 		/**
 		 * Sets all override values to false, which prevents overriding of this struct.
 		 *
-		 * @note	Overrides can be enabled again. 
+		 * @note	Overrides can be enabled again.
 		 */
 		void DisableAllOverrides();
 
@@ -5434,15 +5491,6 @@ struct FPostProcessSettings
 		}
 
 		/**
-		 * Enables rim shader color for the post process settings.
-		 */
-		FORCEINLINE void EnableRimShader()
-		{
-			bOverride_OverrideRimShaderColor = TRUE;
-			bOverrideRimShaderColor = TRUE;
-		}
-
-		/**
 		 * Disables the override to enable bloom if no overrides are set for bloom settings.
 		 */
 		void DisableBloomOverrideConditional();
@@ -5461,11 +5509,6 @@ struct FPostProcessSettings
 		 * Disables the override to enable scene effect if no overrides are set for scene effect settings.
 		 */
 		void DisableSceneEffectOverrideConditional();
-
-		/**
-		 * Disables the override to enable rim shader if no overrides are set for rim shader settings.
-		 */
-		void DisableRimShaderOverrideConditional();
 	
 };
 
@@ -5476,6 +5519,11 @@ public:
     FLOAT Priority;
     struct FPostProcessSettings Settings;
     class APostProcessVolume* NextLowerPriorityVolume;
+    BITFIELD bOverrideDOF:1;
+    BITFIELD bOverrideMotionBlur:1;
+    BITFIELD bOverrideBloom:1;
+    BITFIELD bOverrideScene:1;
+    BITFIELD bOverrideAtmospherics:1;
     BITFIELD bEnabled:1;
     SCRIPT_ALIGN;
     //## END PROPS PostProcessVolume
@@ -21485,6 +21533,7 @@ VERIFY_CLASS_SIZE_NODIE(UBrushComponent)
 VERIFY_CLASS_SIZE_NODIE(UCameraConeComponent)
 VERIFY_CLASS_OFFSET_NODIE(UCylinderComponent,CylinderComponent,CollisionHeight)
 VERIFY_CLASS_OFFSET_NODIE(UCylinderComponent,CylinderComponent,CollisionRadius)
+VERIFY_CLASS_OFFSET_NODIE(UCylinderComponent,CylinderComponent,AABBScale)
 VERIFY_CLASS_OFFSET_NODIE(UCylinderComponent,CylinderComponent,CylinderColor)
 VERIFY_CLASS_SIZE_NODIE(UCylinderComponent)
 VERIFY_CLASS_OFFSET_NODIE(UDrawBoxComponent,DrawBoxComponent,BoxColor)

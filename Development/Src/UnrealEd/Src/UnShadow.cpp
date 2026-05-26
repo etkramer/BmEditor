@@ -618,7 +618,7 @@ FStaticLightingSystem::FStaticLightingSystem(const FLightingBuildOptions& InOpti
 			if (Mappings(CheckMapIdx)->bProcessMapping)
 			{
 				FGuid CheckGuid = Mappings(CheckMapIdx)->Mesh->Guid;
-				if (CheckGuid.A >= (UINT)(Mappings.Num()))
+				if (CheckGuid.SmallGuid >= (UINT)(Mappings.Num()))
 				{
 					warnf(NAME_Warning, TEXT("Lightmass: Error in deterministic lighting for %s:%s"),
 						*(Mappings(CheckMapIdx)->Mesh->Guid.String()), *(Mappings(CheckMapIdx)->GetDescription()));

@@ -640,6 +640,8 @@ class FKBoxElem
 public:
 	FMatrix TM;
 	FLOAT X, Y, Z; // Length (not radius) in each dimension
+	BITFIELD bIsAxisAligned:1;
+	BITFIELD bHasCookedAlignmentData:1;
 	BITFIELD bNoRBCollision:1;
 	BITFIELD bPerPolyShape:1;
 
@@ -711,6 +713,9 @@ public:
 
 	/** Bounding box of this convex hull. */
 	FBox							ElemBox;
+
+	/** Disable rigid body collision for this shape. */
+	BITFIELD						bNoRBCollision:1;
 
 	FKConvexElem() {}
 

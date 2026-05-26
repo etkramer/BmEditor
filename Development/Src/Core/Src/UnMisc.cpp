@@ -2546,14 +2546,14 @@ UBOOL Parse( const TCHAR* Stream, const TCHAR* Match, class FGuid& Guid )
 	if( !Parse( Stream, Match, Temp, ARRAY_COUNT(Temp) ) )
 		return 0;
 
-	Guid.A = 0;
+	Guid.SmallGuid = 0;
 	if( appStrlen(Temp)==32 )
 	{
 		TCHAR* End;
 		Temp[24]=0;
 		Temp[16]=0;
 		Temp[8 ]=0;
-		Guid.A = appStrtoi( Temp+0,  &End, 16 ); Temp[0 ]=0;
+		Guid.SmallGuid = appStrtoi( Temp+0,  &End, 16 ); Temp[0 ]=0;
 	}
 	return 1;
 }

@@ -684,7 +684,7 @@ void ULightComponent::Attach()
 
 		if (bUseImageReflectionSpecular)
 		{
-			Scene->AddImageReflection(this, NULL, 1, FLinearColor(LightColor) * Brightness * ReflectionSpecularBrightness, FALSE, TRUE);
+			Scene->AddImageReflection(this, NULL, 1, FLinearColor(LightColor) * Brightness, FALSE, TRUE);
 		}
 	}
 }
@@ -715,7 +715,7 @@ void ULightComponent::UpdateTransform()
 
 		if (bUseImageReflectionSpecular)
 		{
-			Scene->UpdateImageReflection(this, NULL, 1, FLinearColor(LightColor) * Brightness * ReflectionSpecularBrightness, FALSE, TRUE);
+			Scene->UpdateImageReflection(this, NULL, 1, FLinearColor(LightColor) * Brightness, FALSE, TRUE);
 		}
 	}
 }

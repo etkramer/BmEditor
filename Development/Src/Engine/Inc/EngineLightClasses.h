@@ -529,9 +529,7 @@ public:
     FLOAT MinShadowFalloffRadius;
     FMatrix CachedParentToWorld;
     FVector Translation;
-    FPlane ShadowPlane;
     class UDrawLightRadiusComponent* PreviewLightRadius;
-    struct FLightmassPointLightSettings LightmassSettings;
     class UDrawLightRadiusComponent* PreviewLightSourceRadius;
     //## END PROPS PointLightComponent
 
@@ -1028,6 +1026,7 @@ VERIFY_CLASS_SIZE_NODIE(AStaticLightCollectionActor)
 VERIFY_CLASS_OFFSET_NODIE(ULightComponent,LightComponent,SceneInfo)
 VERIFY_CLASS_OFFSET_NODIE(ULightComponent,LightComponent,WorldToLight)
 VERIFY_CLASS_OFFSET_NODIE(ULightComponent,LightComponent,LightToWorld)
+VERIFY_CLASS_OFFSET_NODIE(ULightComponent,LightComponent,OctreeId)
 VERIFY_CLASS_OFFSET_NODIE(ULightComponent,LightComponent,LightGuid)
 VERIFY_CLASS_OFFSET_NODIE(ULightComponent,LightComponent,LightmapGuid)
 VERIFY_CLASS_OFFSET_NODIE(ULightComponent,LightComponent,Brightness)
@@ -1048,11 +1047,14 @@ VERIFY_CLASS_OFFSET_NODIE(ULightComponent,LightComponent,ModShadowColor)
 VERIFY_CLASS_OFFSET_NODIE(ULightComponent,LightComponent,ModShadowFadeoutTime)
 VERIFY_CLASS_OFFSET_NODIE(ULightComponent,LightComponent,ModShadowFadeoutExponent)
 VERIFY_CLASS_OFFSET_NODIE(ULightComponent,LightComponent,LightListIndex)
+VERIFY_CLASS_OFFSET_NODIE(ULightComponent,LightComponent,CharacterLightListIndex)
 VERIFY_CLASS_OFFSET_NODIE(ULightComponent,LightComponent,ShadowProjectionTechnique)
 VERIFY_CLASS_OFFSET_NODIE(ULightComponent,LightComponent,ShadowFilterQuality)
 VERIFY_CLASS_OFFSET_NODIE(ULightComponent,LightComponent,MinShadowResolution)
 VERIFY_CLASS_OFFSET_NODIE(ULightComponent,LightComponent,MaxShadowResolution)
 VERIFY_CLASS_OFFSET_NODIE(ULightComponent,LightComponent,ShadowFadeResolution)
+VERIFY_CLASS_OFFSET_NODIE(ULightComponent,LightComponent,CoreSize)
+VERIFY_CLASS_OFFSET_NODIE(ULightComponent,LightComponent,OmniFadeRadiusFactor)
 VERIFY_CLASS_OFFSET_NODIE(ULightComponent,LightComponent,OcclusionDepthRange)
 VERIFY_CLASS_OFFSET_NODIE(ULightComponent,LightComponent,BloomScale)
 VERIFY_CLASS_OFFSET_NODIE(ULightComponent,LightComponent,BloomThreshold)
@@ -1060,7 +1062,7 @@ VERIFY_CLASS_OFFSET_NODIE(ULightComponent,LightComponent,BloomScreenBlendThresho
 VERIFY_CLASS_OFFSET_NODIE(ULightComponent,LightComponent,BloomTint)
 VERIFY_CLASS_OFFSET_NODIE(ULightComponent,LightComponent,RadialBlurPercent)
 VERIFY_CLASS_OFFSET_NODIE(ULightComponent,LightComponent,OcclusionMaskDarkness)
-VERIFY_CLASS_OFFSET_NODIE(ULightComponent,LightComponent,ReflectionSpecularBrightness)
+VERIFY_CLASS_OFFSET_NODIE(ULightComponent,LightComponent,CheapLightMesh)
 VERIFY_CLASS_SIZE_NODIE(ULightComponent)
 VERIFY_CLASS_OFFSET_NODIE(UDirectionalLightComponent,DirectionalLightComponent,TraceDistance)
 VERIFY_CLASS_OFFSET_NODIE(UDirectionalLightComponent,DirectionalLightComponent,LightmassSettings)

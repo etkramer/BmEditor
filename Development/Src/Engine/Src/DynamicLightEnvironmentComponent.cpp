@@ -844,7 +844,7 @@ void FDynamicLightEnvironmentState::UpdateStaticEnvironment(ULightComponent* New
 				NewMesh->SetStaticMesh(SphereMesh);
 				NewMesh->LightingChannels.ClearAllChannels();
 				NewMesh->LightingChannels.bInitialized = TRUE;
-				NewMesh->LightingChannels.Unnamed_6 = TRUE;
+				NewMesh->LightingChannels.Unnamed_4 = TRUE;
 				// Don't want the selection highlight to be applied
 				NewMesh->bSelectable = FALSE;
 
@@ -858,7 +858,7 @@ void FDynamicLightEnvironmentState::UpdateStaticEnvironment(ULightComponent* New
 				NewLight->LightingChannels.ClearAllChannels();
 				NewLight->LightingChannels.bInitialized = TRUE;
 				// Use the same lighting channel as the mesh
-				NewLight->LightingChannels.Unnamed_6 = TRUE;
+				NewLight->LightingChannels.Unnamed_4 = TRUE;
 				// Mark the light as being explicitly assigned so that it won't affect any other meshes in the same lighting channel
 				NewLight->bExplicitlyAssignedLight = TRUE;
 				// Set the light's SH environment to match the volume sample
@@ -1221,7 +1221,6 @@ UPointLightComponent* FDynamicLightEnvironmentState::CreateRepresentativeShadowL
 	Light->MinShadowResolution = Component->MinShadowResolution;
 	Light->MaxShadowResolution = Component->MaxShadowResolution;
 	Light->ShadowFadeResolution = Component->ShadowFadeResolution;
-	Light->ShadowPlane = ShadowPlane;
 
 	Light->Brightness = 0;
 
@@ -1724,9 +1723,7 @@ void FDynamicLightEnvironmentState::AddLightToEnvironment(
 {
 	// Determine whether the light affects the owner, and its visibility factor.
 	FLOAT VisibilityFactor;
-	//Make sure we're allowing standard compositing into the DLE
-	if (Light->bAllowCompositingIntoDLE
-		&& DoesLightAffectOwner(Light,OwnerBounds.Origin) 
+	if (DoesLightAffectOwner(Light,OwnerBounds.Origin)
 		&& IsLightVisible(Light,OwnerBounds.Origin,bIsDynamic,VisibilityFactor)
 		// Don't allow lights smaller than half the DLE bounds to affect the DLE if bAffectedBySmallDynamicLights is FALSE
 		&& (Component->bAffectedBySmallDynamicLights || Square(OwnerBounds.SphereRadius) < Light->GetBoundingBox().GetExtent().SizeSquared()))

@@ -177,14 +177,6 @@ class FPointLightSceneInfo : public TPointLightSceneInfo<FPointLightPolicy>
 {
 public:
 
-	/** Plane used for planar shadows on mobile.  */
-	FPlane ShadowPlane;
-
-	virtual FPlane GetShadowPlane() const 
-	{ 
-		return ShadowPlane; 
-	}
-
 	/** Accesses parameters needed for rendering the light. */
 	virtual void GetParameters(FVector4& LightPositionAndInvRadius, FVector4& LightColorAndFalloffExponent, FVector& LightDirection, FVector2D& SpotAngles) const
 	{
@@ -311,8 +303,7 @@ public:
 	}
 
 	FPointLightSceneInfo(const UPointLightComponent* Component) :
-		TPointLightSceneInfo<FPointLightPolicy>(Component),
-		ShadowPlane(Component->ShadowPlane)
+		TPointLightSceneInfo<FPointLightPolicy>(Component)
 	{}
 };
 
@@ -376,15 +367,7 @@ void UPointLightComponent::UpdatePreviewLightSourceRadius()
 {
 	if (PreviewLightSourceRadius)
 	{
-		if (GWorld && GWorld->GetWorldInfo() && (GWorld->GetWorldInfo()->bUseGlobalIllumination == TRUE))
-		{
-			PreviewLightSourceRadius->SphereRadius = LightmassSettings.LightSourceRadius;
-			PreviewLightSourceRadius->Translation = Translation;
-		}
-		else
-		{
-			PreviewLightSourceRadius->SphereRadius = 0.0f;
-		}
+		PreviewLightSourceRadius->SphereRadius = 0.0f;
 	}
 }
 
@@ -459,10 +442,6 @@ void UPointLightComponent::PostEditChangeProperty(FPropertyChangedEvent& Propert
 {
 	// Make sure exponent is > 0.
 	FalloffExponent = Max( (FLOAT) KINDA_SMALL_NUMBER, FalloffExponent );
-	LightmassSettings.LightSourceRadius = Max(LightmassSettings.LightSourceRadius, 0.0f);
-	LightmassSettings.IndirectLightingScale = Max(LightmassSettings.IndirectLightingScale, 0.0f);
-	LightmassSettings.IndirectLightingSaturation = Max(LightmassSettings.IndirectLightingSaturation, 0.0f);
-	LightmassSettings.ShadowExponent = Clamp(LightmassSettings.ShadowExponent, .5f, 8.0f);
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }

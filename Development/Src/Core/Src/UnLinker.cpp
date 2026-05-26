@@ -3736,6 +3736,9 @@ UObject* ULinkerLoad::CreateExport( INT Index )
             LoadClass->GetName() == "Material" ||
 			LoadClass->GetName() == "MaterialInstanceConstant" ||
 
+			LoadClass->GetName() == "World" ||
+			LoadClass->GetName() == "Level" ||
+
 			// Don't load class functions for now
 			LoadClass->GetName() == "Function" ||
 

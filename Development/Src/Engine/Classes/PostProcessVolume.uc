@@ -56,7 +56,7 @@ struct native LUTBlender
 		}
 
 		/**
-		* Clean the container and adds the neutral LUT. 
+		* Clean the container and adds the neutral LUT.
 		* should be called after the render thread copied the data
 		*/
 		void Reset();
@@ -69,8 +69,8 @@ struct native LUTBlender
 		*/
 		void SetLUT(UTexture *Texture);
 
-		/** 
-		* add a LUT to the ones that are blended together 
+		/**
+		* add a LUT to the ones that are blended together
 		*
 		* @param Texture can be 0 then the call is ignored
 		* @param Weight 0..1
@@ -87,180 +87,162 @@ struct native LUTBlender
 
 struct native PostProcessSettings
 {
-	/** Determines if bEnableBloom variable will be overridden. */
+	var	bool			bOverride_InterpolateOverDistance;
+	var	bool			bOverride_InterpolateOverDistanceFade;
+	var	bool			bOverride_bEnableHighQualityDOF;
 	var	bool			bOverride_EnableBloom;
-	
-	/** Determines if bEnableDOF variable will be overridden. */
 	var	bool			bOverride_EnableDOF;
-	
-	/** Determines if bEnableMotionBlur variable will be overridden. */
 	var	bool			bOverride_EnableMotionBlur;
-	
-	/** Determines if bEnableSceneEffect variable will be overridden. */
 	var	bool			bOverride_EnableSceneEffect;
-	
-	/** Determines if bAllowAmbientOcclusion variable will be overridden. */
 	var	bool			bOverride_AllowAmbientOcclusion;
-	
-	/** Determines if bOverrideRimShaderColor variable will be overridden. */
-	var	bool			bOverride_OverrideRimShaderColor;
-	
-	/** Determines if Bloom_Scale variable will be overridden. */
 	var	bool			bOverride_Bloom_Scale;
-
-	/** Determines if Bloom_Threshold variable will be overridden. */
 	var	bool			bOverride_Bloom_Threshold;
-
-	/** Determines if Bloom_Tint variable will be overridden. */
 	var	bool			bOverride_Bloom_Tint;
-
-	/** Determines if Bloom_ScreenBlendThreshold variable will be overridden. */
 	var	bool			bOverride_Bloom_ScreenBlendThreshold;
-	
-	/** Determines if Bloom_InterpolationDuration variable will be overridden. */
 	var	bool			bOverride_Bloom_InterpolationDuration;
-	
-	/** Determines if DOF_FalloffExponent variable will be overridden. */
 	var	bool			bOverride_DOF_FalloffExponent;
-	
-	/** Determines if DOF_BlurKernelSize variable will be overridden. */
 	var	bool			bOverride_DOF_BlurKernelSize;
-	
-	/** Determines if DOF_BlurBloomKernelSize variable will be overridden. */
 	var	bool			bOverride_DOF_BlurBloomKernelSize;
-	
-	/** Determines if DOF_MaxNearBlurAmount variable will be overridden. */
 	var	bool			bOverride_DOF_MaxNearBlurAmount;
-	
-	/** Determines if DOF_MinBlurAmount variable will be overridden. */
 	var	bool			bOverride_DOF_MinBlurAmount;
-
-	/** Determines if DOF_MaxFarBlurAmount variable will be overridden. */
 	var	bool			bOverride_DOF_MaxFarBlurAmount;
-	
-	/** Determines if DOF_FocusType variable will be overridden. */
+	var	bool			bOverride_DOF_ModulateBlurColor;
 	var	bool			bOverride_DOF_FocusType;
-	
-	/** Determines if DOF_FocusInnerRadius variable will be overridden. */
 	var	bool			bOverride_DOF_FocusInnerRadius;
-	
-	/** Determines if DOF_FocusDistance variable will be overridden. */
 	var	bool			bOverride_DOF_FocusDistance;
-	
-	/** Determines if DOF_FocusPosition variable will be overridden. */
 	var	bool			bOverride_DOF_FocusPosition;
-	
-	/** Determines if DOF_InterpolationDuration variable will be overridden. */
 	var	bool			bOverride_DOF_InterpolationDuration;
-
-	/** Determines if DOF_BokehTexture variable will be overridden. */
-	var	bool			bOverride_DOF_BokehTexture;
-	
-	/** Determines if MotionBlur_MaxVelocity variable will be overridden. */
 	var	bool			bOverride_MotionBlur_MaxVelocity;
-	
-	/** Determines if MotionBlur_Amount variable will be overridden. */
 	var	bool			bOverride_MotionBlur_Amount;
-	
-	/** Determines if MotionBlur_FullMotionBlur variable will be overridden. */
 	var	bool			bOverride_MotionBlur_FullMotionBlur;
-	
-	/** Determines if MotionBlur_CameraRotationThreshold variable will be overridden. */
 	var	bool			bOverride_MotionBlur_CameraRotationThreshold;
-	
-	/** Determines if MotionBlur_CameraTranslationThreshold variable will be overridden. */
 	var	bool			bOverride_MotionBlur_CameraTranslationThreshold;
-	
-	/** Determines if MotionBlur_InterpolationDuration variable will be overridden. */
 	var	bool			bOverride_MotionBlur_InterpolationDuration;
-	
-	/** Determines if Scene_Desaturation variable will be overridden. */
 	var	bool			bOverride_Scene_Desaturation;
-	
-	/** Determines if Scene_Colorize variable will be overridden. */
 	var	bool			bOverride_Scene_Colorize;
-
-	/** Determines if Scene_TonemapperScale variable will be overridden. */
-	var	bool			bOverride_Scene_TonemapperScale;
-
-	/** Determines if Scene_ImageGrainScale variable will be overridden. */
 	var	bool			bOverride_Scene_ImageGrainScale;
-
-	/** Determines if Scene_HighLights variable will be overridden. */
 	var	bool			bOverride_Scene_HighLights;
-	
-	/** Determines if Scene_MidTones variable will be overridden. */
 	var	bool			bOverride_Scene_MidTones;
-	
-	/** Determines if Scene_Shadows variable will be overridden. */
 	var	bool			bOverride_Scene_Shadows;
-	
-	/** Determines if Scene_InterpolationDuration variable will be overridden. */
 	var	bool			bOverride_Scene_InterpolationDuration;
-	
-	/** Determines if ColorGrading_LookupTable variable will be overridden. */
 	var	bool			bOverride_Scene_ColorGradingLUT;
-	
-	/** Determines if RimShader_Color variable will be overridden. */
-	var	bool			bOverride_RimShader_Color;
-	
-	/** Determines if RimShader_InterpolationDuration variable will be overridden. */
-	var	bool			bOverride_RimShader_InterpolationDuration;
 
-	/** Whether to use bloom effect.																*/
+	var()				bool			bEnableInterpolateOverDistance<editcondition=bOverride_InterpolateOverDistance>;
+	var()	interp		float			InterpolateOverDistanceFade<editcondition=bOverride_InterpolateOverDistanceFade>;
+
+	/** Whether to use bloom effect. */
 	var(Bloom)	bool			bEnableBloom<editcondition=bOverride_EnableBloom>;
-	/** Whether to use depth of field effect.														*/
-	var(DepthOfField)	bool			bEnableDOF<editcondition=bOverride_EnableDOF>;
-	/** Whether to use two layer simple depth of field effect.										*/
-	var					bool			bTwoLayerSimpleDepthOfField;
-	/** Whether to use motion blur effect.															*/
-	var(MotionBlur)	bool			bEnableMotionBlur<editcondition=bOverride_EnableMotionBlur>;
-	/** Whether to use the material/ scene effect.													*/
+	/** Whether to use depth of field effect. */
+	var(DepthOfField)	bool	bEnableDOF<editcondition=bOverride_EnableDOF>;
+	/** Whether to use high quality DOF. */
+	var(DepthOfField)	bool	bEnableHighQualityDOF<editcondition=bOverride_bEnableHighQualityDOF>;
+	/** Whether to use motion blur effect. */
+	var(MotionBlur)	bool		bEnableMotionBlur<editcondition=bOverride_EnableMotionBlur>;
+	/** Whether to use the material/ scene effect. */
 	var(Scene)	bool			bEnableSceneEffect<editcondition=bOverride_EnableSceneEffect>;
-	/** Whether to allow ambient occlusion.															*/
-	var()	bool			bAllowAmbientOcclusion<editcondition=bOverride_AllowAmbientOcclusion>;
-	/** Whether to override the rim shader color.													*/
-	var(RimShader)	bool			bOverrideRimShaderColor<editcondition=bOverride_OverrideRimShaderColor>;
+	/** Whether to allow ambient occlusion. */
+	var()	bool				bAllowAmbientOcclusion<editcondition=bOverride_AllowAmbientOcclusion>;
 
-	/** Scale for the blooming.																		*/
+	// --- Atmospherics ---
+	var	bool			bOverride_EnableAtmosD1;
+	var	bool			bAtmosD1;
+	var	bool			bOverride_EnableAtmosD1Col;
+	var()	Color		AtmosD1_Colour;
+	var	bool			bOverride_EnableAtmosD1Den;
+	var()	interp float	AtmosD1_Density;
+	var	bool			bOverride_EnableAtmosD1Start;
+	var()	interp float	AtmosD1_DistanceStart;
+	var	bool			bOverride_EnableAtmosD1End;
+	var()	interp float	AtmosD1_DistanceEnd;
+
+	var	bool			bOverride_EnableAtmosD2;
+	var	bool			bAtmosD2;
+	var	bool			bOverride_EnableAtmosD2Col;
+	var()	Color		AtmosD2_Colour;
+	var	bool			bOverride_EnableAtmosD2Den;
+	var()	interp float	AtmosD2_Density;
+	var	bool			bOverride_EnableAtmosD2Start;
+	var()	interp float	AtmosD2_DistanceStart;
+	var	bool			bOverride_EnableAtmosD2End;
+	var()	interp float	AtmosD2_DistanceEnd;
+
+	var	bool			bOverride_EnableAtmosH1;
+	var	bool			bAtmosH1;
+	var	bool			bOverride_EnableAtmosH1Col;
+	var()	Color		AtmosH1_Colour;
+	var	bool			bOverride_EnableAtmosH1Den;
+	var()	interp float	AtmosH1_Density;
+	var	bool			bOverride_EnableAtmosH1Size;
+	var()	interp float	AtmosH1_GradientSize;
+	var	bool			bOverride_EnableAtmosH1Pos;
+	var()	interp float	AtmosH1_GradientPosition;
+
+	var	bool			bOverride_EnableAtmosH2;
+	var	bool			bAtmosH2;
+	var	bool			bOverride_EnableAtmosH2Col;
+	var()	Color		AtmosH2_Colour;
+	var	bool			bOverride_EnableAtmosH2Den;
+	var()	interp float	AtmosH2_Density;
+	var	bool			bOverride_EnableAtmosH2Size;
+	var()	interp float	AtmosH2_GradientSize;
+	var	bool			bOverride_EnableAtmosH2Pos;
+	var()	interp float	AtmosH2_GradientPosition;
+
+	var	bool			bOverride_EnableAtmosNoise;
+	var()	bool		AtmosNoise;
+	var	bool			bOverride_EnableAtmosNoiseWind;
+	var()	interp Vector	AtmosNoiseWind;
+	var	bool			bOverride_EnableAtmosNoiseOffset;
+	var		Vector		AtmosNoiseOffset;
+	var	bool			bOverride_EnableAtmosNoiseFade;
+	var		float		AtmosNoiseFade;
+
+	var	bool			bOverride_EnableAtmosGlobal_Gradient_Colour;
+	var()	Color		AtmosGlobal_Gradient_Colour;
+	var	bool			bOverride_EnableAtmosGlobal_Gradient_Direction;
+	var()	interp Vector	AtmosGlobal_Gradient_Direction;
+	var	bool			bOverride_EnableAtmosGlobal_Gradient_Density;
+	var()	interp float	AtmosGlobal_Gradient_Density;
+
+	/** Scale for the blooming. */
 	var(Bloom)	interp float	Bloom_Scale<editcondition=bOverride_Bloom_Scale>;
-	/** Bloom threshold																				*/
+	/** Bloom threshold */
 	var(Bloom)	interp float	Bloom_Threshold<editcondition=bOverride_Bloom_Threshold>;
-	/** Bloom tint color																			*/
+	/** Bloom tint color */
 	var(Bloom)	interp color	Bloom_Tint<editcondition=bOverride_Bloom_Tint>;
-	/** Bloom screen blend threshold																*/
+	/** Bloom screen blend threshold */
 	var(Bloom)	interp float	Bloom_ScreenBlendThreshold<editcondition=bOverride_Bloom_ScreenBlendThreshold>;
-	/** Duration over which to interpolate values to.												*/
+	/** Duration over which to interpolate values to. */
 	var(Bloom)	float			Bloom_InterpolationDuration<editcondition=bOverride_Bloom_InterpolationDuration>;
-	/** The radius of the bloom effect																*/
+	/** The radius of the bloom effect */
 	var(Bloom)	interp float	DOF_BlurBloomKernelSize<editcondition=bOverride_DOF_BlurBloomKernelSize>;
 
-	/** Exponent to apply to blur amount after it has been normalized to [0,1].						*/
+	/** Exponent to apply to blur amount after it has been normalized to [0,1]. */
 	var(DepthOfField)	interp float	DOF_FalloffExponent<editcondition=bOverride_DOF_FalloffExponent>;
-	/** affects the radius of the DepthOfField bohek / how blurry the scene gets					*/
+	/** affects the radius of the DepthOfField bohek / how blurry the scene gets */
 	var(DepthOfField)	interp float	DOF_BlurKernelSize<editcondition=bOverride_DOF_BlurKernelSize>;
-	/** [0,1] value for clamping how much blur to apply to items in front of the focus plane.		*/
+	/** [0,1] value for clamping how much blur to apply to items in front of the focus plane. */
 	var(DepthOfField, BlurAmount)	interp float	DOF_MaxNearBlurAmount<editcondition=bOverride_DOF_MaxNearBlurAmount | DisplayName=MaxNear>;
-	/** [0,1] value for clamping how much blur to apply.											*/
+	/** [0,1] value for clamping how much blur to apply. */
 	var(DepthOfField, BlurAmount)	interp float	DOF_MinBlurAmount<editcondition=bOverride_DOF_MinBlurAmount | DisplayName=Min>;
-	/** [0,1] value for clamping how much blur to apply to items behind the focus plane.			*/
+	/** [0,1] value for clamping how much blur to apply to items behind the focus plane. */
 	var(DepthOfField, BlurAmount)	interp float	DOF_MaxFarBlurAmount<editcondition=bOverride_DOF_MaxFarBlurAmount | DisplayName=MaxFar>;
-	/** Controls how the focus point is determined.													*/
-	var(DepthOfField)	EFocusType		DOF_FocusType<editcondition=bOverride_DOF_FocusType>;
-	/** Inner focus radius.																			*/
+	/** Color used to modulate DOF blur. */
+	var(DepthOfField)	Color		DOF_ModulateBlurColor<editcondition=bOverride_DOF_ModulateBlurColor>;
+	/** Controls how the focus point is determined. */
+	var(DepthOfField)	EFocusType	DOF_FocusType<editcondition=bOverride_DOF_FocusType>;
+	/** Inner focus radius. */
 	var(DepthOfField)	interp float	DOF_FocusInnerRadius<editcondition=bOverride_DOF_FocusInnerRadius>;
-	/** Used when FOCUS_Distance is enabled.														*/
+	/** Used when FOCUS_Distance is enabled. */
 	var(DepthOfField)	interp float	DOF_FocusDistance<editcondition=bOverride_DOF_FocusDistance>;
-	/** Used when FOCUS_Position is enabled.														*/
-	var(DepthOfField)	vector			DOF_FocusPosition<editcondition=bOverride_DOF_FocusPosition>;
-	/** Duration over which to interpolate values to.												*/
-	var(DepthOfField)	float			DOF_InterpolationDuration<editcondition=bOverride_DOF_InterpolationDuration>;
-	/** Name of the Bokeh texture e.g. EngineMaterial.BokehTexture, empty if not used						*/
-	var(DepthOfField)	Texture2D		DOF_BokehTexture<editcondition=bOverride_DOF_BokehTexture>;
+	/** Used when FOCUS_Position is enabled. */
+	var(DepthOfField)	vector		DOF_FocusPosition<editcondition=bOverride_DOF_FocusPosition>;
+	/** Duration over which to interpolate values to. */
+	var(DepthOfField)	float		DOF_InterpolationDuration<editcondition=bOverride_DOF_InterpolationDuration>;
 
-	/** Maximum blur velocity amount.  This is a clamp on the amount of blur.						*/
+	/** Maximum blur velocity amount.  This is a clamp on the amount of blur. */
 	var(MotionBlur)	interp float	MotionBlur_MaxVelocity<editcondition=bOverride_MotionBlur_MaxVelocity>;
-	/** This is a scalar on the blur																*/
+	/** This is a scalar on the blur */
 	var(MotionBlur)	interp float	MotionBlur_Amount<editcondition=bOverride_MotionBlur_Amount>;
 	/** Whether everything (static/dynamic objects) should motion blur or not. If disabled, only moving objects may blur. */
 	var(MotionBlur)	bool			MotionBlur_FullMotionBlur<editcondition=bOverride_MotionBlur_FullMotionBlur>;
@@ -268,31 +250,25 @@ struct native PostProcessSettings
 	var(MotionBlur)	interp float	MotionBlur_CameraRotationThreshold<editcondition=bOverride_MotionBlur_CameraRotationThreshold>;
 	/** Threshold for when to turn off motion blur when the camera translates swiftly during a single frame (in world units). */
 	var(MotionBlur)	interp float	MotionBlur_CameraTranslationThreshold<editcondition=bOverride_MotionBlur_CameraTranslationThreshold>;
-	/** Duration over which to interpolate values to.												*/
+	/** Duration over which to interpolate values to. */
 	var(MotionBlur)	float			MotionBlur_InterpolationDuration<editcondition=bOverride_MotionBlur_InterpolationDuration>;
-	
-	/** Desaturation amount.																		*/
+
+	/** Desaturation amount. */
 	var(Scene)	interp float	Scene_Desaturation<editcondition=bOverride_Scene_Desaturation>;
-	/** Colorize (color tint after desaturate)														*/
+	/** Colorize (color tint after desaturate) */
 	var(Scene)	interp vector	Scene_Colorize<editcondition=bOverride_Scene_Colorize>;
-	/** HDR tone mapper scale, only used if tone mapper is on, >=0, 0:black, 1(default), >1 brighter */
-	var(Scene)	interp float	Scene_TonemapperScale<editcondition=bOverride_Scene_TonemapperScale>;
-	/** Image grain scale, only affects the darks, >=0, 0:none, 1(strong) should be less than 1								*/
+	/** Image grain scale, only affects the darks, >=0, 0:none, 1(strong) should be less than 1 */
 	var(Scene)	interp float	Scene_ImageGrainScale<editcondition=bOverride_Scene_ImageGrainScale>;
-	/** Controlling white point.																	*/
+	/** Controlling white point. */
 	var(Scene)	interp vector	Scene_HighLights<editcondition=bOverride_Scene_HighLights>;
-	/** Controlling gamma curve.																	*/
+	/** Controlling gamma curve. */
 	var(Scene)	interp vector	Scene_MidTones<editcondition=bOverride_Scene_MidTones>;
-	/** Controlling black point.																	*/
+	/** Controlling black point. */
 	var(Scene)	interp vector	Scene_Shadows<editcondition=bOverride_Scene_Shadows>;
-	/** Duration over which to interpolate values to.												*/
+	/** Duration over which to interpolate values to. */
 	var(Scene)	float			Scene_InterpolationDuration<editcondition=bOverride_Scene_InterpolationDuration>;
 
-	/** Controlling rim shader color.																*/
-	var(RimShader)   LinearColor		RimShader_Color<editcondition=bOverride_RimShader_Color>;
-	/** Duration over which to interpolate values to.												*/
-	var(RimShader)	float			RimShader_InterpolationDuration<editcondition=bOverride_RimShader_InterpolationDuration>;
-	/** Name of the LUT texture e.g. MyPackage01.LUTNeutral, empty if not used						*/
+	/** Name of the LUT texture e.g. MyPackage01.LUTNeutral, empty if not used */
 	var(Scene)	Texture			ColorGrading_LookupTable<editcondition=bOverride_Scene_ColorGradingLUT>;
 	/** Used to blend color grading LUT in a very similar way we blend scalars */
 	var	const private transient	LUTBlender ColorGradingLUT;
@@ -306,12 +282,14 @@ struct native PostProcessSettings
 		/* second constructor, supposed to be used by C++ */
 		FPostProcessSettings(INT A)
 		{
+			bOverride_InterpolateOverDistance = FALSE;
+			bOverride_InterpolateOverDistanceFade = FALSE;
+			bOverride_bEnableHighQualityDOF = TRUE;
 			bOverride_EnableBloom = TRUE;
 			bOverride_EnableDOF = TRUE;
 			bOverride_EnableMotionBlur = TRUE;
 			bOverride_EnableSceneEffect = TRUE;
 			bOverride_AllowAmbientOcclusion = TRUE;
-			bOverride_OverrideRimShaderColor = TRUE;
 
 			bOverride_Bloom_Scale = TRUE;
 			bOverride_Bloom_Threshold = TRUE;
@@ -325,12 +303,12 @@ struct native PostProcessSettings
 			bOverride_DOF_MaxNearBlurAmount = TRUE;
 			bOverride_DOF_MinBlurAmount = FALSE;
 			bOverride_DOF_MaxFarBlurAmount = TRUE;
+			bOverride_DOF_ModulateBlurColor = TRUE;
 			bOverride_DOF_FocusType = TRUE;
 			bOverride_DOF_FocusInnerRadius = TRUE;
 			bOverride_DOF_FocusDistance = TRUE;
 			bOverride_DOF_FocusPosition = TRUE;
 			bOverride_DOF_InterpolationDuration = TRUE;
-			bOverride_DOF_BokehTexture = FALSE;
 
 			bOverride_MotionBlur_MaxVelocity = FALSE;
 			bOverride_MotionBlur_Amount = FALSE;
@@ -340,23 +318,22 @@ struct native PostProcessSettings
 			bOverride_MotionBlur_InterpolationDuration = FALSE;
 			bOverride_Scene_Desaturation = TRUE;
 			bOverride_Scene_Colorize = FALSE;
-			bOverride_Scene_TonemapperScale = FALSE;
 			bOverride_Scene_ImageGrainScale = FALSE;
 			bOverride_Scene_HighLights = TRUE;
 			bOverride_Scene_MidTones = TRUE;
 			bOverride_Scene_Shadows = TRUE;
 			bOverride_Scene_InterpolationDuration = TRUE;
 			bOverride_Scene_ColorGradingLUT = FALSE;
-			bOverride_RimShader_Color = TRUE;
-			bOverride_RimShader_InterpolationDuration = TRUE;
+
+			bEnableInterpolateOverDistance=FALSE;
+			InterpolateOverDistanceFade=2500.0f;
 
 			bEnableBloom=TRUE;
 			bEnableDOF=FALSE;
-			bTwoLayerSimpleDepthOfField=FALSE;
+			bEnableHighQualityDOF=FALSE;
 			bEnableMotionBlur=TRUE;
 			bEnableSceneEffect=TRUE;
 			bAllowAmbientOcclusion=TRUE;
-			bOverrideRimShaderColor=FALSE;
 
 			Bloom_Scale=1;
 			Bloom_Threshold=1;
@@ -370,6 +347,7 @@ struct native PostProcessSettings
 			DOF_MaxNearBlurAmount=1;
 			DOF_MinBlurAmount=0;
 			DOF_MaxFarBlurAmount=1;
+			DOF_ModulateBlurColor=FColor(255,255,255,255);
 			DOF_FocusType=FOCUS_Distance;
 			DOF_FocusInnerRadius=2000;
 			DOF_FocusDistance=0;
@@ -378,27 +356,23 @@ struct native PostProcessSettings
 			MotionBlur_MaxVelocity=1.0f;
 			MotionBlur_Amount=0.5f;
 			MotionBlur_FullMotionBlur=TRUE;
-			MotionBlur_CameraRotationThreshold=90.0f;
+			MotionBlur_CameraRotationThreshold=45.0f;
 			MotionBlur_CameraTranslationThreshold=10000.0f;
 			MotionBlur_InterpolationDuration=1;
 
 			Scene_Desaturation=0;
 			Scene_Colorize=FVector(1,1,1);
-			Scene_TonemapperScale=1.0f;
 			Scene_ImageGrainScale=0.0f;
 			Scene_HighLights=FVector(1,1,1);
 			Scene_MidTones=FVector(1,1,1);
 			Scene_Shadows=FVector(0,0,0);
 			Scene_InterpolationDuration=1;
-
-			RimShader_Color=FLinearColor(0.470440f,0.585973f,0.827726f,1.0f);
-			RimShader_InterpolationDuration=1;
 		}
 
 		/**
 		 * Blends the settings on this structure marked as override setting onto the given settings
 		 *
-		 * @param	ToOverride	The settings that get overridden by the overridable settings on this structure. 
+		 * @param	ToOverride	The settings that get overridden by the overridable settings on this structure.
 		 * @param	Alpha		The opacity of these settings. If Alpha is 1, ToOverride will equal this setting structure.
 		 */
 		void OverrideSettingsFor( FPostProcessSettings& ToOverride, FLOAT Alpha=1.f ) const;
@@ -420,7 +394,7 @@ struct native PostProcessSettings
 		/**
 		 * Sets all override values to false, which prevents overriding of this struct.
 		 *
-		 * @note	Overrides can be enabled again. 
+		 * @note	Overrides can be enabled again.
 		 */
 		void DisableAllOverrides();
 
@@ -461,15 +435,6 @@ struct native PostProcessSettings
 		}
 
 		/**
-		 * Enables rim shader color for the post process settings.
-		 */
-		FORCEINLINE void EnableRimShader()
-		{
-			bOverride_OverrideRimShaderColor = TRUE;
-			bOverrideRimShaderColor = TRUE;
-		}
-
-		/**
 		 * Disables the override to enable bloom if no overrides are set for bloom settings.
 		 */
 		void DisableBloomOverrideConditional();
@@ -488,11 +453,6 @@ struct native PostProcessSettings
 		 * Disables the override to enable scene effect if no overrides are set for scene effect settings.
 		 */
 		void DisableSceneEffectOverrideConditional();
-
-		/**
-		 * Disables the override to enable rim shader if no overrides are set for rim shader settings.
-		 */
-		void DisableRimShaderOverrideConditional();
 	}
 
 	/**
@@ -501,12 +461,14 @@ struct native PostProcessSettings
 	 */
 	structdefaultproperties
 	{
+		bOverride_InterpolateOverDistance=FALSE
+		bOverride_InterpolateOverDistanceFade=FALSE
+		bOverride_bEnableHighQualityDOF=TRUE
 		bOverride_EnableBloom=TRUE
 		bOverride_EnableDOF=TRUE
 		bOverride_EnableMotionBlur=TRUE
 		bOverride_EnableSceneEffect=TRUE
 		bOverride_AllowAmbientOcclusion=TRUE
-		bOverride_OverrideRimShaderColor=TRUE
 		bOverride_Bloom_Scale=TRUE
 		bOverride_Bloom_Threshold=TRUE
 		bOverride_Bloom_Tint=TRUE
@@ -518,12 +480,12 @@ struct native PostProcessSettings
 		bOverride_DOF_MaxNearBlurAmount=TRUE
 		bOverride_DOF_MinBlurAmount=FALSE
 		bOverride_DOF_MaxFarBlurAmount=TRUE
+		bOverride_DOF_ModulateBlurColor=TRUE
 		bOverride_DOF_FocusType=TRUE
 		bOverride_DOF_FocusInnerRadius=TRUE
 		bOverride_DOF_FocusDistance=TRUE
 		bOverride_DOF_FocusPosition=TRUE
 		bOverride_DOF_InterpolationDuration=TRUE
-		bOverride_DOF_BokehTexture=FALSE
 		bOverride_MotionBlur_MaxVelocity=FALSE
 		bOverride_MotionBlur_Amount=FALSE
 		bOverride_MotionBlur_FullMotionBlur=FALSE
@@ -532,39 +494,100 @@ struct native PostProcessSettings
 		bOverride_MotionBlur_InterpolationDuration=FALSE
 		bOverride_Scene_Desaturation=TRUE
 		bOverride_Scene_Colorize=FALSE
-		bOverride_Scene_TonemapperScale=FALSE
 		bOverride_Scene_ImageGrainScale=FALSE
 		bOverride_Scene_HighLights=TRUE
 		bOverride_Scene_MidTones=TRUE
 		bOverride_Scene_Shadows=TRUE
 		bOverride_Scene_InterpolationDuration=TRUE
 		bOverride_Scene_ColorGradingLUT=FALSE
-		bOverride_RimShader_Color=TRUE
-		bOverride_RimShader_InterpolationDuration=TRUE
+
+		bEnableInterpolateOverDistance=FALSE
+		InterpolateOverDistanceFade=2500.0
 
 		bEnableBloom=TRUE
 		bEnableDOF=FALSE
-		bTwoLayerSimpleDepthOfField=FALSE
+		bEnableHighQualityDOF=FALSE
 		bEnableMotionBlur=TRUE
 		bEnableSceneEffect=TRUE
 		bAllowAmbientOcclusion=TRUE
-		bOverrideRimShaderColor=FALSE
-		
+
+		bOverride_EnableAtmosD1=TRUE
+		bAtmosD1=TRUE
+		bOverride_EnableAtmosD1Col=TRUE
+		AtmosD1_Colour=(R=227,G=170,B=113,A=255)
+		bOverride_EnableAtmosD1Den=TRUE
+		AtmosD1_Density=0.0
+		bOverride_EnableAtmosD1Start=TRUE
+		AtmosD1_DistanceStart=500.0
+		bOverride_EnableAtmosD1End=TRUE
+		AtmosD1_DistanceEnd=10000.0
+
+		bOverride_EnableAtmosD2=TRUE
+		bAtmosD2=TRUE
+		bOverride_EnableAtmosD2Col=TRUE
+		AtmosD2_Colour=(R=227,G=170,B=113,A=255)
+		bOverride_EnableAtmosD2Den=TRUE
+		AtmosD2_Density=0.0
+		bOverride_EnableAtmosD2Start=TRUE
+		AtmosD2_DistanceStart=500.0
+		bOverride_EnableAtmosD2End=TRUE
+		AtmosD2_DistanceEnd=10000.0
+
+		bOverride_EnableAtmosH1=TRUE
+		bAtmosH1=TRUE
+		bOverride_EnableAtmosH1Col=TRUE
+		AtmosH1_Colour=(R=227,G=170,B=113,A=255)
+		bOverride_EnableAtmosH1Den=TRUE
+		AtmosH1_Density=0.0
+		bOverride_EnableAtmosH1Size=TRUE
+		AtmosH1_GradientSize=500.0
+		bOverride_EnableAtmosH1Pos=TRUE
+		AtmosH1_GradientPosition=1000.0
+
+		bOverride_EnableAtmosH2=TRUE
+		bAtmosH2=TRUE
+		bOverride_EnableAtmosH2Col=TRUE
+		AtmosH2_Colour=(R=227,G=170,B=113,A=255)
+		bOverride_EnableAtmosH2Den=TRUE
+		AtmosH2_Density=0.0
+		bOverride_EnableAtmosH2Size=TRUE
+		AtmosH2_GradientSize=500.0
+		bOverride_EnableAtmosH2Pos=TRUE
+		AtmosH2_GradientPosition=1000.0
+
+		bOverride_EnableAtmosNoise=TRUE
+		AtmosNoise=FALSE
+		bOverride_EnableAtmosNoiseWind=TRUE
+		AtmosNoiseWind=(X=0.05,Y=0.0175,Z=0.05)
+		bOverride_EnableAtmosNoiseOffset=TRUE
+		AtmosNoiseOffset=(X=0.0,Y=0.0,Z=0.0)
+		bOverride_EnableAtmosNoiseFade=TRUE
+		AtmosNoiseFade=1.0
+
+		bOverride_EnableAtmosGlobal_Gradient_Colour=TRUE
+		AtmosGlobal_Gradient_Colour=(R=255,G=255,B=255,A=255)
+		bOverride_EnableAtmosGlobal_Gradient_Direction=TRUE
+		AtmosGlobal_Gradient_Direction=(X=1.0,Y=0.0,Z=0.0)
+		bOverride_EnableAtmosGlobal_Gradient_Density=TRUE
+		AtmosGlobal_Gradient_Density=0.0
+
 		Bloom_Scale=1
 		Bloom_Threshold=1
-		Bloom_Tint=(R=255,G=255,B=255)
+		Bloom_Tint=(R=255,G=255,B=255,A=0)
 		Bloom_ScreenBlendThreshold=10
 		Bloom_InterpolationDuration=1
+		DOF_BlurBloomKernelSize=8
 
-		DOF_FalloffExponent=4
-		DOF_BlurKernelSize=16
-		DOF_BlurBloomKernelSize=16
+		DOF_FalloffExponent=1
+		DOF_BlurKernelSize=8
 		DOF_MaxNearBlurAmount=1
 		DOF_MinBlurAmount=0
 		DOF_MaxFarBlurAmount=1
+		DOF_ModulateBlurColor=(R=255,G=255,B=255,A=255)
 		DOF_FocusType=FOCUS_Distance
 		DOF_FocusInnerRadius=2000
 		DOF_FocusDistance=0
+		DOF_FocusPosition=(X=0,Y=0,Z=0)
 		DOF_InterpolationDuration=1
 
 		MotionBlur_MaxVelocity=1.0
@@ -576,15 +599,11 @@ struct native PostProcessSettings
 
 		Scene_Desaturation=0
 		Scene_Colorize=(X=1,Y=1,Z=1)
-		Scene_TonemapperScale=1.0f
-		Scene_ImageGrainScale=0.0f
+		Scene_ImageGrainScale=0.0
 		Scene_HighLights=(X=1,Y=1,Z=1)
 		Scene_MidTones=(X=1,Y=1,Z=1)
 		Scene_Shadows=(X=0,Y=0,Z=0)
 		Scene_InterpolationDuration=1
-
-		RimShader_Color=(R=0.470440f,G=0.585973f,B=0.827726f,A=1.0f)
-		RimShader_InterpolationDuration=1
 	}
 
 };
@@ -600,11 +619,16 @@ var()							float					Priority;
  */
 var()							PostProcessSettings		Settings;
 
-/** Next volume in linked listed, sorted by priority in descending order.							*/
+/** Next volume in linked listed, sorted by priority in descending order. */
 var const noimport transient	PostProcessVolume		NextLowerPriorityVolume;
 
+var()							bool					bOverrideDOF;
+var()							bool					bOverrideMotionBlur;
+var()							bool					bOverrideBloom;
+var()							bool					bOverrideScene;
+var()							bool					bOverrideAtmospherics;
 
-/** Whether this volume is enabled or not.															*/
+/** Whether this volume is enabled or not. */
 var()							bool					bEnabled;
 
 replication
@@ -672,5 +696,10 @@ defaultproperties
 	SupportedEvents.Empty
 	SupportedEvents(0)=class'SeqEvent_Touch'
 
+	bOverrideDOF=TRUE
+	bOverrideMotionBlur=TRUE
+	bOverrideBloom=TRUE
+	bOverrideScene=TRUE
+	bOverrideAtmospherics=TRUE
 	bEnabled=True
 }

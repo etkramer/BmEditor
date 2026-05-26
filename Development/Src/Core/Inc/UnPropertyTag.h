@@ -37,7 +37,7 @@ struct FPropertyTag
 	,	ArrayIndex	(InIndex)
 	,	SizeOffset	(INDEX_NONE)
 #if BATMAN
-	,	PropertyOffset(Property ? (WORD)Property->Offset : 0)
+	,	PropertyOffset(Property ? (WORD)(Property->Offset + InIndex * Property->ElementSize) : 0)
 #endif
 	{
 		// Handle structs.

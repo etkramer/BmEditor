@@ -499,14 +499,6 @@ void APointLight::PostEditImport()
 void APointLight::Spawned()
 {
 	Super::Spawned();
-
-	// Set the default value for the LightSourceRadius.
-	// See LightmassPointLightSettings in EngineTypes.uc for an explanation.
-	UPointLightComponent* PtLightComp = Cast<UPointLightComponent>(LightComponent);
-	if (PtLightComp)
-	{
-		PtLightComp->LightmassSettings.LightSourceRadius = 32.0f;
-	}
 }
 
 /**
@@ -515,14 +507,6 @@ void APointLight::Spawned()
 void ASpotLight::Spawned()
 {
 	Super::Spawned();
-
-	// Set the default value for the LightSourceRadius.
-	// See LightmassPointLightSettings in EngineTypes.uc for an explanation.
-	USpotLightComponent* SpotLightComp = Cast<USpotLightComponent>(LightComponent);
-	if (SpotLightComp)
-	{
-		SpotLightComp->LightmassSettings.LightSourceRadius = 32.0f;
-	}
 }
 
 /**

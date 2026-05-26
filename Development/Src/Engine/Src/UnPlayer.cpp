@@ -2805,7 +2805,6 @@ void ULocalPlayer::UpdatePostProcessSettings(const FVector& ViewLocation)
 			NewSettings.MotionBlur_InterpolationDuration = 0;
 			NewSettings.DOF_InterpolationDuration = 0;
 			NewSettings.Scene_InterpolationDuration = 0;
-			NewSettings.RimShader_InterpolationDuration = 0;
 		}
 		bWantToResetToMapDefaultPP = !GWorld->GetWorldInfo()->bPersistPostProcessToNextLevel;
 		LastMap = Map;
@@ -2931,13 +2930,9 @@ void ULocalPlayer::UpdatePPSetting(FCurrentPostProcessVolumeInfo& PPInfo, FPostP
 	// toggles
 	PPInfo.LastSettings.bEnableBloom = NewSettings.bEnableBloom;
 	PPInfo.LastSettings.bEnableDOF = NewSettings.bEnableDOF;
-	PPInfo.LastSettings.bTwoLayerSimpleDepthOfField = NewSettings.bTwoLayerSimpleDepthOfField;
 	PPInfo.LastSettings.bEnableMotionBlur = NewSettings.bEnableMotionBlur;
 	PPInfo.LastSettings.bEnableSceneEffect = NewSettings.bEnableSceneEffect;
 	PPInfo.LastSettings.bAllowAmbientOcclusion = NewSettings.bAllowAmbientOcclusion;
-
-	// ?
-	PPInfo.LastSettings.bOverrideRimShaderColor = NewSettings.bOverrideRimShaderColor;
 
 	if (PPInfo.LastSettings.bEnableBloom)
 	{
@@ -2979,7 +2974,6 @@ void ULocalPlayer::UpdatePPSetting(FCurrentPostProcessVolumeInfo& PPInfo, FPostP
 		LERP_POSTPROCESS(DOF, FocusInnerRadius)
 		LERP_POSTPROCESS(DOF, FocusDistance)
 		LERP_POSTPROCESS(DOF, FocusPosition)
-		SET_POSTPROCESS(DOF, BokehTexture);
 	}
 
 	if (PPInfo.LastSettings.bEnableMotionBlur)
@@ -3026,24 +3020,9 @@ void ULocalPlayer::UpdatePPSetting(FCurrentPostProcessVolumeInfo& PPInfo, FPostP
 		PPInfo.LastSettings.ColorGradingLUT.LerpTo(NewSettings.ColorGrading_LookupTable, LerpAmount);
 		PPInfo.LastSettings.bOverride_Scene_ColorGradingLUT = NewSettings.bOverride_Scene_ColorGradingLUT;
 
-		LERP_POSTPROCESS(Scene, TonemapperScale)
 		LERP_POSTPROCESS(Scene, ImageGrainScale)
 	}
 
-	// rim shader color override
-	if (PPInfo.LastSettings.bOverrideRimShaderColor)
-	{
-		// calc rim shader material lerp amount
-		FLOAT LerpAmount = 1.f;
-		const FLOAT RemainingRimShaderBlendTime = Max(NewSettings.RimShader_InterpolationDuration - ElapsedBlendTime,0.f);
-		if(RemainingRimShaderBlendTime > DeltaTime)
-		{
-			LerpAmount = Clamp<FLOAT>(DeltaTime / RemainingRimShaderBlendTime,0.f,1.f);
-		}
-		PPInfo.LastSettings.RimShader_Color = Lerp<FLinearColor>(PPInfo.LastSettings.RimShader_Color,NewSettings.RimShader_Color,LerpAmount);
-		PPInfo.LastSettings.bOverride_RimShader_Color = NewSettings.bOverride_RimShader_Color;
-	}
-	
 	// Update the current settings and timer.
 	PPInfo.LastBlendTime = CurrentWorldTime;
 }
@@ -3078,9 +3057,7 @@ void ULocalPlayer::OverridePostProcessSettings(struct FPostProcessSettings Overr
 	NewPPSO.BlendInDuration = BlendInTime;
 	NewPPSO.bBlendingOut = FALSE;
 	NewPPSO.CurrentBlendInTime = 0.f;
-	//do not copy this off for the override.  This will determined each frame by the active camera
-	NewPPSO.Settings.bTwoLayerSimpleDepthOfField = FALSE;
-	
+
 	NewPPSO.BlendStartTime = GWorld->GetWorldInfo()->RealTimeSeconds;
 
 	// stick it on the end of the list
@@ -3312,20 +3289,6 @@ FSceneView* ULocalPlayer::CalcSceneView( FSceneViewFamily* ViewFamily, FVector& 
 
 	// Update the player's post process settings.
 	UpdatePostProcessSettings(ViewLocation);
-
-	// Update the pawn MICs to have proper rim light colors.
-	FName static RimLightColorName = FName(TEXT("RimLightColor"));
-	for (APawn *Pawn = GWorld->GetWorldInfo()->PawnList; Pawn != NULL; Pawn = Pawn->NextPawn)
-	{
-		if (Pawn->MIC_PawnMat)
-		{
-			Pawn->MIC_PawnMat->SetVectorParameterValue(RimLightColorName, CurrentPPInfo.LastSettings.RimShader_Color);
-		}
-		if (Pawn->MIC_PawnHair)
-		{
-			Pawn->MIC_PawnHair->SetVectorParameterValue(RimLightColorName, CurrentPPInfo.LastSettings.RimShader_Color);
-		}
-	}
 
 	TSet<UPrimitiveComponent*> HiddenPrimitives;
 

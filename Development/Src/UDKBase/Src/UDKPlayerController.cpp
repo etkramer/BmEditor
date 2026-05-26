@@ -117,7 +117,6 @@ void AUDKPlayerController::ModifyPostProcessSettings(FPostProcessSettings& PPSet
 			PPSettings.Scene_HighLights += BlendWeight * (CamOverridePostProcess.Scene_HighLights - DefaultSettings.Scene_HighLights);
 			PPSettings.Scene_MidTones += BlendWeight * (CamOverridePostProcess.Scene_MidTones - DefaultSettings.Scene_MidTones);
 			PPSettings.Scene_Shadows += BlendWeight * (CamOverridePostProcess.Scene_Shadows - DefaultSettings.Scene_Shadows);
-			PPSettings.Scene_TonemapperScale += BlendWeight * (CamOverridePostProcess.Scene_TonemapperScale - DefaultSettings.Scene_TonemapperScale);
 			PPSettings.Scene_ImageGrainScale += BlendWeight * (CamOverridePostProcess.Scene_ImageGrainScale - DefaultSettings.Scene_ImageGrainScale);
 		}
 	}
@@ -137,7 +136,6 @@ void AUDKPlayerController::ModifyPostProcessSettings(FPostProcessSettings& PPSet
 	PPSettings.Scene_HighLights += PostProcessModifier.Scene_HighLights;
 	PPSettings.Scene_MidTones += PostProcessModifier.Scene_MidTones;
 	PPSettings.Scene_Shadows += PostProcessModifier.Scene_Shadows;
-	PPSettings.Scene_TonemapperScale += PostProcessModifier.Scene_TonemapperScale;
 	PPSettings.Scene_ImageGrainScale += PostProcessModifier.Scene_ImageGrainScale;
 }
 

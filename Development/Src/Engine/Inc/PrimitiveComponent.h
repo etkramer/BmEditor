@@ -1691,6 +1691,7 @@ class UCylinderComponent : public UPrimitiveComponent
 
 	FLOAT	CollisionHeight;
 	FLOAT	CollisionRadius;
+	FLOAT	AABBScale;
 
 	/** Color used to draw the cylinder. */
 	FColor	CylinderColor;

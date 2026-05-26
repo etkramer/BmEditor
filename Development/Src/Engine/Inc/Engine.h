@@ -362,6 +362,7 @@ struct FURL;
 #include "UnPhysPublic.h"					// Public physics integration types.
 #include "LightingBuildOptions.h"			// Definition of lighting build option struct.
 #include "StaticLighting.h"					// Static lighting definitions.
+#include "GenericOctreePublic.h"			// Generic octree public defines
 #include "UnActorComponent.h"				// Actor component definitions.
 #include "PrimitiveComponent.h"				// Primitive component definitions.
 #include "UnParticleHelper.h"				// Particle helper definitions.
@@ -369,7 +370,6 @@ struct FURL;
 #include "UnSceneCapture.h"					// Scene render to texture probes
 #include "UnPhysAsset.h"					// Physics Asset.
 #include "UnInterpolation.h"				// Matinee.
-#include "GenericOctreePublic.h"			// Generic octree public defines
 #define NO_ENUMS 1
 #include "EngineClasses.h"					// All actor classes.
 #include "EngineTextureClasses.h"
