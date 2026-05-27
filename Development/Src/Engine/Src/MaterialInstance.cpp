@@ -1295,7 +1295,7 @@ void UMaterialInstance::Serialize(FArchive& Ar)
 		{
 			// If we are loading a material resource saved before texture references were managed by the material resource,
 			// Pass the legacy texture references to the material resource.
-			StaticPermutationResources[MSP_SM3]->AddLegacyTextures(ReferencedTextures_DEPRECATED);
+			StaticPermutationResources[MSP_SM3]->AddLegacyTextures(ReferencedTextures);
 		}
 		StaticParameters[MSP_SM3]->Serialize(Ar);
 		if (bSerializeShaderMap == TRUE)
@@ -1330,7 +1330,7 @@ void UMaterialInstance::Serialize(FArchive& Ar)
 	if (Ar.Ver() < VER_UNIFORM_EXPRESSIONS_IN_SHADER_CACHE)
 	{
 		// Empty legacy texture references on load
-		ReferencedTextures_DEPRECATED.Empty();
+		ReferencedTextures.Empty();
 	}
 
 	if (Ar.Ver() < VER_INTEGRATED_LIGHTMASS)
@@ -1576,100 +1576,13 @@ UBOOL UMaterialInstance::UpdateLightmassTextureTracking()
 	return bTexturesHaveChanged;
 }
 
-/** @return	The bCastShadowAsMasked value for this material. */
-UBOOL UMaterialInstance::GetCastShadowAsMasked() const
-{
-	if (LightmassSettings.bOverrideCastShadowAsMasked)
-	{
-		return LightmassSettings.bCastShadowAsMasked;
-	}
-
-	if (Parent)
-	{
-		return Parent->GetCastShadowAsMasked();
-	}
-
-	return FALSE;
-}
-
-/** @return	The Emissive boost value for this material. */
-FLOAT UMaterialInstance::GetEmissiveBoost() const
-{
-	if (LightmassSettings.bOverrideEmissiveBoost)
-	{
-		return LightmassSettings.EmissiveBoost;
-	}
-
-	if (Parent)
-	{
-		return Parent->GetEmissiveBoost();
-	}
-
-	return 1.0f;
-}
-
-/** @return	The Diffuse boost value for this material. */
-FLOAT UMaterialInstance::GetDiffuseBoost() const
-{
-	if (LightmassSettings.bOverrideDiffuseBoost)
-	{
-		return LightmassSettings.DiffuseBoost;
-	}
-
-	if (Parent)
-	{
-		return Parent->GetDiffuseBoost();
-	}
-
-	return 1.0f;
-}
-
-/** @return	The Specular boost value for this material. */
-FLOAT UMaterialInstance::GetSpecularBoost() const
-{
-	if (LightmassSettings.bOverrideSpecularBoost)
-	{
-		return LightmassSettings.SpecularBoost;
-	}
-
-	if (Parent)
-	{
-		return Parent->GetSpecularBoost();
-	}
-
-	return 1.0f;
-}
-
-/** @return	The ExportResolutionScale value for this material. */
-FLOAT UMaterialInstance::GetExportResolutionScale() const
-{
-	if (LightmassSettings.bOverrideExportResolutionScale)
-	{
-		return LightmassSettings.ExportResolutionScale;
-	}
-
-	if (Parent)
-	{
-		return Parent->GetExportResolutionScale();
-	}
-
-	return 1.0f;
-}
-
-FLOAT UMaterialInstance::GetDistanceFieldPenumbraScale() const
-{
-	if (LightmassSettings.bOverrideDistanceFieldPenumbraScale)
-	{
-		return LightmassSettings.DistanceFieldPenumbraScale;
-	}
-
-	if (Parent)
-	{
-		return Parent->GetDistanceFieldPenumbraScale();
-	}
-
-	return 1.0f;
-}
+// BM2 has no per-material lightmass override data — just forward to Parent or return safe defaults.
+UBOOL UMaterialInstance::GetCastShadowAsMasked() const     { return Parent ? Parent->GetCastShadowAsMasked()     : FALSE; }
+FLOAT UMaterialInstance::GetEmissiveBoost() const          { return Parent ? Parent->GetEmissiveBoost()          : 1.0f; }
+FLOAT UMaterialInstance::GetDiffuseBoost() const           { return Parent ? Parent->GetDiffuseBoost()           : 1.0f; }
+FLOAT UMaterialInstance::GetSpecularBoost() const          { return Parent ? Parent->GetSpecularBoost()          : 1.0f; }
+FLOAT UMaterialInstance::GetExportResolutionScale() const  { return Parent ? Parent->GetExportResolutionScale()  : 1.0f; }
+FLOAT UMaterialInstance::GetDistanceFieldPenumbraScale() const { return Parent ? Parent->GetDistanceFieldPenumbraScale() : 1.0f; }
 
 /**
  *	Get all of the textures in the expression chain for the given property (ie fill in the given array with all textures in the chain).

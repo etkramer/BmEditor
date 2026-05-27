@@ -8,6 +8,7 @@
 #include "EngineDecalClasses.h"
 
 IMPLEMENT_CLASS(UMaterial);
+IMPLEMENT_CLASS(URPhysicalMaterialTexture);
 
 FMaterialResource::FMaterialResource(UMaterial* InMaterial):
 	Material(InMaterial)
@@ -44,7 +45,7 @@ INT FMaterialResource::CompileProperty(EMaterialShaderPlatform MatPlatform,EMate
 	case MP_AnisotropicDirection: return Material->AnisotropicDirection.Compile(Compiler,FVector(0,1,0));
 	case MP_WorldPositionOffset: return Material->WorldPositionOffset.Compile(Compiler,FVector(0,0,0));
 	case MP_WorldDisplacement: return Material->WorldDisplacement.Compile(Compiler,FVector(0,0,0));
-	case MP_TessellationFactors: return Material->TessellationFactors.Compile(Compiler,FVector2D(1,1));
+	case MP_TessellationFactors: return Compiler->Constant2(1.0f, 1.0f);
 	case MP_SubsurfaceInscatteringColor: return Material->SubsurfaceInscatteringColor.Compile(Compiler,FColor(255,255,255));
 	case MP_SubsurfaceAbsorptionColor: return Material->SubsurfaceAbsorptionColor.Compile(Compiler,FColor(230,200,200));
 	case MP_SubsurfaceScatteringRadius: return Material->SubsurfaceScatteringRadius.Compile(Compiler,0.0f);
@@ -329,7 +330,7 @@ UBOOL UMaterial::GetUsageByFlag(EMaterialUsage Usage) const
 		case MATUSAGE_LensFlare: UsageValue = bUsedWithLensFlare; break;
 		case MATUSAGE_InstancedMeshParticles: UsageValue = bUsedWithInstancedMeshParticles; break;
 		case MATUSAGE_FluidSurface: UsageValue = bUsedWithFluidSurfaces; break;
-		case MATUSAGE_Decals: UsageValue = bUsedWithDecals; break;
+		case MATUSAGE_Decals: UsageValue = FALSE; break;
 		case MATUSAGE_MaterialEffect: UsageValue = bUsedWithMaterialEffect; break;
 		case MATUSAGE_MorphTargets: UsageValue = bUsedWithMorphTargets; break;
 		case MATUSAGE_FogVolumes: UsageValue = bUsedWithFogVolumes; break;
@@ -338,6 +339,11 @@ UBOOL UMaterial::GetUsageByFlag(EMaterialUsage Usage) const
 		case MATUSAGE_SplineMesh: UsageValue = bUsedWithSplineMeshes; break;
 		case MATUSAGE_ScreenDoorFade: UsageValue = bUsedWithScreenDoorFade; break;
 		case MATUSAGE_APEXMesh: UsageValue = bUsedWithAPEXMeshes; break;
+		case MATUSAGE_VertexLighting: UsageValue = bUsedWithVertexLighting; break;
+		case MATUSAGE_StaticModulatedShadows: UsageValue = bUsedWithStaticModulatedShadows; break;
+		case MATUSAGE_PerVertexRockAtmosFog: UsageValue = bUsedWithPerVertexRockAtmosFog; break;
+		case MATUSAGE_LightEnvironments: UsageValue = bUsedWithLightEnvironment; break;
+		case MATUSAGE_StaticMesh: UsageValue = bUsedWithStaticMesh; break;
 		default: appErrorf(TEXT("Unknown material usage: %u"), (INT)Usage);
 	};
 	return UsageValue;
@@ -361,7 +367,7 @@ void UMaterial::SetUsageByFlag(EMaterialUsage Usage, UBOOL NewValue)
 		case MATUSAGE_LensFlare: bUsedWithLensFlare = NewValue; break;
 		case MATUSAGE_InstancedMeshParticles: bUsedWithInstancedMeshParticles = NewValue; break;
 		case MATUSAGE_FluidSurface: bUsedWithFluidSurfaces = NewValue; break;
-		case MATUSAGE_Decals: bUsedWithDecals = NewValue; break;
+		case MATUSAGE_Decals: /* BM2 has no bUsedWithDecals flag */ break;
 		case MATUSAGE_MaterialEffect: bUsedWithMaterialEffect = NewValue; break;
 		case MATUSAGE_MorphTargets: bUsedWithMorphTargets = NewValue; break;
 		case MATUSAGE_FogVolumes: bUsedWithFogVolumes = NewValue; break;
@@ -370,6 +376,11 @@ void UMaterial::SetUsageByFlag(EMaterialUsage Usage, UBOOL NewValue)
 		case MATUSAGE_SplineMesh: bUsedWithSplineMeshes = NewValue; break;
 		case MATUSAGE_ScreenDoorFade: bUsedWithScreenDoorFade = NewValue; break;
 		case MATUSAGE_APEXMesh: bUsedWithAPEXMeshes = NewValue; break;
+		case MATUSAGE_VertexLighting: bUsedWithVertexLighting = NewValue; break;
+		case MATUSAGE_StaticModulatedShadows: bUsedWithStaticModulatedShadows = NewValue; break;
+		case MATUSAGE_PerVertexRockAtmosFog: bUsedWithPerVertexRockAtmosFog = NewValue; break;
+		case MATUSAGE_LightEnvironments: bUsedWithLightEnvironment = NewValue; break;
+		case MATUSAGE_StaticMesh: bUsedWithStaticMesh = NewValue; break;
 		default: appErrorf(TEXT("Unknown material usage: %u"), (INT)Usage);
 	};
 }
@@ -402,6 +413,11 @@ FString UMaterial::GetUsageName(EMaterialUsage Usage) const
 		case MATUSAGE_SplineMesh: UsageName = TEXT("bUsedWithSplineMeshes"); break;
 		case MATUSAGE_ScreenDoorFade: UsageName = TEXT("bUsedWithScreenDoorFade"); break;
 		case MATUSAGE_APEXMesh: UsageName = TEXT("bUsedWithAPEXMeshes"); break;
+		case MATUSAGE_VertexLighting: UsageName = TEXT("bUsedWithVertexLighting"); break;
+		case MATUSAGE_StaticModulatedShadows: UsageName = TEXT("bUsedWithStaticModulatedShadows"); break;
+		case MATUSAGE_PerVertexRockAtmosFog: UsageName = TEXT("bUsedWithPerVertexRockAtmosFog"); break;
+		case MATUSAGE_LightEnvironments: UsageName = TEXT("bUsedWithLightEnvironment"); break;
+		case MATUSAGE_StaticMesh: UsageName = TEXT("bUsedWithStaticMesh"); break;
 		default: appErrorf(TEXT("Unknown material usage: %u"), (INT)Usage);
 	};
 	return UsageName;
@@ -1236,9 +1252,9 @@ void UMaterial::Serialize(FArchive& Ar)
 		{
 			// If we are loading a material resource saved before texture references were managed by the material resource,
 			// Pass the legacy texture references to the material resource.
-			MaterialResources[MSP_SM3]->AddLegacyTextures(ReferencedTextures_DEPRECATED);
+			MaterialResources[MSP_SM3]->AddLegacyTextures(ReferencedTextures);
 			// Empty legacy texture references on load
-			ReferencedTextures_DEPRECATED.Empty();
+			ReferencedTextures.Empty();
 		}
 		if (bSerializeShaderMap == TRUE)
 		{
@@ -2048,7 +2064,6 @@ void UMaterial::RemoveExpressions(UBOOL bRemoveAllExpressions)
 	TwoSidedLightingColor.Expression = NULL;
 	WorldPositionOffset.Expression = NULL;
 	WorldDisplacement.Expression = NULL;
-	TessellationFactors.Expression = NULL;
 	SubsurfaceInscatteringColor.Expression = NULL;
 	SubsurfaceAbsorptionColor.Expression = NULL;
 	SubsurfaceScatteringRadius.Expression = NULL;
@@ -2212,7 +2227,8 @@ FExpressionInput* UMaterial::GetExpressionInputForProperty(EMaterialProperty InP
 		return &WorldDisplacement;
 		break;
 	case MP_TessellationFactors:
-		return &TessellationFactors;
+		// BM2 has no TessellationFactors material input.
+		return NULL;
 		break;
 	case MP_SubsurfaceInscatteringColor:
 		return &SubsurfaceInscatteringColor;

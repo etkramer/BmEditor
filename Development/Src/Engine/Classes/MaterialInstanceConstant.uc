@@ -3,7 +3,6 @@
  */
 class MaterialInstanceConstant extends MaterialInstance
 	native(Material)
-	hidecategories(Object)
 	collapsecategories;
 
 
@@ -52,11 +51,6 @@ cpptext
 	// UMaterialInstance interface.
 	virtual void InitResources();
 
-	/**
-	* Checks if any of the static parameter values are outdated based on what they reference (eg a normalmap has changed format)
-	*
-	* @param	EditorParameters	The new static parameters. 
-	*/
 	virtual void CheckStaticParameterValues(FStaticParameterSet* EditorParameters);
 
 	// UMaterialInterface interface.
@@ -69,18 +63,8 @@ cpptext
 	virtual void PostLoad();
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent);
 
-	/**
-	* Refreshes parameter names using the stored reference to the expression object for the parameter.
-	*/
 	virtual void UpdateParameterNames();
 
-	/**
-	 *	Cleanup the TextureParameter lists in the instance
-	 *
-	 *	@param	InRefdTextureParamsMap		Map of actual TextureParams used by the parent.
-	 *
-	 *	NOTE: This is intended to be called only when cooking for stripped platforms!
-	 */
 	virtual void CleanupTextureParameterReferences(const TMap<FName,UTexture*>& InRefdTextureParamsMap);
 };
 
@@ -94,13 +78,6 @@ native function SetScalarParameterValue(name ParameterName, float Value);
 native function SetTextureParameterValue(name ParameterName, Texture Value);
 native function SetVectorParameterValue(name ParameterName, const out LinearColor Value);
 
-/**
-* Sets the value of the given font parameter.  
-*
-* @param	ParameterName	The name of the font parameter
-* @param	OutFontValue	New font value to set for this MIC
-* @param	OutFontPage		New font page value to set for this MIC
-*/
 native function SetFontParameterValue(name ParameterName, Font FontValue, int FontPage);
 
 

@@ -144,7 +144,8 @@ public:
 	}
 	virtual UBOOL IsDecalMaterial() const
 	{
-		return Material->bUsedWithDecals == 1;
+		// BM2 has no per-material decal-usage flag.
+		return FALSE;
 	}
 	virtual UBOOL IsWireframe() const
 	{
@@ -160,7 +161,7 @@ public:
 	}
 	virtual UBOOL HasSeparateTranslucency() const
 	{
-		return Material->EnableSeparateTranslucency;
+		return FALSE;
 	}
 	virtual UBOOL IsMasked() const
 	{
@@ -426,20 +427,20 @@ INT CalcAutoFlattenTextureSize(UMaterialInterface* MaterialInterface)
  */
 void ConditionalFlattenMaterial(UMaterialInterface* MaterialInterface, UBOOL bReflattenAutoFlattened, const UBOOL bInForceFlatten)
 {
-	//if we're not force flattening, allow an early out
+	// BM2 has no mobile material data — there is nothing to flatten.
+	return;
+
+#if 0 // Legacy mobile auto-flatten code; kept for reference only.
 	if (!bInForceFlatten)
 	{
-		// bail out if this material should never be flattened (eg Landscape MICs)
 		if (!MaterialInterface->bAutoFlattenMobile)
 		{
 			return;
 		}
 
-		// should we flatten materials at all?
 		UBOOL bShouldFlattenMaterials = FALSE;
 		GConfig->GetBool(TEXT("MobileSupport"), TEXT("bShouldFlattenMaterials"), bShouldFlattenMaterials, GEngineIni);
 
-		// if not, return
 		if (!bShouldFlattenMaterials)
 		{
 			return;
@@ -621,6 +622,7 @@ void ConditionalFlattenMaterial(UMaterialInterface* MaterialInterface, UBOOL bRe
 		// cleanup references to original material interface
 		FlattenMaterial->Cleanup();
 	}
+#endif
 }
 
 

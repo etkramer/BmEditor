@@ -519,11 +519,7 @@ public:
 	}
 	virtual UBOOL IsDecalMaterial() const
 	{
-		UMaterial* Material = MaterialInterface ? MaterialInterface->GetMaterial() : NULL;
-		if (Material)
-		{
-			return (Material->bUsedWithDecals == 1);
-		}
+		// BM2 has no per-material decal-usage flag.
 		return FALSE;
 	}
 	virtual UBOOL IsWireframe() const

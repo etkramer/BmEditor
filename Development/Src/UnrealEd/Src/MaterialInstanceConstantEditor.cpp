@@ -22,16 +22,9 @@
 IMPLEMENT_CLASS(UMaterialEditorInstanceConstant);
 
 
-/**Fix up for deprecated properties*/
 void UMaterialEditorInstanceConstant::PostLoad ()
 {
 	Super::PostLoad();
-
-	if (FlattenedTexture_DEPRECATED != NULL)
-	{
-		MobileBaseTexture = FlattenedTexture_DEPRECATED;
-		FlattenedTexture_DEPRECATED = NULL;
-	}
 }
 
 
@@ -299,22 +292,7 @@ void UMaterialEditorInstanceConstant::CopyToSourceInstance()
 		SourceInstance->BlackPhysicalMaterial = PhysicalMaterialMask.BlackPhysicalMaterial;
 		SourceInstance->WhitePhysicalMaterial = PhysicalMaterialMask.WhitePhysicalMaterial;
 
-		// Copy mobile settings
-		SourceInstance->MobileBaseTexture = MobileBaseTexture;
-
-		// Copy the Lightmass settings...
-		SourceInstance->SetOverrideCastShadowAsMasked(LightmassSettings.CastShadowAsMasked.bOverride);
-		SourceInstance->SetCastShadowAsMasked(LightmassSettings.CastShadowAsMasked.ParameterValue);
-		SourceInstance->SetOverrideEmissiveBoost(LightmassSettings.EmissiveBoost.bOverride);
-		SourceInstance->SetEmissiveBoost(LightmassSettings.EmissiveBoost.ParameterValue);
-		SourceInstance->SetOverrideDiffuseBoost(LightmassSettings.DiffuseBoost.bOverride);
-		SourceInstance->SetDiffuseBoost(LightmassSettings.DiffuseBoost.ParameterValue);
-		SourceInstance->SetOverrideSpecularBoost(LightmassSettings.SpecularBoost.bOverride);
-		SourceInstance->SetSpecularBoost(LightmassSettings.SpecularBoost.ParameterValue);
-		SourceInstance->SetOverrideExportResolutionScale(LightmassSettings.ExportResolutionScale.bOverride);
-		SourceInstance->SetExportResolutionScale(LightmassSettings.ExportResolutionScale.ParameterValue);
-		SourceInstance->SetOverrideDistanceFieldPenumbraScale(LightmassSettings.DistanceFieldPenumbraScale.bOverride);
-		SourceInstance->SetDistanceFieldPenumbraScale(LightmassSettings.DistanceFieldPenumbraScale.ParameterValue);
+		// BM2 has neither mobile material data nor per-material lightmass overrides.
 
 		// Update object references and parameter names.
 		SourceInstance->UpdateParameterNames();
@@ -421,20 +399,7 @@ void UMaterialEditorInstanceConstant::SetSourceInstance(UMaterialInstanceConstan
 	PhysicalMaterialMask.BlackPhysicalMaterial = SourceInstance->BlackPhysicalMaterial;
 	PhysicalMaterialMask.WhitePhysicalMaterial = SourceInstance->WhitePhysicalMaterial;
 
-	MobileBaseTexture = SourceInstance->MobileBaseTexture;
-	// Copy the Lightmass settings...
-	LightmassSettings.CastShadowAsMasked.bOverride = SourceInstance->GetOverrideCastShadowAsMasked();
-	LightmassSettings.CastShadowAsMasked.ParameterValue = SourceInstance->GetCastShadowAsMasked();
-	LightmassSettings.EmissiveBoost.bOverride = SourceInstance->GetOverrideEmissiveBoost();
-	LightmassSettings.EmissiveBoost.ParameterValue = SourceInstance->GetEmissiveBoost();
-	LightmassSettings.DiffuseBoost.bOverride = SourceInstance->GetOverrideDiffuseBoost();
-	LightmassSettings.DiffuseBoost.ParameterValue = SourceInstance->GetDiffuseBoost();
-	LightmassSettings.SpecularBoost.bOverride = SourceInstance->GetOverrideSpecularBoost();
-	LightmassSettings.SpecularBoost.ParameterValue = SourceInstance->GetSpecularBoost();
-	LightmassSettings.ExportResolutionScale.bOverride = SourceInstance->GetOverrideExportResolutionScale();
-	LightmassSettings.ExportResolutionScale.ParameterValue = SourceInstance->GetExportResolutionScale();
-	LightmassSettings.DistanceFieldPenumbraScale.bOverride = SourceInstance->GetOverrideDistanceFieldPenumbraScale();
-	LightmassSettings.DistanceFieldPenumbraScale.ParameterValue = SourceInstance->GetDistanceFieldPenumbraScale();
+	// BM2 has neither mobile material data nor per-material lightmass overrides.
 
 	RegenerateArrays();
 

@@ -37,12 +37,12 @@ FMaterialViewRelevance UMaterialInterface::GetViewRelevance()
 		MaterialViewRelevance.bInheritDominantShadowsRelevance = bIsTranslucent && Material->bTranslucencyInheritDominantShadowsFromOpaque;
 		MaterialViewRelevance.bLit = bIsLit;
 		MaterialViewRelevance.bUsesSceneColor = Material->UsesSceneColor();
-		MaterialViewRelevance.bSceneTextureRenderBehindTranslucency = Material->bSceneTextureRenderBehindTranslucency && Material->UsesSceneColor();
+		MaterialViewRelevance.bSceneTextureRenderBehindTranslucency = FALSE;
 		MaterialViewRelevance.bDynamicLitTranslucencyPrepass = bIsTranslucent && bIsLit && Material->bUseLitTranslucencyDepthPass;
 		MaterialViewRelevance.bDynamicLitTranslucencyPostRenderDepthPass = bIsTranslucent && Material->bUseLitTranslucencyPostRenderDepthPass;
 		MaterialViewRelevance.bSoftMasked = Material->BlendMode == BLEND_SoftMasked;
 		MaterialViewRelevance.bTranslucencyDoF = bIsTranslucent && Material->bAllowTranslucencyDoF;
-		MaterialViewRelevance.bSeparateTranslucency = bIsTranslucent && Material->EnableSeparateTranslucency;
+		MaterialViewRelevance.bSeparateTranslucency = FALSE;
 		return MaterialViewRelevance;
 	}
 	else
@@ -52,28 +52,9 @@ FMaterialViewRelevance UMaterialInterface::GetViewRelevance()
 }
 
 
-/**
- * UObject: Performs operations after the object is loaded
- */
 void UMaterialInterface::PostLoad ()
 {
-	// Call parent implementation
 	Super::PostLoad();
-
-	if (FlattenedTexture_DEPRECATED != NULL)
-	{
-		MobileBaseTexture = FlattenedTexture_DEPRECATED;
-		FlattenedTexture_DEPRECATED = NULL;
-	}
-
-	// Backwards compatibility for deprecated property names
-	{
-		// bUseMobileVertexSpecular was renamed to bUseMobileSpecular
-		if( bUseMobileVertexSpecular_DEPRECATED )
-		{
-			bUseMobileSpecular = TRUE;
-		}
-	}
 }
 
 
@@ -96,60 +77,7 @@ INT UMaterialInterface::GetHeight() const
  */
 void UMaterialInterface::StripData(UE3::EPlatformType PlatformsToKeep, UBOOL bStripLargeEditorData)
 {
-	Super::StripData(PlatformsToKeep, bStripLargeEditorData); 
-
-	// remove the flattened texture reference when stripping for non-ES2 platforms
-	if (!(PlatformsToKeep & (UE3::PLATFORM_OpenGLES2 | UE3::PLATFORM_NGP)))
-	{
-		// auto-flattened textures aren't marked as RF_Standalone, so by NULLing it out here, there will be 
-		// no reference to the texture so it won't be saved
-		MobileBaseTexture = NULL;
-		MobileDetailTexture = NULL;
-		MobileEmissiveTexture = NULL;
-		MobileMaskTexture = NULL;
-		MobileNormalTexture = NULL;
-		MobileEnvironmentTexture = NULL;
-	}
-}
-
-
-/**
- * @return the flattened texture for the material
- */
-UTexture* UMaterialInterface::GetMobileTexture(const INT MobileTextureUnit)
-{
-	switch( MobileTextureUnit )
-	{
-		case Base_MobileTexture:
-			{
-				UTexture* BaseTexture = MobileBaseTexture;
-
-				// If no base texture was assigned, then fall back to the default texture.  Mobile materials
-				// are always expecting a valid base texture.
-				if( MobileBaseTexture == NULL )
-				{
-					BaseTexture = GEngine->DefaultTexture;
-				}
-				return BaseTexture;
-			}
-
-		case Detail_MobileTexture:
-			return MobileDetailTexture;
-
-		case Environment_MobileTexture:
-			return MobileEnvironmentTexture;
-
-		case Normal_MobileTexture:
-			return MobileNormalTexture;
-
-		case Mask_MobileTexture:
-			return MobileMaskTexture;
-
-		case Emissive_MobileTexture:
-			return MobileEmissiveTexture;
-	}
-
-	return NULL;
+	Super::StripData(PlatformsToKeep, bStripLargeEditorData);
 }
 
 
@@ -213,12 +141,6 @@ void UMaterialInterface::PostEditChangeProperty(FPropertyChangedEvent& PropertyC
 {
 	// flush the lighting guid on all changes
 	LightingGuid = appCreateGuid();
-
-	LightmassSettings.EmissiveBoost = Max(LightmassSettings.EmissiveBoost, 0.0f);
-	LightmassSettings.DiffuseBoost = Max(LightmassSettings.DiffuseBoost, 0.0f);
-	LightmassSettings.SpecularBoost = Max(LightmassSettings.SpecularBoost, 0.0f);
-	LightmassSettings.ExportResolutionScale = Clamp(LightmassSettings.ExportResolutionScale, 0.0f, 16.0f);
-	LightmassSettings.DistanceFieldPenumbraScale = Clamp(LightmassSettings.DistanceFieldPenumbraScale, 0.01f, 100.0f);
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
@@ -949,56 +871,10 @@ EMaterialTessellationMode FMaterial::GetD3D11TessellationMode() const
  */
 void GetMobileTextureTransformHelper(const UMaterial* InMaterial, TMatrix<3,3>& OutTransform)
 {
-	FLOAT MaterialTime = GCurrentTime - GStartTime;
-	static UBOOL bStaticStopTime = FALSE;
-	if (bStaticStopTime)
-	{
-		MaterialTime = 0;
-	}
-
-	FLOAT Cosine = appCos(InMaterial->RotateSpeed*MaterialTime);
-	FLOAT Sine = appSin(InMaterial->RotateSpeed*MaterialTime);
-
-	//Scalar Values
-	FLOAT ScaleX = InMaterial->FixedScaleX;
-	FLOAT ScaleY = InMaterial->FixedScaleY;
-	if ((InMaterial->SineScaleX!=0.0f) || (InMaterial->SineScaleY!=0.0f))
-	{
-		FLOAT SineCurveValue = appSin(InMaterial->SineScaleFrequencyMultipler*MaterialTime);
-		ScaleX += InMaterial->SineScaleX*SineCurveValue;
-		ScaleY += InMaterial->SineScaleY*SineCurveValue;
-	}
-
-	//Cosine  Sine    0
-	//-Sine   Cosine  0
-	//Tx      Ty      1
-	FVector2D Col0(Cosine, -Sine);
-	FVector2D Col1(Sine, Cosine);
-
-	//Rotator
-	OutTransform.M[0][0] = Cosine*ScaleX;
-	OutTransform.M[0][1] =   Sine*ScaleX;
-	OutTransform.M[1][0] =  -Sine*ScaleY;
-	OutTransform.M[1][1] = Cosine*ScaleY;
-
-	//to ensure that the center offset is respected, we have to move it back to the origin, rotate, and THEN move back to the offset that has been rotated
-	FVector2D OriginalOffsetCenter (InMaterial->TransformCenterX, InMaterial->TransformCenterY);
-	FVector2D RotatedOffsetCenter  (ScaleX*(OriginalOffsetCenter|Col0), ScaleY*(OriginalOffsetCenter|Col1));
-	FVector2D FinalRotationOffset = OriginalOffsetCenter - RotatedOffsetCenter;
-
-	//Translate
-	OutTransform.M[2][0] = FinalRotationOffset.X + appFractional(InMaterial->PannerSpeedX*MaterialTime);		//Tx
-	OutTransform.M[2][1] = FinalRotationOffset.Y + appFractional(InMaterial->PannerSpeedY*MaterialTime);		//Ty
-
-	//Final Matrix looks like
-	//Cosine*ScaleX                          Sine*ScaleX                              0
-	//-Sine*ScaleY                           Cosine**ScaleY                           0
-	//-ScaleX*(Tx*Cosine + Ty*Sine) + Tx     -ScaleY*(Tx*Cosine + -Ty*Sine) + Ty      1
-
-	//Set the rest to identity
-	OutTransform.M[0][2] = 0.0f;
-	OutTransform.M[1][2] = 0.0f;
-	OutTransform.M[2][2] = 1.0f;
+	// BM2 has no mobile texture-transform parameters; return identity.
+	OutTransform.M[0][0] = 1.0f; OutTransform.M[0][1] = 0.0f; OutTransform.M[0][2] = 0.0f;
+	OutTransform.M[1][0] = 0.0f; OutTransform.M[1][1] = 1.0f; OutTransform.M[1][2] = 0.0f;
+	OutTransform.M[2][0] = 0.0f; OutTransform.M[2][1] = 0.0f; OutTransform.M[2][2] = 1.0f;
 }
 
 /**
@@ -1008,91 +884,15 @@ void GetMobileTextureTransformHelper(const UMaterial* InMaterial, TMatrix<3,3>& 
  */
 void FMaterial::FillMobileMaterialVertexParams (const UMaterial* InMaterial, FMobileMaterialVertexParams& OutVertexParams) const
 {
+	// BM2 has no mobile material data — only fill the few fields that come from non-mobile material properties.
 	OutVertexParams.bUseLighting = ( InMaterial->LightingModel != MLM_Unlit );
-	OutVertexParams.bTextureTransformEnabled = InMaterial->bUseMobileTextureTransform;
-	OutVertexParams.TextureTransformTarget = (EMobileTextureTransformTarget)InMaterial->MobileTextureTransformTarget;
-	if (OutVertexParams.bTextureTransformEnabled)
-	{
-		GetMobileTextureTransformHelper(InMaterial, OutVertexParams.TextureTransform);
-	}
-	OutVertexParams.bUseTextureBlend = (InMaterial->MobileDetailTexture != NULL);
-	OutVertexParams.bLockTextureBlend = InMaterial->bLockColorBlending;
-	OutVertexParams.TextureBlendFactorSource = (EMobileTextureBlendFactorSource)InMaterial->MobileTextureBlendFactorSource;
-
-	OutVertexParams.bUseEmissive =
-		InMaterial->MobileEmissiveColorSource == MECS_Constant ||
-		( InMaterial->MobileEmissiveColorSource == MECS_EmissiveTexture && InMaterial->MobileEmissiveTexture != NULL ) ||
-		( InMaterial->MobileEmissiveColorSource == MECS_BaseTexture && InMaterial->MobileBaseTexture != NULL );
-	OutVertexParams.EmissiveColorSource = (EMobileEmissiveColorSource)InMaterial->MobileEmissiveColorSource;
-	OutVertexParams.EmissiveMaskSource = (EMobileValueSource)InMaterial->MobileEmissiveMaskSource;
-	OutVertexParams.EmissiveColor = InMaterial->MobileEmissiveColor;
-
-	OutVertexParams.bUseNormalMapping = (InMaterial->MobileNormalTexture != NULL);
-
-	OutVertexParams.bUseEnvironmentMapping = (InMaterial->MobileEnvironmentTexture != NULL);
-
-	OutVertexParams.bUseSpecular = InMaterial->bUseMobileSpecular;
-	OutVertexParams.bUsePixelSpecular = InMaterial->bUseMobilePixelSpecular;
-	OutVertexParams.SpecularColor = InMaterial->MobileSpecularColor;
-	OutVertexParams.SpecularPower = InMaterial->MobileSpecularPower;
-
-	OutVertexParams.EnvironmentMaskSource = (EMobileValueSource)InMaterial->MobileEnvironmentMaskSource;
-	OutVertexParams.EnvironmentAmount = InMaterial->MobileEnvironmentAmount;
-	OutVertexParams.EnvironmentFresnelAmount = InMaterial->MobileEnvironmentFresnelAmount;
-	OutVertexParams.EnvironmentFresnelExponent = InMaterial->MobileEnvironmentFresnelExponent;
-
-	OutVertexParams.RimLightingColor = InMaterial->MobileRimLightingColor;
-	OutVertexParams.RimLightingStrength = InMaterial->MobileRimLightingStrength;
-	OutVertexParams.RimLightingExponent = InMaterial->MobileRimLightingExponent;
-	OutVertexParams.RimLightingMaskSource = (EMobileValueSource)InMaterial->MobileRimLightingMaskSource;
-
-	//Wave vertex movement
-	OutVertexParams.bWaveVertexMovementEnabled = InMaterial->bUseMobileWaveVertexMovement;
-	if (InMaterial->bUseMobileWaveVertexMovement)
-	{
-		OutVertexParams.VertexMovementTangentFrequencyMultiplier = InMaterial->MobileTangentVertexFrequencyMultiplier;
-		OutVertexParams.VertexMovementVerticalFrequencyMultiplier = InMaterial->MobileVerticalFrequencyMultiplier;
-		OutVertexParams.MaxVertexMovementAmplitude = InMaterial->MobileMaxVertexMovementAmplitude;
-		OutVertexParams.SwayFrequencyMultiplier = InMaterial->MobileSwayFrequencyMultiplier;
-		OutVertexParams.SwayMaxAngle = InMaterial->MobileSwayMaxAngle;
-	}
-
-	OutVertexParams.bAllowFog = InMaterial->bMobileAllowFog;
-
 	OutVertexParams.MaterialBlendMode = (EBlendMode)InMaterial->BlendMode;
-
-	OutVertexParams.BaseTextureTexCoordsSource = (EMobileTexCoordsSource)InMaterial->MobileBaseTextureTexCoordsSource;
-	OutVertexParams.DetailTextureTexCoordsSource = (EMobileTexCoordsSource)InMaterial->MobileDetailTextureTexCoordsSource;
-	OutVertexParams.MaskTextureTexCoordsSource = (EMobileTexCoordsSource)InMaterial->MobileMaskTextureTexCoordsSource;
-
-	OutVertexParams.AmbientOcclusionSource = (EMobileAmbientOcclusionSource)InMaterial->MobileAmbientOcclusionSource;
-
-	OutVertexParams.bUseUniformColorMultiply = InMaterial->bUseMobileUniformColorMultiply;
-	OutVertexParams.UniformMultiplyColor = InMaterial->DefaultUniformColor;;
-	OutVertexParams.bUseVertexColorMultiply = InMaterial->bUseMobileVertexColorMultiply;
-
-	//copy in own name for validation
 	InMaterial->GetName(OutVertexParams.MaterialName);
 }
 
-/**
- * Internal helper functions to fill in the pixel params struct
- * @param InMaterial - The Material to draw the parameters from
- * @param OutVertexParams - Vertex parameter structure to pass to the shader system
- */
 void FMaterial::FillMobileMaterialPixelParams (const UMaterial* InMaterial, FMobileMaterialPixelParams& OutPixelParams) const
 {
-	OutPixelParams.bBumpOffsetEnabled = InMaterial->bUseMobileBumpOffset;
-	if( OutPixelParams.bBumpOffsetEnabled )
-	{
-		OutPixelParams.BumpReferencePlane = InMaterial->MobileBumpOffsetReferencePlane;
-		OutPixelParams.BumpHeightRatio = InMaterial->MobileBumpOffsetHeightRatio;
-	}
-	OutPixelParams.SpecularMask = static_cast<EMobileSpecularMask>( InMaterial->MobileSpecularMask );
-
-	OutPixelParams.EnvironmentBlendMode = static_cast<EMobileEnvironmentBlendMode>( InMaterial->MobileEnvironmentBlendMode );
-	OutPixelParams.EnvironmentColorScale = InMaterial->MobileEnvironmentColor;
-
+	// BM2 has no mobile material data.
 }
 
 const TArray<TRefCountPtr<FMaterialUniformExpressionTexture> >& FMaterial::GetUniform2DTextureExpressions() const 
@@ -1451,7 +1251,8 @@ UBOOL FMaterialResource::IsUsedWithMaterialEffect() const
 
 UBOOL FMaterialResource::IsUsedWithDecals() const
 {
-	return Material->bUsedWithDecals;
+	// BM2 has no per-material "used with decals" flag.
+	return FALSE;
 }
 
 UBOOL FMaterialResource::IsUsedWithMorphTargets() const
@@ -1479,9 +1280,10 @@ UBOOL FMaterialResource::IsUsedWithScreenDoorFade() const
 	return Material->bUsedWithScreenDoorFade;
 }
 
-EMaterialTessellationMode FMaterialResource::GetD3D11TessellationMode() const 
-{ 
-	return (EMaterialTessellationMode)Material->D3D11TessellationMode; 
+EMaterialTessellationMode FMaterialResource::GetD3D11TessellationMode() const
+{
+	// BM2 doesn't expose a per-material tessellation mode.
+	return MTM_NoTessellation;
 }
 
 UBOOL FMaterialResource::IsUsedWithAPEXMeshes() const
@@ -1500,7 +1302,7 @@ EMaterialLightingModel FMaterialResource::GetLightingModel() const { return (EMa
 
 UBOOL FMaterialResource::IsMobileTextureCoordinateTransformed () const
 {
-	return Material->bUseMobileTextureTransform;
+	return FALSE;
 }
 
 
@@ -1508,6 +1310,7 @@ UBOOL FMaterialResource::IsMobileTextureCoordinateTransformed () const
 /** Helper function to accumulate all the material constants */
 void GatherMaterialKeyData (ProgramKeyData& MaterialKeyData, const UMaterialInterface* MaterialInterface, const UWorld* InWorld)
 {
+	// BM2 doesn't have any of the mobile material data this used to gather; emit only the non-mobile keys.
 	BYTE LightingModel = MLM_Unlit;
 	BYTE BlendMode = BLEND_Opaque;
 
@@ -1521,50 +1324,6 @@ void GatherMaterialKeyData (ProgramKeyData& MaterialKeyData, const UMaterialInte
 	ASSIGN_PROGRAM_KEY_VALUE( PKDT_IsLightingEnabled, MaterialKeyData, (LightingModel != MLM_Unlit) );
 	ASSIGN_PROGRAM_KEY_VALUE( PKDT_IsAlphaTestEnabled, MaterialKeyData, (BlendMode == BLEND_Masked || BlendMode == BLEND_DitheredTranslucent) );
 	ASSIGN_PROGRAM_KEY_VALUE( PKDT_UsingAdditiveMaterial, MaterialKeyData, (BlendMode == BLEND_Additive) );
-	ASSIGN_PROGRAM_KEY_VALUE( PKDT_BaseTextureTexCoordsSource, MaterialKeyData, MaterialInterface->MobileBaseTextureTexCoordsSource );
-	ASSIGN_PROGRAM_KEY_VALUE( PKDT_DetailTextureTexCoordsSource, MaterialKeyData, MaterialInterface->MobileDetailTextureTexCoordsSource );
-	if (MaterialInterface->MobileDetailTexture == NULL)
-	{
-		OVERRIDE_PROGRAM_KEY_VALUE (PKDT_DetailTextureTexCoordsSource, MaterialKeyData, 0);
-	}
-	ASSIGN_PROGRAM_KEY_VALUE( PKDT_MaskTextureTexCoordsSource, MaterialKeyData, MaterialInterface->MobileMaskTextureTexCoordsSource );
-	ASSIGN_PROGRAM_KEY_VALUE( PKDT_IsTextureCoordinateTransformEnabled, MaterialKeyData, MaterialInterface->bUseMobileTextureTransform );
-	ASSIGN_PROGRAM_KEY_VALUE( PKDT_TextureTransformTarget, MaterialKeyData, MaterialInterface->MobileTextureTransformTarget );
-	ASSIGN_PROGRAM_KEY_VALUE( PKDT_IsSpecularEnabled, MaterialKeyData, MaterialInterface->bUseMobileSpecular );
-	ASSIGN_PROGRAM_KEY_VALUE( PKDT_IsPixelSpecularEnabled, MaterialKeyData, MaterialInterface->bUseMobilePixelSpecular );
-	ASSIGN_PROGRAM_KEY_VALUE( PKDT_IsNormalMappingEnabled, MaterialKeyData, (MaterialInterface->MobileNormalTexture != NULL) );
-	ASSIGN_PROGRAM_KEY_VALUE( PKDT_IsEnvironmentMappingEnabled, MaterialKeyData, (MaterialInterface->MobileEnvironmentTexture != NULL) );
-	ASSIGN_PROGRAM_KEY_VALUE( PKDT_MobileEnvironmentBlendMode, MaterialKeyData, MaterialInterface->MobileEnvironmentBlendMode);
-	ASSIGN_PROGRAM_KEY_VALUE( PKDT_IsMobileEnvironmentFresnelEnabled, MaterialKeyData, (MaterialInterface->MobileEnvironmentFresnelAmount != 0.0f) );
-	ASSIGN_PROGRAM_KEY_VALUE( PKDT_IsBumpOffsetEnabled, MaterialKeyData, MaterialInterface->bUseMobileBumpOffset );
-	ASSIGN_PROGRAM_KEY_VALUE( PKDT_IsColorTextureBlendingEnabled, MaterialKeyData, (MaterialInterface->MobileDetailTexture != NULL) );
-	// if there is a material, like water, that will be broken without this feature, force it to stay as desired and not be overwritten by system settings
-	LOCK_PROGRAM_KEY_VALUE(PKDT_IsColorTextureBlendingEnabled, MaterialKeyData, MaterialInterface->bLockColorBlending);
-
-	ASSIGN_PROGRAM_KEY_VALUE( PKDT_TextureBlendFactorSource, MaterialKeyData, MaterialInterface->MobileTextureBlendFactorSource );
-	ASSIGN_PROGRAM_KEY_VALUE( PKDT_IsWaveVertexMovementEnabled, MaterialKeyData, MaterialInterface->bUseMobileWaveVertexMovement );
-	ASSIGN_PROGRAM_KEY_VALUE( PKDT_SpecularMask, MaterialKeyData, MaterialInterface->MobileSpecularMask );
-	ASSIGN_PROGRAM_KEY_VALUE( PKDT_AmbientOcclusionSource, MaterialKeyData, MaterialInterface->MobileAmbientOcclusionSource );
-	//ASSIGN_PROGRAM_KEY_VALUE( PKDT_FixedLightmapScaleFactor, MaterialKeyData, (InWorld ? InWorld->GetWorldInfo()->FixedLightmapScale : 0) );
-	//ASSIGN_PROGRAM_KEY_VALUE( PKDT_SimpleLightmapsStoredInLinearSpace, MaterialKeyData, (InWorld ? InWorld->GetWorldInfo()->bSimpleLightmapsStoredInLinearSpace : 0) );
-	ASSIGN_PROGRAM_KEY_VALUE( PKDT_UseUniformColorMultiply, MaterialKeyData, MaterialInterface->bUseMobileUniformColorMultiply );
-	ASSIGN_PROGRAM_KEY_VALUE( PKDT_UseVertexColorMultiply, MaterialKeyData, MaterialInterface->bUseMobileVertexColorMultiply );
-	ASSIGN_PROGRAM_KEY_VALUE( PKDT_IsRimLightingEnabled, MaterialKeyData, (MaterialInterface->MobileRimLightingStrength != 0.0f) );
-	ASSIGN_PROGRAM_KEY_VALUE( PKDT_RimLightingMaskSource, MaterialKeyData, MaterialInterface->MobileRimLightingMaskSource );
-	ASSIGN_PROGRAM_KEY_VALUE( PKDT_EnvironmentMaskSource, MaterialKeyData, MaterialInterface->MobileEnvironmentMaskSource );
-
-	const UBOOL bUseEmissive =
-		MaterialInterface->MobileEmissiveColorSource == MECS_Constant ||
-		( MaterialInterface->MobileEmissiveColorSource == MECS_EmissiveTexture && MaterialInterface->MobileEmissiveTexture != NULL ) ||
-		( MaterialInterface->MobileEmissiveColorSource == MECS_BaseTexture && MaterialInterface->MobileBaseTexture != NULL );
-	ASSIGN_PROGRAM_KEY_VALUE( PKDT_IsEmissiveEnabled, MaterialKeyData, bUseEmissive ? 1 : 0 );
-	ASSIGN_PROGRAM_KEY_VALUE( PKDT_EmissiveColorSource, MaterialKeyData, MaterialInterface->MobileEmissiveColorSource );
-	ASSIGN_PROGRAM_KEY_VALUE( PKDT_EmissiveMaskSource, MaterialKeyData, MaterialInterface->MobileEmissiveMaskSource );
-	if( !bUseEmissive )
-	{
-		OVERRIDE_PROGRAM_KEY_VALUE( PKDT_EmissiveColorSource, MaterialKeyData, 0 );
-		OVERRIDE_PROGRAM_KEY_VALUE( PKDT_EmissiveMaskSource, MaterialKeyData, 0 );
-	}
 }
 
 
@@ -1592,7 +1351,7 @@ QWORD FMaterialResource::GetMobileMaterialSortKey (void) const
 
 	//World/Misc
 	ASSIGN_PROGRAM_KEY_VALUE( PKDT_IsDepthOnlyRendering, MaterialKeyData, FALSE );						//UNKNOWN
-	ASSIGN_PROGRAM_KEY_VALUE( PKDT_IsGradientFogEnabled, MaterialKeyData, Material->bMobileAllowFog );	//just use this as a sort key IN CASE of using fog
+	ASSIGN_PROGRAM_KEY_VALUE( PKDT_IsGradientFogEnabled, MaterialKeyData, FALSE );
 	ASSIGN_PROGRAM_KEY_VALUE( PKDT_ParticleScreenAlignment, MaterialKeyData, 0 );						//UNKNOWN
 
 	//Vertex Factory Flags
@@ -1623,7 +1382,7 @@ UBOOL FMaterialResource::IsDistorted() const { return Material->bUsesDistortion 
 
 UBOOL FMaterialResource::HasSubsurfaceScattering() const { return Material->EnableSubsurfaceScattering; }
 
-UBOOL FMaterialResource::HasSeparateTranslucency() const { return Material->EnableSeparateTranslucency; }
+UBOOL FMaterialResource::HasSeparateTranslucency() const { return FALSE; }
 
 /**
  * Check if the material is masked and uses an expression or a constant that's not 1.0f for opacity.
@@ -1633,11 +1392,11 @@ UBOOL FMaterialResource::IsMasked() const { return Material->bIsMasked; }
 
 UBOOL FMaterialResource::UsesImageBasedReflections() const { return Material->bUseImageBasedReflections; }
 
-UBOOL FMaterialResource::UsesMaskedAntialiasing() const { return Material->bEnableMaskedAntialiasing; }
+UBOOL FMaterialResource::UsesMaskedAntialiasing() const { return FALSE; }
 
-FLOAT FMaterialResource::GetImageReflectionNormalDampening() const { return Material->ImageReflectionNormalDampening; }
+FLOAT FMaterialResource::GetImageReflectionNormalDampening() const { return 5.0f; }
 
-FLOAT FMaterialResource::GetShadowDepthBias() const { return Material->ShadowDepthBias; }
+FLOAT FMaterialResource::GetShadowDepthBias() const { return 0.0f; }
 
 /** @return TRUE if the author wants the camera vector to be computed per-pixel */
 UBOOL FMaterialResource::UsesPerPixelCameraVector() const {	return Material->bPerPixelCameraVector; }

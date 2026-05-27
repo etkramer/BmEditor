@@ -1092,9 +1092,9 @@ UBOOL ULensFlareComponent::HasSeparateTranslucency() const
 			if (InnerElement.ElementMaterials(InnerIdx))
 			{
 				UMaterial* Material = InnerElement.ElementMaterials(InnerIdx)->GetMaterial();
-				if (Material && Material->EnableSeparateTranslucency)
+				if (Material)
 				{
-					return TRUE;
+					// BM2 has no per-material separate-translucency flag.
 				}
 			}
 		}

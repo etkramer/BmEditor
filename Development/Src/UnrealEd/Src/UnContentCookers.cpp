@@ -284,7 +284,8 @@ public:
 			FullyIteratedFields.AddItem(PKDT_IsDepthOnlyRendering);
 
 			//FOG - if the world doesn't exist (a script referenced asset) or fog is both enabled and the material uses it
-			UBOOL bFogRequested = !InWorld || (InWorld->GetWorldInfo()->bFogEnabled && (InMaterial->bMobileAllowFog));
+			// BM2 has no per-material mobile-fog flag; only honour the world setting.
+			UBOOL bFogRequested = !InWorld || InWorld->GetWorldInfo()->bFogEnabled;
 			if (bFogRequested)
 			{
 				FullyIteratedFields.AddItem(PKDT_IsGradientFogEnabled);
@@ -4070,52 +4071,7 @@ void UCookPackagesCommandlet::CookLandscapeComponent(ULandscapeComponent* Landsc
  */
 static void ConditionalUpdateFlattenedTexture(UMaterialInterface* MaterialInterface)
 {
-	if (MaterialInterface->HasAnyFlags(RF_ClassDefaultObject))
-	{
-		return;
-	}
-
-	// get the textures used in the material
-	TArray<UTexture*> Textures;
-	
-	MaterialInterface->GetUsedTextures(Textures);
-
-	// if we don't have a texture, we want to set it (use the dominant texture directly so instances
-	// don't go up the chain)
-	if (!MaterialInterface->MobileBaseTexture)
-	{
-		// then hunt down a suitable texture
-		for (INT TextureIndex = 0; TextureIndex < Textures.Num(); TextureIndex++)
-		{
-			UTexture* Texture = Textures(TextureIndex);
-			if (Texture)
-			{
-				// find the first non-normal/spec map and use it
-				if (
-					Texture->LODGroup == TEXTUREGROUP_World || Texture->LODGroup == TEXTUREGROUP_Character ||
-					Texture->LODGroup == TEXTUREGROUP_Weapon || Texture->LODGroup == TEXTUREGROUP_Vehicle ||
-					Texture->LODGroup == TEXTUREGROUP_Cinematic || Texture->LODGroup == TEXTUREGROUP_Effects ||
-					Texture->LODGroup == TEXTUREGROUP_UI || Texture->LODGroup == TEXTUREGROUP_Skybox ||
-					Texture->LODGroup == TEXTUREGROUP_EffectsNotFiltered
-					)
-				{
-					MaterialInterface->MobileBaseTexture = Texture;
-					break;
-				}
-			}
-		}
-
-		// if still nothing found, then use the first texture
-		if (MaterialInterface->MobileBaseTexture == NULL && Textures.Num() > 0)
-		{
-			MaterialInterface->MobileBaseTexture = Textures(0);
-		}
-
-//		if (MaterialInterface->GetName().InStr(TEXT("Fallback")) == -1)
-//		{
-//			warnf(TEXT("Choosing a texture for material %s. Consider resaving the package!"), *MaterialInterface->GetFullName());
-//		}
-	}
+	// BM2 has no mobile flattened texture.
 }
 
 /**
@@ -10987,15 +10943,8 @@ INT UCookPackagesCommandlet::Main( const FString& Params )
 						UMaterialInstance* MaterialInstance = *It;
 						if (!MaterialInstance->HasAnyFlags(RF_ClassDefaultObject|RF_Transient))
 						{
-							ConditionalUpdateFlattenedTexture(MaterialInstance);
-							// make sure the flattening was successful
-							if (!MaterialInstance->MobileBaseTexture)
-							{
-								warnf(TEXT("Failed to find a flattened texture for %s"), *MaterialInstance->GetFullName());
-							}
-
-							// for flattened MICs, make sure that all the textures referenced by expressions are cleared out
-							// because we do not need them to be loaded on the device
+							// BM2 has no mobile flattened texture; only clear parameter overrides
+							// so static permutation textures aren't kept alive on disk unnecessarily.
 							MaterialInstance->ClearParameterValues();
 
 							for (INT Platform = 0; Platform < MSP_MAX; Platform++)
@@ -11013,19 +10962,11 @@ INT UCookPackagesCommandlet::Main( const FString& Params )
 					for( TObjectIterator<UMaterial> It; It; ++It )
 					{
 						UMaterial* Material = *It;
-						if (Material && !Material->HasAnyFlags(RF_Transient)) // && !Material->HasAnyFlags(RF_ClassDefaultObject) ) 
+						if (Material && !Material->HasAnyFlags(RF_Transient))
 						{
 							GMobileShaderCooker.AddMobileShaderKey(Material, World);
 
-							ConditionalUpdateFlattenedTexture(Material);
-							// make sure the flattening was successful
-							if (!Material->MobileBaseTexture)
-							{
-								warnf(TEXT("Failed to find a flattened texture for %s"), *Material->GetFullName());
-							}
-
-							// for flattened materials, make sure that all the textures referenced by expressions are cleared out
-							// because we do not need them to be loaded on the device
+							// BM2 has no mobile flattened texture.
 							Material->RemoveExpressions(TRUE);
 							Material->ReferencedTextureGuids.Empty();
 						}

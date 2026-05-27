@@ -995,11 +995,7 @@ public:
 	}
 	virtual UBOOL IsDecalMaterial() const
 	{
-		UMaterial* Material = MaterialInterface ? MaterialInterface->GetMaterial() : NULL;
-		if (Material)
-		{
-			return (Material->bUsedWithDecals == 1);
-		}
+		// BM2 has no per-material decal-usage flag.
 		return FALSE;
 	}
 	virtual UBOOL IsWireframe() const
@@ -3112,9 +3108,7 @@ UBOOL UMaterialExporterT3D::ExportText(const FExportObjectInnerContext* Context,
 		UStructProperty_ExportTextItem(VectorMaterialInputStruct, ValueString, (BYTE*)&(MaterialObj->WorldDisplacement), NULL, MaterialObj, PortFlags);
 		Ar.Logf(TEXT("%sWorldDisplacement=%s") LINE_TERMINATOR, appSpc(TextIndent), *ValueString);
 		ValueString = TEXT("");
-		UStructProperty_ExportTextItem(Vector2MaterialInputStruct, ValueString, (BYTE*)&(MaterialObj->TessellationFactors), NULL, MaterialObj, PortFlags);
-		Ar.Logf(TEXT("%TessellationFactors=%s") LINE_TERMINATOR, appSpc(TextIndent), *ValueString);
-		ValueString = TEXT("");
+		// BM2 has no TessellationFactors input.
 		UStructProperty_ExportTextItem(ColorMaterialInputStruct, ValueString, (BYTE*)&(MaterialObj->SubsurfaceInscatteringColor), NULL, MaterialObj, PortFlags);
 		Ar.Logf(TEXT("%SubsurfaceInscatteringColor=%s") LINE_TERMINATOR, appSpc(TextIndent), *ValueString);
 		ValueString = TEXT("");
@@ -3139,7 +3133,7 @@ UBOOL UMaterialExporterT3D::ExportText(const FExportObjectInnerContext* Context,
 		ExportBooleanProperty(TEXT("bUsedWithGammaCorrection"), MaterialObj->bUsedWithGammaCorrection, Ar, PortFlags);
 		ExportBooleanProperty(TEXT("bUsedWithInstancedMeshParticles"), MaterialObj->bUsedWithInstancedMeshParticles, Ar, PortFlags);
 		ExportBooleanProperty(TEXT("bUsedWithFluidSurfaces"), MaterialObj->bUsedWithFluidSurfaces, Ar, PortFlags);
-		ExportBooleanProperty(TEXT("bUsedWithDecals"), MaterialObj->bUsedWithDecals, Ar, PortFlags);
+		// BM2 has no bUsedWithDecals flag.
 		ExportBooleanProperty(TEXT("bUsedWithMaterialEffect"), MaterialObj->bUsedWithMaterialEffect, Ar, PortFlags);
 		ExportBooleanProperty(TEXT("bUsedWithRadialBlur"), MaterialObj->bUsedWithRadialBlur, Ar, PortFlags);
 		ExportBooleanProperty(TEXT("bUsedWithMorphTargets"), MaterialObj->bUsedWithMorphTargets, Ar, PortFlags);

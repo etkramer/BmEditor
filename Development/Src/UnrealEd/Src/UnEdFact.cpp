@@ -454,16 +454,7 @@ UBOOL UMaterialFactory::InitializeFromT3DMaterialDataText(UMaterial* InMaterial,
 			}
 		}
 		else
-		if (Parse(Str, TEXT("TESSELLATIONFACTORS="), ParsedText))
-		{
-			if (ParsedText.Len() > 0)
-			{
-				INT Index = StrLine.InStr(TEXT("="));
-				Str += Index + 1;
-				UStructProperty_ImportText(Vector2MaterialInputStruct, Str, (BYTE*)&(InMaterial->TessellationFactors), 0, InMaterial, NULL);
-			}
-		}			
-		else
+		// BM2 has no TessellationFactors input.
 		if (Parse(Str, TEXT("SUBSURFACEINSCATTERINGCOLOR="), ParsedText))
 		{
 			if (ParsedText.Len() > 0)
@@ -574,11 +565,7 @@ UBOOL UMaterialFactory::InitializeFromT3DMaterialDataText(UMaterial* InMaterial,
 			InMaterial->bUsedWithFluidSurfaces = BOOL_STRING_IS_TRUE(ParsedText);
 		}
 		else
-		if (Parse(Str, TEXT("bUsedWithDecals="), ParsedText))
-		{
-			InMaterial->bUsedWithDecals = BOOL_STRING_IS_TRUE(ParsedText);
-		}
-		else
+		// BM2 has no bUsedWithDecals flag.
 		if (Parse(Str, TEXT("bUsedWithMaterialEffect="), ParsedText))
 		{
 			InMaterial->bUsedWithMaterialEffect = BOOL_STRING_IS_TRUE(ParsedText);

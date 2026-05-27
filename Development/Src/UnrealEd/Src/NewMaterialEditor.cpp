@@ -440,7 +440,7 @@ static FExpressionInput* GetMaterialInput(UMaterial* Material, INT Index)
 	case 13: ExpressionInput = &Material->AnisotropicDirection ; break;
 	case 14: ExpressionInput = &Material->WorldPositionOffset ; break;
 	case 15: ExpressionInput = &Material->WorldDisplacement ; break;
-	case 16: ExpressionInput = &Material->TessellationFactors ; break;
+	case 16: ExpressionInput = NULL; break; // BM2 has no TessellationFactors input.
 	case 17: ExpressionInput = &Material->SubsurfaceInscatteringColor; break;
 	case 18: ExpressionInput = &Material->SubsurfaceAbsorptionColor; break;
 	case 19: ExpressionInput = &Material->SubsurfaceScatteringRadius; break;
@@ -617,7 +617,7 @@ static void GetListOfReferencingInputs(const UMaterialExpression* InMaterialExpr
 	__GATHER_REFERENCE_TO_EXPRESSION( InMaterialExpression, Material, AnisotropicDirection );
 	__GATHER_REFERENCE_TO_EXPRESSION( InMaterialExpression, Material, WorldPositionOffset );
 	__GATHER_REFERENCE_TO_EXPRESSION( InMaterialExpression, Material, WorldDisplacement );
-	__GATHER_REFERENCE_TO_EXPRESSION( InMaterialExpression, Material, TessellationFactors );
+	// BM2 has no TessellationFactors input.
 	__GATHER_REFERENCE_TO_EXPRESSION( InMaterialExpression, Material, SubsurfaceInscatteringColor );
 	__GATHER_REFERENCE_TO_EXPRESSION( InMaterialExpression, Material, SubsurfaceAbsorptionColor );
 	__GATHER_REFERENCE_TO_EXPRESSION( InMaterialExpression, Material, SubsurfaceScatteringRadius );
@@ -1513,9 +1513,7 @@ WxMaterialEditor::WxMaterialEditor(wxWindow* InParent, wxWindowID InID, UMateria
 	// Manually copy bUsedAsSpecialEngineMaterial as it is duplicate transient to prevent accidental creation of new special engine materials
 	Material->bUsedAsSpecialEngineMaterial = OriginalMaterial->bUsedAsSpecialEngineMaterial;
 
-	// copy the flattened texture manually because it's duplicatetransient so it's NULLed when duplicating normally
-	// (but we don't want it NULLed in this case)
-	Material->MobileBaseTexture = OriginalMaterial->MobileBaseTexture;
+	// BM2 has no mobile flattened texture.
 
 	SetPreviewMaterial( Material );
 
@@ -1713,7 +1711,7 @@ WxMaterialEditor::WxMaterialEditor(wxWindow* InParent, wxWindowID InID, UMateria
 	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("AnisotropicDirection"), &Material->AnisotropicDirection ) );
 	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("WorldPositionOffset"), &Material->WorldPositionOffset ) );
 	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("WorldDisplacement"), &Material->WorldDisplacement ) );
-	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("TessellationFactors"), &Material->TessellationFactors ) );
+	// BM2 has no TessellationFactors input.
 	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("SubsurfaceInscatteringColor"), &Material->SubsurfaceInscatteringColor ) );
 	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("SubsurfaceAbsorptionColor"), &Material->SubsurfaceAbsorptionColor ) );
 	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("SubsurfaceScatteringRadius"), &Material->SubsurfaceScatteringRadius ) );
@@ -4164,9 +4162,7 @@ void WxMaterialEditor::UpdateOriginalMaterial()
 	// Restore RF_Standalone on the original material, as it had been removed from the preview material so that it could be GC'd.
 	OriginalMaterial->SetFlags( RF_Standalone );
 
-	// copy the flattened texture manually because it's duplicatetransient so it's NULLed when duplicating normally
-	// (but we don't want it NULLed in this case)
-	OriginalMaterial->MobileBaseTexture = Material->MobileBaseTexture;
+	// BM2 has no mobile flattened texture.
 
 	// Manually copy bUsedAsSpecialEngineMaterial as it is duplicate transient to prevent accidental creation of new special engine materials
 	OriginalMaterial->bUsedAsSpecialEngineMaterial = Material->bUsedAsSpecialEngineMaterial;
@@ -4233,8 +4229,7 @@ void WxMaterialEditor::UpdateOriginalMaterial()
 	// flatten this material if needed
 	GCallbackEvent->Send(CALLBACK_MobileFlattenedTextureUpdate, OriginalMaterial);
 	
-	// copy the dominant texture into the preview material so user can see it
-	Material->MobileBaseTexture = OriginalMaterial->MobileBaseTexture;
+	// BM2 has no mobile flattened texture.
 }
 
 /**
@@ -5679,7 +5674,7 @@ void WxMaterialEditor::GetVisibleMaterialParameters(const UMaterial *Material, U
 	GetVisibleMaterialParametersFromExpression(Material->TwoSidedLightingColor.Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
 	GetVisibleMaterialParametersFromExpression(Material->WorldPositionOffset.Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
 	GetVisibleMaterialParametersFromExpression(Material->WorldDisplacement.Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
-	GetVisibleMaterialParametersFromExpression(Material->TessellationFactors.Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
+	// BM2 has no TessellationFactors input.
 	GetVisibleMaterialParametersFromExpression(Material->SubsurfaceInscatteringColor.Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
 	GetVisibleMaterialParametersFromExpression(Material->SubsurfaceAbsorptionColor.Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
 	GetVisibleMaterialParametersFromExpression(Material->SubsurfaceScatteringRadius.Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
