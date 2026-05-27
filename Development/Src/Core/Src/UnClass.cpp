@@ -666,7 +666,7 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 #if BATMAN
 				// BM2 cooked simple intrinsic: tag carries no Name, value follows directly
 				// at obj+PropertyOffset. End marker (Type == NAME_None) is handled below.
-				if (Ar.IsBmCooked(TRUE) && Tag.Type != NAME_None)
+				if (Ar.IsBmCooked(TRUE, FALSE) && Tag.Type != NAME_None)
 				{
 					UProperty* OffsetProp = NULL;
 					for (UProperty* P = PropertyLink; P; P = P->PropertyLinkNext)

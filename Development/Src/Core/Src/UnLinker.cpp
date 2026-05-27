@@ -3731,11 +3731,6 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 #if BATMAN
         // BM: Skip currently unsupported types.
         if (IsBmCooked() && (
-            // These load but don't render properly (needs RefShaderCache compat).
-            // Ignoring for now so we fall back to the prettier default mat.
-            LoadClass->GetName() == "Material" ||
-			LoadClass->GetName() == "MaterialInstanceConstant" ||
-
 			LoadClass->GetName() == "World" ||
 			LoadClass->GetName() == "Level" ||
 
