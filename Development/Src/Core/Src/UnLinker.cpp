@@ -22,14 +22,14 @@ TMap<FString, TArray<BYTE> > ULinkerSave::PackagesToScriptSHAMap;
 
 #if BATMAN
 /**
- * BM3 uses a different EObjectFlags layout than standard UE3.
- * These are the known BM3 flag values that need remapping.
+ * BM2 uses a different EObjectFlags layout than standard UE3.
+ * These are the known BM2 flag values that need remapping.
  */
-#define BM3_RF_ClassDefaultObject	DECLARE_UINT64(0x0000000000000080)
-#define BM3_RF_RootSet				DECLARE_UINT64(0x0000000000000400)
-#define BM3_RF_Public				DECLARE_UINT64(0x0000000000100000)
-#define BM3_RF_NeedPostLoad			DECLARE_UINT64(0x0000000004000000)
-#define BM3_RF_Standalone			DECLARE_UINT64(0x0000400000000000)
+#define BM2_RF_ClassDefaultObject	DECLARE_UINT64(0x0000000000000080)
+#define BM2_RF_RootSet				DECLARE_UINT64(0x0000000000000400)
+#define BM2_RF_Public				DECLARE_UINT64(0x0000000000100000)
+#define BM2_RF_NeedPostLoad			DECLARE_UINT64(0x0000000004000000)
+#define BM2_RF_Standalone			DECLARE_UINT64(0x0000400000000000)
 
 static void RemapObjectFlag(EObjectFlags& Flags, EObjectFlags From, EObjectFlags To)
 {
@@ -44,26 +44,26 @@ static void RemapObjectFlag(EObjectFlags& Flags, EObjectFlags From, EObjectFlags
 	}
 }
 
-/** Remap BM3 object flags to/from standard UE3 layout. */
+/** Remap BM2 object flags to/from standard UE3 layout. */
 static void RemapBmObjectFlags(EObjectFlags& Flags, UBOOL bLoading)
 {
 	if (bLoading)
 	{
-		// BM3 → UE3
-		RemapObjectFlag(Flags, BM3_RF_ClassDefaultObject, RF_ClassDefaultObject);
-		RemapObjectFlag(Flags, BM3_RF_RootSet,            RF_RootSet);
-		RemapObjectFlag(Flags, BM3_RF_Public,             RF_Public);
-		RemapObjectFlag(Flags, BM3_RF_NeedPostLoad,       RF_NeedPostLoad);
-		RemapObjectFlag(Flags, BM3_RF_Standalone,         RF_Standalone);
+		// BM2 → UE3
+		RemapObjectFlag(Flags, BM2_RF_ClassDefaultObject, RF_ClassDefaultObject);
+		RemapObjectFlag(Flags, BM2_RF_RootSet,            RF_RootSet);
+		RemapObjectFlag(Flags, BM2_RF_Public,             RF_Public);
+		RemapObjectFlag(Flags, BM2_RF_NeedPostLoad,       RF_NeedPostLoad);
+		RemapObjectFlag(Flags, BM2_RF_Standalone,         RF_Standalone);
 	}
 	else
 	{
-		// UE3 → BM3
-		RemapObjectFlag(Flags, RF_ClassDefaultObject, BM3_RF_ClassDefaultObject);
-		RemapObjectFlag(Flags, RF_RootSet,            BM3_RF_RootSet);
-		RemapObjectFlag(Flags, RF_Public,             BM3_RF_Public);
-		RemapObjectFlag(Flags, RF_NeedPostLoad,       BM3_RF_NeedPostLoad);
-		RemapObjectFlag(Flags, RF_Standalone,         BM3_RF_Standalone);
+		// UE3 → BM2
+		RemapObjectFlag(Flags, RF_ClassDefaultObject, BM2_RF_ClassDefaultObject);
+		RemapObjectFlag(Flags, RF_RootSet,            BM2_RF_RootSet);
+		RemapObjectFlag(Flags, RF_Public,             BM2_RF_Public);
+		RemapObjectFlag(Flags, RF_NeedPostLoad,       BM2_RF_NeedPostLoad);
+		RemapObjectFlag(Flags, RF_Standalone,         BM2_RF_Standalone);
 	}
 }
 #endif
@@ -3729,6 +3729,12 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 #endif
 
 #if BATMAN
+		// BM: Skip classes (BmGame.upk needs this for now)
+		if (IsBmCooked() && (LoadClass->GetName() == "Class"))
+        {
+            return NULL;
+        }
+
         // BM: Skip currently unsupported types.
         if (IsBmCooked() && (
 			LoadClass->GetName() == "World" ||
@@ -3736,6 +3742,10 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 
 			// Don't load class functions for now
 			LoadClass->GetName() == "Function" ||
+
+			// Lots of new classes that need offsets matched up (BmGame.upk)
+			LoadClass->GetName() == "RGameInfo" ||
+			LoadClass->GetName() == "RPawn" ||
 
 			LoadClass->GetName() == "PhysicsAsset" ||
 			LoadClass->GetName() == "RB_BodySetup" ||

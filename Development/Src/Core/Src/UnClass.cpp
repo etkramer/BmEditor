@@ -1251,7 +1251,7 @@ void UStruct::Serialize( FArchive& Ar )
 	// if reading data that's cooked for console, skip this data
 	UBOOL const bIsCookedForConsole = IsPackageCookedForConsole(Ar);
 #if BATMAN
-	// BM3 PC decompiled (sub_56C20): editor data skip uses PLATFORM_Console (0x28C)
+	// BM2 PC decompiled (sub_56C20): editor data skip uses PLATFORM_Console (0x28C)
 	// which does NOT include PLATFORM_WindowsConsole (0x40). PCConsole packages
 	// DO include ScriptText/CppText/Line/TextPos. Verified by hex analysis:
 	// what was misread as BytecodeSize=25343 was actually the Children field,
@@ -1336,7 +1336,7 @@ void UStruct::Serialize( FArchive& Ar )
 #endif
 
 #if BATMAN
-		// BM3 cooked packages: StorageSize=0 means bytecode is not on disk.
+		// BM2 cooked packages: StorageSize=0 means bytecode is not on disk.
 		// The original game's non-patcher path reads 0 bytes into a FMemoryReader
 		// and SerializeExpr harmlessly processes garbage from the empty buffer.
 		// We simply zero BytecodeSize so the later serialize loop is skipped
@@ -1785,7 +1785,7 @@ void UState::Serialize( FArchive& Ar )
 #if BATMAN
 	if (Ar.IsBmCooked(FALSE))
 	{
-		// BM3 PC decompiled: UState::Serialize reads ProbeMask as DWORD (4 bytes),
+		// BM2 PC decompiled: UState::Serialize reads ProbeMask as DWORD (4 bytes),
 		// no IgnoreMask, same as post-VER_REDUCED_PROBEMASK standard UE3.
 		Ar << ProbeMask;
 	}
@@ -2474,7 +2474,7 @@ void UClass::Serialize( FArchive& Ar )
 		}
 
 #if BATMAN
-		// BM3 PC decompiled: extra 4-byte field gated by LicenseeVer >= 94
+		// BM2 PC decompiled: extra 4-byte field gated by LicenseeVer >= 94
 		// (between bForceScriptOrder and ClassGroupNames)
 		if (Ar.IsBmCooked(TRUE) && Ar.LicenseeVer() >= 94)
 		{

@@ -59,7 +59,8 @@ private:
 	FMaterialVertexShaderParameters MaterialParameters;
 };
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FTextureDensityVertexShader,TEXT("TextureDensityShader"),TEXT("MainVertexShader"),SF_Vertex,0,0); 
+typedef TVertexShaderTessellationPermutation<FTextureDensityVertexShader,0> TTextureDensityVertexShaderTP_NoTessellationFALSEFALSE;
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TTextureDensityVertexShaderTP_NoTessellationFALSEFALSE,TEXT("TextureDensityShader"),TEXT("MainVertexShader"),SF_Vertex,0,0);
 
 #if WITH_D3D11_TESSELLATION
 
@@ -105,8 +106,10 @@ public:
 	FTextureDensityDomainShader() {}
 };
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FTextureDensityHullShader,TEXT("TextureDensityShader"),TEXT("MainHull"),SF_Hull,0,0); 
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FTextureDensityDomainShader,TEXT("TextureDensityShader"),TEXT("MainDomain"),SF_Domain,0,0);
+typedef THullShaderTessellationPermutation<FTextureDensityHullShader,0> TTextureDensityHullShaderTP_NoTessellationFALSEFALSE;
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TTextureDensityHullShaderTP_NoTessellationFALSEFALSE,TEXT("TextureDensityShader"),TEXT("MainHull"),SF_Hull,0,0);
+typedef TDomainShaderTessellationPermutation<FTextureDensityDomainShader,0> TTextureDensityDomainShaderTP_NoTessellationFALSEFALSE;
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TTextureDensityDomainShaderTP_NoTessellationFALSEFALSE,TEXT("TextureDensityShader"),TEXT("MainDomain"),SF_Domain,0,0);
 
 #endif
 
@@ -228,16 +231,16 @@ FTextureDensityDrawingPolicy::FTextureDensityDrawingPolicy(
 		&& InVertexFactory->GetType()->SupportsTessellationShaders() 
 		&& MaterialTessellationMode != MTM_NoTessellation)
 	{
-		UBOOL HasHullShader = MeshShaderIndex->HasShader(&FTextureDensityHullShader::StaticType);
-		UBOOL HasDomainShader = MeshShaderIndex->HasShader(&FTextureDensityDomainShader::StaticType);
+		UBOOL HasHullShader = MeshShaderIndex->HasShader(&THullShaderTessellationPermutation<FTextureDensityHullShader,0>::StaticType);
+		UBOOL HasDomainShader = MeshShaderIndex->HasShader(&TDomainShaderTessellationPermutation<FTextureDensityDomainShader,0>::StaticType);
 
-		HullShader = HasHullShader ? MeshShaderIndex->GetShader<FTextureDensityHullShader>() : NULL;
-		DomainShader = HasDomainShader ? MeshShaderIndex->GetShader<FTextureDensityDomainShader>() : NULL;
+		HullShader = HasHullShader ? MeshShaderIndex->GetShader<THullShaderTessellationPermutation<FTextureDensityHullShader,0> >() : NULL;
+		DomainShader = HasDomainShader ? MeshShaderIndex->GetShader<TDomainShaderTessellationPermutation<FTextureDensityDomainShader,0> >() : NULL;
 	}
 #endif
 
-	UBOOL HasVertexShader = MeshShaderIndex->HasShader(&FTextureDensityVertexShader::StaticType);
-	VertexShader = HasVertexShader ? MeshShaderIndex->GetShader<FTextureDensityVertexShader>() : NULL;
+	UBOOL HasVertexShader = MeshShaderIndex->HasShader(&TVertexShaderTessellationPermutation<FTextureDensityVertexShader,0>::StaticType);
+	VertexShader = HasVertexShader ? MeshShaderIndex->GetShader<TVertexShaderTessellationPermutation<FTextureDensityVertexShader,0> >() : NULL;
 	
 	UBOOL HasPixelShader = MeshShaderIndex->HasShader(&FTextureDensityPixelShader::StaticType);
 	PixelShader = HasPixelShader ? MeshShaderIndex->GetShader<FTextureDensityPixelShader>() : NULL;

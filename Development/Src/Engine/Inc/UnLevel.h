@@ -593,7 +593,7 @@ public:
 };
 
 #if BATMAN
-/** BM3: Horizontal edge for BSP node edge collection */
+/** BM2: Horizontal edge for BSP node edge collection */
 struct FHorizontalEdge
 {
 	INT VertexA;
@@ -609,7 +609,7 @@ struct FHorizontalEdge
 	}
 };
 
-/** BM3: Actor horizontal edge with compressed point B */
+/** BM2: Actor horizontal edge with compressed point B */
 struct FActorHorizontalEdge
 {
 	FLOAT PointAX;
@@ -629,7 +629,7 @@ struct FActorHorizontalEdge
 	}
 };
 
-/** BM3: Collection of horizontal edges from BSP */
+/** BM2: Collection of horizontal edges from BSP */
 struct FEdgeCollection
 {
 	TArray<FHorizontalEdge> Edges;
@@ -641,7 +641,7 @@ struct FEdgeCollection
 	}
 };
 
-/** BM3: Collection of actor horizontal edges */
+/** BM2: Collection of actor horizontal edges */
 struct FActorEdgeCollection
 {
 	FBox BoundingBox;
@@ -673,7 +673,7 @@ class ULevel : public ULevelBase
 	class TArray<USequence*>					GameSequences;
 
 #if BATMAN
-	/** BM3: Shared bounding sphere pool, indexed by FStreamableTextureInstance during serialization */
+	/** BM2: Shared bounding sphere pool, indexed by FStreamableTextureInstance during serialization */
 	TArray<FSphere>					BoundingSpheres;
 #endif
 
@@ -793,7 +793,7 @@ class ULevel : public ULevelBase
 	class FPrecomputedLightVolume*				PrecomputedLightVolume;
 
 #if BATMAN
-	/** BM3: BSP node edge collections for navigation */
+	/** BM2: BSP node edge collections for navigation */
 	TArray<WORD>								NodeEdgeCollection;
 	TArray<FEdgeCollection>						HorizontalEdges;
 	TArray<FActorEdgeCollection>				ActorHorizontalEdges;

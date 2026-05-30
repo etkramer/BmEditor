@@ -844,6 +844,10 @@ public:
 	TStaticMeshDrawList<TBasePassDrawingPolicy<FShadowedDynamicLightDirectionalLightMapTexturePolicy,FNoDensityPolicy> > BasePassShadowedDynamicLightDirectionalLightMapTextureDrawList[EBasePass_MAX];
 	/** Base pass draw list - texture distance field shadowed dynamic light + directional texture light maps */
 	TStaticMeshDrawList<TBasePassDrawingPolicy<FDistanceFieldShadowedDynamicLightDirectionalLightMapTexturePolicy,FNoDensityPolicy> > BasePassDistanceFieldShadowedDynamicLightDirectionalLightMapTextureDrawList[EBasePass_MAX];
+#if BATMAN
+	/** Base pass draw list - BM2 ambient + 3 directional lights */
+	TStaticMeshDrawList<TBasePassDrawingPolicy<FAPlus3DLightLightMapPolicy,FNoDensityPolicy> > BasePassAPlus3DLightDrawList[EBasePass_MAX];
+#endif
 
 	/** hit proxy draw list (includes both opaque and translucent objects) */
 	TStaticMeshDrawList<FHitProxyDrawingPolicy> HitProxyDrawList;

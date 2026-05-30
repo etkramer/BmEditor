@@ -38,17 +38,17 @@ UBOOL GVisualizeMipLevels = FALSE;
 // Typedef is necessary because the C preprocessor thinks the comma in the template parameter list is a comma in the macro parameter list.
 // BasePass Vertex Shader needs to include hull and domain shaders for tessellation, these only compile for D3D11
 #define IMPLEMENT_BASEPASS_VERTEXSHADER_TYPE(LightMapPolicyType,FogDensityPolicyType) \
-	typedef TBasePassVertexShader<LightMapPolicyType,FogDensityPolicyType> TBasePassVertexShader##LightMapPolicyType##FogDensityPolicyType; \
-	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TBasePassVertexShader##LightMapPolicyType##FogDensityPolicyType,TEXT("BasePassVertexShader"),TEXT("Main"),SF_Vertex,0,0); \
-	typedef TBasePassHullShader<LightMapPolicyType,FogDensityPolicyType> TBasePassHullShader##LightMapPolicyType##FogDensityPolicyType; \
-	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TBasePassHullShader##LightMapPolicyType##FogDensityPolicyType,TEXT("BasePassTessellationShaders"),TEXT("MainHull"),SF_Hull,0,0); \
-	typedef TBasePassDomainShader<LightMapPolicyType,FogDensityPolicyType> TBasePassDomainShader##LightMapPolicyType##FogDensityPolicyType; \
-	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TBasePassDomainShader##LightMapPolicyType##FogDensityPolicyType,TEXT("BasePassTessellationShaders"),TEXT("MainDomain"),SF_Domain,0,0); 
+	typedef TVertexShaderTessellationPermutation<TBasePassVertexShader<LightMapPolicyType,FogDensityPolicyType>,0> TBasePassVertexShader##LightMapPolicyType##FogDensityPolicyType##TP_NoTessellationFALSEFALSE; \
+	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TBasePassVertexShader##LightMapPolicyType##FogDensityPolicyType##TP_NoTessellationFALSEFALSE,TEXT("BasePassVertexShader"),TEXT("Main"),SF_Vertex,0,0); \
+	typedef THullShaderTessellationPermutation<TBasePassHullShader<LightMapPolicyType,FogDensityPolicyType>,0> TBasePassHullShader##LightMapPolicyType##FogDensityPolicyType##TP_NoTessellationFALSEFALSE; \
+	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TBasePassHullShader##LightMapPolicyType##FogDensityPolicyType##TP_NoTessellationFALSEFALSE,TEXT("BasePassTessellationShaders"),TEXT("MainHull"),SF_Hull,0,0); \
+	typedef TDomainShaderTessellationPermutation<TBasePassDomainShader<LightMapPolicyType,FogDensityPolicyType>,0> TBasePassDomainShader##LightMapPolicyType##FogDensityPolicyType##TP_NoTessellationFALSEFALSE; \
+	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TBasePassDomainShader##LightMapPolicyType##FogDensityPolicyType##TP_NoTessellationFALSEFALSE,TEXT("BasePassTessellationShaders"),TEXT("MainDomain"),SF_Domain,0,0);
 #else
 
 #define IMPLEMENT_BASEPASS_VERTEXSHADER_TYPE(LightMapPolicyType,FogDensityPolicyType) \
-	typedef TBasePassVertexShader<LightMapPolicyType,FogDensityPolicyType> TBasePassVertexShader##LightMapPolicyType##FogDensityPolicyType; \
-	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TBasePassVertexShader##LightMapPolicyType##FogDensityPolicyType,TEXT("BasePassVertexShader"),TEXT("Main"),SF_Vertex,0,0); 
+	typedef TVertexShaderTessellationPermutation<TBasePassVertexShader<LightMapPolicyType,FogDensityPolicyType>,0> TBasePassVertexShader##LightMapPolicyType##FogDensityPolicyType##TP_NoTessellationFALSEFALSE; \
+	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TBasePassVertexShader##LightMapPolicyType##FogDensityPolicyType##TP_NoTessellationFALSEFALSE,TEXT("BasePassVertexShader"),TEXT("Main"),SF_Vertex,0,0);
 #endif
 
 #define IMPLEMENT_BASEPASS_PIXELSHADER_TYPE(LightMapPolicyType,bEnableSkyLight,SkyLightShaderName) \
@@ -83,6 +83,59 @@ IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE(FSHLightLightMapPolicy);
 IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE(FShadowedDynamicLightDirectionalVertexLightMapPolicy); 
 IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE(FShadowedDynamicLightDirectionalLightMapTexturePolicy); 
 IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE(FDistanceFieldShadowedDynamicLightDirectionalLightMapTexturePolicy);
+#if BATMAN
+#include "AmbientPlus3DirectionalLightSceneInfo.h"
+
+IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE(FAPlus3DLightLightMapPolicy);
+
+void FAPlus3DLightLightMapPolicy::SetMesh(
+	const FSceneView& View,
+	const FPrimitiveSceneInfo* PrimitiveSceneInfo,
+	const VertexParametersType* VertexShaderParameters,
+	const PixelParametersType* PixelShaderParameters,
+	FShader* VertexShader,
+	FShader* PixelShader,
+	const FVertexFactory* VertexFactory,
+	const FMaterialRenderProxy* MaterialRenderProxy,
+	const ElementDataType& AmbientPlus3DirectionalLight
+	) const
+{
+	// Mirrors retail BM2 (sub_6E57F0): 3 vertex float4s (light directions, w=0) and
+	// 4 pixel float4s (3 colors + 1 ambient, w=0). The proxy stores FVectors so we
+	// pack into stack float4s before uploading.
+	if (!AmbientPlus3DirectionalLight)
+	{
+		return;
+	}
+	if (VertexShaderParameters)
+	{
+		FVector4 Dirs[3];
+		for (INT i = 0; i < 3; i++)
+		{
+			Dirs[i] = FVector4(AmbientPlus3DirectionalLight->LightDirections[i], 0.0f);
+		}
+		SetVertexShaderValues<FVector4>(
+			VertexShader->GetVertexShader(),
+			VertexShaderParameters->APlus3DLightVertexInfoParameter,
+			Dirs,
+			3);
+	}
+	if (PixelShaderParameters)
+	{
+		FVector4 ColorsAndAmbient[4];
+		for (INT i = 0; i < 3; i++)
+		{
+			ColorsAndAmbient[i] = FVector4(AmbientPlus3DirectionalLight->LightColours[i], 0.0f);
+		}
+		ColorsAndAmbient[3] = FVector4(AmbientPlus3DirectionalLight->Ambient, 0.0f);
+		SetPixelShaderValues<FVector4>(
+			PixelShader->GetPixelShader(),
+			PixelShaderParameters->APlus3DLightPixelInfoParameter,
+			ColorsAndAmbient,
+			4);
+	}
+}
+#endif
 
 /** The action used to draw a base pass static mesh element. */
 class FDrawBasePassStaticMeshAction

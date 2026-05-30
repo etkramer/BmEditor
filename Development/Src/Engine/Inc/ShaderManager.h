@@ -1429,7 +1429,9 @@ private:
 	/** The SceneDepthTexture parameter for materials that use SceneDepth */
 	FShaderResourceParameter SceneDepthTextureParameter;
 	/** The SceneColorTextureMSAA parameter for materials that use SceneColorTextureMSAA */
+#if !BATMAN
 	FShaderResourceParameter SceneDepthSurfaceParameter;
+#endif
 	/** Required parameter for using SceneDepthTexture on certain platforms. */
 	FShaderParameter SceneDepthCalcParameter;
 	/** Required parameter for using SceneColorTexture. */
@@ -1438,8 +1440,9 @@ private:
 	/** Parameter to fix stereo offsets */
     FShaderResourceParameter NvStereoFixTextureParameter;
 #endif
-	/** true if GSceneRenderTargets.bSceneColorTextureIsRaw */
+#if !BATMAN
 	FShaderParameter DecompressSceneColorParameter;
+#endif
 };
 
 #endif

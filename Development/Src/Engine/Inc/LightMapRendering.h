@@ -1689,4 +1689,6 @@ public:
 	}
 };
 
+#include "BatmanLightMap.h"
+
 #endif // __LIGHTMAPRENDERING_H__

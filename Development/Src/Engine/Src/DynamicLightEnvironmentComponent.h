@@ -7,6 +7,20 @@
 
 #include "PrecomputedLightVolume.h"
 
+#if BATMAN
+/**
+ * Global DLEC operating mode. In retail BM2 this is a process-wide enum that gates whether
+ * the secondary lighting produced by FDynamicLightEnvironmentState is emitted as the legacy
+ * SH/Sky pair or as a single UAmbientPlus3DirectionalLightComponent.
+ */
+enum EDLEC_Mode
+{
+	DLEC_Unmolested = 0,
+	DLEC_APlus3D    = 1,
+};
+extern EDLEC_Mode GDLEC_Mode;
+#endif
+
 /**
  * The character lighting stats.
  */

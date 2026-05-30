@@ -663,40 +663,40 @@ private:
 #if WITH_D3D11_TESSELLATION
 
 	#define IMPLEMENT_LIGHTSHADOWING_SHADER_TYPE_TESSELLATION(LightPolicyType,HullShaderFilename,DomainShaderFilename,ShadowingPolicyType,MinPackageVersion,MinLicenseePackageVersion) \
-		typedef TLightHullShader<LightPolicyType,ShadowingPolicyType> TLightHullShader##LightPolicyType##ShadowingPolicyType; \
+		typedef THullShaderTessellationPermutation<TLightHullShader<LightPolicyType,ShadowingPolicyType>,0> TLightHullShader##LightPolicyType##ShadowingPolicyType##TP_NoTessellationFALSEFALSE; \
 		IMPLEMENT_MATERIAL_SHADER_TYPE( \
 			template<>, \
-			TLightHullShader##LightPolicyType##ShadowingPolicyType, \
+			TLightHullShader##LightPolicyType##ShadowingPolicyType##TP_NoTessellationFALSEFALSE, \
 			HullShaderFilename, \
 			TEXT("MainHull"), \
 			SF_Hull, \
 			Max((UINT)0,(UINT)MinPackageVersion), \
 			MinLicenseePackageVersion \
 			); \
-		typedef TLightDomainShader<LightPolicyType,ShadowingPolicyType> TLightDomainShader##LightPolicyType##ShadowingPolicyType; \
+		typedef TDomainShaderTessellationPermutation<TLightDomainShader<LightPolicyType,ShadowingPolicyType>,0> TLightDomainShader##LightPolicyType##ShadowingPolicyType##TP_NoTessellationFALSEFALSE; \
 		IMPLEMENT_MATERIAL_SHADER_TYPE( \
 			template<>, \
-			TLightDomainShader##LightPolicyType##ShadowingPolicyType, \
+			TLightDomainShader##LightPolicyType##ShadowingPolicyType##TP_NoTessellationFALSEFALSE, \
 			DomainShaderFilename, \
 			TEXT("MainDomain"), \
 			SF_Domain, \
 			Max((UINT)0,(UINT)MinPackageVersion), \
 			MinLicenseePackageVersion \
-			); 
+			);
 #else
 // define empty for non tessellation cases
-#define IMPLEMENT_LIGHTSHADOWING_SHADER_TYPE_TESSELLATION(LightPolicyType,HullShaderFilename,DomainShaderFilename,ShadowingPolicyType,MinPackageVersion,MinLicenseePackageVersion) 
+#define IMPLEMENT_LIGHTSHADOWING_SHADER_TYPE_TESSELLATION(LightPolicyType,HullShaderFilename,DomainShaderFilename,ShadowingPolicyType,MinPackageVersion,MinLicenseePackageVersion)
 #endif
 
-/** 
-* Implements the vertex shader and pixel shader for a given light type.  
+/**
+* Implements the vertex shader and pixel shader for a given light type.
 */
 
 #define IMPLEMENT_LIGHTSHADOWING_SHADER_TYPE(LightPolicyType,VertexShaderFilename,HullShaderFilename,DomainShaderFilename,PixelShaderFilename,ShadowingPolicyType,MinPackageVersion,MinLicenseePackageVersion) \
-	typedef TLightVertexShader<LightPolicyType,ShadowingPolicyType> TLightVertexShader##LightPolicyType##ShadowingPolicyType; \
+	typedef TVertexShaderTessellationPermutation<TLightVertexShader<LightPolicyType,ShadowingPolicyType>,0> TLightVertexShader##LightPolicyType##ShadowingPolicyType##TP_NoTessellationFALSEFALSE; \
 	IMPLEMENT_MATERIAL_SHADER_TYPE( \
 		template<>, \
-		TLightVertexShader##LightPolicyType##ShadowingPolicyType, \
+		TLightVertexShader##LightPolicyType##ShadowingPolicyType##TP_NoTessellationFALSEFALSE, \
 		VertexShaderFilename, \
 		TEXT("Main"), \
 		SF_Vertex, \
@@ -713,7 +713,7 @@ private:
 		SF_Pixel, \
 		MinPackageVersion, \
 		MinLicenseePackageVersion \
-	); 
+	);
 
 /** 
 * Implements a version of TBranchingPCFModProjectionPixelShader
@@ -840,11 +840,11 @@ public:
 			&& InVertexFactory->GetType()->SupportsTessellationShaders() 
 			&& MaterialTessellationMode != MTM_NoTessellation)
 		{
-			HullShader = MaterialResource->GetShader<TLightHullShader<LightPolicyType,ShadowPolicyType> >(VertexFactory->GetType());
-			DomainShader = MaterialResource->GetShader<TLightDomainShader<LightPolicyType,ShadowPolicyType> >(VertexFactory->GetType());
+			HullShader = MaterialResource->GetShader<THullShaderTessellationPermutation<TLightHullShader<LightPolicyType,ShadowPolicyType>,0> >(VertexFactory->GetType());
+			DomainShader = MaterialResource->GetShader<TDomainShaderTessellationPermutation<TLightDomainShader<LightPolicyType,ShadowPolicyType>,0> >(VertexFactory->GetType());
 		}
 #endif
-		VertexShader = MaterialResource->GetShader<TLightVertexShader<LightPolicyType,ShadowPolicyType> >(InVertexFactory->GetType());
+		VertexShader = MaterialResource->GetShader<TVertexShaderTessellationPermutation<TLightVertexShader<LightPolicyType,ShadowPolicyType>,0> >(InVertexFactory->GetType());
 		PixelShader = MaterialResource->GetShader<PixelShaderType>(InVertexFactory->GetType());
 	}
 

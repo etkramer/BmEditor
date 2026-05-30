@@ -2443,6 +2443,14 @@ TStaticMeshDrawList<TBasePassDrawingPolicy<FDistanceFieldShadowedDynamicLightDir
 	return BasePassDistanceFieldShadowedDynamicLightDirectionalLightMapTextureDrawList[DrawType];
 }
 
+#if BATMAN
+template<>
+TStaticMeshDrawList<TBasePassDrawingPolicy<FAPlus3DLightLightMapPolicy,FNoDensityPolicy> >& FDepthPriorityGroup::GetBasePassDrawList<FAPlus3DLightLightMapPolicy>(EBasePassDrawListType DrawType)
+{
+	return BasePassAPlus3DLightDrawList[DrawType];
+}
+#endif
+
 /*-----------------------------------------------------------------------------
 	Stat declarations.
 -----------------------------------------------------------------------------*/

@@ -1779,7 +1779,7 @@ void UObject::Serialize( FArchive& Ar )
 	// Execution stack.
 	//!!how does the stack work in conjunction with transaction tracking?
 #if BATMAN
-	// BM3 retail (UStateObject::SerializeStateFrame) always serializes a 1-byte
+	// BM2 retail (UStateObject::SerializeStateFrame) always serializes a 1-byte
 	// boolean for RF_HasStack before the state frame data, for all actor subclasses.
 	// Without reading this byte, the stream is off by 1 for every actor, causing
 	// shifted NetIndex and property tag reads (e.g. TypeIndex 2304 = 0x0900).
@@ -7201,10 +7201,10 @@ UPackage* UObject::LoadPackage( UPackage* InOuter, const TCHAR* Filename, DWORD 
 		}
 
 #if BATMAN
-		// Log when BM3 packages are loaded, so we can notice if they've been misdetected.
+		// Log when BM2 packages are loaded, so we can notice if they've been misdetected.
 		if (Linker->IsBmCooked())
 		{
-			warnf(NAME_Warning, TEXT("Loading BM3 package %s"), Filename);
+			warnf(NAME_Warning, TEXT("Loading BM2 package %s"), Filename);
 		}
 #endif
 

@@ -615,7 +615,7 @@ void FUntypedBulkData::Serialize( FArchive& Ar, UObject* Owner, INT Idx )
 		// Don't serialize status information if we only care about payload; only used when saving.
 		if( !bOnlySerializePayload )
 		{
-			// BM2/BM3: on-disk format is DWORD even though in-memory is WORD.
+			// BM2/BM2: on-disk format is DWORD even though in-memory is WORD.
 			DWORD BulkDataFlagsAsDWORD = BulkDataFlags;
 			Ar << BulkDataFlagsAsDWORD;
 			BulkDataFlags = (WORD)BulkDataFlagsAsDWORD;

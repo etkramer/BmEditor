@@ -537,7 +537,7 @@ void ULightComponent::Serialize(FArchive& Ar)
 #if BATMAN
 	if (Ar.IsBmCooked(TRUE))
 	{
-		// BM3 does not override ULightComponent::Serialize — convex volumes are not in cooked packages
+		// BM2 does not override ULightComponent::Serialize — convex volumes are not in cooked packages
 		return;
 	}
 #endif

@@ -1054,7 +1054,14 @@ UBOOL FMaterial::InitShaderMap(FStaticParameterSet* StaticParameters, EShaderPla
 	// Find the material's cached shader map.
 	ShaderMap = FMaterialShaderMap::FindId(*StaticParameters, Platform);
 	UBOOL bRequiredRecompile = FALSE;
-	if(!bValidCompilationOutput || !ShaderMap || !ShaderMap->IsComplete(this, TRUE))
+#if BATMAN
+	// BM2 packages ship with stripped material graphs, so recompiling on "incomplete" cached shader maps
+	// would just produce a broken (black) material. Trust the cooked map if we have one.
+	const UBOOL bTrustCachedShaderMap = (ShaderMap != NULL);
+#else
+	const UBOOL bTrustCachedShaderMap = FALSE;
+#endif
+	if(!bValidCompilationOutput || !ShaderMap || (!bTrustCachedShaderMap && !ShaderMap->IsComplete(this, FALSE)))
 	{
 		if(bValidCompilationOutput)
 		{
@@ -1508,7 +1515,7 @@ void FMaterialResource::GetRepresentativeInstructionCounts(TArray<FString> &Desc
 			}
 
 			
-			new (ShaderTypeNames) FString(TEXT("TBasePassVertexShaderFNoLightMapPolicyFNoDensityPolicy"));
+			new (ShaderTypeNames) FString(TEXT("TBasePassVertexShaderFNoLightMapPolicyFNoDensityPolicyTP_NoTessellationFALSEFALSE"));
 			new (ShaderTypeDescriptions) FString(TEXT("Vertex shader"));
 
 		}
@@ -5550,10 +5557,10 @@ UBOOL FMaterial::CompileShaderMap(
 				TEXT("Translated uniform expression set was different than the cached shader map with the same Id! \n")
 				TEXT("	New: Base material %s, bRequiredCompile %u, ExpressionSet %s \n")
 				TEXT("	Cached: Shadermap name %s, Id %s, ExpressionSet %s \n"),
-				*GetBaseMaterialPathName(), 
+				*GetBaseMaterialPathName(),
 				bRequiredCompile,
 				*UniformExpressionSet.GetSummaryString(),
-				*OutShaderMap->GetFriendlyName(), 
+				*OutShaderMap->GetFriendlyName(),
 				*OutShaderMap->GetMaterialId().GetSummaryString(),
 				*OutShaderMap->GetUniformExpressionSet().GetSummaryString()
 				);*/

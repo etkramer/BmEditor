@@ -181,7 +181,7 @@ UBOOL FMeshMaterialShaderMap::IsComplete(
 		{
 			if (!bSilent)
 			{
-				warnf(NAME_DevShaders, TEXT("Incomplete material %s, missing %s from %s."), *Material->GetFriendlyName(), ShaderType->GetName(), InVertexFactoryType->GetName());
+				warnf(NAME_Warning, TEXT("Incomplete material %s, missing %s from %s."), *Material->GetFriendlyName(), ShaderType->GetName(), InVertexFactoryType->GetName());
 			}
 			bIsComplete = FALSE;
 			break;

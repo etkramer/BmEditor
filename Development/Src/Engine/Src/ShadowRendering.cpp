@@ -180,10 +180,10 @@ private:
 
 enum EShadowDepthVertexShaderMode
 {
-	VertexShadowDepth_PerspectiveCorrect,
-	VertexShadowDepth_OutputDepth,
-	VertexShadowDepth_OutputDepthToColor,
-	VertexShadowDepth_OnePassPointLight
+	ShadowDepth_PerspectiveCorrect,
+	ShadowDepth_OutputDepth,
+	ShadowDepth_OutputDepthToColor,
+	ShadowDepth_OnePassPointLight
 };
 
 /**
@@ -207,16 +207,16 @@ public:
 		return FShadowDepthVertexShader::ShouldCache(Platform, Material, VertexFactoryType)
 			// Compile the version that outputs depth to a depth buffer for all platforms,
 			// Only compile the version that outputs depth to color for PC platforms.
-			&& (ShaderMode != VertexShadowDepth_OutputDepthToColor || IsPCPlatform(Platform))
+			&& (ShaderMode != ShadowDepth_OutputDepthToColor || IsPCPlatform(Platform))
 			// Only compile one pass point light shaders for SM5
-			&& (ShaderMode != VertexShadowDepth_OnePassPointLight || Platform == SP_PCD3D_SM5);
+			&& (ShaderMode != ShadowDepth_OnePassPointLight || Platform == SP_PCD3D_SM5);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		OutEnvironment.Definitions.Set(TEXT("OUTPUT_DEPTH_TO_COLOR"),*FString::Printf(TEXT("%u"),(UBOOL)(ShaderMode == VertexShadowDepth_OutputDepthToColor)));
-		OutEnvironment.Definitions.Set(TEXT("PERSPECTIVE_CORRECT_DEPTH"),*FString::Printf(TEXT("%u"),(UBOOL)(ShaderMode == VertexShadowDepth_PerspectiveCorrect)));
-		OutEnvironment.Definitions.Set(TEXT("ONEPASS_POINTLIGHT_SHADOW"),*FString::Printf(TEXT("%u"),(UBOOL)(ShaderMode == VertexShadowDepth_OnePassPointLight)));
+		OutEnvironment.Definitions.Set(TEXT("OUTPUT_DEPTH_TO_COLOR"),*FString::Printf(TEXT("%u"),(UBOOL)(ShaderMode == ShadowDepth_OutputDepthToColor)));
+		OutEnvironment.Definitions.Set(TEXT("PERSPECTIVE_CORRECT_DEPTH"),*FString::Printf(TEXT("%u"),(UBOOL)(ShaderMode == ShadowDepth_PerspectiveCorrect)));
+		OutEnvironment.Definitions.Set(TEXT("ONEPASS_POINTLIGHT_SHADOW"),*FString::Printf(TEXT("%u"),(UBOOL)(ShaderMode == ShadowDepth_OnePassPointLight)));
 	}
 };
 
@@ -326,12 +326,12 @@ public:
 
 	static UBOOL ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return TShadowDepthVertexShader<VertexShadowDepth_OnePassPointLight>::ShouldCache(Platform, Material, VertexFactoryType);
+		return TShadowDepthVertexShader<ShadowDepth_OnePassPointLight>::ShouldCache(Platform, Material, VertexFactoryType);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		TShadowDepthVertexShader<VertexShadowDepth_OnePassPointLight>::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		TShadowDepthVertexShader<ShadowDepth_OnePassPointLight>::ModifyCompilationEnvironment(Platform, OutEnvironment);
 	}
 
 	FOnePassPointShadowProjectionGeometryShader(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
@@ -400,27 +400,27 @@ private:
 };
 
 #define IMPLEMENT_SHADOW_DEPTH_SHADERMODE_SHADERS(ShaderMode) \
-	typedef TShadowDepthVertexShader<ShaderMode> TShadowDepthVertexShader##ShaderMode;	\
-	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TShadowDepthVertexShader##ShaderMode,TEXT("ShadowDepthVertexShader"),TEXT("Main"),SF_Vertex,0,0);	\
-	typedef TShadowDepthHullShader<ShaderMode> TShadowDepthHullShader##ShaderMode;	\
-	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TShadowDepthHullShader##ShaderMode,TEXT("ShadowDepthVertexShader"),TEXT("MainHull"),SF_Hull,0,0);	\
-	typedef TShadowDepthDomainShader<ShaderMode> TShadowDepthDomainShader##ShaderMode;	\
-	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TShadowDepthDomainShader##ShaderMode,TEXT("ShadowDepthVertexShader"),TEXT("MainDomain"),SF_Domain,0,0);
+	typedef TVertexShaderTessellationPermutation<TShadowDepthVertexShader<ShaderMode>,0> TShadowDepthVertexShader##ShaderMode##TP_NoTessellationFALSEFALSE;	\
+	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TShadowDepthVertexShader##ShaderMode##TP_NoTessellationFALSEFALSE,TEXT("ShadowDepthVertexShader"),TEXT("Main"),SF_Vertex,0,0);	\
+	typedef THullShaderTessellationPermutation<TShadowDepthHullShader<ShaderMode>,0> TShadowDepthHullShader##ShaderMode##TP_NoTessellationFALSEFALSE;	\
+	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TShadowDepthHullShader##ShaderMode##TP_NoTessellationFALSEFALSE,TEXT("ShadowDepthVertexShader"),TEXT("MainHull"),SF_Hull,0,0);	\
+	typedef TDomainShaderTessellationPermutation<TShadowDepthDomainShader<ShaderMode>,0> TShadowDepthDomainShader##ShaderMode##TP_NoTessellationFALSEFALSE;	\
+	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TShadowDepthDomainShader##ShaderMode##TP_NoTessellationFALSEFALSE,TEXT("ShadowDepthVertexShader"),TEXT("MainDomain"),SF_Domain,0,0);
 
 IMPLEMENT_SHADER_TYPE(,FOnePassPointShadowProjectionGeometryShader,TEXT("ShadowDepthVertexShader"),TEXT("MainOnePassPointLightGS"),SF_Geometry,0,0);
 
 #else // #if WITH_D3D11_TESSELLATION
 
 #define IMPLEMENT_SHADOW_DEPTH_SHADERMODE_SHADERS(ShaderMode) \
-	typedef TShadowDepthVertexShader<ShaderMode> TShadowDepthVertexShader##ShaderMode;	\
-	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TShadowDepthVertexShader##ShaderMode,TEXT("ShadowDepthVertexShader"),TEXT("Main"),SF_Vertex,0,0);	
+	typedef TVertexShaderTessellationPermutation<TShadowDepthVertexShader<ShaderMode>,0> TShadowDepthVertexShader##ShaderMode##TP_NoTessellationFALSEFALSE;	\
+	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TShadowDepthVertexShader##ShaderMode##TP_NoTessellationFALSEFALSE,TEXT("ShadowDepthVertexShader"),TEXT("Main"),SF_Vertex,0,0);
 
 #endif
 
-IMPLEMENT_SHADOW_DEPTH_SHADERMODE_SHADERS(VertexShadowDepth_PerspectiveCorrect); 
-IMPLEMENT_SHADOW_DEPTH_SHADERMODE_SHADERS(VertexShadowDepth_OutputDepth); 
-IMPLEMENT_SHADOW_DEPTH_SHADERMODE_SHADERS(VertexShadowDepth_OutputDepthToColor);
-IMPLEMENT_SHADOW_DEPTH_SHADERMODE_SHADERS(VertexShadowDepth_OnePassPointLight);
+IMPLEMENT_SHADOW_DEPTH_SHADERMODE_SHADERS(ShadowDepth_PerspectiveCorrect); 
+IMPLEMENT_SHADOW_DEPTH_SHADERMODE_SHADERS(ShadowDepth_OutputDepth); 
+IMPLEMENT_SHADOW_DEPTH_SHADERMODE_SHADERS(ShadowDepth_OutputDepthToColor);
+IMPLEMENT_SHADOW_DEPTH_SHADERMODE_SHADERS(ShadowDepth_OnePassPointLight);
 
 /**
  * A pixel shader for rendering the depth of a mesh.
@@ -773,47 +773,47 @@ FShadowDepthDrawingPolicy::FShadowDepthDrawingPolicy(
 	// Vertex related shaders
 	if (bOnePassPointLightShadow)
 	{
-		VertexShader = VertexShaderMaterialResource->GetShader<TShadowDepthVertexShader<VertexShadowDepth_OnePassPointLight> >(InVertexFactory->GetType());	
+		VertexShader = VertexShaderMaterialResource->GetShader<TVertexShaderTessellationPermutation<TShadowDepthVertexShader<ShadowDepth_OnePassPointLight>,0> >(InVertexFactory->GetType());	
 #if WITH_D3D11_TESSELLATION
 		// Use the geometry shader which will clone output triangles to all faces of the cube map
 		GeometryShader = VertexShaderMaterialResource->GetShader<FOnePassPointShadowProjectionGeometryShader>(InVertexFactory->GetType());
 		if(bInitializeTessellationShaders)
 		{
-			HullShader = VertexShaderMaterialResource->GetShader<TShadowDepthHullShader<VertexShadowDepth_OnePassPointLight> >(InVertexFactory->GetType());	
-			DomainShader = VertexShaderMaterialResource->GetShader<TShadowDepthDomainShader<VertexShadowDepth_OnePassPointLight> >(InVertexFactory->GetType());	
+			HullShader = VertexShaderMaterialResource->GetShader<THullShaderTessellationPermutation<TShadowDepthHullShader<ShadowDepth_OnePassPointLight>,0> >(InVertexFactory->GetType());	
+			DomainShader = VertexShaderMaterialResource->GetShader<TDomainShaderTessellationPermutation<TShadowDepthDomainShader<ShadowDepth_OnePassPointLight>,0> >(InVertexFactory->GetType());	
 		}
 #endif
 	}
 	else if (bUsePerspectiveCorrectShadowDepths)
 	{
-		VertexShader = VertexShaderMaterialResource->GetShader<TShadowDepthVertexShader<VertexShadowDepth_PerspectiveCorrect> >(InVertexFactory->GetType());	
+		VertexShader = VertexShaderMaterialResource->GetShader<TVertexShaderTessellationPermutation<TShadowDepthVertexShader<ShadowDepth_PerspectiveCorrect>,0> >(InVertexFactory->GetType());	
 #if WITH_D3D11_TESSELLATION
 		if(bInitializeTessellationShaders)
 		{
-			HullShader = VertexShaderMaterialResource->GetShader<TShadowDepthHullShader<VertexShadowDepth_PerspectiveCorrect> >(InVertexFactory->GetType());	
-			DomainShader = VertexShaderMaterialResource->GetShader<TShadowDepthDomainShader<VertexShadowDepth_PerspectiveCorrect> >(InVertexFactory->GetType());	
+			HullShader = VertexShaderMaterialResource->GetShader<THullShaderTessellationPermutation<TShadowDepthHullShader<ShadowDepth_PerspectiveCorrect>,0> >(InVertexFactory->GetType());	
+			DomainShader = VertexShaderMaterialResource->GetShader<TDomainShaderTessellationPermutation<TShadowDepthDomainShader<ShadowDepth_PerspectiveCorrect>,0> >(InVertexFactory->GetType());	
 		}
 #endif
 	}
 	else if (!bTranslucentPreShadow && (GSceneRenderTargets.IsFetch4Supported() || GSceneRenderTargets.IsHardwarePCFSupported()) || GSupportsDepthTextures)
 	{
-		VertexShader = VertexShaderMaterialResource->GetShader<TShadowDepthVertexShader<VertexShadowDepth_OutputDepth> >(InVertexFactory->GetType());	
+		VertexShader = VertexShaderMaterialResource->GetShader<TVertexShaderTessellationPermutation<TShadowDepthVertexShader<ShadowDepth_OutputDepth>,0> >(InVertexFactory->GetType());	
 #if WITH_D3D11_TESSELLATION
 		if(bInitializeTessellationShaders)
 		{
-			HullShader = VertexShaderMaterialResource->GetShader<TShadowDepthHullShader<VertexShadowDepth_OutputDepth> >(InVertexFactory->GetType());	
-			DomainShader = VertexShaderMaterialResource->GetShader<TShadowDepthDomainShader<VertexShadowDepth_OutputDepth> >(InVertexFactory->GetType());	
+			HullShader = VertexShaderMaterialResource->GetShader<THullShaderTessellationPermutation<TShadowDepthHullShader<ShadowDepth_OutputDepth>,0> >(InVertexFactory->GetType());	
+			DomainShader = VertexShaderMaterialResource->GetShader<TDomainShaderTessellationPermutation<TShadowDepthDomainShader<ShadowDepth_OutputDepth>,0> >(InVertexFactory->GetType());	
 		}
 #endif
 	}
 	else
 	{
-		VertexShader = VertexShaderMaterialResource->GetShader<TShadowDepthVertexShader<VertexShadowDepth_OutputDepthToColor> >(InVertexFactory->GetType());	
+		VertexShader = VertexShaderMaterialResource->GetShader<TVertexShaderTessellationPermutation<TShadowDepthVertexShader<ShadowDepth_OutputDepthToColor>,0> >(InVertexFactory->GetType());	
 #if WITH_D3D11_TESSELLATION
 		if(bInitializeTessellationShaders)
 		{
-			HullShader = VertexShaderMaterialResource->GetShader<TShadowDepthHullShader<VertexShadowDepth_OutputDepthToColor> >(InVertexFactory->GetType());	
-			DomainShader = VertexShaderMaterialResource->GetShader<TShadowDepthDomainShader<VertexShadowDepth_OutputDepthToColor> >(InVertexFactory->GetType());	
+			HullShader = VertexShaderMaterialResource->GetShader<THullShaderTessellationPermutation<TShadowDepthHullShader<ShadowDepth_OutputDepthToColor>,0> >(InVertexFactory->GetType());	
+			DomainShader = VertexShaderMaterialResource->GetShader<TDomainShaderTessellationPermutation<TShadowDepthDomainShader<ShadowDepth_OutputDepthToColor>,0> >(InVertexFactory->GetType());	
 		}
 #endif
 	}
@@ -3497,12 +3497,15 @@ UBOOL FSceneRenderer::RenderProjectedShadows( const FLightSceneInfo* LightSceneI
 
 //** modulated shadow mesh attenuation shader implementations */
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FModShadowMeshVertexShader,TEXT("ModShadowMeshAttenuationVS"),TEXT("Main"),SF_Vertex,0,0); 
+typedef TVertexShaderTessellationPermutation<FModShadowMeshVertexShader,0> TModShadowMeshVertexShaderTP_NoTessellationFALSEFALSE;
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TModShadowMeshVertexShaderTP_NoTessellationFALSEFALSE,TEXT("ModShadowMeshAttenuationVS"),TEXT("Main"),SF_Vertex,0,0);
 IMPLEMENT_MATERIAL_SHADER_TYPE(,FModShadowMeshPixelShader,TEXT("ModShadowMeshAttenuationPS"),TEXT("Main"),SF_Pixel,VER_MODSHADOWMESHPIXELSHADER_ATTENALLOWED,0);
 
 #if WITH_D3D11_TESSELLATION
-	IMPLEMENT_MATERIAL_SHADER_TYPE(,FModShadowMeshHullShader,TEXT("ModShadowMeshAttenuationVS"),TEXT("MainHull"),SF_Hull,0,0); 
-	IMPLEMENT_MATERIAL_SHADER_TYPE(,FModShadowMeshDomainShader,TEXT("ModShadowMeshAttenuationVS"),TEXT("MainDomain"),SF_Domain,0,0);
+	typedef THullShaderTessellationPermutation<FModShadowMeshHullShader,0> TModShadowMeshHullShaderTP_NoTessellationFALSEFALSE;
+	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TModShadowMeshHullShaderTP_NoTessellationFALSEFALSE,TEXT("ModShadowMeshAttenuationVS"),TEXT("MainHull"),SF_Hull,0,0);
+	typedef TDomainShaderTessellationPermutation<FModShadowMeshDomainShader,0> TModShadowMeshDomainShaderTP_NoTessellationFALSEFALSE;
+	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TModShadowMeshDomainShaderTP_NoTessellationFALSEFALSE,TEXT("ModShadowMeshAttenuationVS"),TEXT("MainDomain"),SF_Domain,0,0);
 #endif
 
 /**
@@ -3530,12 +3533,12 @@ FMeshModShadowDrawingPolicy::FMeshModShadowDrawingPolicy(
 		&& InVertexFactory->GetType()->SupportsTessellationShaders() 
 		&& MaterialTessellationMode != MTM_NoTessellation)
 	{
-		HullShader = MaterialResource->GetShader<FModShadowMeshHullShader>(VertexFactory->GetType());
-		DomainShader = MaterialResource->GetShader<FModShadowMeshDomainShader>(VertexFactory->GetType());
+		HullShader = MaterialResource->GetShader<THullShaderTessellationPermutation<FModShadowMeshHullShader,0> >(VertexFactory->GetType());
+		DomainShader = MaterialResource->GetShader<TDomainShaderTessellationPermutation<FModShadowMeshDomainShader,0> >(VertexFactory->GetType());
 	}
 #endif
 
-	VertexShader = MaterialResource->GetShader<FModShadowMeshVertexShader>(InVertexFactory->GetType());
+	VertexShader = MaterialResource->GetShader<TVertexShaderTessellationPermutation<FModShadowMeshVertexShader,0> >(InVertexFactory->GetType());
 	PixelShader = MaterialResource->GetShader<FModShadowMeshPixelShader>(InVertexFactory->GetType());
 }
 

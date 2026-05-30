@@ -251,6 +251,10 @@ FPrimitiveSceneInfo::FPrimitiveSceneInfo(UPrimitiveComponent* InComponent,FPrimi
 	LowerSkyLightColor(FLinearColor::Black),
 	DynamicLightSceneInfo(NULL),
 	SHLightSceneInfo(NULL),
+#if BATMAN
+	AmbientPlus3DLight(NULL),
+	bRenderAPlus3DLightInBasePass(FALSE),
+#endif
 	DominantShadowFactor(
 		(InComponent->LightEnvironment && InComponent->LightEnvironment->IsEnabled()) ?
 			InComponent->LightEnvironment->GetDominantShadowFactor() :

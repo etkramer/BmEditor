@@ -251,11 +251,14 @@ protected:
 
 #endif
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TDistortionMeshVertexShader<FDistortMeshAccumulatePolicy>,TEXT("DistortAccumulateVertexShader"),TEXT("Main"),SF_Vertex,0,0); 
+typedef TVertexShaderTessellationPermutation<TDistortionMeshVertexShader<FDistortMeshAccumulatePolicy>,0> TDistortionMeshVertexShaderFDistortMeshAccumulatePolicyTP_NoTessellationFALSEFALSE;
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TDistortionMeshVertexShaderFDistortMeshAccumulatePolicyTP_NoTessellationFALSEFALSE,TEXT("DistortAccumulateVertexShader"),TEXT("Main"),SF_Vertex,0,0);
 
 #if WITH_D3D11_TESSELLATION
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TDistortionMeshHullShader<FDistortMeshAccumulatePolicy>,TEXT("DistortAccumulateVertexShader"),TEXT("MainHull"),SF_Hull,0,0); 
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TDistortionMeshDomainShader<FDistortMeshAccumulatePolicy>,TEXT("DistortAccumulateVertexShader"),TEXT("MainDomain"),SF_Domain,0,0);
+typedef THullShaderTessellationPermutation<TDistortionMeshHullShader<FDistortMeshAccumulatePolicy>,0> TDistortionMeshHullShaderFDistortMeshAccumulatePolicyTP_NoTessellationFALSEFALSE;
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TDistortionMeshHullShaderFDistortMeshAccumulatePolicyTP_NoTessellationFALSEFALSE,TEXT("DistortAccumulateVertexShader"),TEXT("MainHull"),SF_Hull,0,0);
+typedef TDomainShaderTessellationPermutation<TDistortionMeshDomainShader<FDistortMeshAccumulatePolicy>,0> TDistortionMeshDomainShaderFDistortMeshAccumulatePolicyTP_NoTessellationFALSEFALSE;
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TDistortionMeshDomainShaderFDistortMeshAccumulatePolicyTP_NoTessellationFALSEFALSE,TEXT("DistortAccumulateVertexShader"),TEXT("MainDomain"),SF_Domain,0,0);
 #endif
 
 
@@ -427,12 +430,12 @@ TDistortionMeshDrawingPolicy<DistortMeshPolicy>::TDistortionMeshDrawingPolicy(
 		&& InVertexFactory->GetType()->SupportsTessellationShaders() 
 		&& MaterialTessellationMode != MTM_NoTessellation)
 	{
-		HullShader = MaterialResource->GetShader<TDistortionMeshHullShader<DistortMeshPolicy> >(VertexFactory->GetType());
-		DomainShader = MaterialResource->GetShader<TDistortionMeshDomainShader<DistortMeshPolicy> >(VertexFactory->GetType());
+		HullShader = MaterialResource->GetShader<THullShaderTessellationPermutation<TDistortionMeshHullShader<DistortMeshPolicy>,0> >(VertexFactory->GetType());
+		DomainShader = MaterialResource->GetShader<TDomainShaderTessellationPermutation<TDistortionMeshDomainShader<DistortMeshPolicy>,0> >(VertexFactory->GetType());
 	}
 #endif
 
-	VertexShader = MaterialResource->GetShader<TDistortionMeshVertexShader<DistortMeshPolicy> >(InVertexFactory->GetType());
+	VertexShader = MaterialResource->GetShader<TVertexShaderTessellationPermutation<TDistortionMeshVertexShader<DistortMeshPolicy>,0> >(InVertexFactory->GetType());
 
 	if (bInitializeOffsets)
 	{

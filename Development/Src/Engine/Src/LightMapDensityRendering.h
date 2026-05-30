@@ -312,11 +312,11 @@ public:
 			&& InVertexFactory->GetType()->SupportsTessellationShaders() 
 			&& MaterialTessellationMode != MTM_NoTessellation)
 		{
-			HullShader = MaterialResource->GetShader<TLightMapDensityHullShader<LightMapPolicyType> >(VertexFactory->GetType());
-			DomainShader = MaterialResource->GetShader<TLightMapDensityDomainShader<LightMapPolicyType> >(VertexFactory->GetType());
+			HullShader = MaterialResource->GetShader<THullShaderTessellationPermutation<TLightMapDensityHullShader<LightMapPolicyType>,0> >(VertexFactory->GetType());
+			DomainShader = MaterialResource->GetShader<TDomainShaderTessellationPermutation<TLightMapDensityDomainShader<LightMapPolicyType>,0> >(VertexFactory->GetType());
 		}
 #endif
-		VertexShader = MaterialResource->GetShader<TLightMapDensityVertexShader<LightMapPolicyType> >(InVertexFactory->GetType());
+		VertexShader = MaterialResource->GetShader<TVertexShaderTessellationPermutation<TLightMapDensityVertexShader<LightMapPolicyType>,0> >(InVertexFactory->GetType());
 		PixelShader = MaterialResource->GetShader<TLightMapDensityPixelShader<LightMapPolicyType> >(InVertexFactory->GetType());
 	}
 

@@ -554,6 +554,14 @@ UBOOL operator<<(FArchive& Ar,FVertexFactoryPSParameterRef& Ref)
 {
 	UBOOL bShaderHasOutdatedParameters = FALSE;
 
+#if BATMAN
+	// BM2 has no FVertexFactoryPSParameterRef — pixel shaders don't serialize VF params
+	if (Ar.IsBmCooked(TRUE))
+	{
+		return bShaderHasOutdatedParameters;
+	}
+#endif
+
 	Ar << Ref.VertexFactoryType;
 
 #if CONSOLE

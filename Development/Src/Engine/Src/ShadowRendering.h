@@ -1010,7 +1010,9 @@ public:
 		Ar << ProjectionParameters;
 		Ar << SampleOffsetsParameter;
 		Ar << ShadowFadeFractionParameter;
+#if !BATMAN
 		Ar << LightingChannelMaskParameter;
+#endif
 		return bShaderHasOutdatedParameters;
 	}
 

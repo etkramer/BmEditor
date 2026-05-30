@@ -9,6 +9,12 @@
 IMPLEMENT_CLASS(UDynamicLightEnvironmentComponent);
 IMPLEMENT_CLASS(UParticleLightEnvironmentComponent);
 
+#if BATMAN
+// Default to AP3D mode, matching retail BM2 (Default.xex.c:188280). A future console command
+// can toggle to DLEC_Unmolested to fall back to the stock SH/Sky pair for debugging.
+EDLEC_Mode GDLEC_Mode = DLEC_APlus3D;
+#endif
+
 DECLARE_STATS_GROUP(TEXT("DLE"),STATGROUP_DLE);
 DECLARE_CYCLE_STAT(TEXT("Particle DLE Tick"),STAT_ParticleDLETickTime,STATGROUP_DLE);
 DECLARE_CYCLE_STAT(TEXT("   CreateLights"),STAT_CreateLightsTime,STATGROUP_DLE);
@@ -1413,7 +1419,54 @@ void FDynamicLightEnvironmentState::CreateEnvironmentLightList(ULightComponent* 
 		{
 			// Scale the contribution of the secondary light down to increase contrast
 			const FLOAT SecondaryLightWeight = 1.0f / Lerp(1.0f, ContrastFactor, PrimaryLightWeight);
-			if (Component->bSynthesizeSHLight && 
+#if BATMAN
+			if (GDLEC_Mode >= DLEC_APlus3D)
+			{
+				// BM2 AP3D path: fit the secondary environment to 3 representative directional
+				// lights plus an ambient term, then emit a single UAmbientPlus3DirectionalLightComponent
+				// instead of the legacy SH/Sky pair. Mirrors retail Default.xex.c:645660-645716.
+				UAmbientPlus3DirectionalLightComponent* AP3DLight = AllocateLight<UAmbientPlus3DirectionalLightComponent>();
+				AP3DLight->LightingChannels = OwnerLightingChannels;
+				AP3DLight->LightEnvironment = Component;
+				AP3DLight->bCastCompositeShadow = FALSE;
+				// Always merge into the base pass. The post-mod-shadows AP3D path that retail
+				// uses when the DLE casts shadows isn't ported yet; until it is, leaving this
+				// FALSE would drop the AP3D contribution entirely and render BM2 characters black.
+				AP3DLight->bRenderBeforeModShadows = TRUE;
+
+				// Start with the weighted secondary environment and extract three dominant
+				// directions, leaving the residual to become the ambient term.
+				FSHVectorRGB Remaining = SecondaryLightEnvironment * SecondaryLightWeight;
+				for (INT DirIndex = 0; DirIndex < 3; DirIndex++)
+				{
+					FVector Dir;
+					FLinearColor Intensity;
+					if (ExtractDominantLight(Remaining, Dir, Intensity, 1.0f))
+					{
+						// Match the polarity used elsewhere in the engine: store the direction
+						// TOWARDS the light source, with intensity desaturated like the primary fit.
+						const FLinearColor DesaturatedIntensity = Intensity.Desaturate(Component->LightDesaturation);
+						AP3DLight->LightDirections[DirIndex] = -Dir;
+						AP3DLight->LightColours[DirIndex] = FVector(DesaturatedIntensity.R, DesaturatedIntensity.G, DesaturatedIntensity.B);
+					}
+					else
+					{
+						AP3DLight->LightDirections[DirIndex] = FVector(0, 0, 1);
+						AP3DLight->LightColours[DirIndex] = FVector::ZeroVector;
+					}
+				}
+
+				// Whatever's left in the SH environment after the three directional extractions
+				// is folded down to a constant-term ambient. AmbientFunction is the SH basis
+				// constant; dotting against it recovers the average radiance.
+				const FLinearColor AmbientIntensity = GetLightIntensity(Remaining, FSHVector::AmbientFunction()).Desaturate(Component->LightDesaturation);
+				AP3DLight->Ambient = FVector(AmbientIntensity.R, AmbientIntensity.G, AmbientIntensity.B);
+
+				AP3DLight->ConditionalAttach(Component->GetScene(), NULL, FMatrix::Identity);
+			}
+			else
+#endif
+			if (Component->bSynthesizeSHLight &&
 				GSystemSettings.bAllowSHSecondaryLighting &&
 				(GWorld->GetWorldInfo()->GetSHLightsAllowed() || Component->bForceAllowLightEnvSphericalHarmonicLights) )
 			{
@@ -1427,7 +1480,7 @@ void FDynamicLightEnvironmentState::CreateEnvironmentLightList(ULightComponent* 
 				// Combine the SH light into the base pass if the light environment is not casting shadows
 				// Otherwise mod shadows would darken the SH light
 				SHLight->bRenderBeforeModShadows = !(Component->bCastShadows && GSystemSettings.bAllowLightEnvironmentShadows);
-		    
+
 				// Attach the SH light after it is associated with the light environment to ensure it is only attached once.
 				SHLight->ConditionalAttach(Component->GetScene(),NULL,FMatrix::Identity);
 			}

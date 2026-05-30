@@ -1539,9 +1539,9 @@ IMPLEMENT_FUNCTION( UObject, EX_Jump, execJump );
 #if BATMAN
 void UObject::execJumpIfNotEditorOnly( FFrame& Stack, RESULT_DECL )
 {
-	// Read the jump offset and always jump past editor-only code in shipping builds.
-	INT Offset = Stack.ReadWord();
-	Stack.Code = &Stack.Node->Script(Offset);
+	// Consume the jump offset and fall through into the editor-only block. Matches
+	// retail BM2: editor-only code is stripped at cook, so this is effectively a no-op.
+	Stack.ReadWord();
 }
 IMPLEMENT_FUNCTION( UObject, EX_JumpIfNotEditorOnly, execJumpIfNotEditorOnly );
 #endif
@@ -1807,6 +1807,38 @@ void UObject::execContext( FFrame& Stack, RESULT_DECL )
 	}
 }
 IMPLEMENT_FUNCTION( UObject, EX_Context, execContext );
+
+#if BATMAN
+// Same as execContext, but silently zero-fills the result on NULL instead of logging
+// an "Accessed None" warning. BM2 emits this for safe-navigation expressions.
+void UObject::execSafeContext( FFrame& Stack, RESULT_DECL )
+{
+	GProperty = NULL;
+
+	UObject* NewContext = NULL;
+	Stack.Step( this, &NewContext );
+
+	if( NewContext != NULL )
+	{
+		Stack.Code += sizeof(CodeSkipSizeType) + sizeof(ScriptPointerType) + sizeof(BYTE);
+		Stack.Step( NewContext, Result );
+	}
+	else
+	{
+		CodeSkipSizeType wSkip = Stack.ReadCodeSkipCount();
+		VariableSizeType bSize = Stack.ReadVariableSize();
+		Stack.Code += wSkip;
+		GPropAddr = NULL;
+		GProperty = NULL;
+		GPropObject = NULL;
+		if( Result )
+		{
+			appMemzero( Result, bSize );
+		}
+	}
+}
+IMPLEMENT_FUNCTION( UObject, EX_RSSContext, execSafeContext );
+#endif
 
 ////////////////////
 // Function calls //
@@ -2232,36 +2264,63 @@ void UObject::execMetaCast( FFrame& Stack, RESULT_DECL )
 IMPLEMENT_FUNCTION( UObject, EX_MetaCast, execMetaCast );
 
 #if BATMAN
+// SafeScriptCast variant of EX_DynamicCast. Compiler emits this when it can prove
+// the cast must succeed; we hard-assert on failure to match retail.
 void UObject::execDynamicCastChecked( FFrame& Stack, RESULT_DECL )
 {
-	// Get class to cast to.
 	UClass* Class = (UClass*)Stack.ReadObject();
 
-	// Compile actor expression.
 	UObject* Castee = NULL;
 	Stack.Step( Stack.Object, &Castee );
 
-	// Always return NULL - this is the "checked" variant.
 	*(UObject**)Result = NULL;
 	if( Class->HasAnyClassFlags(CLASS_Interface) )
 	{
 		((FScriptInterface*)Result)->SetObject(NULL);
 		((FScriptInterface*)Result)->SetInterface(NULL);
 	}
+
+	if( Castee == NULL )
+	{
+		return;
+	}
+
+	if( Class->HasAnyClassFlags(CLASS_Interface) )
+	{
+		checkf( Castee->GetClass()->ImplementsInterface(Class),
+			TEXT("%s: Illegal SafeScriptCast of %s cast to %s"),
+			*Stack.Object->GetPathName(), *Castee->GetClass()->GetName(), *Class->GetName() );
+		((FScriptInterface*)Result)->SetObject(Castee);
+		((FScriptInterface*)Result)->SetInterface(Castee->GetInterfaceAddress(Class));
+	}
+	else
+	{
+		checkf( Castee->IsA(Class),
+			TEXT("%s: Illegal SafeScriptCast of %s cast to %s"),
+			*Stack.Object->GetPathName(), *Castee->GetClass()->GetName(), *Class->GetName() );
+		*(UObject**)Result = Castee;
+	}
 }
 IMPLEMENT_FUNCTION( UObject, EX_DynamicCastChecked, execDynamicCastChecked );
 
+// SafeScriptCast variant of EX_MetaCast.
 void UObject::execMetaCastChecked( FFrame& Stack, RESULT_DECL )
 {
-	// Get metaclass to cast to.
 	UClass* MetaClass = (UClass*)Stack.ReadObject();
 
-	// Compile actor expression.
 	UObject* Castee = NULL;
 	Stack.Step( Stack.Object, &Castee );
 
-	// Always return NULL - this is the "checked" variant.
 	*(UObject**)Result = NULL;
+	if( Castee == NULL )
+	{
+		return;
+	}
+
+	checkf( Castee->IsA(UClass::StaticClass()) && ((UClass*)Castee)->IsChildOf(MetaClass),
+		TEXT("%s: Illegal SafeScriptCast of %s cast to %s"),
+		*Stack.Object->GetPathName(), *Castee->GetClass()->GetName(), *MetaClass->GetName() );
+	*(UObject**)Result = Castee;
 }
 IMPLEMENT_FUNCTION( UObject, EX_MetaCastChecked, execMetaCastChecked );
 #endif

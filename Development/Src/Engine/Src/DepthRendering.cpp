@@ -114,12 +114,17 @@ public:
 
 #endif
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TDepthOnlyVertexShader<TRUE>,TEXT("PositionOnlyDepthVertexShader"),TEXT("Main"),SF_Vertex,0,0);
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TDepthOnlyVertexShader<FALSE>,TEXT("DepthOnlyVertexShader"),TEXT("Main"),SF_Vertex,0,0);
+// PositionOnly variant is not wrapped — BM2 PC doesn't include it in the tessellation permutation list.
+// BM2 uses <1> (the bool value) in the registered name rather than <TRUE> (the symbol).
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TDepthOnlyVertexShader<1>,TEXT("PositionOnlyDepthVertexShader"),TEXT("Main"),SF_Vertex,0,0);
+typedef TVertexShaderTessellationPermutation<TDepthOnlyVertexShader<FALSE>,0> TDepthOnlyVertexShaderFALSETP_NoTessellationFALSEFALSE;
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TDepthOnlyVertexShaderFALSETP_NoTessellationFALSEFALSE,TEXT("DepthOnlyVertexShader"),TEXT("Main"),SF_Vertex,0,0);
 
 #if WITH_D3D11_TESSELLATION
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FDepthOnlyHullShader,TEXT("DepthOnlyVertexShader"),TEXT("MainHull"),SF_Hull,0,0);	
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FDepthOnlyDomainShader,TEXT("DepthOnlyVertexShader"),TEXT("MainDomain"),SF_Domain,0,0);
+typedef THullShaderTessellationPermutation<FDepthOnlyHullShader,0> FDepthOnlyHullShaderTP_NoTessellationFALSEFALSE;
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,FDepthOnlyHullShaderTP_NoTessellationFALSEFALSE,TEXT("DepthOnlyVertexShader"),TEXT("MainHull"),SF_Hull,0,0);
+typedef TDomainShaderTessellationPermutation<FDepthOnlyDomainShader,0> FDepthOnlyDomainShaderTP_NoTessellationFALSEFALSE;
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,FDepthOnlyDomainShaderTP_NoTessellationFALSEFALSE,TEXT("DepthOnlyVertexShader"),TEXT("MainDomain"),SF_Domain,0,0);
 #endif
 
 /**
@@ -284,20 +289,20 @@ FDepthDrawingPolicy::FDepthDrawingPolicy(
 		&& InVertexFactory->GetType()->SupportsTessellationShaders() 
 		&& TessellationMode != MTM_NoTessellation)
 	{
-		VertexShader = MaterialResource->GetShader<TDepthOnlyVertexShader<FALSE> >(VertexFactory->GetType());
-		HullShader = MaterialResource->GetShader<FDepthOnlyHullShader>(VertexFactory->GetType());
-		DomainShader = MaterialResource->GetShader<FDepthOnlyDomainShader>(VertexFactory->GetType());
+		VertexShader = MaterialResource->GetShader<TVertexShaderTessellationPermutation<TDepthOnlyVertexShader<FALSE>,0> >(VertexFactory->GetType());
+		HullShader = MaterialResource->GetShader<THullShaderTessellationPermutation<FDepthOnlyHullShader,0> >(VertexFactory->GetType());
+		DomainShader = MaterialResource->GetShader<TDomainShaderTessellationPermutation<FDepthOnlyDomainShader,0> >(VertexFactory->GetType());
 	}
 	else
 #endif
 	if(!bForceUsePixelShader && !MaterialResource->IsMasked() && !MaterialResource->MaterialModifiesMeshPosition())
 	{
 		const FMaterial* DefaultMaterialResource = GEngine->DefaultMaterial->GetRenderProxy(FALSE)->GetMaterial();
-		VertexShader = DefaultMaterialResource->GetShader<TDepthOnlyVertexShader<FALSE> >(InVertexFactory->GetType());
+		VertexShader = DefaultMaterialResource->GetShader<TVertexShaderTessellationPermutation<TDepthOnlyVertexShader<FALSE>,0> >(InVertexFactory->GetType());
 	}
 	else
 	{
-		VertexShader = MaterialResource->GetShader<TDepthOnlyVertexShader<FALSE> >(InVertexFactory->GetType());
+		VertexShader = MaterialResource->GetShader<TVertexShaderTessellationPermutation<TDepthOnlyVertexShader<FALSE>,0> >(InVertexFactory->GetType());
 	}
 
 }

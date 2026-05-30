@@ -71,7 +71,12 @@ public:
 		bShaderHasOutdatedParameters |= Ar << VertexFactoryParameters;
 		Ar << HeightFogParameters;
 		Ar << MaterialParameters;
-		Ar << FogVolumeParameters;
+#if BATMAN
+		if (!Ar.IsBmCooked(TRUE))
+#endif
+		{
+			Ar << FogVolumeParameters;
+		}
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -319,13 +324,18 @@ public:
 		Ar << MaterialParameters;
 		Ar << AmbientColorAndSkyFactorParameter;
 		Ar << UpperSkyColorParameter;
-		Ar << LowerSkyColorParameter;
-		Ar << DeferredRenderingParameters;
+#if BATMAN
+		if (!Ar.IsBmCooked(TRUE))
+#endif
+		{
+			Ar << LowerSkyColorParameter;
+			Ar << DeferredRenderingParameters;
+		}
 
 		// set parameter names for platforms that need them
 		UpperSkyColorParameter.SetShaderParamName(TEXT("UpperSkyColor"));
 		LowerSkyColorParameter.SetShaderParamName(TEXT("LowerSkyColor"));
-		
+
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -442,11 +452,11 @@ public:
 			&& MaterialTessellationMode != MTM_NoTessellation)
 		{
 			// Find the base pass tessellation shaders since the material is tessellated
-			HullShader = MaterialResource->GetShader<TBasePassHullShader<LightMapPolicyType,FogDensityPolicyType> >(VertexFactory->GetType());
-			DomainShader = MaterialResource->GetShader<TBasePassDomainShader<LightMapPolicyType,FogDensityPolicyType> >(VertexFactory->GetType());
+			HullShader = MaterialResource->GetShader<THullShaderTessellationPermutation<TBasePassHullShader<LightMapPolicyType,FogDensityPolicyType>,0> >(VertexFactory->GetType());
+			DomainShader = MaterialResource->GetShader<TDomainShaderTessellationPermutation<TBasePassDomainShader<LightMapPolicyType,FogDensityPolicyType>,0> >(VertexFactory->GetType());
 		}
 #endif
-		VertexShader = MaterialResource->GetShader<TBasePassVertexShader<LightMapPolicyType,FogDensityPolicyType> >(InVertexFactory->GetType());
+		VertexShader = MaterialResource->GetShader<TVertexShaderTessellationPermutation<TBasePassVertexShader<LightMapPolicyType,FogDensityPolicyType>,0> >(InVertexFactory->GetType());
 
 		// Find the appropriate shaders based on whether sky lighting is needed.
 		if (bEnableSkyLight)
@@ -916,6 +926,24 @@ void ProcessBasePassMesh(
 	// Check for a cached light-map.
 	const UBOOL bIsLitMaterial = Parameters.LightingModel != MLM_Unlit;
 	const FLightMapInteraction LightMapInteraction = (Parameters.Mesh.LCI && bIsLitMaterial) ? Parameters.Mesh.LCI->GetLightMapInteraction() : FLightMapInteraction();
+
+#if BATMAN
+	// BM2: if the primitive has an AP3D light proxy attached and it's allowed in the base pass,
+	// route through FAPlus3DLightLightMapPolicy (matches retail ProcessBasePassMesh dispatch).
+	if (bIsLitMaterial
+		&& Parameters.PrimitiveSceneInfo
+		&& Parameters.PrimitiveSceneInfo->AmbientPlus3DLight
+		&& Parameters.PrimitiveSceneInfo->bRenderAPlus3DLightInBasePass
+		&& !Parameters.Material->IsUsedWithDecals())
+	{
+		ProcessBasePassMesh_LightMapped<ProcessActionType, FAPlus3DLightLightMapPolicy>(
+			Parameters,
+			Action,
+			FAPlus3DLightLightMapPolicy(),
+			Parameters.PrimitiveSceneInfo->AmbientPlus3DLight);
+		return;
+	}
+#endif
 
 	UBOOL bShouldRenderDominantLight = FALSE;
 	FLightInteraction DominantLightInteraction = FLightInteraction::Uncached();

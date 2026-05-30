@@ -2913,6 +2913,9 @@ public:
 	DECLARE_FUNCTION(execEatReturnValue);
 	DECLARE_FUNCTION(execSelf);
 	DECLARE_FUNCTION(execContext);
+#if BATMAN
+	DECLARE_FUNCTION(execSafeContext);
+#endif
 	DECLARE_FUNCTION(execVirtualFunction);
 	DECLARE_FUNCTION(execFinalFunction);
 	DECLARE_FUNCTION(execGlobalFunction);

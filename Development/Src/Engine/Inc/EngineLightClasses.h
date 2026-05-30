@@ -465,6 +465,24 @@ public:
 	virtual void Serialize( FArchive& Ar );
 };
 
+class UAmbientPlus3DirectionalLightComponent : public ULightComponent
+{
+public:
+    //## BEGIN PROPS AmbientPlus3DirectionalLightComponent
+    FVector LightDirections[3];
+    FVector LightColours[3];
+    FVector Ambient;
+    BITFIELD bRenderBeforeModShadows:1;
+    SCRIPT_ALIGN;
+    //## END PROPS AmbientPlus3DirectionalLightComponent
+
+    DECLARE_CLASS(UAmbientPlus3DirectionalLightComponent,ULightComponent,0,Engine)
+	// ULightComponent interface.
+	virtual FLightSceneInfo* CreateSceneInfo() const;
+	virtual FVector4 GetPosition() const;
+	virtual ELightComponentType GetLightType() const;
+};
+
 class UDirectionalLightComponent : public ULightComponent
 {
 public:
@@ -940,6 +958,7 @@ AUTOGENERATE_FUNCTION(UDynamicLightEnvironmentComponent,-1,execResetEnvironment)
 	AStaticLightCollectionActor::StaticClass(); \
 	ULightComponent::StaticClass(); \
 	GNativeLookupFuncs.Set(FName("LightComponent"), GEngineULightComponentNatives); \
+	UAmbientPlus3DirectionalLightComponent::StaticClass(); \
 	UDirectionalLightComponent::StaticClass(); \
 	UDominantDirectionalLightComponent::StaticClass(); \
 	UPointLightComponent::StaticClass(); \
@@ -1064,6 +1083,9 @@ VERIFY_CLASS_OFFSET_NODIE(ULightComponent,LightComponent,RadialBlurPercent)
 VERIFY_CLASS_OFFSET_NODIE(ULightComponent,LightComponent,OcclusionMaskDarkness)
 VERIFY_CLASS_OFFSET_NODIE(ULightComponent,LightComponent,CheapLightMesh)
 VERIFY_CLASS_SIZE_NODIE(ULightComponent)
+VERIFY_CLASS_OFFSET_NODIE(UAmbientPlus3DirectionalLightComponent,AmbientPlus3DirectionalLightComponent,LightDirections)
+VERIFY_CLASS_OFFSET_NODIE(UAmbientPlus3DirectionalLightComponent,AmbientPlus3DirectionalLightComponent,Ambient)
+VERIFY_CLASS_SIZE_NODIE(UAmbientPlus3DirectionalLightComponent)
 VERIFY_CLASS_OFFSET_NODIE(UDirectionalLightComponent,DirectionalLightComponent,TraceDistance)
 VERIFY_CLASS_OFFSET_NODIE(UDirectionalLightComponent,DirectionalLightComponent,LightmassSettings)
 VERIFY_CLASS_SIZE_NODIE(UDirectionalLightComponent)

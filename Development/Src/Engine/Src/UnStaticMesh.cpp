@@ -1114,7 +1114,7 @@ void FStaticMeshVertexBuffer::AllocateData()
 #if BATMAN
 	if( !bHasNormalsAndTangents )
 	{
-		// BM3 vertex data without tangent basis - UVs only
+		// BM2 vertex data without tangent basis - UVs only
 		if( !bUseFullPrecisionUVs )
 		{
 			switch(NumTexCoords)

@@ -343,6 +343,7 @@ struct FURL;
 #include "GlobalShader.h"					// Global shader definitions.
 #include "MaterialShader.h"					// Material shader definitions.
 #include "MeshMaterialShader.h"				// Mesh material shader defintions.
+#include "TessellationPermutation.h"		// BM2 tessellation permutation wrappers.
 #include "LensFlareVertexFactory.h"			// Lens flare vertex factory definition.
 #include "LocalVertexFactory.h"				// Local vertex factory definition.
 #include "ParticleVertexFactory.h"			// Particle sprite vertex factory definition.

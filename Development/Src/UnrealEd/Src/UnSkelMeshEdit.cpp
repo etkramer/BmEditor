@@ -540,7 +540,7 @@ void UEditorEngine::ImportPSAIntoAnimSet( UAnimSet* AnimSet, const TCHAR* Filena
 				RawTrack.PosKeys.Add(DestSeq->NumFrames);
 				RawTrack.RotKeys.Add(DestSeq->NumFrames);
 
-				// BM3: only these tracks get real translation from the PSA. All other bones
+				// BM2: only these tracks get real translation from the PSA. All other bones
 				// get the mesh ref-pose translation so imported anims match the target skeleton's
 				// proportions (fixes collapsed shoulders etc. when bAnimRotationOnly is off, and
 				// in-game where bAnimRotationOnly is not honored).

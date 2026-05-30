@@ -271,6 +271,7 @@ public:
 	{
 		return FMaterialShaderParameters::IsUniformExpressionSetValid(ExpressionSet.GetExpresssions(SF_Vertex));
 	}
+
 };
 
 /**

@@ -5462,7 +5462,7 @@ void WxGBLeftContainer::UpdateTreeViewPackageItem(const wxTreeItemId &Item)
 	Package = Package->GetOuter() == NULL ? Package : Package->GetOutermost();
 
 #if BATMAN
-	// BM3: Show lock icon on cooked packages
+	// BM2: Show lock icon on cooked packages
 	if (Package->PackageFlags & PKG_Cooked)
 	{
 		TreeCtrl->SetItemImage(Item, GBTCI_SCC_ReadOnly, wxTreeItemIcon_Normal);

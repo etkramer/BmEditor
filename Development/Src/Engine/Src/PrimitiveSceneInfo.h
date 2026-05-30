@@ -343,6 +343,19 @@ public:
 	/** The spherical harmonic light to be rendered in the base pass, if any. */
 	const class FLightSceneInfo* SHLightSceneInfo;
 
+#if BATMAN
+	/**
+	 * BM2 ambient + 3 directional light proxy attached to this primitive.
+	 * When non-NULL, ProcessBasePassMesh routes the primitive through FAPlus3DLightLightMapPolicy.
+	 * Set by FAmbientPlus3DirectionalLightSceneInfo::AttachPrimitive when the proxy is attached
+	 * by FDynamicLightEnvironmentState::CreateEnvironmentLightList (AP3D mode).
+	 */
+	const class FAmbientPlus3DirectionalLightSceneInfo* AmbientPlus3DLight;
+
+	/** Whether the AP3D light is merged into the base pass (vs rendered after mod shadows). */
+	BITFIELD bRenderAPlus3DLightInBasePass : 1;
+#endif
+
 	/** Shadowing factor applied to BrightestDominantLightSceneInfo. */
 	FLOAT DominantShadowFactor;
 

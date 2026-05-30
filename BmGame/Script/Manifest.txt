@@ -540,6 +540,7 @@
    3 HeightFogComponent Engine [] []
    3 ImageReflectionComponent Engine [H] []
    3 LightComponent Engine [A] []
+    4 AmbientPlus3DirectionalLightComponent Engine [] []
     4 DirectionalLightComponent Engine [] []
      5 DominantDirectionalLightComponent Engine [] []
     4 PointLightComponent Engine [] []

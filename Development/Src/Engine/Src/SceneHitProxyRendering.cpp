@@ -59,7 +59,8 @@ private:
 	FMaterialVertexShaderParameters MaterialParameters;
 };
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FHitProxyVertexShader,TEXT("HitProxyVertexShader"),TEXT("Main"),SF_Vertex,VER_FIXED_HIT_PROXY_VERTEX_OFFSET,0); 
+typedef TVertexShaderTessellationPermutation<FHitProxyVertexShader,0> THitProxyVertexShaderTP_NoTessellationFALSEFALSE;
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,THitProxyVertexShaderTP_NoTessellationFALSEFALSE,TEXT("HitProxyVertexShader"),TEXT("Main"),SF_Vertex,VER_FIXED_HIT_PROXY_VERTEX_OFFSET,0);
 
 #if WITH_D3D11_TESSELLATION
 
@@ -106,8 +107,10 @@ protected:
 	}
 };
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FHitProxyHullShader,TEXT("HitProxyVertexShader"),TEXT("MainHull"),SF_Hull,0,0); 
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FHitProxyDomainShader,TEXT("HitProxyVertexShader"),TEXT("MainDomain"),SF_Domain,0,0);
+typedef THullShaderTessellationPermutation<FHitProxyHullShader,0> THitProxyHullShaderTP_NoTessellationFALSEFALSE;
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,THitProxyHullShaderTP_NoTessellationFALSEFALSE,TEXT("HitProxyVertexShader"),TEXT("MainHull"),SF_Hull,0,0);
+typedef TDomainShaderTessellationPermutation<FHitProxyDomainShader,0> THitProxyDomainShaderTP_NoTessellationFALSEFALSE;
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,THitProxyDomainShaderTP_NoTessellationFALSEFALSE,TEXT("HitProxyVertexShader"),TEXT("MainDomain"),SF_Domain,0,0);
 
 #endif
 
@@ -192,11 +195,11 @@ FHitProxyDrawingPolicy::FHitProxyDrawingPolicy(
 			&& InVertexFactory->GetType()->SupportsTessellationShaders() 
 			&& MaterialTessellationMode != MTM_NoTessellation)
 		{
-			HullShader = MaterialResource->GetShader<FHitProxyHullShader>(VertexFactory->GetType());
-			DomainShader = MaterialResource->GetShader<FHitProxyDomainShader>(VertexFactory->GetType());
+			HullShader = MaterialResource->GetShader<THullShaderTessellationPermutation<FHitProxyHullShader,0> >(VertexFactory->GetType());
+			DomainShader = MaterialResource->GetShader<TDomainShaderTessellationPermutation<FHitProxyDomainShader,0> >(VertexFactory->GetType());
 		}
 #endif
-		VertexShader = MaterialResource->GetShader<FHitProxyVertexShader>(InVertexFactory->GetType());
+		VertexShader = MaterialResource->GetShader<TVertexShaderTessellationPermutation<FHitProxyVertexShader,0> >(InVertexFactory->GetType());
 		PixelShader = MaterialResource->GetShader<FHitProxyPixelShader>(InVertexFactory->GetType());
 	}
 	else
@@ -204,7 +207,7 @@ FHitProxyDrawingPolicy::FHitProxyDrawingPolicy(
 		// Override with the default material's shaders.  
 		// Two-sided materials are still handled since we are only overriding which material the shaders come from.
 		const FMaterial* DefaultMaterialResource = GEngine->DefaultMaterial->GetRenderProxy(FALSE)->GetMaterial();
-		VertexShader = DefaultMaterialResource->GetShader<FHitProxyVertexShader>(InVertexFactory->GetType());
+		VertexShader = DefaultMaterialResource->GetShader<TVertexShaderTessellationPermutation<FHitProxyVertexShader,0> >(InVertexFactory->GetType());
 		PixelShader = DefaultMaterialResource->GetShader<FHitProxyPixelShader>(InVertexFactory->GetType());
 	}
 }

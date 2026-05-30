@@ -1117,12 +1117,13 @@ class FShaderLoadArchive : public FArchiveProxy
 {
 public:
 
-	FShaderLoadArchive(FArchive& Archive, const TArray<WORD>& InPastSerializations, UBOOL bInEnableAutomaticVersioning) : 
+	FShaderLoadArchive(FArchive& Archive, const TArray<WORD>& InPastSerializations, UBOOL bInEnableAutomaticVersioning, const TCHAR* InShaderTypeName = TEXT("Unknown")) :
 		FArchiveProxy(Archive),
 		NextSerialization(0),
 		bMismatch(FALSE),
 		PastSerializations(InPastSerializations),
-		bEnableAutomaticVersioning(bInEnableAutomaticVersioning)
+		bEnableAutomaticVersioning(bInEnableAutomaticVersioning),
+		ShaderTypeName(InShaderTypeName)
 	{
 	}
 
@@ -1132,8 +1133,24 @@ public:
 
 		if (NextSerialization >= PastSerializations.Num() || PastSerializations(NextSerialization) != Length)
 		{
-			// There has been a serialization mismatch if we are trying to serialize more times than the stored history,
-			// Or if we are trying to serialize a different size.
+			if (!bMismatch)
+			{
+				static INT MismatchLogs = 0;
+				if (MismatchLogs++ < 10)
+				{
+					WORD Expected = NextSerialization < PastSerializations.Num() ? PastSerializations(NextSerialization) : 0;
+					debugf(NAME_Warning, TEXT("ShaderLoadArchive: FIRST mismatch [%s] at call %d/%d: expected %d, got %d, pos=%d"),
+						ShaderTypeName, NextSerialization, PastSerializations.Num(), Expected, Length, Tell());
+					FString Dump = FString::Printf(TEXT("  PastSer: "));
+					for (INT i = 0; i < Min(PastSerializations.Num(), NextSerialization + 5); i++)
+					{
+						Dump += FString::Printf(TEXT("%s%d"), (i == NextSerialization) ? TEXT("[") : TEXT(""), PastSerializations(i));
+						if (i == NextSerialization) Dump += TEXT("]");
+						if (i < PastSerializations.Num() - 1) Dump += TEXT(",");
+					}
+					debugf(NAME_Warning, *Dump);
+				}
+			}
 			bMismatch = TRUE;
 		}
 
@@ -1188,6 +1205,16 @@ public:
 		}
 	}
 
+	virtual FArchive& operator<<( class FName& N )
+	{
+		if (bMismatch && bEnableAutomaticVersioning)
+		{
+			N = NAME_None;
+			return *this;
+		}
+		return FArchiveProxy::operator<<(N);
+	}
+
 	UBOOL HadSerializationMismatch() const
 	{
 		// Report a mismatch if one was detected during serialization,
@@ -1202,6 +1229,7 @@ private:
 	const TArray<WORD>& PastSerializations;
 	// Whether to throw away shaders with serialization mismatches
 	UBOOL bEnableAutomaticVersioning;
+	const TCHAR* ShaderTypeName;
 };
 
 /**
@@ -1321,7 +1349,7 @@ void SerializeShaders(const TMap<FGuid,FShader*>& InShaders, FArchive& Ar)
 			{
 				// Get the current hash of the shader's source files
 				const FSHAHash& CurrentHash = ShaderType->GetSourceHash();
-				
+
 				FShader* Shader = ShaderType->FindShaderById(ShaderId);
 				if (Shader)
 				{
@@ -1329,7 +1357,12 @@ void SerializeShaders(const TMap<FGuid,FShader*>& InShaders, FArchive& Ar)
 					Ar.Seek(SkipOffset);
 					NumRedundantShaders++;
 				}
-				else if (ShouldReloadChangedShaders() && SavedHash != CurrentHash)
+				else if (ShouldReloadChangedShaders() && SavedHash != CurrentHash
+#if BATMAN
+					// BM2's .usf source hashes don't match ours; skip check for BM2 packages until .usf files are updated
+					&& !Ar.IsBmCooked(TRUE)
+#endif
+				)
 				{
 					// If the shader has changed since it was last compiled, skip it.
 					Ar.Seek(SkipOffset);
@@ -1355,7 +1388,7 @@ void SerializeShaders(const TMap<FGuid,FShader*>& InShaders, FArchive& Ar)
 					}
 
 					// Wrap Ar with an archive that can detect serialization mismatches
-					FShaderLoadArchive LoadArchive(Ar, Serializations, bSerializeAutomaticVersioningData);
+					FShaderLoadArchive LoadArchive(Ar, Serializations, bSerializeAutomaticVersioningData, ShaderType->GetName());
 
 					// Deserialize the shader into the new instance.
 					const UBOOL bShaderHasOutdatedParameters = Shader->Serialize(LoadArchive);
@@ -1372,10 +1405,10 @@ void SerializeShaders(const TMap<FGuid,FShader*>& InShaders, FArchive& Ar)
 					else
 					{
 						// If this happens it probably indicates a bug in the automatic shader versioning
-						checkf(Ar.Tell() == SkipOffset, 
-							TEXT("Deserialized the wrong amount for shader %s!  Expected archive position %i, got position %i\n"), 
-							ShaderType->GetName(), 
-							SkipOffset, 
+						checkf(Ar.Tell() == SkipOffset,
+							TEXT("Deserialized the wrong amount for shader %s!  Expected archive position %i, got position %i\n"),
+							ShaderType->GetName(),
+							SkipOffset,
 							Ar.Tell()
 							);
 					}

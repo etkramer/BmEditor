@@ -196,12 +196,15 @@ private:
 	FVelocityShaderParameters VelocityParameters;
 };
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FVelocityHullShader,TEXT("VelocityShader"),TEXT("MainHull"),SF_Hull,0,0); 
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FVelocityDomainShader,TEXT("VelocityShader"),TEXT("MainDomain"),SF_Domain,0,0);
+typedef THullShaderTessellationPermutation<FVelocityHullShader,0> TVelocityHullShaderTP_NoTessellationFALSEFALSE;
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TVelocityHullShaderTP_NoTessellationFALSEFALSE,TEXT("VelocityShader"),TEXT("MainHull"),SF_Hull,0,0);
+typedef TDomainShaderTessellationPermutation<FVelocityDomainShader,0> TVelocityDomainShaderTP_NoTessellationFALSEFALSE;
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TVelocityDomainShaderTP_NoTessellationFALSEFALSE,TEXT("VelocityShader"),TEXT("MainDomain"),SF_Domain,0,0);
 
 #endif
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FVelocityVertexShader,TEXT("VelocityShader"),TEXT("MainVertexShader"),SF_Vertex,0,0); 
+typedef TVertexShaderTessellationPermutation<FVelocityVertexShader,0> TVelocityVertexShaderTP_NoTessellationFALSEFALSE;
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TVelocityVertexShaderTP_NoTessellationFALSEFALSE,TEXT("VelocityShader"),TEXT("MainVertexShader"),SF_Vertex,0,0);
 
 //=============================================================================
 /** Encapsulates the Velocity pixel shader. */
@@ -288,7 +291,13 @@ public:
 	virtual UBOOL Serialize(FArchive& Ar)
 	{
 		UBOOL bShaderHasOutdatedParameters = FShader::Serialize(Ar);
-		Ar << MaterialParameters << IndividualVelocityScale;
+		Ar << MaterialParameters;
+#if BATMAN
+		if (!Ar.IsBmCooked(TRUE))
+#endif
+		{
+			Ar << IndividualVelocityScale;
+		}
 		Ar << PrevViewProjectionMatrixParameter;
 		return bShaderHasOutdatedParameters;
 	}
@@ -329,17 +338,17 @@ FVelocityDrawingPolicy::FVelocityDrawingPolicy(
 		&& InVertexFactory->GetType()->SupportsTessellationShaders() 
 		&& MaterialTessellationMode != MTM_NoTessellation)
 	{
-		UBOOL HasHullShader = MeshShaderIndex->HasShader(&FVelocityHullShader::StaticType);
-		UBOOL HasDomainShader = MeshShaderIndex->HasShader(&FVelocityDomainShader::StaticType);
+		UBOOL HasHullShader = MeshShaderIndex->HasShader(&THullShaderTessellationPermutation<FVelocityHullShader,0>::StaticType);
+		UBOOL HasDomainShader = MeshShaderIndex->HasShader(&TDomainShaderTessellationPermutation<FVelocityDomainShader,0>::StaticType);
 
-		HullShader = HasHullShader ? MeshShaderIndex->GetShader<FVelocityHullShader>() : NULL;
-		DomainShader = HasDomainShader ? MeshShaderIndex->GetShader<FVelocityDomainShader>() : NULL;
+		HullShader = HasHullShader ? MeshShaderIndex->GetShader<THullShaderTessellationPermutation<FVelocityHullShader,0> >() : NULL;
+		DomainShader = HasDomainShader ? MeshShaderIndex->GetShader<TDomainShaderTessellationPermutation<FVelocityDomainShader,0> >() : NULL;
 	}
 
 #endif
 
-	UBOOL HasVertexShader = MeshShaderIndex->HasShader(&FVelocityVertexShader::StaticType);
-	VertexShader = HasVertexShader ? MeshShaderIndex->GetShader<FVelocityVertexShader>() : NULL;
+	UBOOL HasVertexShader = MeshShaderIndex->HasShader(&TVertexShaderTessellationPermutation<FVelocityVertexShader,0>::StaticType);
+	VertexShader = HasVertexShader ? MeshShaderIndex->GetShader<TVertexShaderTessellationPermutation<FVelocityVertexShader,0> >() : NULL;
 
 	UBOOL HasPixelShader = MeshShaderIndex->HasShader(&FVelocityPixelShader::StaticType);
 	PixelShader = HasPixelShader ? MeshShaderIndex->GetShader<FVelocityPixelShader>() : NULL;

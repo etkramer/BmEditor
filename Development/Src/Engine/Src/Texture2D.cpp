@@ -641,7 +641,7 @@ void UTexture2D::Serialize(FArchive& Ar)
 	LegacySerialize(Ar);
 
 #if BATMAN
-	// BM3: Fully load mips from .TFC
+	// BM2: Fully load mips from .TFC
 	if (GIsEditor && TextureFileCacheName != NAME_None)
 	{
 		// Figure out TFC path
@@ -1149,7 +1149,7 @@ FString UTexture2D::GetDesc()
 	GSystemSettings.TextureLODSettings.ComputeInGameMaxResolution(LODBiasRegular, *this, EffectiveSizeX, EffectiveSizeY);
 
 #if BATMAN
-	// BM3: Make labels less verbose
+	// BM2: Make labels less verbose
 	return FString::Printf(TEXT("%s %dx%d [%s%s]"),
 		NeverStream ? TEXT("NeverStreamed") : TEXT("Streamed"),
 		SizeX,

@@ -2599,7 +2599,9 @@ void FSceneTextureShaderParameters::Bind(const FShaderParameterMap& ParameterMap
 	// only used if Material has an expression that requires SceneDepthTexture
 	SceneDepthTextureParameter.Bind(ParameterMap,TEXT("SceneDepthTexture"),TRUE);
 	// only used if Material has an expression that requires SceneColorTextureMSAA
+#if !BATMAN
 	SceneDepthSurfaceParameter.Bind(ParameterMap,TEXT("SceneDepthSurface"),TRUE);
+#endif
 	// only used if Material has an expression that requires SceneDepthTexture
 	SceneDepthCalcParameter.Bind(ParameterMap,TEXT("MinZ_MaxZRatio"),TRUE);
 	// only used if Material has an expression that requires ScreenPosition biasing
@@ -2608,7 +2610,9 @@ void FSceneTextureShaderParameters::Bind(const FShaderParameterMap& ParameterMap
     // Contains parameters needed to transform from stereo clip space to mono clip space
     NvStereoFixTextureParameter.Bind(ParameterMap,TEXT("NvStereoFixTexture"),TRUE);
 #endif
+#if !BATMAN
 	DecompressSceneColorParameter.Bind(ParameterMap,TEXT("bDecompressSceneColor"),TRUE);
+#endif
 }
 
 void FSceneTextureShaderParameters::SetSceneColorTextureOnly(FShader* PixelShader) const
@@ -2681,10 +2685,12 @@ void FSceneTextureShaderParameters::SetCustom(const FSceneView* View,FShader* Pi
 		}
 	}
 
+#if !BATMAN
 	if(GRHIShaderPlatform == SP_PCD3D_SM5)
 	{
 		SetSurfaceParameter(RHIPixelShader, SceneDepthSurfaceParameter, GSceneRenderTargets.GetSceneDepthSurface());
 	}
+#endif
 
 #if !CONSOLE
     if (NvStereoFixTextureParameter.IsBound())
@@ -2700,7 +2706,9 @@ void FSceneTextureShaderParameters::SetCustom(const FSceneView* View,FShader* Pi
 
 	RHISetViewPixelParameters( View, RHIPixelShader, &SceneDepthCalcParameter, &ScreenPositionScaleBiasParameter );
 
+#if !BATMAN
 	SetPixelShaderBool(RHIPixelShader, DecompressSceneColorParameter, GSceneRenderTargets.bSceneColorTextureIsRaw && !View->bUseLDRSceneColor);
+#endif
 }
 
 void FSceneTextureShaderParameters::Set(const FSceneView* View,FShader* PixelShader, ESamplerFilter ColorFilter/*=SF_Point*/, ESceneDepthUsage DepthUsage/*=SceneDepthUsage_Normal*/) const
@@ -2720,16 +2728,20 @@ FArchive& operator<<(FArchive& Ar,FSceneTextureShaderParameters& Parameters)
 {
 	Ar << Parameters.SceneColorTextureParameter;
 	Ar << Parameters.SceneDepthTextureParameter;
+#if !BATMAN
 	Ar << Parameters.SceneDepthSurfaceParameter;
+#endif
 	Ar << Parameters.SceneDepthCalcParameter;
 	Ar << Parameters.ScreenPositionScaleBiasParameter;
 #if CONSOLE
 	FShaderResourceParameter dummy;
 	Ar << dummy;
 #else
-    Ar << Parameters.NvStereoFixTextureParameter;
+	Ar << Parameters.NvStereoFixTextureParameter;
 #endif
+#if !BATMAN
 	Ar << Parameters.DecompressSceneColorParameter;
+#endif
 	return Ar;
 }
 

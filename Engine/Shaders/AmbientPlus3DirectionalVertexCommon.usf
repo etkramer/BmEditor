@@ -1,0 +1,13 @@
+/*=============================================================================
+	AmbientPlus3DirectionalCommon.usf: Common functionality for SH lighting.
+=============================================================================*/
+
+//Common.usf, Material.usf and VertexFactory.usf must be included before this file
+
+#define APLUS3D_DIRECTION_0 0
+#define APLUS3D_DIRECTION_1 1
+#define APLUS3D_DIRECTION_2 2
+#define APLUS3D_VERTEX_MAX 3
+
+float4 APlus3DLightVertexInfo[APLUS3D_VERTEX_MAX];
+

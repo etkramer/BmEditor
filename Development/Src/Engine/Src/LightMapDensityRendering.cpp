@@ -7,10 +7,14 @@
 
 //-----------------------------------------------------------------------------
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TLightMapDensityVertexShader<FNoLightMapPolicy>,TEXT("LightMapDensityShader"),TEXT("MainVertexShader"),SF_Vertex,0,0); 
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TLightMapDensityVertexShader<FDirectionalLightMapTexturePolicy>,TEXT("LightMapDensityShader"),TEXT("MainVertexShader"),SF_Vertex,0,0); 
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TLightMapDensityVertexShader<FSimpleLightMapTexturePolicy>,TEXT("LightMapDensityShader"),TEXT("MainVertexShader"),SF_Vertex,0,0); 
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TLightMapDensityVertexShader<FDummyLightMapTexturePolicy>,TEXT("LightMapDensityShader"),TEXT("MainVertexShader"),SF_Vertex,0,0); 
+#define IMPLEMENT_LIGHTMAPDENSITY_VS_TYPE(LightMapPolicyType) \
+	typedef TVertexShaderTessellationPermutation<TLightMapDensityVertexShader<LightMapPolicyType>,0> TLightMapDensityVertexShader##LightMapPolicyType##TP_NoTessellationFALSEFALSE; \
+	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TLightMapDensityVertexShader##LightMapPolicyType##TP_NoTessellationFALSEFALSE,TEXT("LightMapDensityShader"),TEXT("MainVertexShader"),SF_Vertex,0,0);
+
+IMPLEMENT_LIGHTMAPDENSITY_VS_TYPE(FNoLightMapPolicy);
+IMPLEMENT_LIGHTMAPDENSITY_VS_TYPE(FDirectionalLightMapTexturePolicy);
+IMPLEMENT_LIGHTMAPDENSITY_VS_TYPE(FSimpleLightMapTexturePolicy);
+IMPLEMENT_LIGHTMAPDENSITY_VS_TYPE(FDummyLightMapTexturePolicy);
 
 IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TLightMapDensityPixelShader<FNoLightMapPolicy>,TEXT("LightMapDensityShader"),TEXT("MainPixelShader"),SF_Pixel,VER_LIGHTMAP_DENSITY_SELECTED_OBJECT,0);
 IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TLightMapDensityPixelShader<FDirectionalLightMapTexturePolicy>,TEXT("LightMapDensityShader"),TEXT("MainPixelShader"),SF_Pixel,VER_LIGHTMAP_DENSITY_SELECTED_OBJECT,0);
@@ -18,17 +22,16 @@ IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TLightMapDensityPixelShader<FSimpleLig
 IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TLightMapDensityPixelShader<FDummyLightMapTexturePolicy>,TEXT("LightMapDensityShader"),TEXT("MainPixelShader"),SF_Pixel,VER_LIGHTMAP_DENSITY_SELECTED_OBJECT,0);
 
 #if WITH_D3D11_TESSELLATION
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TLightMapDensityHullShader<FNoLightMapPolicy>,TEXT("LightMapDensityShader"),TEXT("MainHull"),SF_Hull,0,0);
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TLightMapDensityDomainShader<FNoLightMapPolicy>,TEXT("LightMapDensityShader"),TEXT("MainDomain"),SF_Domain,0,0);
+#define IMPLEMENT_LIGHTMAPDENSITY_HSDS_TYPE(LightMapPolicyType) \
+	typedef THullShaderTessellationPermutation<TLightMapDensityHullShader<LightMapPolicyType>,0> TLightMapDensityHullShader##LightMapPolicyType##TP_NoTessellationFALSEFALSE; \
+	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TLightMapDensityHullShader##LightMapPolicyType##TP_NoTessellationFALSEFALSE,TEXT("LightMapDensityShader"),TEXT("MainHull"),SF_Hull,0,0); \
+	typedef TDomainShaderTessellationPermutation<TLightMapDensityDomainShader<LightMapPolicyType>,0> TLightMapDensityDomainShader##LightMapPolicyType##TP_NoTessellationFALSEFALSE; \
+	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TLightMapDensityDomainShader##LightMapPolicyType##TP_NoTessellationFALSEFALSE,TEXT("LightMapDensityShader"),TEXT("MainDomain"),SF_Domain,0,0);
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TLightMapDensityHullShader<FDirectionalLightMapTexturePolicy>,TEXT("LightMapDensityShader"),TEXT("MainHull"),SF_Hull,0,0);
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TLightMapDensityDomainShader<FDirectionalLightMapTexturePolicy>,TEXT("LightMapDensityShader"),TEXT("MainDomain"),SF_Domain,0,0);
-
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TLightMapDensityHullShader<FSimpleLightMapTexturePolicy>,TEXT("LightMapDensityShader"),TEXT("MainHull"),SF_Hull,0,0);
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TLightMapDensityDomainShader<FSimpleLightMapTexturePolicy>,TEXT("LightMapDensityShader"),TEXT("MainDomain"),SF_Domain,0,0);
-
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TLightMapDensityHullShader<FDummyLightMapTexturePolicy>,TEXT("LightMapDensityShader"),TEXT("MainHull"),SF_Hull,0,0);
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TLightMapDensityDomainShader<FDummyLightMapTexturePolicy>,TEXT("LightMapDensityShader"),TEXT("MainDomain"),SF_Domain,0,0);
+IMPLEMENT_LIGHTMAPDENSITY_HSDS_TYPE(FNoLightMapPolicy);
+IMPLEMENT_LIGHTMAPDENSITY_HSDS_TYPE(FDirectionalLightMapTexturePolicy);
+IMPLEMENT_LIGHTMAPDENSITY_HSDS_TYPE(FSimpleLightMapTexturePolicy);
+IMPLEMENT_LIGHTMAPDENSITY_HSDS_TYPE(FDummyLightMapTexturePolicy);
 #endif
 
 

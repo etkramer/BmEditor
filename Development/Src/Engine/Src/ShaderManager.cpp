@@ -407,36 +407,6 @@ void FShaderType::GetOutdatedTypes(TArray<FShaderType*>& OutdatedShaderTypes, TA
 	}
 }
 
-#if BATMAN
-/**
- * BM2 appended tessellation template params to every material vertex (and hull/domain) shader
- * type name, of the form "TP_<Policy>Tessellation<bA><bB>" where <Policy> is one of
- * No/Flat/PNTriangles/Phong and the bools are FALSE/TRUE. Our engine doesn't carry those
- * template params, so strip the suffix before looking up the shader type.
- */
-static UBOOL StripBmTessellationSuffix(FString& Name)
-{
-	static const TCHAR* TessPolicies[] = { TEXT("TP_NoTessellation"), TEXT("TP_FlatTessellation"), TEXT("TP_PNTriangles"), TEXT("TP_PhongTessellation") };
-	static const TCHAR* Bools[] = { TEXT("FALSE"), TEXT("TRUE") };
-	for (INT PolicyIndex = 0; PolicyIndex < ARRAY_COUNT(TessPolicies); PolicyIndex++)
-	{
-		for (INT A = 0; A < 2; A++)
-		{
-			for (INT B = 0; B < 2; B++)
-			{
-				const FString Suffix = FString::Printf(TEXT("%s%s%s"), TessPolicies[PolicyIndex], Bools[A], Bools[B]);
-				if (Name.EndsWith(Suffix))
-				{
-					Name = Name.Left(Name.Len() - Suffix.Len());
-					return TRUE;
-				}
-			}
-		}
-	}
-	return FALSE;
-}
-#endif
-
 FArchive& operator<<(FArchive& Ar,FShaderType*& Ref)
 {
 	if(Ar.IsSaving())
@@ -460,20 +430,10 @@ FArchive& operator<<(FArchive& Ar,FShaderType*& Ref)
 				// if we found it, use it
 				Ref = *ShaderType;
 			}
-#if BATMAN
-			else if (Ar.IsBmCooked(TRUE))
+			else
 			{
-				FString Stripped = FactoryName.ToString();
-				if (StripBmTessellationSuffix(Stripped))
-				{
-					ShaderType = FShaderType::GetNameToTypeMap().Find(FName(*Stripped));
-					if (ShaderType)
-					{
-						Ref = *ShaderType;
-					}
-				}
+				warnf(NAME_DevShaders, TEXT("Unknown FShaderType '%s' on load."), *FactoryName.ToString());
 			}
-#endif
 		}
 	}
 	return Ar;

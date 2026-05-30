@@ -913,8 +913,10 @@ FArchive& operator<<(FArchive& Ar,FMaterialPixelShaderParameters& Parameters)
 	Ar << Parameters.ScreenDoorFadeSettings2Parameter;
 	Ar << Parameters.ScreenDoorNoiseTextureParameter;
 	Ar << Parameters.AlphaSampleTextureParameter;
+#if !BATMAN
 	Ar << Parameters.FluidDetailNormalTextureParameter;
 	Ar << Parameters.DOFParameters;
+#endif
 
 	return Ar;
 }
@@ -1503,7 +1505,7 @@ UBOOL FMaterialShaderMap::IsComplete(const FMaterial* Material, UBOOL bSilent) c
 			{
 				if (!MeshShaderMap && !bSilent)
 				{
-					warnf(NAME_DevShaders, TEXT("Incomplete material %s, missing Vertex Factory %s."), *Material->GetFriendlyName(), VertexFactoryType->GetName());
+					warnf(NAME_Warning, TEXT("Incomplete material %s, missing Vertex Factory %s."), *Material->GetFriendlyName(), VertexFactoryType->GetName());
 				}
 				bIsComplete = FALSE;
 				break;
@@ -1524,7 +1526,7 @@ UBOOL FMaterialShaderMap::IsComplete(const FMaterial* Material, UBOOL bSilent) c
 		{
 			if (!bSilent)
 			{
-				warnf(NAME_DevShaders, TEXT("Incomplete material %s, missing FMaterialShader %s."), *Material->GetFriendlyName(), ShaderType->GetName());
+				warnf(NAME_Warning, TEXT("Incomplete material %s, missing FMaterialShader %s."), *Material->GetFriendlyName(), ShaderType->GetName());
 			}
 			bIsComplete = FALSE;
 			break;

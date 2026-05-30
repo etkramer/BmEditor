@@ -435,6 +435,9 @@ enum ELightComponentType
 	LightType_DominantPoint,
 	LightType_Spot,
 	LightType_DominantSpot,
+#if BATMAN
+	LightType_AmbientPlus3Directional,
+#endif
 	LightType_MAX
 };
 

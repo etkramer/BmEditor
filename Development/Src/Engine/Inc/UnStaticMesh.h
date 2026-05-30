@@ -974,7 +974,7 @@ private:
 	/** Corresponds to UStaticMesh::UseFullPrecisionUVs. if TRUE then 32 bit UVs are used */
 	UBOOL bUseFullPrecisionUVs;
 
-	/** Whether vertex data includes tangent basis (TangentX/TangentZ). FALSE for BM3 meshes that store only UVs. */
+	/** Whether vertex data includes tangent basis (TangentX/TangentZ). FALSE for BM2 meshes that store only UVs. */
 	UBOOL bHasNormalsAndTangents;
 
 	/** Allocates the vertex data storage type. */

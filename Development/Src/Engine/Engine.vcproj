@@ -53,6 +53,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Src\AmbientPlus3DirectionalLightComponent.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\Src\AnimationCompressionAlgorithm.cpp"
 				>
 			</File>
@@ -3707,6 +3711,10 @@
 				>
 				<File
 					RelativePath="Classes\ActorComponent.uc"
+					>
+				</File>
+				<File
+					RelativePath=".\Classes\AmbientPlus3DirectionalLightComponent.uc"
 					>
 				</File>
 				<File
