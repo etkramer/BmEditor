@@ -639,12 +639,25 @@ public:
 	virtual UBOOL Serialize(FArchive& Ar)
 	{
 		UBOOL bShaderHasOutdatedParameters = FShader::Serialize(Ar);
-		bShaderHasOutdatedParameters |= Ar << VertexFactoryParameters;
-		LightTypePolicy::PixelParametersType::Serialize(Ar);
-		ShadowingTypePolicy::PixelParametersType::Serialize(Ar);
-		Ar << MaterialParameters;
-		Ar << LightAttenuationTextureParameter;
-		ForwardShadowingParameters.Serialize(Ar);
+#if BATMAN
+		if (Ar.IsBmCooked(TRUE))
+		{
+			LightTypePolicy::PixelParametersType::Serialize(Ar);
+			ShadowingTypePolicy::PixelParametersType::Serialize(Ar);
+			Ar << MaterialParameters;
+			Ar << LightAttenuationTextureParameter;
+			ForwardShadowingParameters.Serialize(Ar);
+		}
+		else
+#endif
+		{
+			bShaderHasOutdatedParameters |= Ar << VertexFactoryParameters;
+			LightTypePolicy::PixelParametersType::Serialize(Ar);
+			ShadowingTypePolicy::PixelParametersType::Serialize(Ar);
+			Ar << MaterialParameters;
+			Ar << LightAttenuationTextureParameter;
+			ForwardShadowingParameters.Serialize(Ar);
+		}
 		return bShaderHasOutdatedParameters;
 	}
 

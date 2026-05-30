@@ -37,8 +37,14 @@ protected:
 	{
 		LightMapPolicyType::VertexParametersType::Bind(Initializer.ParameterMap);
 		MaterialParameters.Bind(Initializer.ParameterMap);
+#if !BATMAN
 		HeightFogParameters.Bind(Initializer.ParameterMap);
+#endif
 		FogVolumeParameters.Bind(Initializer.ParameterMap);
+#if BATMAN
+		DOFParameters.Bind(Initializer.ParameterMap);
+		ObjectFogColorParameter.Bind(Initializer.ParameterMap, TEXT("ObjectFogColor"), TRUE);
+#endif
 	}
 
 public:
@@ -69,14 +75,15 @@ public:
 		UBOOL bShaderHasOutdatedParameters = FShader::Serialize(Ar);
 		LightMapPolicyType::VertexParametersType::Serialize(Ar);
 		bShaderHasOutdatedParameters |= Ar << VertexFactoryParameters;
+#if !BATMAN
 		Ar << HeightFogParameters;
+#endif
 		Ar << MaterialParameters;
 #if BATMAN
-		if (!Ar.IsBmCooked(TRUE))
+		Ar << DOFParameters;
+		Ar << ObjectFogColorParameter;
 #endif
-		{
-			Ar << FogVolumeParameters;
-		}
+		Ar << FogVolumeParameters;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -90,7 +97,9 @@ public:
 		VertexFactoryParameters.Set(this,VertexFactory,View);
 		FMaterialRenderContext MaterialRenderContext(MaterialRenderProxy, View.Family->CurrentWorldTime, View.Family->CurrentRealTime, &View);
 		MaterialParameters.Set(this,MaterialRenderContext);
+#if !BATMAN
 		HeightFogParameters.SetVertexShader(VertexFactory, MaterialRenderProxy, &View, bAllowGlobalFog, this);
+#endif
 	}
 
 	void SetFogVolumeParameters(
@@ -117,11 +126,16 @@ public:
 private:
 	FMaterialVertexShaderParameters MaterialParameters;
 
-	/** The parameters needed to calculate the fog contribution from height fog layers. */
+#if !BATMAN
 	FHeightFogShaderParameters HeightFogParameters;
+#endif
 
-	/** The parameters needed to calculate the fog contribution from an intersecting fog volume. */
 	typename FogDensityPolicyType::ShaderParametersType FogVolumeParameters;
+
+#if BATMAN
+	FDOFShaderParameters DOFParameters;
+	FShaderParameter ObjectFogColorParameter;
+#endif
 };
 
 #if WITH_D3D11_TESSELLATION
@@ -319,15 +333,24 @@ public:
 		static INT RemoveMe=0;	RemoveMe=1;
 #endif
 		UBOOL bShaderHasOutdatedParameters = FShader::Serialize(Ar);
-		bShaderHasOutdatedParameters |= Ar << VertexFactoryParameters;
-		LightMapPolicyType::PixelParametersType::Serialize(Ar);
-		Ar << MaterialParameters;
-		Ar << AmbientColorAndSkyFactorParameter;
-		Ar << UpperSkyColorParameter;
 #if BATMAN
-		if (!Ar.IsBmCooked(TRUE))
+		if (Ar.IsBmCooked(TRUE))
+		{
+			LightMapPolicyType::PixelParametersType::Serialize(Ar);
+			Ar << MaterialParameters;
+			Ar << AmbientColorAndSkyFactorParameter;
+			Ar << UpperSkyColorParameter;
+			Ar << LowerSkyColorParameter;
+			Ar << DeferredRenderingParameters;
+		}
+		else
 #endif
 		{
+			bShaderHasOutdatedParameters |= Ar << VertexFactoryParameters;
+			LightMapPolicyType::PixelParametersType::Serialize(Ar);
+			Ar << MaterialParameters;
+			Ar << AmbientColorAndSkyFactorParameter;
+			Ar << UpperSkyColorParameter;
 			Ar << LowerSkyColorParameter;
 			Ar << DeferredRenderingParameters;
 		}

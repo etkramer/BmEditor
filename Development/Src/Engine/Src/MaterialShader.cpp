@@ -348,6 +348,7 @@ FArchive& operator<<(FArchive& Ar,FMaterialShaderParameters& Parameters)
 	Ar << Parameters.WindDirectionAndSpeedParameter;
 	Ar << Parameters.FoliageImpulseDirectionParameter;
 	Ar << Parameters.FoliageNormalizedRotationAxisAndAngleParameter;
+	Ar << Parameters.LODFadeParameter;
 	Ar << Parameters.UniformScalarShaderParameters;
 	Ar << Parameters.UniformVectorShaderParameters;
 	Ar << Parameters.Uniform2DShaderResourceParameters;
@@ -362,6 +363,7 @@ void FMaterialShaderParameters::Bind(const FShaderParameterMap& ParameterMap, ES
 	WindDirectionAndSpeedParameter.Bind(ParameterMap, TEXT("WindDirectionAndSpeed"),TRUE);
 	FoliageImpulseDirectionParameter.Bind(ParameterMap, TEXT("FoliageImpulseDirection"),TRUE);
 	FoliageNormalizedRotationAxisAndAngleParameter.Bind(ParameterMap, TEXT("FoliageNormalizedRotationAxisAndAngle"),TRUE);
+	LODFadeParameter.Bind(ParameterMap, TEXT("LODFade"), TRUE);
 
 	const TCHAR* ShaderFrequencyName = GetShaderFrequencyName(Frequency);
 	const FShaderFrequencyUniformExpressions& ShaderUniformExpressions = ParameterMap.UniformExpressionSet->GetExpresssions(Frequency);
@@ -407,7 +409,9 @@ void FMaterialShaderParameters::Bind(const FShaderParameterMap& ParameterMap, ES
 		}
 	}
 
+#if !BATMAN
 	DOFParameters.Bind(ParameterMap);
+#endif
 }
 
 /** Sets shader parameters that are material specific but not FMeshElement specific. */
@@ -580,20 +584,28 @@ void FMaterialPixelShaderParameters::Bind(const FShaderParameterMap& ParameterMa
 	// Only used when material needs gamma correction
 	InvGammaParameter.Bind(ParameterMap,TEXT("MatInverseGamma"),TRUE);
 	// Only used for decal materials
-	DecalNearFarPlaneDistanceParameter.Bind(ParameterMap,TEXT("DecalNearFarPlaneDistance"),TRUE);	
+#if BATMAN
+	DecalNearFarPlaneDistanceParameter.Bind(ParameterMap,TEXT("DecalFarPlaneDistance"),TRUE);
+#else
+	DecalNearFarPlaneDistanceParameter.Bind(ParameterMap,TEXT("DecalNearFarPlaneDistance"),TRUE);
+#endif
 	ObjectPostProjectionPositionParameter.Bind(ParameterMap, TEXT("ObjectPostProjectionPosition"),TRUE);
 	ObjectMacroUVScalesParameter.Bind(ParameterMap, TEXT("ObjectMacroUVScales"),TRUE);
 	ObjectNDCPositionParameter.Bind(ParameterMap, TEXT("ObjectNDCPosition"),TRUE);
 	OcclusionPercentageParameter.Bind(ParameterMap, TEXT("OcclusionPercentage"), TRUE);
 
+#if !BATMAN
 	// Used for all material shaders that set MATERIAL_USE_SCREEN_DOOR_FADE to 1
 	EnableScreenDoorFadeParameter.Bind(ParameterMap,TEXT("bEnableScreenDoorFade"),TRUE);
 	ScreenDoorFadeSettingsParameter.Bind(ParameterMap,TEXT("ScreenDoorFadeSettings"),TRUE);
 	ScreenDoorFadeSettings2Parameter.Bind(ParameterMap,TEXT("ScreenDoorFadeSettings2"),TRUE);
 	ScreenDoorNoiseTextureParameter.Bind(ParameterMap,TEXT("ScreenDoorNoiseTexture"),TRUE);
+#endif
 
 	AlphaSampleTextureParameter.Bind(ParameterMap,TEXT("AlphaSampleTexture"),TRUE);
+#if !BATMAN
 	FluidDetailNormalTextureParameter.Bind(ParameterMap,TEXT("FluidDetailNormalTexture"),TRUE);
+#endif
 }
 
 /** Sets pixel parameters that are material specific but not FMeshElement specific. */
@@ -729,7 +741,9 @@ void FMaterialPixelShaderParameters::SetMesh(
 	) const
 {
 	FMaterialShaderParameters::SetMeshShader(PixelShader->GetPixelShader(),PrimitiveSceneInfo,Mesh,View);
+#if !BATMAN
 	DOFParameters.SetPS(PixelShader, View.DepthOfFieldParams);
+#endif
 
 	const FMaterial* Material = Mesh.MaterialRenderProxy->GetMaterial();
 	// set world matrix for use by world/view space Transform expressions
@@ -783,6 +797,7 @@ void FMaterialPixelShaderParameters::SetMesh(
 				PrimitiveSceneInfo->Proxy->GetOcclusionPercentage(View));
 		}
 
+#if !BATMAN
 		if (FluidDetailNormalTextureParameter.IsBound())
 		{
 			const FTexture2DRHIRef* FluidDetailNormal = PrimitiveSceneInfo->Scene->GetFluidDetailNormal();
@@ -799,9 +814,11 @@ void FMaterialPixelShaderParameters::SetMesh(
 				*FluidDetailNormal
 				);
 		}
+#endif
 	}
 
 
+#if !BATMAN
 	if( EnableScreenDoorFadeParameter.IsBound() )
 	{
 		// Grab the current fade opacity for this primitive in this view
@@ -886,6 +903,7 @@ void FMaterialPixelShaderParameters::SetMesh(
 				ScreenDoorNoiseTexture->Resource->TextureRHI );
 		}
 	}
+#endif
 }
 
 FArchive& operator<<(FArchive& Ar,FMaterialPixelShaderParameters& Parameters)
@@ -908,10 +926,12 @@ FArchive& operator<<(FArchive& Ar,FMaterialPixelShaderParameters& Parameters)
 	Ar << Parameters.ObjectMacroUVScalesParameter;
 	Ar << Parameters.ObjectNDCPositionParameter;
 	Ar << Parameters.OcclusionPercentageParameter;
+#if !BATMAN
 	Ar << Parameters.EnableScreenDoorFadeParameter;
 	Ar << Parameters.ScreenDoorFadeSettingsParameter;
 	Ar << Parameters.ScreenDoorFadeSettings2Parameter;
 	Ar << Parameters.ScreenDoorNoiseTextureParameter;
+#endif
 	Ar << Parameters.AlphaSampleTextureParameter;
 #if !BATMAN
 	Ar << Parameters.FluidDetailNormalTextureParameter;
@@ -968,7 +988,9 @@ void FMaterialDomainShaderParameters::SetMesh(
 	) const
 {
 	FMaterialShaderParameters::SetMeshShader(DomainShader->GetDomainShader(),PrimitiveSceneInfo,Mesh,View);
+#if !BATMAN
 	DOFParameters.SetDS(DomainShader, View.DepthOfFieldParams);
+#endif
 }
 
 void FMaterialHullShaderParameters::Bind(const FShaderParameterMap& ParameterMap)
@@ -1057,7 +1079,9 @@ void FMaterialVertexShaderParameters::SetMesh(
 	) const
 {
 	FMaterialShaderParameters::SetMeshShader(VertexShader->GetVertexShader(), PrimitiveSceneInfo, Mesh, View);
+#if !BATMAN
 	DOFParameters.SetVS(VertexShader, View.DepthOfFieldParams);
+#endif
 
 #if WITH_MOBILE_RHI
 	if( GUsingMobileRHI )

@@ -102,8 +102,11 @@ protected:
 	FShaderParameter WindDirectionAndSpeedParameter;
 	FShaderParameter FoliageImpulseDirectionParameter;
 	FShaderParameter FoliageNormalizedRotationAxisAndAngleParameter;
+	FShaderParameter LODFadeParameter;
+#if !BATMAN
 	/** The parameters needs to calculate depth-of-field blur amount for the DOFFunction material expression. */
 	FDOFShaderParameters DOFParameters;
+#endif
 
 	TArray<TUniformParameter<FShaderParameter> > UniformScalarShaderParameters;
 	TArray<TUniformParameter<FShaderParameter> > UniformVectorShaderParameters;
@@ -161,12 +164,13 @@ private:
 	FShaderParameter DecalNearFarPlaneDistanceParameter;
 	/** Object position in post projection space. */
 	FShaderParameter ObjectPostProjectionPositionParameter;
-	/** Object position in Normalized Device Coordinates. */
-	FShaderParameter ObjectNDCPositionParameter;
 	/** Scales to turn object position in post projection space into UVs in xy, NDC position into UVs in zw. */
 	FShaderParameter ObjectMacroUVScalesParameter;
+	/** Object position in Normalized Device Coordinates. */
+	FShaderParameter ObjectNDCPositionParameter;
 	/** Parameter for occlusion percentage of the object being rendered */
 	FShaderParameter OcclusionPercentageParameter;
+#if !BATMAN
 	/** Enables screen door clip masking in the pixel shader (via static branch.) */
 	FShaderParameter EnableScreenDoorFadeParameter;
 	/** Settings for screen door fade effect (opacity, noise scale, noise bias, noise texture scale) */
@@ -175,10 +179,13 @@ private:
 	FShaderParameter ScreenDoorFadeSettings2Parameter;
 	/** Noise texture which is mapped to screen space for screen door */
 	FShaderResourceParameter ScreenDoorNoiseTextureParameter;
+#endif
 	/** Alpha sample texture. */
 	FShaderResourceParameter AlphaSampleTextureParameter;
+#if !BATMAN
 	/** Texture parameter used by the Fluid Normal node. */
 	FShaderResourceParameter FluidDetailNormalTextureParameter;
+#endif
 };
 
 #if WITH_D3D11_TESSELLATION

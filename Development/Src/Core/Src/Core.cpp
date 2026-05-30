@@ -759,4 +759,3 @@ DECLARE_STAT_NOTIFY_PROVIDER_FACTORY(FStatNotifyProvider_CSVFactory,
 DECLARE_STAT_NOTIFY_PROVIDER_FACTORY(FStatNotifyProvider_PIXFactory,
 	FStatNotifyProvider_PIX,PixProvider);
 #endif
-
