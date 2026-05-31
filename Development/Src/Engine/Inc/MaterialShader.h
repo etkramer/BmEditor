@@ -164,10 +164,10 @@ private:
 	FShaderParameter DecalNearFarPlaneDistanceParameter;
 	/** Object position in post projection space. */
 	FShaderParameter ObjectPostProjectionPositionParameter;
-	/** Scales to turn object position in post projection space into UVs in xy, NDC position into UVs in zw. */
-	FShaderParameter ObjectMacroUVScalesParameter;
 	/** Object position in Normalized Device Coordinates. */
 	FShaderParameter ObjectNDCPositionParameter;
+	/** Scales to turn object position in post projection space into UVs in xy, NDC position into UVs in zw. */
+	FShaderParameter ObjectMacroUVScalesParameter;
 	/** Parameter for occlusion percentage of the object being rendered */
 	FShaderParameter OcclusionPercentageParameter;
 #if !BATMAN
@@ -274,11 +274,18 @@ public:
 		const FSceneView& View
 		) const;
 
+	friend FArchive& operator<<(FArchive& Ar,FMaterialVertexShaderParameters& Parameters);
+
 	UBOOL IsUniformExpressionSetValid(const FUniformExpressionSet& ExpressionSet) const
 	{
 		return FMaterialShaderParameters::IsUniformExpressionSetValid(ExpressionSet.GetExpresssions(SF_Vertex));
 	}
 
+#if BATMAN
+private:
+	FShaderParameter ObjectRotationParameter;
+	FShaderResourceParameter SmoothNormalsTextureParameter;
+#endif
 };
 
 /**

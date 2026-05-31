@@ -35,6 +35,18 @@ public:
 		}
 	}
 
+	static void ModifyCompilationEnvironment(INT PermutationIndex, EShaderFrequency ShaderFrequency, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		if (PermutationIndex == 0)
+		{
+			check(ShaderFrequency == SF_Vertex);
+			OutEnvironment.Definitions.Set(TEXT("USING_SM5_TESSELATION"),TEXT("0"));
+			return;
+		}
+
+		OutEnvironment.Definitions.Set(TEXT("USING_SM5_TESSELATION"),TEXT("1"));
+	}
+
 	/**
 	 * This ShouldCache is used to determine is Hull/Domain shaders are required for the usage context.  Dictates whether the HS/DS will be compiled and cached.
 	 */

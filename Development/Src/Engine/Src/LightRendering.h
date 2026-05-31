@@ -593,6 +593,9 @@ public:
 	{
 		LightTypePolicy::PixelParametersType::Bind(Initializer.ParameterMap);
 		ShadowingTypePolicy::PixelParametersType::Bind(Initializer.ParameterMap);
+#if BATMAN
+		SpecularScaleParameter.Bind(Initializer.ParameterMap,TEXT("SpecularScale"),TRUE);
+#endif
 		MaterialParameters.Bind(Initializer.ParameterMap);
 		LightAttenuationTextureParameter.Bind(Initializer.ParameterMap,TEXT("LightAttenuationTexture"),TRUE);
 		ForwardShadowingParameters.Bind(Initializer.ParameterMap);
@@ -610,6 +613,12 @@ public:
 		MaterialParameters.Set(this,MaterialRenderContext);
 
 		ForwardShadowingParameters.SetReceiveShadows(this, bReceiveDynamicShadows);
+
+#if BATMAN
+		const FMaterial* Material = MaterialRenderProxy->GetMaterial();
+		const FLOAT SpecularScale = Material && Material->IsSpecularAllowed() ? 1.0f : 0.0f;
+		SetPixelShaderValue(GetPixelShader(), SpecularScaleParameter, SpecularScale);
+#endif
 
 		if(LightAttenuationTextureParameter.IsBound())
 		{
@@ -644,6 +653,7 @@ public:
 		{
 			LightTypePolicy::PixelParametersType::Serialize(Ar);
 			ShadowingTypePolicy::PixelParametersType::Serialize(Ar);
+			Ar << SpecularScaleParameter;
 			Ar << MaterialParameters;
 			Ar << LightAttenuationTextureParameter;
 			ForwardShadowingParameters.Serialize(Ar);
@@ -654,6 +664,9 @@ public:
 			bShaderHasOutdatedParameters |= Ar << VertexFactoryParameters;
 			LightTypePolicy::PixelParametersType::Serialize(Ar);
 			ShadowingTypePolicy::PixelParametersType::Serialize(Ar);
+#if BATMAN
+			Ar << SpecularScaleParameter;
+#endif
 			Ar << MaterialParameters;
 			Ar << LightAttenuationTextureParameter;
 			ForwardShadowingParameters.Serialize(Ar);
@@ -667,6 +680,9 @@ public:
 	}
 
 private:
+#if BATMAN
+	FShaderParameter SpecularScaleParameter;
+#endif
 	FMaterialPixelShaderParameters MaterialParameters;
 	FShaderResourceParameter LightAttenuationTextureParameter;
 	FForwardShadowingShaderParameters ForwardShadowingParameters;

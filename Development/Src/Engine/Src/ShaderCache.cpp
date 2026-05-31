@@ -1131,30 +1131,18 @@ public:
 	{
 		check(Length < USHRT_MAX);
 
-		if (!bMismatch && NextSerialization >= 33 && NextSerialization <= 37)
-		{
-			static INT TraceLogs = 0;
-			if (TraceLogs < 30)
-			{
-				WORD Expected = NextSerialization < PastSerializations.Num() ? PastSerializations(NextSerialization) : 0;
-				DWORD RawValue = 0;
-				appMemcpy(&RawValue, V, Min(Length, (INT)sizeof(DWORD)));
-				debugf(NAME_Warning, TEXT("ShaderTrace [%s] call %d: expected=%d got=%d pos=%d val=0x%08X"),
-					ShaderTypeName, NextSerialization, Expected, Length, Tell(), RawValue);
-				TraceLogs++;
-			}
-		}
-
 		if (NextSerialization >= PastSerializations.Num() || PastSerializations(NextSerialization) != Length)
 		{
 			if (!bMismatch)
 			{
 				static INT MismatchLogs = 0;
-				if (MismatchLogs++ < 10)
+				if (MismatchLogs++ < 20)
 				{
 					WORD Expected = NextSerialization < PastSerializations.Num() ? PastSerializations(NextSerialization) : 0;
-					debugf(NAME_Warning, TEXT("ShaderLoadArchive: FIRST mismatch [%s] at call %d/%d: expected %d, got %d, pos=%d"),
-						ShaderTypeName, NextSerialization, PastSerializations.Num(), Expected, Length, Tell());
+					debugf(NAME_Warning, TEXT("ShaderLoadArchive: FIRST mismatch [%s] in %s at call %d/%d: expected %d, got %d, pos=%d"),
+						ShaderTypeName,
+						GetLinker() ? *GetLinker()->Filename : TEXT("UnknownArchive"),
+						NextSerialization, PastSerializations.Num(), Expected, Length, Tell());
 					FString Dump = FString::Printf(TEXT("  PastSer: "));
 					for (INT i = 0; i < Min(PastSerializations.Num(), NextSerialization + 5); i++)
 					{

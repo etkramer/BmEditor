@@ -271,7 +271,11 @@ public:
 		AmbientColorAndSkyFactorParameter.Bind(Initializer.ParameterMap,TEXT("AmbientColorAndSkyFactor"),TRUE);
 		UpperSkyColorParameter.Bind(Initializer.ParameterMap,TEXT("UpperSkyColor"),TRUE);
 		LowerSkyColorParameter.Bind(Initializer.ParameterMap,TEXT("LowerSkyColor"),TRUE);
+#if BATMAN
+		MotionBlurMaskParameter.Bind(Initializer.ParameterMap,TEXT("MotionBlurMask"),TRUE);
+#else
 		DeferredRenderingParameters.Bind(Initializer.ParameterMap,TEXT("DeferredRenderingParameters"),TRUE);
+#endif
 	}
 	TBasePassPixelShaderBaseType() {}
 
@@ -301,7 +305,7 @@ public:
 		VertexFactoryParameters.SetMesh(this, Mesh, View);
 		MaterialParameters.SetMesh(this,PrimitiveSceneInfo,Mesh,View,bBackFace);
 
-#if PLATFORM_SUPPORTS_D3D10_PLUS
+#if !BATMAN && PLATFORM_SUPPORTS_D3D10_PLUS
 		if (DeferredRenderingParameters.IsBound() && PrimitiveSceneInfo)
 		{
 			const FMaterial* Material = Mesh.MaterialRenderProxy->GetMaterial();
@@ -319,6 +323,14 @@ public:
 		}
 #endif
 	}
+
+#if BATMAN
+	void SetMotionBlurMask(FLOAT MotionBlurMask)
+	{
+		const FLOAT MaskValue = MotionBlurMask != 0.0f ? 1.0f : 0.0f;
+		SetPixelShaderValue(GetPixelShader(), MotionBlurMaskParameter, MaskValue);
+	}
+#endif
 
 	void SetSkyColor(const FLinearColor& UpperSkyColor,const FLinearColor& LowerSkyColor)
 	{
@@ -341,7 +353,7 @@ public:
 			Ar << AmbientColorAndSkyFactorParameter;
 			Ar << UpperSkyColorParameter;
 			Ar << LowerSkyColorParameter;
-			Ar << DeferredRenderingParameters;
+			Ar << MotionBlurMaskParameter;
 		}
 		else
 #endif
@@ -352,7 +364,11 @@ public:
 			Ar << AmbientColorAndSkyFactorParameter;
 			Ar << UpperSkyColorParameter;
 			Ar << LowerSkyColorParameter;
+#if BATMAN
+			Ar << MotionBlurMaskParameter;
+#else
 			Ar << DeferredRenderingParameters;
+#endif
 		}
 
 		// set parameter names for platforms that need them
@@ -372,7 +388,11 @@ private:
 	FShaderParameter AmbientColorAndSkyFactorParameter;
 	FShaderParameter UpperSkyColorParameter;
 	FShaderParameter LowerSkyColorParameter;
+#if BATMAN
+	FShaderParameter MotionBlurMaskParameter;
+#else
 	FShaderParameter DeferredRenderingParameters;
+#endif
 };
 
 /** The concrete base pass pixel shader type, parameterized by whether sky lighting is needed. */
@@ -768,6 +788,11 @@ public:
 				}
 				PixelShader->SetSkyColor(UpperSkyLightColor,LowerSkyLightColor);
 			}
+
+#if BATMAN
+			const UBOOL bMotionBlurMask = PrimitiveSceneInfo && PrimitiveSceneInfo->MotionBlurInstanceScale >= 0.0f;
+			PixelShader->SetMotionBlurMask(bMotionBlurMask ? 1.0f : 0.0f);
+#endif
 		}
 
 		FMeshDrawingPolicy::SetMeshRenderState(View,PrimitiveSceneInfo,Mesh,bBackFace,FMeshDrawingPolicy::ElementDataType());

@@ -58,8 +58,8 @@ public:
 
 	static UBOOL ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType, UBOOL bEnableSkyLight=FALSE)
 	{
-		// Mirrors BM2's FAPlus3DLightLightMapPolicy::ShouldCache (sub_10C0F30): no skylight variant,
-		// no unlit materials, compile for any vertex factory that supports dynamic OR static lighting.
+		// Mirrors BM2's FAPlus3DLightLightMapPolicy::ShouldCache: the registered skylight
+		// shader type never caches, and unlit materials are rejected for the no-skylight path.
 		if (bEnableSkyLight)
 		{
 			return FALSE;
@@ -74,7 +74,6 @@ public:
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		OutEnvironment.Definitions.Set(TEXT("ENABLE_A_PLUS_THREE_D_LIGHT"), TEXT("1"));
-		OutEnvironment.Definitions.Set(TEXT("NUM_LIGHTMAP_COEFFICIENTS"),*FString::Printf(TEXT("%u"),NUM_DIRECTIONAL_LIGHTMAP_COEF));
 	}
 
 	void Set(

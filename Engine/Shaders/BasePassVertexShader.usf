@@ -9,7 +9,10 @@
  * Scale factors for the light-map coefficients.
  * The light-map scale array is a set of float4s so it can be set as a contiguous chunk regardless of platform shader constant alignment.
  */
-float4 LightMapScale[NUM_LIGHTMAP_COEFFICIENTS];
+//@Rock - JG: Improved character lighting.
+#if !ENABLE_A_PLUS_THREE_D_LIGHT
+	float4 LightMapScale[NUM_LIGHTMAP_COEFFICIENTS];
+#endif
 
 /** Entry point for the base pass vertex shader. */
 void Main(
@@ -114,16 +117,18 @@ void Main(
 		Output.BasePassInterpolants.VertexFog = Fog;
 #endif
 
-#if NEEDS_VERTEX_LIGHTMAP
-	float4 InLightMapA;
-	float4 InLightMapB;
-	VertexFactoryGetVertexLightMap(Input,InLightMapA,InLightMapB);
-	Output.BasePassInterpolants.LightMapA = pow( InLightMapA FCOLOR_COMPONENT_SWIZZLE .rgb, 2.2 ) * LightMapScale[0].rgb;
-	Output.BasePassInterpolants.LightMapB = pow( InLightMapB FCOLOR_COMPONENT_SWIZZLE .rgb, 2.2 ) * LightMapScale[1].rgb;
+#if !ENABLE_A_PLUS_THREE_D_LIGHT
+	#if NEEDS_VERTEX_LIGHTMAP
+		float4 InLightMapA;
+		float4 InLightMapB;
+		VertexFactoryGetVertexLightMap(Input,InLightMapA,InLightMapB);
+		Output.BasePassInterpolants.LightMapA = pow( InLightMapA FCOLOR_COMPONENT_SWIZZLE .rgb, 2.2 ) * LightMapScale[0].rgb;
+		Output.BasePassInterpolants.LightMapB = pow( InLightMapB FCOLOR_COMPONENT_SWIZZLE .rgb, 2.2 ) * LightMapScale[1].rgb;
 
-#elif SIMPLE_VERTEX_LIGHTMAP
-	float4 InLightMapA;
-	VertexFactoryGetSimpleVertexLightMap(Input,InLightMapA);
-	Output.BasePassInterpolants.LightMapA = pow( InLightMapA FCOLOR_COMPONENT_SWIZZLE .rgb, 2.2 ) * LightMapScale[0].rgb;
+	#elif SIMPLE_VERTEX_LIGHTMAP
+		float4 InLightMapA;
+		VertexFactoryGetSimpleVertexLightMap(Input,InLightMapA);
+		Output.BasePassInterpolants.LightMapA = pow( InLightMapA FCOLOR_COMPONENT_SWIZZLE .rgb, 2.2 ) * LightMapScale[0].rgb;
+	#endif
 #endif
 }

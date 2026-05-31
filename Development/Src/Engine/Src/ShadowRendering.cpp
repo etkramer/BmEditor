@@ -3498,14 +3498,14 @@ UBOOL FSceneRenderer::RenderProjectedShadows( const FLightSceneInfo* LightSceneI
 //** modulated shadow mesh attenuation shader implementations */
 
 typedef TVertexShaderTessellationPermutation<FModShadowMeshVertexShader,0> TModShadowMeshVertexShaderTP_NoTessellationFALSEFALSE;
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TModShadowMeshVertexShaderTP_NoTessellationFALSEFALSE,TEXT("ModShadowMeshAttenuationVS"),TEXT("Main"),SF_Vertex,0,0);
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FModShadowMeshPixelShader,TEXT("ModShadowMeshAttenuationPS"),TEXT("Main"),SF_Pixel,VER_MODSHADOWMESHPIXELSHADER_ATTENALLOWED,0);
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TModShadowMeshVertexShaderTP_NoTessellationFALSEFALSE,TEXT("ModShadowMeshAttenuationVS"),TEXT("Main"),SF_Vertex,796,93);
+IMPLEMENT_MATERIAL_SHADER_TYPE(,FModShadowMeshPixelShader,TEXT("ModShadowMeshAttenuationPS"),TEXT("Main"),SF_Pixel,796,97);
 
 #if WITH_D3D11_TESSELLATION
 	typedef THullShaderTessellationPermutation<FModShadowMeshHullShader,0> TModShadowMeshHullShaderTP_NoTessellationFALSEFALSE;
-	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TModShadowMeshHullShaderTP_NoTessellationFALSEFALSE,TEXT("ModShadowMeshAttenuationVS"),TEXT("MainHull"),SF_Hull,0,0);
+	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TModShadowMeshHullShaderTP_NoTessellationFALSEFALSE,TEXT("ModShadowMeshAttenuationVS"),TEXT("MainHull"),SF_Hull,796,93);
 	typedef TDomainShaderTessellationPermutation<FModShadowMeshDomainShader,0> TModShadowMeshDomainShaderTP_NoTessellationFALSEFALSE;
-	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TModShadowMeshDomainShaderTP_NoTessellationFALSEFALSE,TEXT("ModShadowMeshAttenuationVS"),TEXT("MainDomain"),SF_Domain,0,0);
+	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TModShadowMeshDomainShaderTP_NoTessellationFALSEFALSE,TEXT("ModShadowMeshAttenuationVS"),TEXT("MainDomain"),SF_Domain,796,93);
 #endif
 
 /**
@@ -3771,5 +3771,3 @@ UBOOL FMeshModShadowDrawingPolicyFactory::IsMaterialIgnored(const FMaterialRende
 			MaterialRenderProxy->GetMaterial()->GetLightingModel() == MLM_Unlit ||
 			MaterialRenderProxy->GetMaterial()->GetLightingModel() == MLM_NonDirectional);
 }
-
-

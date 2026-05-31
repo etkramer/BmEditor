@@ -12,6 +12,17 @@
 IMPLEMENT_CLASS(UMaterialInterface);
 IMPLEMENT_CLASS(AMaterialInstanceActor);
 
+#if BATMAN
+void ModifyTessellationPermutationCompilationEnvironment(INT PermutationIndex, EShaderFrequency ShaderFrequency, FShaderCompilerEnvironment& OutEnvironment)
+{
+#if WITH_D3D11_TESSELLATION
+	FTessellationMaterialPolicy::ModifyCompilationEnvironment(PermutationIndex, ShaderFrequency, OutEnvironment);
+#else
+	OutEnvironment.Definitions.Set(TEXT("USING_SM5_TESSELATION"),TEXT("0"));
+#endif
+}
+#endif
+
 
 FArchive& operator<<(FArchive& Ar, FMaterial::FTextureLookup& Ref)
 {
@@ -5552,18 +5563,21 @@ UBOOL FMaterial::CompileShaderMap(
 		// Any code that changes the way uniform expressions are generated needs to bump the appropriate version version to discard outdated shader maps.
 		else if (!(OutShaderMap->GetUniformExpressionSet() == UniformExpressionSet))
 		{
-			/*
-			warnf(
-				TEXT("Translated uniform expression set was different than the cached shader map with the same Id! \n")
-				TEXT("	New: Base material %s, bRequiredCompile %u, ExpressionSet %s \n")
-				TEXT("	Cached: Shadermap name %s, Id %s, ExpressionSet %s \n"),
-				*GetBaseMaterialPathName(),
-				bRequiredCompile,
-				*UniformExpressionSet.GetSummaryString(),
-				*OutShaderMap->GetFriendlyName(),
-				*OutShaderMap->GetMaterialId().GetSummaryString(),
-				*OutShaderMap->GetUniformExpressionSet().GetSummaryString()
-				);*/
+			static INT UniformMismatchLogs = 0;
+			if (UniformMismatchLogs++ < 20)
+			{
+				warnf(
+					TEXT("Translated uniform expression set differs from cached shader map with same Id.\n")
+					TEXT("	New: Base material %s, bRequiredCompile %u, ExpressionSet %s\n")
+					TEXT("	Cached: Shadermap name %s, Id %s, ExpressionSet %s"),
+					*GetBaseMaterialPathName(),
+					bRequiredCompile,
+					*UniformExpressionSet.GetSummaryString(),
+					*OutShaderMap->GetFriendlyName(),
+					*OutShaderMap->GetMaterialId().GetSummaryString(),
+					*OutShaderMap->GetUniformExpressionSet().GetSummaryString()
+					);
+			}
 		}
 		check(OutShaderMap->IsUniformExpressionSetValid());
 

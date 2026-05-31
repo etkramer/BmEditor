@@ -348,10 +348,18 @@ FArchive& operator<<(FArchive& Ar,FMaterialShaderParameters& Parameters)
 	Ar << Parameters.WindDirectionAndSpeedParameter;
 	Ar << Parameters.FoliageImpulseDirectionParameter;
 	Ar << Parameters.FoliageNormalizedRotationAxisAndAngleParameter;
+#if !BATMAN
 	Ar << Parameters.LODFadeParameter;
+#endif
 	Ar << Parameters.UniformScalarShaderParameters;
 	Ar << Parameters.UniformVectorShaderParameters;
 	Ar << Parameters.Uniform2DShaderResourceParameters;
+#if BATMAN
+	if( Ar.LicenseeVer() >= 48 )
+	{
+		Ar << Parameters.LODFadeParameter;
+	}
+#endif
 	return Ar;
 }
 
@@ -527,6 +535,10 @@ UBOOL FMaterialShaderParameters::IsUniformExpressionSetValid(const FShaderFreque
 		const TUniformParameter<FShaderParameter>& UniformParameter = UniformScalarShaderParameters(ParameterIndex);
 		if (UniformParameter.Index >= (UniformExpressions.UniformScalarExpressions.Num() + 3) / 4)
 		{
+			warnf(NAME_Warning, TEXT("Invalid uniform scalar parameter index %d at entry %d, scalar expressions %d"),
+				UniformParameter.Index,
+				ParameterIndex,
+				UniformExpressions.UniformScalarExpressions.Num());
 			return FALSE;
 		}
 	}
@@ -536,6 +548,10 @@ UBOOL FMaterialShaderParameters::IsUniformExpressionSetValid(const FShaderFreque
 		const TUniformParameter<FShaderParameter>& UniformParameter = UniformVectorShaderParameters(ParameterIndex);
 		if (UniformParameter.Index >= UniformExpressions.UniformVectorExpressions.Num())
 		{
+			warnf(NAME_Warning, TEXT("Invalid uniform vector parameter index %d at entry %d, vector expressions %d"),
+				UniformParameter.Index,
+				ParameterIndex,
+				UniformExpressions.UniformVectorExpressions.Num());
 			return FALSE;
 		}
 	}
@@ -545,6 +561,10 @@ UBOOL FMaterialShaderParameters::IsUniformExpressionSetValid(const FShaderFreque
 		const TUniformParameter<FShaderResourceParameter>& UniformResourceParameter = Uniform2DShaderResourceParameters(ParameterIndex);
 		if (UniformResourceParameter.Index >= UniformExpressions.Uniform2DTextureExpressions.Num())
 		{
+			warnf(NAME_Warning, TEXT("Invalid uniform 2D texture parameter index %d at entry %d, 2D texture expressions %d"),
+				UniformResourceParameter.Index,
+				ParameterIndex,
+				UniformExpressions.Uniform2DTextureExpressions.Num());
 			return FALSE;
 		}
 	}
@@ -931,6 +951,12 @@ FArchive& operator<<(FArchive& Ar,FMaterialPixelShaderParameters& Parameters)
 	Ar << Parameters.ScreenDoorFadeSettingsParameter;
 	Ar << Parameters.ScreenDoorFadeSettings2Parameter;
 	Ar << Parameters.ScreenDoorNoiseTextureParameter;
+#else
+	FShaderParameter DummyScreenDoorParameter;
+	Ar << DummyScreenDoorParameter;
+	Ar << DummyScreenDoorParameter;
+	Ar << DummyScreenDoorParameter;
+	Ar << DummyScreenDoorParameter;
 #endif
 	Ar << Parameters.AlphaSampleTextureParameter;
 #if !BATMAN
@@ -941,6 +967,16 @@ FArchive& operator<<(FArchive& Ar,FMaterialPixelShaderParameters& Parameters)
 	return Ar;
 }
 
+FArchive& operator<<(FArchive& Ar,FMaterialVertexShaderParameters& Parameters)
+{
+	Ar << (FMaterialShaderParameters&)Parameters;
+#if BATMAN
+	Ar << Parameters.ObjectRotationParameter;
+	Ar << Parameters.SmoothNormalsTextureParameter;
+#endif
+	return Ar;
+}
+
 UBOOL FMaterialPixelShaderParameters::IsUniformExpressionSetValid(const FUniformExpressionSet& UniformExpressionSet) const
 {
 	for(INT ParameterIndex = 0;ParameterIndex < UniformPixelCubeShaderResourceParameters.Num();ParameterIndex++)
@@ -948,6 +984,10 @@ UBOOL FMaterialPixelShaderParameters::IsUniformExpressionSetValid(const FUniform
 		const TUniformParameter<FShaderResourceParameter>& UniformResourceParameter = UniformPixelCubeShaderResourceParameters(ParameterIndex);
 		if (UniformResourceParameter.Index >= UniformExpressionSet.UniformCubeTextureExpressions.Num())
 		{
+			warnf(NAME_Warning, TEXT("Invalid uniform cube texture parameter index %d at entry %d, cube texture expressions %d"),
+				UniformResourceParameter.Index,
+				ParameterIndex,
+				UniformExpressionSet.UniformCubeTextureExpressions.Num());
 			return FALSE;
 		}
 	}
@@ -1032,6 +1072,10 @@ void FMaterialHullShaderParameters::SetMesh(
 void FMaterialVertexShaderParameters::Bind(const FShaderParameterMap& ParameterMap)
 {
 	FMaterialShaderParameters::Bind(ParameterMap, SF_Vertex);
+#if BATMAN
+	ObjectRotationParameter.Bind(ParameterMap,TEXT("ObjectRotation"),TRUE);
+	SmoothNormalsTextureParameter.Bind(ParameterMap,TEXT("SmoothNormalsTexture"),TRUE);
+#endif
 }
 
 /** Sets vertex parameters that are material specific but not FMeshElement specific. */
@@ -1079,6 +1123,14 @@ void FMaterialVertexShaderParameters::SetMesh(
 	) const
 {
 	FMaterialShaderParameters::SetMeshShader(VertexShader->GetVertexShader(), PrimitiveSceneInfo, Mesh, View);
+#if BATMAN
+	if( ObjectRotationParameter.IsBound() )
+	{
+		FMatrix ObjectRotation = Mesh.LocalToWorld;
+		ObjectRotation.RemoveScaling();
+		SetVertexShaderValue(VertexShader->GetVertexShader(), ObjectRotationParameter, ObjectRotation);
+	}
+#endif
 #if !BATMAN
 	DOFParameters.SetVS(VertexShader, View.DepthOfFieldParams);
 #endif
@@ -1619,6 +1671,9 @@ UBOOL FMaterialShaderMap::IsUniformExpressionSetValid() const
 		{
 			if (!CurrentShader->IsUniformExpressionSetValid(UniformExpressionSet))
 			{
+				warnf(NAME_Warning, TEXT("Invalid uniform expression set for material %s shader %s"),
+					*FriendlyName,
+					CurrentShader->GetType()->GetName());
 				return FALSE;
 			}
 		}
@@ -1633,6 +1688,10 @@ UBOOL FMaterialShaderMap::IsUniformExpressionSetValid() const
 			{
 				if (!CurrentShader->IsUniformExpressionSetValid(UniformExpressionSet))
 				{
+					warnf(NAME_Warning, TEXT("Invalid uniform expression set for material %s shader %s VF %s"),
+						*FriendlyName,
+						CurrentShader->GetType()->GetName(),
+						MeshShaderMaps(ShaderMapIndex).GetVertexFactoryType()->GetName());
 					return FALSE;
 				}
 			}

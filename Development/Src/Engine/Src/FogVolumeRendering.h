@@ -549,7 +549,9 @@ public:
 		FirstDensityFunctionParameters.Bind(Initializer.ParameterMap,TEXT("FirstDensityFunctionParameters"),TRUE);
 		SecondDensityFunctionParameters.Bind(Initializer.ParameterMap,TEXT("SecondDensityFunctionParameters"),TRUE);
 		StartDistanceParameter.Bind(Initializer.ParameterMap,TEXT("StartDistance"),TRUE);
+#if !BATMAN
 		MaxDistanceParameter.Bind(Initializer.ParameterMap,TEXT("MaxDistance"),TRUE);
+#endif
 		InvMaxIntegralParameter.Bind(Initializer.ParameterMap,TEXT("InvMaxIntegral"), TRUE);
 	}
 
@@ -601,7 +603,9 @@ public:
 		SetPixelShaderValue( GetPixelShader(), FirstDensityFunctionParameters, DensitySceneInfo->GetFirstDensityFunctionParameters(View));
 		SetPixelShaderValue( GetPixelShader(), SecondDensityFunctionParameters, DensitySceneInfo->GetSecondDensityFunctionParameters(View));
 		SetPixelShaderValue( GetPixelShader(), StartDistanceParameter, DensitySceneInfo->StartDistance);
+#if !BATMAN
 		SetPixelShaderValue( GetPixelShader(), MaxDistanceParameter, DensitySceneInfo->MaxDistance);
+#endif
 		SetPixelShaderValue( GetPixelShader(), InvMaxIntegralParameter, 1.0f / DensitySceneInfo->GetMaxIntegral());
 	}
 
@@ -621,7 +625,9 @@ public:
 		Ar << FirstDensityFunctionParameters;
 		Ar << SecondDensityFunctionParameters;
 		Ar << StartDistanceParameter;
+#if !BATMAN
 		Ar << MaxDistanceParameter;
+#endif
 		Ar << InvMaxIntegralParameter;
 		return bShaderHasOutdatedParameters;
 	}
@@ -640,7 +646,9 @@ private:
 	FShaderParameter FirstDensityFunctionParameters;
 	FShaderParameter SecondDensityFunctionParameters;
 	FShaderParameter StartDistanceParameter;
+#if !BATMAN
 	FShaderParameter MaxDistanceParameter;
+#endif
 	FShaderParameter InvMaxIntegralParameter;
 };
 

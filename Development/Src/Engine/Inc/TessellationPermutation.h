@@ -26,7 +26,9 @@ enum ETessellationPolicy
 	TP_PhongTessellation,
 };
 
-/** Wraps a vertex shader. Forwards ShouldCache/ModifyCompilationEnvironment to the wrapped type. */
+void ModifyTessellationPermutationCompilationEnvironment(INT PermutationIndex, EShaderFrequency ShaderFrequency, FShaderCompilerEnvironment& OutEnvironment);
+
+/** Wraps a vertex shader. */
 template<typename WrappedShaderType, INT PermutationIndex>
 class TVertexShaderTessellationPermutation : public WrappedShaderType
 {
@@ -45,6 +47,7 @@ public:
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
+		ModifyTessellationPermutationCompilationEnvironment(PermutationIndex, SF_Vertex, OutEnvironment);
 		WrappedShaderType::ModifyCompilationEnvironment(Platform, OutEnvironment);
 	}
 };
@@ -67,6 +70,7 @@ public:
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
+		ModifyTessellationPermutationCompilationEnvironment(PermutationIndex, SF_Hull, OutEnvironment);
 		WrappedShaderType::ModifyCompilationEnvironment(Platform, OutEnvironment);
 	}
 };
@@ -89,6 +93,7 @@ public:
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
+		ModifyTessellationPermutationCompilationEnvironment(PermutationIndex, SF_Domain, OutEnvironment);
 		WrappedShaderType::ModifyCompilationEnvironment(Platform, OutEnvironment);
 	}
 };
