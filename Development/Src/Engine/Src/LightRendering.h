@@ -173,9 +173,13 @@ public:
 		UBOOL bLightRequiresStaticLightingShaders
 		)
 	{
+#if BATMAN
+		return FALSE;
+#else
 		return VertexFactoryType->SupportsStaticLighting() &&
 			(Material->IsUsedWithStaticLighting() || Material->IsSpecialEngineMaterial()) &&
 			bLightRequiresStaticLightingShaders;
+#endif
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -294,9 +298,13 @@ public:
 		UBOOL bLightRequiresStaticLightingShaders
 		)
 	{
+#if BATMAN
+		return FALSE;
+#else
 		return Super::ShouldCache(Platform, Material, VertexFactoryType, bLightRequiresStaticLightingShaders)
 			// Xbox and PS3 has GOnePassDominantLight=TRUE
 			&& (Platform != SP_XBOXD3D && Platform != SP_PS3);
+#endif
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -355,11 +363,15 @@ public:
 		UBOOL bLightRequiresStaticLightingShaders
 		)
 	{
+#if BATMAN
+		return FALSE;
+#else
 		return VertexFactoryType->SupportsStaticLighting() && 
 			(Material->IsUsedWithStaticLighting() || Material->IsSpecialEngineMaterial())
 			//terrain never uses vertex shadowmaps
 			&& !Material->IsTerrainMaterial() &&
 			bLightRequiresStaticLightingShaders;
+#endif
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)

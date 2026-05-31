@@ -762,6 +762,7 @@ public:
 	virtual UBOOL IsWireframe() const = 0;
 	virtual UBOOL IsDistorted() const = 0;
 	virtual UBOOL HasSubsurfaceScattering() const = 0;
+	virtual UBOOL HasSSSNormal() const { return FALSE; }
 	virtual UBOOL HasSeparateTranslucency() const = 0;
 	virtual UBOOL IsSpecialEngineMaterial() const = 0;
 	virtual UBOOL IsTerrainMaterial() const = 0;
@@ -778,6 +779,11 @@ public:
 	virtual UBOOL IsUsedWithBeamTrails() const { return FALSE; }
 	virtual UBOOL IsUsedWithParticleSubUV() const { return FALSE; }
 	virtual UBOOL IsUsedWithStaticLighting() const { return FALSE; }
+#if BATMAN
+	virtual UBOOL IsUsedWithVertexLighting() const { return FALSE; }
+	virtual UBOOL IsUsedWithStaticMesh() const { return FALSE; }
+	virtual UBOOL IsUsedWithPerVertexRockAtmosFog() const { return FALSE; }
+#endif
 	virtual UBOOL IsUsedWithLensFlare() const { return FALSE; }
 	virtual UBOOL IsUsedWithGammaCorrection() const { return FALSE; }
 	virtual UBOOL IsUsedWithInstancedMeshParticles() const { return FALSE; }
@@ -1377,6 +1383,10 @@ public:
 	virtual UBOOL IsUsedWithBeamTrails() const;
 	virtual UBOOL IsUsedWithParticleSubUV() const;
 	virtual UBOOL IsUsedWithStaticLighting() const;
+#if BATMAN
+	virtual UBOOL IsUsedWithVertexLighting() const;
+	virtual UBOOL IsUsedWithStaticMesh() const;
+#endif
 	virtual UBOOL IsUsedWithLensFlare() const;
 	virtual UBOOL IsUsedWithGammaCorrection() const;
 	virtual UBOOL IsUsedWithInstancedMeshParticles() const;
@@ -1388,6 +1398,9 @@ public:
 	virtual	UBOOL IsUsedWithInstancedMeshes() const;
 	virtual	UBOOL IsUsedWithSplineMeshes() const;
 	virtual UBOOL IsUsedWithAPEXMeshes() const;
+#if BATMAN
+	virtual UBOOL IsUsedWithPerVertexRockAtmosFog() const;
+#endif
 	virtual UBOOL IsUsedWithScreenDoorFade() const;
 	virtual enum EMaterialTessellationMode GetD3D11TessellationMode() const;
 	virtual enum EBlendMode GetBlendMode() const;
@@ -1399,6 +1412,7 @@ public:
 	virtual FLOAT GetOpacityMaskClipValue() const;
 	virtual UBOOL IsDistorted() const;
 	virtual UBOOL HasSubsurfaceScattering() const;
+	virtual UBOOL HasSSSNormal() const;
 	virtual UBOOL HasSeparateTranslucency() const;
 	virtual UBOOL IsMasked() const;
 	virtual UBOOL UsesImageBasedReflections() const;
@@ -1672,4 +1686,3 @@ public:
 
 	FString GetSummaryString() const;
 };
-

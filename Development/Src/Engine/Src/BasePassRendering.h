@@ -395,6 +395,48 @@ private:
 #endif
 };
 
+#if BATMAN
+template<typename LightMapPolicyType, UBOOL bEnableSkyLight>
+struct TBM2BasePassPixelShaderShouldCache
+{
+	static UBOOL ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
+	{
+		const UBOOL bCacheShaders = !bEnableSkyLight || (Material->GetLightingModel() != MLM_Unlit);
+		return bCacheShaders &&
+			TBasePassPixelShaderBaseType<LightMapPolicyType>::ShouldCache(Platform, Material, VertexFactoryType, bEnableSkyLight);
+	}
+};
+
+template<typename LightMapPolicyType>
+struct TBM2BasePassPixelShaderNeverCacheSkyLight
+{
+	static UBOOL ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
+	{
+		return FALSE;
+	}
+};
+
+template<>
+struct TBM2BasePassPixelShaderShouldCache<FDirectionalVertexLightMapPolicy, TRUE> : TBM2BasePassPixelShaderNeverCacheSkyLight<FDirectionalVertexLightMapPolicy>
+{
+};
+
+template<>
+struct TBM2BasePassPixelShaderShouldCache<FSimpleVertexLightMapPolicy, TRUE> : TBM2BasePassPixelShaderNeverCacheSkyLight<FSimpleVertexLightMapPolicy>
+{
+};
+
+template<>
+struct TBM2BasePassPixelShaderShouldCache<FDirectionalLightMapTexturePolicy, TRUE> : TBM2BasePassPixelShaderNeverCacheSkyLight<FDirectionalLightMapTexturePolicy>
+{
+};
+
+template<>
+struct TBM2BasePassPixelShaderShouldCache<FSimpleLightMapTexturePolicy, TRUE> : TBM2BasePassPixelShaderNeverCacheSkyLight<FSimpleLightMapTexturePolicy>
+{
+};
+#endif
+
 /** The concrete base pass pixel shader type, parameterized by whether sky lighting is needed. */
 template<typename LightMapPolicyType,UBOOL bEnableSkyLight>
 class TBasePassPixelShader : public TBasePassPixelShaderBaseType<LightMapPolicyType>
@@ -404,10 +446,14 @@ public:
 	
 	static UBOOL ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
+#if BATMAN
+		return TBM2BasePassPixelShaderShouldCache<LightMapPolicyType, bEnableSkyLight>::ShouldCache(Platform, Material, VertexFactoryType);
+#else
 		//don't compile skylight versions if the material is unlit
 		const UBOOL bCacheShaders = !bEnableSkyLight || (Material->GetLightingModel() != MLM_Unlit);
 		return bCacheShaders && 
 			TBasePassPixelShaderBaseType<LightMapPolicyType>::ShouldCache(Platform, Material, VertexFactoryType, bEnableSkyLight);
+#endif
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -953,10 +999,15 @@ void ProcessBasePassMesh_LightMapped(
 	// Call Action.Process with the appropriate fog volume density policy type.
 	switch(FogVolumeDensityFunction)
 	{
+#if BATMAN
+		HANDLE_FOG_VOLUME_DENSITY_FUNCTION(FRockAtmosDensityPolicy,Parameters.PrimitiveSceneInfo->FogVolumeSceneInfo);
+		HANDLE_FOG_VOLUME_DENSITY_FUNCTION(FSphereDensityPolicy,Parameters.PrimitiveSceneInfo->FogVolumeSceneInfo);
+#else
 		HANDLE_FOG_VOLUME_DENSITY_FUNCTION(FConstantDensityPolicy,Parameters.PrimitiveSceneInfo->FogVolumeSceneInfo);
 		HANDLE_FOG_VOLUME_DENSITY_FUNCTION(FLinearHalfspaceDensityPolicy,Parameters.PrimitiveSceneInfo->FogVolumeSceneInfo);
 		HANDLE_FOG_VOLUME_DENSITY_FUNCTION(FSphereDensityPolicy,Parameters.PrimitiveSceneInfo->FogVolumeSceneInfo);
 		HANDLE_FOG_VOLUME_DENSITY_FUNCTION(FConeDensityPolicy,Parameters.PrimitiveSceneInfo->FogVolumeSceneInfo);
+#endif
 		default:
 		HANDLE_FOG_VOLUME_DENSITY_FUNCTION(FNoDensityPolicy,FNoDensityPolicy::ElementDataType());
 	};
@@ -974,24 +1025,6 @@ void ProcessBasePassMesh(
 	// Check for a cached light-map.
 	const UBOOL bIsLitMaterial = Parameters.LightingModel != MLM_Unlit;
 	const FLightMapInteraction LightMapInteraction = (Parameters.Mesh.LCI && bIsLitMaterial) ? Parameters.Mesh.LCI->GetLightMapInteraction() : FLightMapInteraction();
-
-#if BATMAN
-	// BM2: if the primitive has an AP3D light proxy attached and it's allowed in the base pass,
-	// route through FAPlus3DLightLightMapPolicy (matches retail ProcessBasePassMesh dispatch).
-	if (bIsLitMaterial
-		&& Parameters.PrimitiveSceneInfo
-		&& Parameters.PrimitiveSceneInfo->AmbientPlus3DLight
-		&& Parameters.PrimitiveSceneInfo->bRenderAPlus3DLightInBasePass
-		&& !Parameters.Material->IsUsedWithDecals())
-	{
-		ProcessBasePassMesh_LightMapped<ProcessActionType, FAPlus3DLightLightMapPolicy>(
-			Parameters,
-			Action,
-			FAPlus3DLightLightMapPolicy(),
-			Parameters.PrimitiveSceneInfo->AmbientPlus3DLight);
-		return;
-	}
-#endif
 
 	UBOOL bShouldRenderDominantLight = FALSE;
 	FLightInteraction DominantLightInteraction = FLightInteraction::Uncached();
@@ -1117,9 +1150,56 @@ void ProcessBasePassMesh(
 					// Check if we should use a directional light in the base pass
 					if (bIsLitMaterial 
 						&& Parameters.PrimitiveSceneInfo 
+#if BATMAN
+						&& !Parameters.Material->IsUsedWithStaticLighting())
+#else
 						// Shaders not compiled with decal usage due to not enough constant registers
 						&& !Parameters.Material->IsUsedWithDecals())
+#endif
 					{
+#if BATMAN
+						if (Parameters.PrimitiveSceneInfo->AmbientPlus3DLight)
+						{
+							if (Parameters.PrimitiveSceneInfo->bRenderAPlus3DLightInBasePass)
+							{
+								ProcessBasePassMesh_LightMapped<ProcessActionType, FAPlus3DLightLightMapPolicy>(
+									Parameters,
+									Action,
+									FAPlus3DLightLightMapPolicy(),
+									Parameters.PrimitiveSceneInfo->AmbientPlus3DLight);
+							}
+							else
+							{
+								static INT SpamGuard = 0;
+								SpamGuard++;
+								if (SpamGuard == 150 * (SpamGuard / 150))
+								{
+									if (Parameters.Mesh.VertexFactory->GetType()->SupportsDynamicLighting())
+									{
+										debugf(TEXT("MATERIAL WARNING: %s needs the material usage flag bUsedWithLightEnvironment"), *Parameters.Material->GetFriendlyName());
+									}
+									else
+									{
+										debugf(TEXT("MATERIAL WARNING: %s is using a Light Environment and supports Dynamic Lighting and Static Lighting. Tell Dustin!"), *Parameters.Material->GetFriendlyName());
+									}
+								}
+
+								FMeshElement DefaultMesh(Parameters.Mesh);
+								DefaultMesh.MaterialRenderProxy = GEngine->DefaultMaterial->GetRenderProxy(FALSE, FALSE);
+								ProcessBasePassMesh_LightMapped<ProcessActionType, FAPlus3DLightLightMapPolicy>(
+									FProcessBasePassMeshParameters(
+										DefaultMesh,
+										DefaultMesh.MaterialRenderProxy->GetMaterial(),
+										Parameters.PrimitiveSceneInfo,
+										Parameters.bAllowFog),
+									Action,
+									FAPlus3DLightLightMapPolicy(),
+									Parameters.PrimitiveSceneInfo->AmbientPlus3DLight);
+							}
+						}
+						else
+#endif
+						{
 						const FSHVectorRGB* TranslucencyMergedLighting = Action.GetTranslucencyCompositedDynamicLighting();
 						// If this element is doing approximate one pass lighting for translucency, use a lightmap policy that supports this
 						// Note that Action.GetTranslucencyMergedDynamicLightInfo() can still be NULL if no directional, spot or point light was found affecting the translucency
@@ -1178,9 +1258,18 @@ void ProcessBasePassMesh(
 								}
 							}
 						}
+#if BATMAN
+						else if (Parameters.Mesh.VertexFactory->GetType()->SupportsDynamicLighting()
+							&& (Parameters.Material->HasSSSNormal() || Parameters.Material->IsSpecialEngineMaterial()))
+						{
+							FLightMapInteraction EmptyLightMap;
+							ProcessBasePassMesh_LightMapped<ProcessActionType, FDirectionalLightMapTexturePolicy>(Parameters,Action,FDirectionalLightMapTexturePolicy(),EmptyLightMap);
+						}
+#endif
 						else
 						{
 							ProcessBasePassMesh_LightMapped<ProcessActionType, FNoLightMapPolicy>(Parameters,Action,FNoLightMapPolicy(),FNoLightMapPolicy::ElementDataType());
+						}
 						}
 					}
 					else

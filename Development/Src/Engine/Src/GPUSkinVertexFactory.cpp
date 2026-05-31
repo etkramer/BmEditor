@@ -112,7 +112,11 @@ UBOOL FGPUSkinVertexFactory::SharedShouldCache(EShaderPlatform Platform, const c
 
 UBOOL FGPUSkinVertexFactory::ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const FShaderType* ShaderType)
 {
+#if BATMAN
+	return SharedShouldCache(Platform, Material, ShaderType) && !Material->IsUsedWithStaticLighting();
+#else
 	return SharedShouldCache(Platform, Material, ShaderType) && !Material->IsUsedWithDecals();
+#endif
 }
 
 void FGPUSkinVertexFactory::ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -433,7 +437,11 @@ UBOOL FGPUSkinMorphVertexFactory::SharedShouldCache(EShaderPlatform Platform, co
 */
 UBOOL FGPUSkinMorphVertexFactory::ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
 {
+#if BATMAN
+	return SharedShouldCache(Platform, Material, ShaderType) && !Material->IsUsedWithStaticLighting();
+#else
 	return SharedShouldCache(Platform, Material, ShaderType) && !Material->IsUsedWithDecals();
+#endif
 }
 
 /**
@@ -568,8 +576,14 @@ FVertexFactoryShaderParameters* FGPUSkinDecalVertexFactory::ConstructShaderParam
 	return ShaderFrequency == SF_Vertex ? new FGPUSkinDecalVertexFactoryShaderParameters() : NULL;
 }
 
+#if BATMAN
+#define BM_GPUSKIN_DECAL_USED_WITH_MATERIALS FALSE
+#else
+#define BM_GPUSKIN_DECAL_USED_WITH_MATERIALS TRUE
+#endif
+
 /** bind gpu skin decal vertex factory to its shader file and its shader parameters */
-IMPLEMENT_VERTEX_FACTORY_TYPE( FGPUSkinDecalVertexFactory, "GpuSkinVertexFactory", TRUE, FALSE, TRUE, FALSE, VER_PERBONEMOTIONBLUR, 0 );
+IMPLEMENT_VERTEX_FACTORY_TYPE( FGPUSkinDecalVertexFactory, "GpuSkinVertexFactory", BM_GPUSKIN_DECAL_USED_WITH_MATERIALS, FALSE, TRUE, FALSE, VER_PERBONEMOTIONBLUR, 0 );
 
 /*-----------------------------------------------------------------------------
 FGPUSkinMorphDecalVertexFactory
@@ -604,4 +618,6 @@ FVertexFactoryShaderParameters* FGPUSkinMorphDecalVertexFactory::ConstructShader
 }
 
 /** bind gpu skin decal vertex factory to its shader file and its shader parameters */
-IMPLEMENT_VERTEX_FACTORY_TYPE( FGPUSkinMorphDecalVertexFactory, "GpuSkinVertexFactory", TRUE, FALSE, TRUE, FALSE, VER_PERBONEMOTIONBLUR, 0 );
+IMPLEMENT_VERTEX_FACTORY_TYPE( FGPUSkinMorphDecalVertexFactory, "GpuSkinVertexFactory", BM_GPUSKIN_DECAL_USED_WITH_MATERIALS, FALSE, TRUE, FALSE, VER_PERBONEMOTIONBLUR, 0 );
+
+#undef BM_GPUSKIN_DECAL_USED_WITH_MATERIALS

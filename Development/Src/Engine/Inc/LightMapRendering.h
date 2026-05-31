@@ -137,11 +137,19 @@ public:
 
 	static UBOOL ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
+#if BATMAN
+		return Material->GetLightingModel() != MLM_Unlit
+			&& VertexFactoryType->SupportsStaticLighting()
+			&& (Material->IsUsedWithVertexLighting() || Material->IsSpecialEngineMaterial())
+			//terrain never uses vertex lightmaps
+			&& !Material->IsTerrainMaterial();
+#else
 		return Material->GetLightingModel() != MLM_Unlit
 			&& VertexFactoryType->SupportsStaticLighting()
 			&& (Material->IsUsedWithStaticLighting() || Material->IsSpecialEngineMaterial())
 			//terrain never uses vertex lightmaps
 			&& !Material->IsTerrainMaterial();
+#endif
 	}
 
 	void Set(
@@ -431,7 +439,18 @@ public:
 
 	static UBOOL ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
+#if BATMAN
+		if (Material && Material->GetLightingModel() == MLM_Unlit)
+		{
+			return FALSE;
+		}
+		return VertexFactoryType
+			&& VertexFactoryType->SupportsDynamicLighting()
+			&& Material
+			&& (Material->HasSSSNormal() || Material->IsSpecialEngineMaterial());
+#else
 		return Material->GetLightingModel() != MLM_Unlit && VertexFactoryType->SupportsStaticLighting() && (Material->IsUsedWithStaticLighting() || Material->IsSpecialEngineMaterial());
+#endif
 	}
 
 	/**
@@ -480,6 +499,10 @@ public:
 
 	static UBOOL ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType,UBOOL bEnableSkyLight=FALSE)
 	{
+		if (bEnableSkyLight)
+		{
+			return FALSE;
+		}
 		// if material requires simple static lighting then don't cache full directional shader
 		if( Material && Material->RequiresSimpleStaticLighting(GetMaterialPlatform(Platform)) )
 		{
@@ -560,6 +583,10 @@ public:
 
 	static UBOOL ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType,UBOOL bEnableSkyLight=FALSE)
 	{
+		if (bEnableSkyLight)
+		{
+			return FALSE;
+		}
 		return FLightMapTexturePolicy::ShouldCache(Platform,Material,VertexFactoryType)
 			//only compile for PC
 			&& IsPCPlatform(Platform);
@@ -634,6 +661,10 @@ public:
 
 	static UBOOL ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType,UBOOL bEnableSkyLight=FALSE)
 	{
+		if (bEnableSkyLight)
+		{
+			return FALSE;
+		}
 		return FLightMapTexturePolicy::ShouldCache(Platform,Material,VertexFactoryType);
 	}
 
@@ -784,8 +815,12 @@ public:
 
 	static UBOOL ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType, UBOOL bEnableSkyLight=FALSE)
 	{
+#if BATMAN
+		return FALSE;
+#else
 		return VertexFactoryType->SupportsDynamicLighting() == TRUE
 			&& Material->GetLightingModel() != MLM_Unlit;
+#endif
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -885,7 +920,11 @@ public:
 
 	static UBOOL ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType, UBOOL bEnableSkyLight=FALSE)
 	{
+#if BATMAN
+		return FALSE;
+#else
 		return Super::ShouldCache(Platform, Material, VertexFactoryType, bEnableSkyLight);
+#endif
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -1095,7 +1134,11 @@ public:
 
 	static UBOOL ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType, UBOOL bEnableSkyLight=FALSE)
 	{
+#if BATMAN
+		return FALSE;
+#else
 		return Super::ShouldCache(Platform, Material, VertexFactoryType, bEnableSkyLight);
+#endif
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)

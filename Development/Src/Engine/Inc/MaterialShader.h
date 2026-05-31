@@ -7,7 +7,11 @@
 #include "DepthOfFieldCommon.h"				// FDepthOfFieldParams, FDOFShaderParameters
 
 /** The minimum package version to load FMaterialShaderMaps with. Bump this to force existing FMaterialShaderMaps to be discarded on load. */
+#if BATMAN
+#define VER_MIN_MATERIALSHADERMAP				803
+#else
 #define VER_MIN_MATERIALSHADERMAP				VER_SHADER_CACHE_PRIORITY
+#endif
 /** The minimum package version to load material pixel shaders with. */
 #define VER_MIN_MATERIAL_PIXELSHADER			VER_SHADER_CACHE_PRIORITY
 /** The minimum package version to load material vertex shaders with. */
@@ -21,6 +25,18 @@
 #define LICENSEE_VER_MIN_MATERIAL_VERTEXSHADER	0
 
 /** A macro to implement material shaders which checks the package version for VER_MIN_MATERIAL_*SHADER and LICENSEE_VER_MIN_MATERIAL_*SHADER. */
+#if BATMAN
+#define IMPLEMENT_MATERIAL_SHADER_TYPE(TemplatePrefix,ShaderClass,SourceFilename,FunctionName,Frequency,MinPackageVersion,MinLicenseePackageVersion) \
+	IMPLEMENT_SHADER_TYPE( \
+		TemplatePrefix, \
+		ShaderClass, \
+		SourceFilename, \
+		FunctionName, \
+		Frequency, \
+		MinPackageVersion, \
+		MinLicenseePackageVersion \
+		);
+#else
 #define IMPLEMENT_MATERIAL_SHADER_TYPE(TemplatePrefix,ShaderClass,SourceFilename,FunctionName,Frequency,MinPackageVersion,MinLicenseePackageVersion) \
 	IMPLEMENT_SHADER_TYPE( \
 		TemplatePrefix, \
@@ -31,6 +47,7 @@
 		Max((UINT)MinPackageVersion,Frequency == SF_Pixel ? Max((UINT)VER_MIN_COMPILEDMATERIAL, (UINT)VER_MIN_MATERIAL_PIXELSHADER) : Max((UINT)VER_MIN_COMPILEDMATERIAL, (UINT)VER_MIN_MATERIAL_VERTEXSHADER)), \
 		Max((UINT)MinLicenseePackageVersion,Frequency == SF_Pixel ? Max((UINT)LICENSEE_VER_MIN_COMPILEDMATERIAL, (UINT)LICENSEE_VER_MIN_MATERIAL_PIXELSHADER) : Max((UINT)LICENSEE_VER_MIN_COMPILEDMATERIAL, (UINT)LICENSEE_VER_MIN_MATERIAL_VERTEXSHADER)) \
 		);
+#endif
 
 /** Converts an EMaterialLightingModel to a string description. */
 extern FString GetLightingModelString(EMaterialLightingModel LightingModel);

@@ -382,12 +382,16 @@ public:
 
 	static UBOOL ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
+#if BATMAN
+		return FALSE;
+#else
 		//don't compile the translucency vertex shader for GPU skinned vertex factories with this density function since it will run out of constant registers
 		if (!Material->IsUsedWithFogVolumes() && appStrstr(VertexFactoryType->GetName(), TEXT("FGPUSkin")))
 		{
 			return FALSE;
 		}
 		return !Material->IsUsedWithDecals();
+#endif
 	}
 	
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -407,12 +411,16 @@ public:
 
 	static UBOOL ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
+#if BATMAN
+		return FALSE;
+#else
 		//don't compile the translucency vertex shader for GPU skinned vertex factories with this density function since it will run out of constant registers
 		if (!Material->IsUsedWithFogVolumes() && appStrstr(VertexFactoryType->GetName(), TEXT("FGPUSkin")))
 		{
 			return FALSE;
 		}
 		return !Material->IsUsedWithDecals();
+#endif
 	}
 	
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -432,12 +440,16 @@ public:
 
 	static UBOOL ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
+#if BATMAN
+		return Material->GetBlendMode() == BLEND_Opaque;
+#else
 		//don't compile the translucency vertex shader for GPU skinned vertex factories with this density function since it will run out of constant registers
 		if (!Material->IsUsedWithFogVolumes() && appStrstr(VertexFactoryType->GetName(), TEXT("FGPUSkin")))
 		{
 			return FALSE;
 		}
 		return !Material->IsUsedWithDecals();
+#endif
 	}
 	
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -445,6 +457,164 @@ public:
 		OutEnvironment.Definitions.Set(TEXT("FOGVOLUMEDENSITY_SPHEREDENSITY"),TEXT("1"));
 	}
 };
+
+#if BATMAN
+class FRockAtmosDensityPolicy
+{
+public:
+
+	class FFogRockAtmosShaderParameters
+	{
+	public:
+		void Bind(const FShaderParameterMap& ParameterMap)
+		{
+			AtmosDensityParameter.Bind(ParameterMap,TEXT("AtmosDensity_xD1yD2zH1wH2"),TRUE);
+			AtmosStartEndParameter.Bind(ParameterMap,TEXT("AtmosStartEnd_xD1yD1zD2wD2"),TRUE);
+			AtmosGradSizeHeightIntegralParameter.Bind(ParameterMap,TEXT("AtmosGradSizeHeightIntegral_xH1yH1zH2wH2"),TRUE);
+			AtmosD1ColourParameter.Bind(ParameterMap,TEXT("AtmosD1_Colour"),TRUE);
+			AtmosD2ColourParameter.Bind(ParameterMap,TEXT("AtmosD2_Colour"),TRUE);
+			AtmosH1H2AlphaParameter.Bind(ParameterMap,TEXT("AtmosH1H2_Alpha"),TRUE);
+			AtmosH1ColourParameter.Bind(ParameterMap,TEXT("AtmosH1_Colour"),TRUE);
+			AtmosH2ColourParameter.Bind(ParameterMap,TEXT("AtmosH2_Colour"),TRUE);
+			CameraPosParameter.Bind(ParameterMap,TEXT("CameraPos"),TRUE);
+			AtmosGlobalGradientColourParameter.Bind(ParameterMap,TEXT("AtmosGlobal_Gradient_Colour"),TRUE);
+			AtmosGlobalGradientDirectionParameter.Bind(ParameterMap,TEXT("AtmosGlobal_Gradient_Direction"),TRUE);
+		}
+
+		void SetVertexShader(
+			const FSceneView& View,
+			const FMaterialRenderProxy* MaterialRenderProxy,
+			FShader* VertexShader,
+			const FFogVolumeDensitySceneInfo* FogVolumeSceneInfo
+			) const
+		{
+			Set(View, VertexShader);
+		}
+
+#if WITH_D3D11_TESSELLATION
+		void SetDomainShader(
+			const FSceneView& View,
+			const FMaterialRenderProxy* MaterialRenderProxy,
+			FShader* DomainShader,
+			const FFogVolumeDensitySceneInfo* FogVolumeSceneInfo
+			) const
+		{
+			Set(View, DomainShader);
+		}
+#endif
+
+		friend FArchive& operator<<(FArchive& Ar,FFogRockAtmosShaderParameters& P)
+		{
+			Ar << P.AtmosDensityParameter;
+			Ar << P.AtmosStartEndParameter;
+			Ar << P.AtmosGradSizeHeightIntegralParameter;
+			Ar << P.AtmosD1ColourParameter;
+			Ar << P.AtmosD2ColourParameter;
+			Ar << P.AtmosH1H2AlphaParameter;
+			Ar << P.AtmosH1ColourParameter;
+			Ar << P.AtmosH2ColourParameter;
+			Ar << P.CameraPosParameter;
+			Ar << P.AtmosGlobalGradientColourParameter;
+			Ar << P.AtmosGlobalGradientDirectionParameter;
+			return Ar;
+		}
+
+	private:
+		void Set(const FSceneView& View,FShader* Shader) const
+		{
+			const FPostProcessSettings* Settings = View.PostProcessSettings;
+			if (Settings)
+			{
+				const FVector4 CameraPos(View.ViewOrigin.X, View.ViewOrigin.Y, View.ViewOrigin.Z, View.ViewOrigin.W);
+				SetShaderValue(Shader->GetVertexShader(), CameraPosParameter, CameraPos);
+
+				const FLinearColor D1Colour = Settings->AtmosD1_Colour.ReinterpretAsLinear();
+				const FLinearColor D2Colour = Settings->AtmosD2_Colour.ReinterpretAsLinear();
+				const FLinearColor H1Colour = Settings->AtmosH1_Colour.ReinterpretAsLinear();
+				const FLinearColor H2Colour = Settings->AtmosH2_Colour.ReinterpretAsLinear();
+				SetShaderValue(Shader->GetVertexShader(), AtmosD1ColourParameter, D1Colour);
+				SetShaderValue(Shader->GetVertexShader(), AtmosD2ColourParameter, D2Colour);
+				SetShaderValue(Shader->GetVertexShader(), AtmosH1ColourParameter, H1Colour);
+				SetShaderValue(Shader->GetVertexShader(), AtmosH2ColourParameter, H2Colour);
+
+				const FVector4 AtmosDensity(
+					D1Colour.A * Settings->AtmosD1_Density,
+					D2Colour.A * Settings->AtmosD2_Density,
+					Settings->AtmosH1_Density * 0.000001f,
+					Settings->AtmosH2_Density * 0.000001f);
+				SetShaderValue(Shader->GetVertexShader(), AtmosDensityParameter, AtmosDensity);
+
+				const FVector4 AtmosStartEnd(
+					Settings->AtmosD1_DistanceStart,
+					1.0f / (Settings->AtmosD1_DistanceEnd - Settings->AtmosD1_DistanceStart),
+					Settings->AtmosD2_DistanceStart,
+					1.0f / (Settings->AtmosD2_DistanceEnd - Settings->AtmosD2_DistanceStart));
+				SetShaderValue(Shader->GetVertexShader(), AtmosStartEndParameter, AtmosStartEnd);
+
+				const FLOAT H1Exponent = Clamp<FLOAT>((Settings->AtmosH1_GradientPosition - View.ViewOrigin.Z) / Settings->AtmosH1_GradientSize, -50.0f, 50.0f);
+				const FLOAT H2Exponent = Clamp<FLOAT>((Settings->AtmosH2_GradientPosition - View.ViewOrigin.Z) / Settings->AtmosH2_GradientSize, -50.0f, 50.0f);
+				const FVector4 AtmosGradSizeHeightIntegral(
+					1.0f / Settings->AtmosH1_GradientSize,
+					appExp(H1Exponent) * Settings->AtmosH1_Density * 0.000001f,
+					1.0f / Settings->AtmosH2_GradientSize,
+					appExp(H2Exponent) * Settings->AtmosH2_Density * 0.000001f);
+				SetShaderValue(Shader->GetVertexShader(), AtmosGradSizeHeightIntegralParameter, AtmosGradSizeHeightIntegral);
+
+				FLinearColor GlobalGradientColour = Settings->AtmosGlobal_Gradient_Colour.ReinterpretAsLinear();
+				if (Settings->AtmosGlobal_Gradient_Density > 0.0f)
+				{
+					if (Settings->AtmosGlobal_Gradient_Density >= 1.0f)
+					{
+						GlobalGradientColour *= Settings->AtmosGlobal_Gradient_Density;
+					}
+					else
+					{
+						GlobalGradientColour.R = (GlobalGradientColour.R - 1.0f) * Settings->AtmosGlobal_Gradient_Density + 1.0f;
+						GlobalGradientColour.G = (GlobalGradientColour.G - 1.0f) * Settings->AtmosGlobal_Gradient_Density + 1.0f;
+						GlobalGradientColour.B = (GlobalGradientColour.B - 1.0f) * Settings->AtmosGlobal_Gradient_Density + 1.0f;
+					}
+				}
+				SetShaderValue(Shader->GetVertexShader(), AtmosGlobalGradientColourParameter, GlobalGradientColour);
+
+				FVector GlobalGradientDirection = Settings->AtmosGlobal_Gradient_Direction;
+				GlobalGradientDirection.Normalize();
+				SetShaderValue(Shader->GetVertexShader(), AtmosGlobalGradientDirectionParameter, GlobalGradientDirection);
+
+				const FVector4 AtmosH1H2Alpha(D1Colour.A * Settings->AtmosD1_Density, D2Colour.A * Settings->AtmosD2_Density, 0.0f, 0.0f);
+				SetShaderValue(Shader->GetVertexShader(), AtmosH1H2AlphaParameter, AtmosH1H2Alpha);
+			}
+		}
+
+		FShaderParameter AtmosDensityParameter;
+		FShaderParameter AtmosStartEndParameter;
+		FShaderParameter AtmosGradSizeHeightIntegralParameter;
+		FShaderParameter AtmosD1ColourParameter;
+		FShaderParameter AtmosD2ColourParameter;
+		FShaderParameter AtmosH1H2AlphaParameter;
+		FShaderParameter AtmosH1ColourParameter;
+		FShaderParameter AtmosH2ColourParameter;
+		FShaderParameter CameraPosParameter;
+		FShaderParameter AtmosGlobalGradientColourParameter;
+		FShaderParameter AtmosGlobalGradientDirectionParameter;
+	};
+
+	typedef FFogRockAtmosShaderParameters ShaderParametersType;
+	typedef const FFogVolumeDensitySceneInfo* ElementDataType;
+
+	static const EFogVolumeDensityFunction DensityFunctionType = FVDF_LinearHalfspace;
+
+	static UBOOL ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	{
+		const EBlendMode BlendMode = Material->GetBlendMode();
+		return Material->IsUsedWithPerVertexRockAtmosFog() && (BlendMode == BLEND_Translucent || BlendMode == BLEND_Additive);
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		OutEnvironment.Definitions.Set(TEXT("FOGVOLUMEDENSITY_ROCKATMOS"),TEXT("1"));
+	}
+};
+#endif
 
 class FConeDensityPolicy
 {	
@@ -457,8 +627,12 @@ public:
 
 	static UBOOL ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
+#if BATMAN
+		return FALSE;
+#else
 		//not fully implemented
 		return FALSE;
+#endif
 	}
 	
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)

@@ -895,7 +895,16 @@ UBOOL UMaterial::CompileStaticPermutation(
 
 	SetStaticParameterOverrides(StaticParameters);
 
-	if ((appGetPlatformType() & UE3::PLATFORM_Stripped) || UE3_LEAN_AND_MEAN)
+	UBOOL bUseCookedShaderMap = (appGetPlatformType() & UE3::PLATFORM_Stripped) || UE3_LEAN_AND_MEAN;
+#if BATMAN
+	UPackage* Package = Cast<UPackage>(GetOutermost());
+	if (Package && (Package->PackageFlags & PKG_ContainsInlinedShaders))
+	{
+		bUseCookedShaderMap = TRUE;
+	}
+#endif
+
+	if (bUseCookedShaderMap)
 	{
 		//uniform expressions are guaranteed to be updated since they are always generated during cooking
 		CompileSucceeded = StaticPermutation->InitShaderMap(StaticParameters, Platform);
@@ -1142,6 +1151,14 @@ void UMaterial::CacheResourceShaders(EShaderPlatform ShaderPlatform, UBOOL bFlus
 		if (bForceAllPlatforms || PlatformIndex == RequestedMaterialPlatform)
 		{
 			UBOOL bSuccess = FALSE;
+#if BATMAN
+			UPackage* Package = Cast<UPackage>(GetOutermost());
+			if (Package && (Package->PackageFlags & PKG_ContainsInlinedShaders))
+			{
+				bSuccess = MaterialResources[PlatformIndex]->InitShaderMap(CurrentShaderPlatform);
+			}
+			else
+#endif
 			// Force uniform expressions to be regenerated (but allow re-using existing shader maps) if the material resource has legacy uniform expressions
 			// This ensures that the uniform expressions will have the correct indices into MaterialResources[PlatformIndex]->UniformExpressionTextures
 			if ( bFlushExistingShaderMaps || GetLinkerVersion() < VER_UNIFORMEXPRESSION_POSTLOADFIXUP || MaterialResources[PlatformIndex]->HasLegacyUniformExpressions())

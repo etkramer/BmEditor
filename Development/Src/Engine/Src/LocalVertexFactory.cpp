@@ -12,8 +12,13 @@
  */
 UBOOL FLocalVertexFactory::ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
 {
+#if BATMAN
+	return !Material->IsTerrainMaterial()
+		&& (Material->IsUsedWithStaticMesh() || Platform == SP_PCD3D_SM3 || Platform == SP_PCD3D_SM4 || Platform == SP_PCD3D_SM5);
+#else
 	//don't compile for terrain materials, since they are never rendered in preview windows
 	return !Material->IsTerrainMaterial(); 
+#endif
 }
 
 /**

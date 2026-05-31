@@ -88,4 +88,12 @@ FVertexFactoryShaderParameters* FLocalDecalVertexFactory::ConstructShaderParamet
 	return ShaderFrequency == SF_Vertex ? new FLocalDecalVertexFactoryShaderParameters() : NULL;
 }
 
-IMPLEMENT_VERTEX_FACTORY_TYPE(FLocalDecalVertexFactory,"LocalVertexFactory",TRUE,TRUE,TRUE,FALSE,VER_VERTEX_FACTORY_LOCALTOWORLD_FLIP,0);
+#if BATMAN
+#define BM_LOCAL_DECAL_USED_WITH_MATERIALS FALSE
+#else
+#define BM_LOCAL_DECAL_USED_WITH_MATERIALS TRUE
+#endif
+
+IMPLEMENT_VERTEX_FACTORY_TYPE(FLocalDecalVertexFactory,"LocalVertexFactory",BM_LOCAL_DECAL_USED_WITH_MATERIALS,TRUE,TRUE,FALSE,VER_VERTEX_FACTORY_LOCALTOWORLD_FLIP,0);
+
+#undef BM_LOCAL_DECAL_USED_WITH_MATERIALS

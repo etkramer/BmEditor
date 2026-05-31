@@ -1361,7 +1361,8 @@ void SerializeShaders(const TMap<FGuid,FShader*>& InShaders, FArchive& Ar)
 				}
 				else if (ShouldReloadChangedShaders() && SavedHash != CurrentHash
 #if BATMAN
-					// BM2's .usf source hashes don't match ours; skip check for BM2 packages until .usf files are updated
+					// BM2's shipped shader cache was compiled against retail .usf files. Until our
+					// shader sources match those exactly, prefer the cooked bytecode for BM2 packages.
 					&& !Ar.IsBmCooked(TRUE)
 #endif
 				)

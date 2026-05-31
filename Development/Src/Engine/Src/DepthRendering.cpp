@@ -201,10 +201,14 @@ private:
 };
 
 typedef TDepthOnlyPixelShader<FALSE> TDepthOnlySolidPixelShader;
+#if !BATMAN
 typedef TDepthOnlyPixelShader<TRUE> TDepthOnlyScreenDoorPixelShader;
+#endif
 
 IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TDepthOnlySolidPixelShader,TEXT("DepthOnlyPixelShader"),TEXT("Main"),SF_Pixel,0,0);
+#if !BATMAN
 IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TDepthOnlyScreenDoorPixelShader,TEXT("DepthOnlyPixelShader"),TEXT("Main"),SF_Pixel,0,0);
+#endif
 
 /**
 * A pixel shader for rendering the depth of a translucent mesh in all areas not 100% transparent.
@@ -270,7 +274,11 @@ FDepthDrawingPolicy::FDepthDrawingPolicy(
 			// is used when a primitive may need to be rendered as masked (as a dynamic primitive) even when
 			// it's usually treated opaque.  This is used for fading objects in and out using a screen door effect.
 			const FMaterial* DefaultMaterialResource = GEngine->DefaultMaterial->GetRenderProxy(FALSE)->GetMaterial();
+#if BATMAN
+			PixelShader = DefaultMaterialResource->GetShader<TDepthOnlySolidPixelShader>(InVertexFactory->GetType());
+#else
 			PixelShader = (TDepthOnlySolidPixelShader*)DefaultMaterialResource->GetShader<TDepthOnlyScreenDoorPixelShader>(InVertexFactory->GetType());
+#endif
 		}
 		else
 		{

@@ -262,8 +262,14 @@ FVertexFactoryShaderParameters* FTerrainVertexFactory::ConstructShaderParameters
 }
 
 
+#if BATMAN
+#define BM_TERRAIN_USED_WITH_MATERIALS FALSE
+#else
+#define BM_TERRAIN_USED_WITH_MATERIALS TRUE
+#endif
+
 /** bind terrain vertex factory to its shader file and its shader parameters */
-IMPLEMENT_VERTEX_FACTORY_TYPE(FTerrainVertexFactory, "TerrainVertexFactory", TRUE, TRUE, TRUE, FALSE, VER_TERRAIN_REMOVED_DISPLACEMENTS,0);
+IMPLEMENT_VERTEX_FACTORY_TYPE(FTerrainVertexFactory, "TerrainVertexFactory", BM_TERRAIN_USED_WITH_MATERIALS, TRUE, TRUE, FALSE, VER_TERRAIN_REMOVED_DISPLACEMENTS,0);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -358,7 +364,7 @@ FVertexFactoryShaderParameters* FTerrainDecalVertexFactory::ConstructShaderParam
 }
 
 /** bind terrain decal vertex factory to its shader file and its shader parameters */
-IMPLEMENT_VERTEX_FACTORY_TYPE(FTerrainDecalVertexFactory, "TerrainVertexFactory", TRUE, TRUE, TRUE, FALSE, VER_TERRAIN_REMOVED_DISPLACEMENTS,0);
+IMPLEMENT_VERTEX_FACTORY_TYPE(FTerrainDecalVertexFactory, "TerrainVertexFactory", BM_TERRAIN_USED_WITH_MATERIALS, TRUE, TRUE, FALSE, VER_TERRAIN_REMOVED_DISPLACEMENTS,0);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -448,7 +454,7 @@ FVertexFactoryShaderParameters* FTerrainMorphVertexFactory::ConstructShaderParam
 }
 
 /** bind terrain vertex factory to its shader file and its shader parameters */
-IMPLEMENT_VERTEX_FACTORY_TYPE(FTerrainMorphVertexFactory, "TerrainVertexFactory", TRUE, TRUE, TRUE, FALSE, VER_TERRAIN_REMOVED_DISPLACEMENTS,0);
+IMPLEMENT_VERTEX_FACTORY_TYPE(FTerrainMorphVertexFactory, "TerrainVertexFactory", BM_TERRAIN_USED_WITH_MATERIALS, TRUE, TRUE, FALSE, VER_TERRAIN_REMOVED_DISPLACEMENTS,0);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -482,7 +488,7 @@ FVertexFactoryShaderParameters* FTerrainMorphDecalVertexFactory::ConstructShader
 }
 
 /** bind terrain decal vertex factory to its shader file and its shader parameters */
-IMPLEMENT_VERTEX_FACTORY_TYPE(FTerrainMorphDecalVertexFactory, "TerrainVertexFactory", TRUE, TRUE, TRUE, FALSE, VER_TERRAIN_REMOVED_DISPLACEMENTS,0);
+IMPLEMENT_VERTEX_FACTORY_TYPE(FTerrainMorphDecalVertexFactory, "TerrainVertexFactory", BM_TERRAIN_USED_WITH_MATERIALS, TRUE, TRUE, FALSE, VER_TERRAIN_REMOVED_DISPLACEMENTS,0);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -576,7 +582,7 @@ FVertexFactoryShaderParameters* FTerrainFullMorphVertexFactory::ConstructShaderP
 }
 
 /** bind terrain vertex factory to its shader file and its shader parameters */
-IMPLEMENT_VERTEX_FACTORY_TYPE(FTerrainFullMorphVertexFactory, "TerrainVertexFactory", TRUE, TRUE, TRUE, FALSE, VER_TERRAIN_REMOVED_DISPLACEMENTS,0);
+IMPLEMENT_VERTEX_FACTORY_TYPE(FTerrainFullMorphVertexFactory, "TerrainVertexFactory", BM_TERRAIN_USED_WITH_MATERIALS, TRUE, TRUE, FALSE, VER_TERRAIN_REMOVED_DISPLACEMENTS,0);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -610,5 +616,6 @@ FVertexFactoryShaderParameters* FTerrainFullMorphDecalVertexFactory::ConstructSh
 }
 
 /** bind terrain decal vertex factory to its shader file and its shader parameters */
-IMPLEMENT_VERTEX_FACTORY_TYPE(FTerrainFullMorphDecalVertexFactory, "TerrainVertexFactory", TRUE, TRUE, TRUE, FALSE, VER_TERRAIN_REMOVED_DISPLACEMENTS,0);
+IMPLEMENT_VERTEX_FACTORY_TYPE(FTerrainFullMorphDecalVertexFactory, "TerrainVertexFactory", BM_TERRAIN_USED_WITH_MATERIALS, TRUE, TRUE, FALSE, VER_TERRAIN_REMOVED_DISPLACEMENTS,0);
 
+#undef BM_TERRAIN_USED_WITH_MATERIALS

@@ -1065,14 +1065,7 @@ UBOOL FMaterial::InitShaderMap(FStaticParameterSet* StaticParameters, EShaderPla
 	// Find the material's cached shader map.
 	ShaderMap = FMaterialShaderMap::FindId(*StaticParameters, Platform);
 	UBOOL bRequiredRecompile = FALSE;
-#if BATMAN
-	// BM2 packages ship with stripped material graphs, so recompiling on "incomplete" cached shader maps
-	// would just produce a broken (black) material. Trust the cooked map if we have one.
-	const UBOOL bTrustCachedShaderMap = (ShaderMap != NULL);
-#else
-	const UBOOL bTrustCachedShaderMap = FALSE;
-#endif
-	if(!bValidCompilationOutput || !ShaderMap || (!bTrustCachedShaderMap && !ShaderMap->IsComplete(this, FALSE)))
+	if(!bValidCompilationOutput || !ShaderMap || !ShaderMap->IsComplete(this, FALSE))
 	{
 		if(bValidCompilationOutput)
 		{
@@ -1085,12 +1078,32 @@ UBOOL FMaterial::InitShaderMap(FStaticParameterSet* StaticParameters, EShaderPla
 			{
 				ShaderMapCondition = TEXT("Missing");
 			}
+#if BATMAN
+			if (ShaderMap)
+			{
+				debugf(TEXT("%s cached shader map for material %s, using cooked shaders."),ShaderMapCondition,*GetFriendlyName());
+			}
+			else
+#endif
 			debugf(TEXT("%s cached shader map for material %s, compiling."),ShaderMapCondition,*GetFriendlyName());
 		}
 		else
 		{
 			debugf(TEXT("Material %s has outdated uniform expressions; regenerating."),*GetFriendlyName());
 		}
+
+#if BATMAN
+		if (bValidCompilationOutput && ShaderMap)
+		{
+			if (LegacyUniformExpressions)
+			{
+				ShaderMap->SetUniformExpressions(*LegacyUniformExpressions);
+			}
+			check(ShaderMap->IsUniformExpressionSetValid());
+			ShaderMap->BeginInit();
+			return TRUE;
+		}
+#endif
 
 		if (appGetPlatformType() & UE3::PLATFORM_Stripped)
 		{
@@ -1127,12 +1140,20 @@ UBOOL FMaterial::InitShaderMap(FStaticParameterSet* StaticParameters, EShaderPla
 	}
 	else
 	{
-		check(ShaderMap->IsUniformExpressionSetValid());
+#if BATMAN
+		if (LegacyUniformExpressions)
+		{
+			// BM2 cooked materials carry the authoritative uniform expression set in the package.
+			ShaderMap->SetUniformExpressions(*LegacyUniformExpressions);
+		}
+		else
+#endif
 		if (LegacyUniformExpressions && ShaderMap->GetUniformExpressionSet().IsEmpty())
 		{
 			// This material has legacy uniform expressions, so propagate them to the shader map.
 			ShaderMap->SetUniformExpressions(*LegacyUniformExpressions);
 		}
+		check(ShaderMap->IsUniformExpressionSetValid());
 
 		// Only initialize the shaders if no recompile was required or if we are not deferring shader compiling
 		if (!bRequiredRecompile || !DeferFinishCompiling() && !GShaderCompilingThreadManager->IsDeferringCompilation())
@@ -1192,6 +1213,11 @@ UBOOL FMaterialResource::IsDecalMaterial() const
 	return FALSE;
 }
 
+UBOOL FMaterialResource::HasSSSNormal() const
+{
+	return Material->SSSNormal.Expression != NULL;
+}
+
 UBOOL FMaterialResource::IsUsedWithSkeletalMesh() const
 {
 	return Material->bUsedWithSkeletalMesh;
@@ -1241,6 +1267,23 @@ UBOOL FMaterialResource::IsUsedWithStaticLighting() const
 {
 	return Material->bUsedWithStaticLighting;
 }
+
+#if BATMAN
+UBOOL FMaterialResource::IsUsedWithVertexLighting() const
+{
+	return Material->bUsedWithVertexLighting;
+}
+
+UBOOL FMaterialResource::IsUsedWithStaticMesh() const
+{
+	return Material->bUsedWithStaticMesh;
+}
+
+UBOOL FMaterialResource::IsUsedWithPerVertexRockAtmosFog() const
+{
+	return Material->bUsedWithPerVertexRockAtmosFog;
+}
+#endif
 
 UBOOL FMaterialResource::IsUsedWithLensFlare() const
 {
@@ -5512,6 +5555,17 @@ UBOOL FMaterial::CompileShaderMap(
 {
 	FMaterialShaderMap* ExistingShaderMap = NULL;
 
+#if BATMAN
+	if (bForceCompile)
+	{
+		ExistingShaderMap = FMaterialShaderMap::FindId(*StaticParameters, Platform);
+		if (ExistingShaderMap)
+		{
+			bForceCompile = FALSE;
+		}
+	}
+#endif
+
 	// if we want to force compile the material, there's no reason to check for an existing one
 	if (bForceCompile)
 	{
@@ -5537,21 +5591,42 @@ UBOOL FMaterial::CompileShaderMap(
 
 	UBOOL bSuccess = TRUE;
 	UBOOL bRequiredCompile = FALSE;
+#if BATMAN
+	UBOOL bUsedCookedShaderMap = FALSE;
+#endif
 	if(!ExistingShaderMap || !ExistingShaderMap->IsComplete(this, FALSE))
 	{
 		bRequiredCompile = TRUE;
 
-		// Compile the shaders for the material.
-		bSuccess = OutShaderMap->Compile(this,StaticParameters,*MaterialShaderCode,UniformExpressionSet,Platform,CompileErrors,bDebugDump);
-		if (bSuccess)
+#if BATMAN
+		if (ExistingShaderMap)
 		{
-			//@todo - track down offenders and re-enable
-			//check(OutShaderMap->IsUniformExpressionSetValid());
+			if (LegacyUniformExpressions)
+			{
+				OutShaderMap->SetUniformExpressions(*LegacyUniformExpressions);
+			}
+			check(OutShaderMap->IsUniformExpressionSetValid());
+			bRequiredCompile = FALSE;
+			bUsedCookedShaderMap = TRUE;
+		}
+		else
+#endif
+		{
+			// Compile the shaders for the material.
+			bSuccess = OutShaderMap->Compile(this,StaticParameters,*MaterialShaderCode,UniformExpressionSet,Platform,CompileErrors,bDebugDump);
+			if (bSuccess)
+			{
+				//@todo - track down offenders and re-enable
+				//check(OutShaderMap->IsUniformExpressionSetValid());
+			}
 		}
 	}
 
 	if(bSuccess)
 	{
+#if BATMAN
+		if (!bUsedCookedShaderMap)
+#endif
 		if (OutShaderMap->GetUniformExpressionSet().IsEmpty())
 		{
 			// The shader map's expression set was empty, it is legacy and should be overwritten with the newly generated set.

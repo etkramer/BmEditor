@@ -537,6 +537,14 @@ public:
 };
 
 // typedef required to get around macro expansion failure due to commas in template argument list for TShadowDepthPixelShader
+#if BATMAN
+#define IMPLEMENT_BM_SHADOWDEPTHPASS_PIXELSHADER_TYPE(ShaderMode,bPerspectiveCorrect) \
+	typedef TShadowDepthPixelShader<ShaderMode,FALSE> TShadowDepthPixelShader##bPerspectiveCorrect##FALSE; \
+	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TShadowDepthPixelShader##bPerspectiveCorrect##FALSE,TEXT("ShadowDepthPixelShader"),TEXT("Main"),SF_Pixel,796,97);
+
+IMPLEMENT_BM_SHADOWDEPTHPASS_PIXELSHADER_TYPE(PixelShadowDepth_PerspectiveCorrect,TRUE);
+IMPLEMENT_BM_SHADOWDEPTHPASS_PIXELSHADER_TYPE(PixelShadowDepth_NonPerspectiveCorrect,FALSE);
+#else
 #define IMPLEMENT_SHADOWDEPTHPASS_PIXELSHADER_TYPE(ShaderMode,bUseScreenDoorFade) \
 	typedef TShadowDepthPixelShader<ShaderMode,bUseScreenDoorFade> TShadowDepthPixelShader##ShaderMode##bUseScreenDoorFade; \
 	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TShadowDepthPixelShader##ShaderMode##bUseScreenDoorFade,TEXT("ShadowDepthPixelShader"),TEXT("Main"),SF_Pixel,0,0);
@@ -547,6 +555,7 @@ IMPLEMENT_SHADOWDEPTHPASS_PIXELSHADER_TYPE(PixelShadowDepth_PerspectiveCorrect,T
 IMPLEMENT_SHADOWDEPTHPASS_PIXELSHADER_TYPE(PixelShadowDepth_PerspectiveCorrect,FALSE);
 IMPLEMENT_SHADOWDEPTHPASS_PIXELSHADER_TYPE(PixelShadowDepth_OnePassPointLight,TRUE);
 IMPLEMENT_SHADOWDEPTHPASS_PIXELSHADER_TYPE(PixelShadowDepth_OnePassPointLight,FALSE);
+#endif
 
 /** The shadow frustum vertex declaration. */
 TGlobalResource<FShadowFrustumVertexDeclaration> GShadowFrustumVertexDeclaration;
@@ -828,7 +837,11 @@ FShadowDepthDrawingPolicy::FShadowDepthDrawingPolicy(
 		}
 		else if (bOnePassPointLightShadow)
 		{
+#if BATMAN
+			PixelShader = MaterialResource->GetShader<TShadowDepthPixelShader<PixelShadowDepth_NonPerspectiveCorrect,FALSE> >(InVertexFactory->GetType());
+#else
 			PixelShader = MaterialResource->GetShader<TShadowDepthPixelShader<PixelShadowDepth_OnePassPointLight,FALSE> >(InVertexFactory->GetType());
+#endif
 		}
 		else
 		{
@@ -843,7 +856,11 @@ FShadowDepthDrawingPolicy::FShadowDepthDrawingPolicy(
 			if (bInUseScreenDoorDefaultMaterialShader)
 			{
 				// If we were going to get the pixel shader from the default material, use the screen door shader if fading is happening
+#if BATMAN
+				PixelShader = DefaultMaterialResource->GetShader<TShadowDepthPixelShader<PixelShadowDepth_PerspectiveCorrect,FALSE> >(InVertexFactory->GetType());
+#else
 				PixelShader = DefaultMaterialResource->GetShader<TShadowDepthPixelShader<PixelShadowDepth_PerspectiveCorrect,TRUE> >(InVertexFactory->GetType());
+#endif
 			}
 			else
 			{
@@ -859,7 +876,11 @@ FShadowDepthDrawingPolicy::FShadowDepthDrawingPolicy(
 				if (bInUseScreenDoorDefaultMaterialShader)
 				{
 					// If we were going to get the pixel shader from the default material, use the screen door shader if fading is happening
+#if BATMAN
+					PixelShader = DefaultMaterialResource->GetShader<TShadowDepthPixelShader<PixelShadowDepth_NonPerspectiveCorrect,FALSE> >(InVertexFactory->GetType());
+#else
 					PixelShader = DefaultMaterialResource->GetShader<TShadowDepthPixelShader<PixelShadowDepth_NonPerspectiveCorrect,TRUE> >(InVertexFactory->GetType());
+#endif
 				}
 				else
 				{
@@ -871,7 +892,11 @@ FShadowDepthDrawingPolicy::FShadowDepthDrawingPolicy(
 				if (bInUseScreenDoorDefaultMaterialShader)
 				{
 					// If we were going to get the pixel shader from the default material, use the screen door shader if fading is happening
+#if BATMAN
+					PixelShader = DefaultMaterialResource->GetShader<TShadowDepthPixelShader<PixelShadowDepth_NonPerspectiveCorrect,FALSE> >(InVertexFactory->GetType());
+#else
 					PixelShader = DefaultMaterialResource->GetShader<TShadowDepthPixelShader<PixelShadowDepth_NonPerspectiveCorrect,TRUE> >(InVertexFactory->GetType());
+#endif
 				}
 				else if (bOnePassPointLightShadow)
 				{

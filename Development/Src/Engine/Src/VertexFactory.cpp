@@ -495,7 +495,13 @@ UBOOL operator<<(FArchive& Ar,FVertexFactoryVSParameterRef& Ref)
 				&& Ar.LicenseeVer() >= Ref.VertexFactoryType->GetMinLicenseePackageVersion()
 #if !CONSOLE
 				// Only create the vertex factory shader parameters if the current vertex factory file hash matches the one the shader was compiled with
-				&& (!ShouldReloadChangedShaders() || Ref.VFHash == CurrentVFHash)
+				&& (!ShouldReloadChangedShaders() || Ref.VFHash == CurrentVFHash
+#if BATMAN
+					// BM2's cooked shader caches were compiled with retail vertex factory shader sources.
+					// Keep the shipped bytecode usable until our local .usf files match retail exactly.
+					|| Ar.IsBmCooked(TRUE)
+#endif
+					)
 #endif
 				)
 			{
@@ -591,7 +597,13 @@ UBOOL operator<<(FArchive& Ar,FVertexFactoryPSParameterRef& Ref)
 				&& Ar.LicenseeVer() >= Ref.VertexFactoryType->GetMinLicenseePackageVersion()
 #if !CONSOLE
 				// Only create the vertex factory shader parameters if the current vertex factory file hash matches the one the shader was compiled with
-				&& (!ShouldReloadChangedShaders() || Ref.VFHash == CurrentVFHash)
+				&& (!ShouldReloadChangedShaders() || Ref.VFHash == CurrentVFHash
+#if BATMAN
+					// BM2's cooked shader caches were compiled with retail vertex factory shader sources.
+					// Keep the shipped bytecode usable until our local .usf files match retail exactly.
+					|| Ar.IsBmCooked(TRUE)
+#endif
+					)
 #endif
 				)
 			{

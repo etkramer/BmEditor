@@ -34,62 +34,79 @@ UBOOL MeshSupportsDeferredLighting(const FMaterial* Material, const FPrimitiveSc
 /** Whether to replace lightmap textures with solid colors to visualize the mip-levels. */
 UBOOL GVisualizeMipLevels = FALSE;
 
+#if BATMAN
+#define BASEPASS_VERTEX_SHADER_VERSION 796
+#define BASEPASS_VERTEX_SHADER_LICENSEE_VERSION 93
+#define BASEPASS_PIXEL_SHADER_VERSION 796
+#define BASEPASS_PIXEL_SHADER_LICENSEE_VERSION 97
+#else
+#define BASEPASS_VERTEX_SHADER_VERSION 0
+#define BASEPASS_VERTEX_SHADER_LICENSEE_VERSION 0
+#define BASEPASS_PIXEL_SHADER_VERSION VER_FIXED_TRANSLUCENT_SHADOW_FILTERING
+#define BASEPASS_PIXEL_SHADER_LICENSEE_VERSION 0
+#endif
+
 #if WITH_D3D11_TESSELLATION
 // Typedef is necessary because the C preprocessor thinks the comma in the template parameter list is a comma in the macro parameter list.
 // BasePass Vertex Shader needs to include hull and domain shaders for tessellation, these only compile for D3D11
 #define IMPLEMENT_BASEPASS_VERTEXSHADER_TYPE(LightMapPolicyType,FogDensityPolicyType) \
 	typedef TVertexShaderTessellationPermutation<TBasePassVertexShader<LightMapPolicyType,FogDensityPolicyType>,0> TBasePassVertexShader##LightMapPolicyType##FogDensityPolicyType##TP_NoTessellationFALSEFALSE; \
-	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TBasePassVertexShader##LightMapPolicyType##FogDensityPolicyType##TP_NoTessellationFALSEFALSE,TEXT("BasePassVertexShader"),TEXT("Main"),SF_Vertex,0,0); \
+	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TBasePassVertexShader##LightMapPolicyType##FogDensityPolicyType##TP_NoTessellationFALSEFALSE,TEXT("BasePassVertexShader"),TEXT("Main"),SF_Vertex,BASEPASS_VERTEX_SHADER_VERSION,BASEPASS_VERTEX_SHADER_LICENSEE_VERSION); \
 	typedef THullShaderTessellationPermutation<TBasePassHullShader<LightMapPolicyType,FogDensityPolicyType>,0> TBasePassHullShader##LightMapPolicyType##FogDensityPolicyType##TP_NoTessellationFALSEFALSE; \
-	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TBasePassHullShader##LightMapPolicyType##FogDensityPolicyType##TP_NoTessellationFALSEFALSE,TEXT("BasePassTessellationShaders"),TEXT("MainHull"),SF_Hull,0,0); \
+	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TBasePassHullShader##LightMapPolicyType##FogDensityPolicyType##TP_NoTessellationFALSEFALSE,TEXT("BasePassTessellationShaders"),TEXT("MainHull"),SF_Hull,BASEPASS_VERTEX_SHADER_VERSION,BASEPASS_VERTEX_SHADER_LICENSEE_VERSION); \
 	typedef TDomainShaderTessellationPermutation<TBasePassDomainShader<LightMapPolicyType,FogDensityPolicyType>,0> TBasePassDomainShader##LightMapPolicyType##FogDensityPolicyType##TP_NoTessellationFALSEFALSE; \
-	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TBasePassDomainShader##LightMapPolicyType##FogDensityPolicyType##TP_NoTessellationFALSEFALSE,TEXT("BasePassTessellationShaders"),TEXT("MainDomain"),SF_Domain,0,0);
+	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TBasePassDomainShader##LightMapPolicyType##FogDensityPolicyType##TP_NoTessellationFALSEFALSE,TEXT("BasePassTessellationShaders"),TEXT("MainDomain"),SF_Domain,BASEPASS_VERTEX_SHADER_VERSION,BASEPASS_VERTEX_SHADER_LICENSEE_VERSION);
 #else
 
 #define IMPLEMENT_BASEPASS_VERTEXSHADER_TYPE(LightMapPolicyType,FogDensityPolicyType) \
 	typedef TVertexShaderTessellationPermutation<TBasePassVertexShader<LightMapPolicyType,FogDensityPolicyType>,0> TBasePassVertexShader##LightMapPolicyType##FogDensityPolicyType##TP_NoTessellationFALSEFALSE; \
-	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TBasePassVertexShader##LightMapPolicyType##FogDensityPolicyType##TP_NoTessellationFALSEFALSE,TEXT("BasePassVertexShader"),TEXT("Main"),SF_Vertex,0,0);
+	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TBasePassVertexShader##LightMapPolicyType##FogDensityPolicyType##TP_NoTessellationFALSEFALSE,TEXT("BasePassVertexShader"),TEXT("Main"),SF_Vertex,BASEPASS_VERTEX_SHADER_VERSION,BASEPASS_VERTEX_SHADER_LICENSEE_VERSION);
 #endif
 
 #define IMPLEMENT_BASEPASS_PIXELSHADER_TYPE(LightMapPolicyType,bEnableSkyLight,SkyLightShaderName) \
 	typedef TBasePassPixelShader<LightMapPolicyType,bEnableSkyLight> TBasePassPixelShader##LightMapPolicyType##SkyLightShaderName; \
-	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TBasePassPixelShader##LightMapPolicyType##SkyLightShaderName,TEXT("BasePassPixelShader"),TEXT("Main"),SF_Pixel,VER_FIXED_TRANSLUCENT_SHADOW_FILTERING,0);
+	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TBasePassPixelShader##LightMapPolicyType##SkyLightShaderName,TEXT("BasePassPixelShader"),TEXT("Main"),SF_Pixel,BASEPASS_PIXEL_SHADER_VERSION,BASEPASS_PIXEL_SHADER_LICENSEE_VERSION);
 
 #if BATMAN
 #if WITH_D3D11_TESSELLATION
 #define IMPLEMENT_BM2_APLUS_BASEPASS_VERTEXSHADER_TYPE(FogDensityPolicyType) \
 	typedef TVertexShaderTessellationPermutation<TBasePassVertexShader<FAPlus3DLightLightMapPolicy,FogDensityPolicyType>,0> TBasePassVertexShaderFAPlus3DLightLightMapPolicy##FogDensityPolicyType##TP_NoTessellationFALSEFALSE; \
-	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TBasePassVertexShaderFAPlus3DLightLightMapPolicy##FogDensityPolicyType##TP_NoTessellationFALSEFALSE,TEXT("BasePassVertexShader"),TEXT("Main"),SF_Vertex,796,93); \
+	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TBasePassVertexShaderFAPlus3DLightLightMapPolicy##FogDensityPolicyType##TP_NoTessellationFALSEFALSE,TEXT("BasePassVertexShader"),TEXT("Main"),SF_Vertex,BASEPASS_VERTEX_SHADER_VERSION,BASEPASS_VERTEX_SHADER_LICENSEE_VERSION); \
 	typedef THullShaderTessellationPermutation<TBasePassHullShader<FAPlus3DLightLightMapPolicy,FogDensityPolicyType>,0> TBasePassHullShaderFAPlus3DLightLightMapPolicy##FogDensityPolicyType##TP_NoTessellationFALSEFALSE; \
-	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TBasePassHullShaderFAPlus3DLightLightMapPolicy##FogDensityPolicyType##TP_NoTessellationFALSEFALSE,TEXT("BasePassTessellationShaders"),TEXT("MainHull"),SF_Hull,796,93); \
+	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TBasePassHullShaderFAPlus3DLightLightMapPolicy##FogDensityPolicyType##TP_NoTessellationFALSEFALSE,TEXT("BasePassTessellationShaders"),TEXT("MainHull"),SF_Hull,BASEPASS_VERTEX_SHADER_VERSION,BASEPASS_VERTEX_SHADER_LICENSEE_VERSION); \
 	typedef TDomainShaderTessellationPermutation<TBasePassDomainShader<FAPlus3DLightLightMapPolicy,FogDensityPolicyType>,0> TBasePassDomainShaderFAPlus3DLightLightMapPolicy##FogDensityPolicyType##TP_NoTessellationFALSEFALSE; \
-	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TBasePassDomainShaderFAPlus3DLightLightMapPolicy##FogDensityPolicyType##TP_NoTessellationFALSEFALSE,TEXT("BasePassTessellationShaders"),TEXT("MainDomain"),SF_Domain,796,93);
+	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TBasePassDomainShaderFAPlus3DLightLightMapPolicy##FogDensityPolicyType##TP_NoTessellationFALSEFALSE,TEXT("BasePassTessellationShaders"),TEXT("MainDomain"),SF_Domain,BASEPASS_VERTEX_SHADER_VERSION,BASEPASS_VERTEX_SHADER_LICENSEE_VERSION);
 #else
 #define IMPLEMENT_BM2_APLUS_BASEPASS_VERTEXSHADER_TYPE(FogDensityPolicyType) \
 	typedef TVertexShaderTessellationPermutation<TBasePassVertexShader<FAPlus3DLightLightMapPolicy,FogDensityPolicyType>,0> TBasePassVertexShaderFAPlus3DLightLightMapPolicy##FogDensityPolicyType##TP_NoTessellationFALSEFALSE; \
-	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TBasePassVertexShaderFAPlus3DLightLightMapPolicy##FogDensityPolicyType##TP_NoTessellationFALSEFALSE,TEXT("BasePassVertexShader"),TEXT("Main"),SF_Vertex,796,93);
+	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TBasePassVertexShaderFAPlus3DLightLightMapPolicy##FogDensityPolicyType##TP_NoTessellationFALSEFALSE,TEXT("BasePassVertexShader"),TEXT("Main"),SF_Vertex,BASEPASS_VERTEX_SHADER_VERSION,BASEPASS_VERTEX_SHADER_LICENSEE_VERSION);
 #endif
 
 #define IMPLEMENT_BM2_APLUS_BASEPASS_SHADER_TYPE() \
 	IMPLEMENT_BM2_APLUS_BASEPASS_VERTEXSHADER_TYPE(FNoDensityPolicy); \
-	IMPLEMENT_BM2_APLUS_BASEPASS_VERTEXSHADER_TYPE(FConstantDensityPolicy); \
-	IMPLEMENT_BM2_APLUS_BASEPASS_VERTEXSHADER_TYPE(FLinearHalfspaceDensityPolicy); \
 	IMPLEMENT_BM2_APLUS_BASEPASS_VERTEXSHADER_TYPE(FSphereDensityPolicy); \
-	IMPLEMENT_BM2_APLUS_BASEPASS_VERTEXSHADER_TYPE(FConeDensityPolicy); \
+	IMPLEMENT_BM2_APLUS_BASEPASS_VERTEXSHADER_TYPE(FRockAtmosDensityPolicy); \
 	typedef TBasePassPixelShader<FAPlus3DLightLightMapPolicy,FALSE> TBasePassPixelShaderFAPlus3DLightLightMapPolicyNoSkyLight; \
-	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TBasePassPixelShaderFAPlus3DLightLightMapPolicyNoSkyLight,TEXT("BasePassPixelShader"),TEXT("Main"),SF_Pixel,796,97); \
+	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TBasePassPixelShaderFAPlus3DLightLightMapPolicyNoSkyLight,TEXT("BasePassPixelShader"),TEXT("Main"),SF_Pixel,BASEPASS_PIXEL_SHADER_VERSION,BASEPASS_PIXEL_SHADER_LICENSEE_VERSION); \
 	typedef TBasePassPixelShader<FAPlus3DLightLightMapPolicy,TRUE> TBasePassPixelShaderFAPlus3DLightLightMapPolicySkyLight; \
-	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TBasePassPixelShaderFAPlus3DLightLightMapPolicySkyLight,TEXT("BasePassPixelShader"),TEXT("Main"),SF_Pixel,796,102);
+	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TBasePassPixelShaderFAPlus3DLightLightMapPolicySkyLight,TEXT("BasePassPixelShader"),TEXT("Main"),SF_Pixel,BASEPASS_PIXEL_SHADER_VERSION,BASEPASS_PIXEL_SHADER_LICENSEE_VERSION);
 #endif
 
 // Implement a vertex shader for each supported combination of affecting fog primitives
 // These are for forward per-vertex fogging of translucency, opaque materials will always use FNoDensityPolicy
+#if BATMAN
+#define IMPLEMENT_BASEPASS_LIGHTMAPPED_VERTEXONLY_TYPE(LightMapPolicyType) \
+	IMPLEMENT_BASEPASS_VERTEXSHADER_TYPE(LightMapPolicyType,FNoDensityPolicy); \
+	IMPLEMENT_BASEPASS_VERTEXSHADER_TYPE(LightMapPolicyType,FSphereDensityPolicy); \
+	IMPLEMENT_BASEPASS_VERTEXSHADER_TYPE(LightMapPolicyType,FRockAtmosDensityPolicy);
+#else
 #define IMPLEMENT_BASEPASS_LIGHTMAPPED_VERTEXONLY_TYPE(LightMapPolicyType) \
 	IMPLEMENT_BASEPASS_VERTEXSHADER_TYPE(LightMapPolicyType,FNoDensityPolicy); \
 	IMPLEMENT_BASEPASS_VERTEXSHADER_TYPE(LightMapPolicyType,FConstantDensityPolicy); \
 	IMPLEMENT_BASEPASS_VERTEXSHADER_TYPE(LightMapPolicyType,FLinearHalfspaceDensityPolicy); \
 	IMPLEMENT_BASEPASS_VERTEXSHADER_TYPE(LightMapPolicyType,FSphereDensityPolicy); \
 	IMPLEMENT_BASEPASS_VERTEXSHADER_TYPE(LightMapPolicyType,FConeDensityPolicy);
+#endif
 
 // Implement a pixel shader type for skylights and one without, and one vertex shader that will be shared between them
 #define IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE(LightMapPolicyType) \
@@ -251,8 +268,8 @@ public:
 			StaticMesh,
 			typename TBasePassDrawingPolicy<LightMapPolicyType,FNoDensityPolicy>::ElementDataType(LightMapElementData,FNoDensityPolicy::ElementDataType()),
 			TBasePassDrawingPolicy<LightMapPolicyType,FNoDensityPolicy>(
-			StaticMesh->VertexFactory,
-			StaticMesh->MaterialRenderProxy,
+			Parameters.Mesh.VertexFactory,
+			Parameters.Mesh.MaterialRenderProxy,
 			LightMapPolicy,
 			Parameters.BlendMode,
 			Parameters.LightingModel != MLM_Unlit && (StaticMesh->PrimitiveSceneInfo->HasDynamicSkyLighting() || bUsePreviewSkyLight)

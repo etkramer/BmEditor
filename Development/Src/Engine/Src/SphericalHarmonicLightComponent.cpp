@@ -56,8 +56,12 @@ public:
 
 	static UBOOL ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
 	{
+#if BATMAN
+		return FALSE;
+#else
 		// Don't compile for terrain materials as it will never be used for rendering
 		return !Material->IsTerrainMaterial();
+#endif
 	}
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment) {}
 };
