@@ -87,6 +87,10 @@ var		bool					bIsParented;
 /** When enabled, this group will be selected in the interp editor. */
 var		transient	bool		bIsSelected;
 
+var()	bool					CinematicProxy_DisableChangePoseOnFinish;
+var()	float					CinematicProxy_BlendInDuration;
+var()	float					CinematicProxy_BlendOutDuration;
+
 defaultproperties
 {
 	GroupName="InterpGroup"

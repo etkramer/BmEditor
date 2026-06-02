@@ -198,11 +198,11 @@ var editoronly string ObjName;
  */
 var editoronly string ObjCategory;
 
-/** List of games that do not want to display this object */
-var editoronly array<string> ObjRemoveInProject;
-
 /** Color used to draw the object */
 var editoronly color ObjColor;
+
+/** Color used to draw the object title bar */
+var editoronly color ObjTitleColor;
 
 /** User editable text comment */
 var() string ObjComment<MultilineWithMaxRows=5>;
@@ -216,14 +216,14 @@ var		bool					bDrawFirst;
 /** Should this object be drawn in the last pass? */
 var		bool					bDrawLast;
 
-/** Cached drawing dimensions */
-var		int						DrawWidth, DrawHeight;
-
 /** Should this object display ObjComment when activated? */
 var()	bool					bOutputObjCommentToScreen;
 
 /** Should we suppress the 'auto' comment text - values of properties flagged with the 'autocomment' metadata string. */
 var()	bool					bSuppressAutoComment;
+
+/** Cached drawing dimensions */
+var		int						DrawWidth, DrawHeight;
 
 /** Writes out the specified text to a dedicated scripting log file.
  * @param LogText the text to print

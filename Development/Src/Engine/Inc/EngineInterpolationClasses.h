@@ -180,7 +180,9 @@ public:
     BITFIELD bIsFolder:1;
     BITFIELD bIsParented:1;
     BITFIELD bIsSelected:1;
-    SCRIPT_ALIGN;
+    BITFIELD CinematicProxy_DisableChangePoseOnFinish:1;
+    FLOAT CinematicProxy_BlendInDuration;
+    FLOAT CinematicProxy_BlendOutDuration;
     //## END PROPS InterpGroup
 
     DECLARE_CLASS(UInterpGroup,UObject,0,Engine)
@@ -2412,7 +2414,7 @@ VERIFY_CLASS_SIZE_NODIE(UInterpFilter_Classes)
 VERIFY_CLASS_OFFSET_NODIE(UInterpFilter_Custom,InterpFilter_Custom,GroupsToInclude)
 VERIFY_CLASS_SIZE_NODIE(UInterpFilter_Custom)
 VERIFY_CLASS_OFFSET_NODIE(UInterpGroup,InterpGroup,InterpTracks)
-VERIFY_CLASS_OFFSET_NODIE(UInterpGroup,InterpGroup,GroupAnimSets)
+VERIFY_CLASS_OFFSET_NODIE(UInterpGroup,InterpGroup,CinematicProxy_BlendOutDuration)
 VERIFY_CLASS_SIZE_NODIE(UInterpGroup)
 VERIFY_CLASS_OFFSET_NODIE(UInterpGroupAI,InterpGroupAI,PreviewPawnClass)
 VERIFY_CLASS_OFFSET_NODIE(UInterpGroupAI,InterpGroupAI,StageMarkGroup)

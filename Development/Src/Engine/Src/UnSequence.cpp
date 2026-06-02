@@ -1275,6 +1275,7 @@ void USequenceOp::UpdateObject()
 void USequenceOp::InitializeLinkedVariableValues()
 {
 	// if this event has sequence variables attached to the "Player Index" variable links, copy the value of PlayerIndex to those variables now
+	const INT PlayerIndex = INDEX_NONE;
 	TArray<INT*> IntVars;
 	GetIntVars(IntVars, TEXT("Player Index"));
 	for ( INT Idx = 0; Idx < IntVars.Num(); Idx++ )
@@ -1853,20 +1854,13 @@ void USequenceOp::GetLinkedObjectsInternal(TArray<USequenceObject*>& out_Objects
 }
 
 /**
- * Notification that an input link on this sequence op has been given impulse by another op.  Propagates the value of
- * PlayerIndex from the ActivatorOp to this one.
+ * Notification that an input link on this sequence op has been given impulse by another op.
  *
  * @param	ActivatorOp		the sequence op that applied impulse to this op's input link
  * @param	InputLinkIndex	the index [into this op's InputLinks array] for the input link that was given impulse
  */
 void USequenceOp::OnReceivedImpulse( USequenceOp* ActivatorOp, INT InputLinkIndex )
 {
-	if ( ActivatorOp != NULL )
-	{
-		// propagate the PlayerIndex that generated this sequence execution
-		PlayerIndex = ActivatorOp->PlayerIndex;
-		GamepadID = ActivatorOp->GamepadID;
-	}
 }
 
 

@@ -3741,14 +3741,14 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 			LoadClass->GetName() == "Function" ||
 
 			// Lots of new classes that need offsets matched up (BmGame.upk)
-			LoadClass->GetName() == "RGameInfo" ||
-			LoadClass->GetName() == "RPawn" ||
+			// LoadClass->GetName() == "RGameInfo" ||
+			// LoadClass->GetName() == "RPawn" ||
 
 			LoadClass->GetName() == "PhysicsAsset" ||
 			LoadClass->GetName() == "RB_BodySetup" ||
 
 			LoadClass->GetName() == "Emitter" ||
-			LoadClass->GetName() == "Sequence" ||
+			// LoadClass->GetName() == "Sequence" ||
 			LoadClass->GetName() == "ParticleSystem" ||
 			LoadClass->GetName() == "PhysicalMaterial" ||
 

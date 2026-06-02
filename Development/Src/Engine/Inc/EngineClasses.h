@@ -1019,6 +1019,112 @@ enum EK2ConnectorType
     op(K2CT_Object) \
     op(K2CT_Exec) \
     op(K2CT_Unsupported) 
+enum ENavMeshGroup
+{
+    NavMeshGroup_All        =0,
+    NavMeshGroup_1          =1,
+    NavMeshGroup_1a         =2,
+    NavMeshGroup_1b         =3,
+    NavMeshGroup_1c         =4,
+    NavMeshGroup_2          =5,
+    NavMeshGroup_2a         =6,
+    NavMeshGroup_2b         =7,
+    NavMeshGroup_2c         =8,
+    NavMeshGroup_3          =9,
+    NavMeshGroup_3a         =10,
+    NavMeshGroup_3b         =11,
+    NavMeshGroup_3c         =12,
+    NavMeshGroup_4          =13,
+    NavMeshGroup_4a         =14,
+    NavMeshGroup_4b         =15,
+    NavMeshGroup_4c         =16,
+    NavMeshGroup_5          =17,
+    NavMeshGroup_5a         =18,
+    NavMeshGroup_5b         =19,
+    NavMeshGroup_5c         =20,
+    NavMeshGroup_6          =21,
+    NavMeshGroup_6a         =22,
+    NavMeshGroup_6b         =23,
+    NavMeshGroup_6c         =24,
+    NavMeshGroup_7          =25,
+    NavMeshGroup_7a         =26,
+    NavMeshGroup_7b         =27,
+    NavMeshGroup_7c         =28,
+    NavMeshGroup_8          =29,
+    NavMeshGroup_8a         =30,
+    NavMeshGroup_8b         =31,
+    NavMeshGroup_8c         =32,
+    NavMeshGroup_9          =33,
+    NavMeshGroup            =34,
+    NavMeshGroup_MAX        =35,
+    ENavMeshGroup_MAX       =36,
+};
+#define FOREACH_ENUM_ENAVMESHGROUP(op) \
+    op(NavMeshGroup_All) \
+    op(NavMeshGroup_1) \
+    op(NavMeshGroup_1a) \
+    op(NavMeshGroup_1b) \
+    op(NavMeshGroup_1c) \
+    op(NavMeshGroup_2) \
+    op(NavMeshGroup_2a) \
+    op(NavMeshGroup_2b) \
+    op(NavMeshGroup_2c) \
+    op(NavMeshGroup_3) \
+    op(NavMeshGroup_3a) \
+    op(NavMeshGroup_3b) \
+    op(NavMeshGroup_3c) \
+    op(NavMeshGroup_4) \
+    op(NavMeshGroup_4a) \
+    op(NavMeshGroup_4b) \
+    op(NavMeshGroup_4c) \
+    op(NavMeshGroup_5) \
+    op(NavMeshGroup_5a) \
+    op(NavMeshGroup_5b) \
+    op(NavMeshGroup_5c) \
+    op(NavMeshGroup_6) \
+    op(NavMeshGroup_6a) \
+    op(NavMeshGroup_6b) \
+    op(NavMeshGroup_6c) \
+    op(NavMeshGroup_7) \
+    op(NavMeshGroup_7a) \
+    op(NavMeshGroup_7b) \
+    op(NavMeshGroup_7c) \
+    op(NavMeshGroup_8) \
+    op(NavMeshGroup_8a) \
+    op(NavMeshGroup_8b) \
+    op(NavMeshGroup_8c) \
+    op(NavMeshGroup_9) \
+    op(NavMeshGroup) \
+    op(NavMeshGroup_MAX) 
+enum ELightingGroup
+{
+    LightingGroup_All       =0,
+    LightingGroup_1         =1,
+    LightingGroup_2         =2,
+    LightingGroup_3         =3,
+    LightingGroup_4         =4,
+    LightingGroup_5         =5,
+    LightingGroup_6         =6,
+    LightingGroup_7         =7,
+    LightingGroup_8         =8,
+    LightingGroup_9         =9,
+    LightingGroup           =10,
+    LightingGroup_MAX       =11,
+    ELightingGroup_MAX      =12,
+};
+#define FOREACH_ENUM_ELIGHTINGGROUP(op) \
+    op(LightingGroup_All) \
+    op(LightingGroup_1) \
+    op(LightingGroup_2) \
+    op(LightingGroup_3) \
+    op(LightingGroup_4) \
+    op(LightingGroup_5) \
+    op(LightingGroup_6) \
+    op(LightingGroup_7) \
+    op(LightingGroup_8) \
+    op(LightingGroup_9) \
+    op(LightingGroup) \
+    op(LightingGroup_MAX) 
 enum EOnlineGameSearchSortType
 {
     OGSSO_Ascending         =0,
@@ -17132,26 +17238,42 @@ class ULevelStreaming : public UObject
 public:
     //## BEGIN PROPS LevelStreaming
     FName PackageName;
+    FStringNoInit PackageNameAsString;
     class ULevel* LoadedLevel;
     FVector Offset;
     FVector OldOffset;
     BITFIELD bIsVisible:1;
+    BITFIELD bIsLevelHidden:1;
     BITFIELD bHasLoadRequestPending:1;
     BITFIELD bHasUnloadRequestPending:1;
     BITFIELD bShouldBeVisibleInEditor:1;
     BITFIELD bBoundingBoxVisible:1;
     BITFIELD bLocked:1;
     BITFIELD bIsFullyStatic:1;
+    BITFIELD bTransferToNextPersistentMap:1;
     BITFIELD bShouldBeLoaded:1;
     BITFIELD bShouldBeVisible:1;
+    BITFIELD bShouldBeLevelHidden:1;
     BITFIELD bShouldBlockOnLoad:1;
+    BITFIELD bShouldBeVisibleInLevelBrowser:1;
+    BITFIELD bExpandedInLevelBrowser:1;
+    BITFIELD bIsParent:1;
+    BITFIELD bIsChild:1;
     BITFIELD bDrawOnLevelStatusMap:1;
     BITFIELD bIsRequestingUnloadAndRemoval:1;
+    BITFIELD bExcludeFromPathBuilding:1;
+    BITFIELD bExcludeFromPathBuilding_Old_bShouldBeVisibleInEditor:1;
+    BITFIELD ForceShadowVolumes:1;
+    BITFIELD bHighPriorityLoadRequest:1;
+    BITFIELD bIsChapterLevel:1;
     SCRIPT_ALIGN;
     FColor DrawColor;
     TArrayNoInit<class ALevelStreamingVolume*> EditorStreamingVolumes;
     FLOAT MinTimeBetweenVolumeUnloadRequests;
     FLOAT LastVolumeUnloadRequestTime;
+    FStringNoInit PersonResponsible;
+    BYTE LightingGroup;
+    BYTE NavMeshGroup;
     TArrayNoInit<FString> Keywords;
     class ALevelGridVolume* EditorGridVolume;
     INT GridPosition[3];

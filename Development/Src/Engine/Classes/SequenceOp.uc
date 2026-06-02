@@ -154,6 +154,36 @@ var bool bActive;
 /** Does this op use latent execution (can it stay active multiple updates?) */
 var const bool bLatentExecution;
 
+/** Whether input link descriptions are stripped in cooked packages. */
+var bool bStripInputLinkDesc;
+
+/** Whether output link descriptions are stripped in cooked packages. */
+var bool bStripOutputLinkDesc;
+
+/** indicates whether all output links should be activated when this op has finished executing */
+var				bool			bAutoActivateOutputLinks;
+
+/** Whether empty variable links should be kept in cooked packages. */
+var bool bDontStripEmptyVarLinks;
+
+/** True if there is currently a moving variable connector */
+var transient editoronly bool bHaveMovingVarConnector;
+
+/** True if there is currently moving input connector */
+var transient editoronly bool bHaveMovingInputConnector;
+
+/** True if there is currently moving output connector */
+var transient editoronly bool bHaveMovingOutputConnector;
+
+/** True if there is a pending variable connector position recalculation (I.E when a connector has just moved, or a connector as added or deleted */
+var transient editoronly bool bPendingVarConnectorRecalc;
+
+/** True if there is a pending input connector position recalculation (I.E when a connector has just moved, or a connector as added or deleted */
+var transient editoronly bool bPendingInputConnectorRecalc;
+
+/** True if there is a pending output connector position recalculation (I.E when a connector has just moved, or a connector as added or deleted */
+var transient editoronly bool bPendingOutputConnectorRecalc;
+
 /**
  * Represents an input link for a SequenceOp, that is
  * connected via another SequenceOp's output link.
@@ -164,28 +194,28 @@ struct native SeqOpInputLink
 	// @fixme - localization
 	var string LinkDesc;
 
+	/** Number of activations received for this input when bHasImpulse == TRUE */
+	var int QueuedActivations;
+
+	/** Linked action that creates this input, for Sequences */
+	var SequenceOp LinkedOp;
+
+	var float ActivateDelay;
+
+	// Temporary for drawing! Will think of a better way to do this! - James
+	var int DrawY;
+	var bool bHidden;
+
 	/**
 	 * Indicates whether this input is ready to provide data to this sequence operation.
 	 */
 	var bool bHasImpulse;
-
-	/** Number of activations received for this input when bHasImpulse == TRUE */
-	var int QueuedActivations;
 
 	/** Is this link disabled for debugging/testing? */
 	var bool bDisabled;
 
 	/** Is this link disabled for PIE? */
 	var bool bDisabledPIE;
-
-	/** Linked action that creates this input, for Sequences */
-	var SequenceOp LinkedOp;
-
-	// Temporary for drawing! Will think of a better way to do this! - James
-	var int DrawY;
-	var bool bHidden;
-
-	var float ActivateDelay;
 
 	/** True if the connector is moving */
 	var transient editoronly bool bMoving;
@@ -276,6 +306,16 @@ struct native SeqOpOutputLink
 	// @fixme - localization
 	var string					LinkDesc;
 
+	/** Linked op that creates this output, for Sequences */
+	var SequenceOp				LinkedOp;
+
+	/** Delay applied before activating this output */
+	var float					ActivateDelay;
+
+	// Temporary for drawing! Will think of a better way to do this! - James
+	var int						DrawY;
+	var bool					bHidden;
+
 	/**
 	 * Indicates whether this link is pending activation.  If true, the SequenceOps attached to this
 	 * link will be activated the next time the sequence is ticked
@@ -287,16 +327,6 @@ struct native SeqOpOutputLink
 
 	/** Is this link disabled for PIE? */
 	var bool					bDisabledPIE;
-
-	/** Linked op that creates this output, for Sequences */
-	var SequenceOp				LinkedOp;
-
-	/** Delay applied before activating this output */
-	var float					ActivateDelay;
-
-	// Temporary for drawing! Will think of a better way to do this! - James
-	var int						DrawY;
-	var bool					bHidden;
 
 	/** True if the connector is moving */
 	var transient editoronly bool		bMoving;
@@ -384,6 +414,18 @@ struct native SeqVarLink
 	/** Name of the property this variable is associated with */
 	var Name	PropertyName;
 
+	/** Minimum number of variables that should be attached to this connector. */
+	var int		MinVars;
+
+	/** Maximum number of variables that should be attached to this connector. */
+	var int		MaxVars;
+
+	/** For drawing. */
+	var int		DrawX;
+
+	/** Cached property ref */
+	var const	transient	Property	CachedProperty;
+
 	/** Is this variable written to by this op? */
 	var bool	bWriteable;
 
@@ -401,17 +443,8 @@ struct native SeqVarLink
 	/** Should draw this connector in Kismet. */
 	var bool	bHidden;
 
-	/** Minimum number of variables that should be attached to this connector. */
-	var int		MinVars;
-
-	/** Maximum number of variables that should be attached to this connector. */
-	var int		MaxVars;
-
-	/** For drawing. */
-	var int		DrawX;
-
-	/** Cached property ref */
-	var const	transient	Property	CachedProperty;
+	/** Whether this link must be connected. */
+	var bool	bMustBeLinked;
 
 	/** Does this link support any type of property? */
 	var bool	bAllowAnyType;
@@ -503,42 +536,11 @@ structdefaultproperties
 };
 var array<SeqEventLink>			EventLinks;
 
-/**
- * The index [into the Engine.GamePlayers array] for the player that this action is associated with.  Currently only used in UI sequences.
- */
-var	transient	noimport	int		PlayerIndex;
-
-/**
- * The ControllerId for the player that generated this action; generally only relevant in UI sequences.
- */
-var	transient	noimport	byte	GamepadID;
-
 /** Number of times that this Op has had Activate called on it. Used for finding often-hit ops and optimising levels. */
 var transient int				ActivateCount;
 
-/** indicates whether all output links should be activated when this op has finished executing */
-var				bool			bAutoActivateOutputLinks;
-
 /** used when searching for objects to avoid unnecessary recursion */
 var transient duplicatetransient const protected{protected} int SearchTag;
-
-/** True if there is currently a moving variable connector */
-var transient editoronly bool bHaveMovingVarConnector;
-
-/** True if there is currently moving input connector */
-var transient editoronly bool bHaveMovingInputConnector;
-
-/** True if there is currently moving output connector */
-var transient editoronly bool bHaveMovingOutputConnector;
-
-/** True if there is a pending variable connector position recalculation (I.E when a connector has just moved, or a connector as added or deleted */
-var transient editoronly bool bPendingVarConnectorRecalc;
-
-/** True if there is a pending input connector position recalculation (I.E when a connector has just moved, or a connector as added or deleted */
-var transient editoronly bool bPendingInputConnectorRecalc;
-
-/** True if there is a pending output connector position recalculation (I.E when a connector has just moved, or a connector as added or deleted */
-var transient editoronly bool bPendingOutputConnectorRecalc;
 
 /**
  * Determines whether this sequence op is linked to any other sequence ops through its variable, output, event or (optionally)
@@ -672,9 +674,6 @@ defaultproperties
 	OutputLinks(0)=(LinkDesc="Out")
 
 	bAutoActivateOutputLinks=true
-
-	PlayerIndex=-1
-	GamepadID=255
 
 	bHaveMovingVarConnector = false;
 	bHaveMovingInputConnector = false;

@@ -101,8 +101,8 @@ public:
     INT ObjPosY;
     FStringNoInit ObjName;
     FStringNoInit ObjCategory;
-    TArrayNoInit<FString> ObjRemoveInProject;
     FColor ObjColor;
+    FColor ObjTitleColor;
     FStringNoInit ObjComment;
     BITFIELD bDeletable:1;
     BITFIELD bDrawFirst:1;
@@ -357,14 +357,14 @@ public:
 struct FSeqOpInputLink
 {
     FStringNoInit LinkDesc;
-    BITFIELD bHasImpulse:1;
     INT QueuedActivations;
-    BITFIELD bDisabled:1;
-    BITFIELD bDisabledPIE:1;
     class USequenceOp* LinkedOp;
+    FLOAT ActivateDelay;
     INT DrawY;
     BITFIELD bHidden:1;
-    FLOAT ActivateDelay;
+    BITFIELD bHasImpulse:1;
+    BITFIELD bDisabled:1;
+    BITFIELD bDisabledPIE:1;
     BITFIELD bMoving:1;
     BITFIELD bClampedMax:1;
     BITFIELD bClampedMin:1;
@@ -426,13 +426,13 @@ struct FSeqOpOutputLink
 {
     TArrayNoInit<struct FSeqOpOutputInputLink> Links;
     FStringNoInit LinkDesc;
-    BITFIELD bHasImpulse:1;
-    BITFIELD bDisabled:1;
-    BITFIELD bDisabledPIE:1;
     class USequenceOp* LinkedOp;
     FLOAT ActivateDelay;
     INT DrawY;
     BITFIELD bHidden:1;
+    BITFIELD bHasImpulse:1;
+    BITFIELD bDisabled:1;
+    BITFIELD bDisabledPIE:1;
     BITFIELD bMoving:1;
     BITFIELD bClampedMax:1;
     BITFIELD bClampedMin:1;
@@ -483,14 +483,15 @@ struct FSeqVarLink
     FStringNoInit LinkDesc;
     FName LinkVar;
     FName PropertyName;
-    BITFIELD bWriteable:1;
-    BITFIELD bSequenceNeverReadsOnlyWritesToThisVar:1;
-    BITFIELD bModifiesLinkedObject:1;
-    BITFIELD bHidden:1;
     INT MinVars;
     INT MaxVars;
     INT DrawX;
     class UProperty* CachedProperty;
+    BITFIELD bWriteable:1;
+    BITFIELD bSequenceNeverReadsOnlyWritesToThisVar:1;
+    BITFIELD bModifiesLinkedObject:1;
+    BITFIELD bHidden:1;
+    BITFIELD bMustBeLinked:1;
     BITFIELD bAllowAnyType:1;
     BITFIELD bMoving:1;
     BITFIELD bClampedMax:1;
@@ -562,7 +563,10 @@ public:
     //## BEGIN PROPS SequenceOp
     BITFIELD bActive:1;
     BITFIELD bLatentExecution:1;
+    BITFIELD bStripInputLinkDesc:1;
+    BITFIELD bStripOutputLinkDesc:1;
     BITFIELD bAutoActivateOutputLinks:1;
+    BITFIELD bDontStripEmptyVarLinks:1;
     BITFIELD bHaveMovingVarConnector:1;
     BITFIELD bHaveMovingInputConnector:1;
     BITFIELD bHaveMovingOutputConnector:1;
@@ -573,8 +577,6 @@ public:
     TArrayNoInit<struct FSeqOpOutputLink> OutputLinks;
     TArrayNoInit<struct FSeqVarLink> VariableLinks;
     TArrayNoInit<struct FSeqEventLink> EventLinks;
-    INT PlayerIndex;
-    BYTE GamepadID;
     INT ActivateCount;
 protected:
     INT SearchTag;
