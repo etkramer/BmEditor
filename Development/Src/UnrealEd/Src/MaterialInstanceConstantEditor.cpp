@@ -109,6 +109,18 @@ void UMaterialEditorInstanceConstant::RegenerateArrays()
 				}
 			}
 		}
+		for(INT ParameterIdx=0; ParameterIdx<SourceInstance->VectorParameterValues.Num(); ParameterIdx++)
+		{
+			FVectorParameterValue& SourceParam = SourceInstance->VectorParameterValues(ParameterIdx);
+			if(!ParameterNames.ContainsItem(SourceParam.ParameterName))
+			{
+				FEditorVectorParameterValue& ParameterValue = VectorParameterValues(VectorParameterValues.AddZeroed());
+				ParameterValue.bOverride = TRUE;
+				ParameterValue.ParameterName = SourceParam.ParameterName;
+				ParameterValue.ExpressionId = SourceParam.ExpressionGUID;
+				ParameterValue.ParameterValue = SourceParam.ParameterValue;
+			}
+		}
 
 		// Scalar Parameters.
 		ParentMaterial->GetAllScalarParameterNames(ParameterNames, Guids);
@@ -141,6 +153,18 @@ void UMaterialEditorInstanceConstant::RegenerateArrays()
 				}
 			}
 		}
+		for(INT ParameterIdx=0; ParameterIdx<SourceInstance->ScalarParameterValues.Num(); ParameterIdx++)
+		{
+			FScalarParameterValue& SourceParam = SourceInstance->ScalarParameterValues(ParameterIdx);
+			if(!ParameterNames.ContainsItem(SourceParam.ParameterName))
+			{
+				FEditorScalarParameterValue& ParameterValue = ScalarParameterValues(ScalarParameterValues.AddZeroed());
+				ParameterValue.bOverride = TRUE;
+				ParameterValue.ParameterName = SourceParam.ParameterName;
+				ParameterValue.ExpressionId = SourceParam.ExpressionGUID;
+				ParameterValue.ParameterValue = SourceParam.ParameterValue;
+			}
+		}
 
 		// Texture Parameters.
 		ParentMaterial->GetAllTextureParameterNames(ParameterNames, Guids);
@@ -171,6 +195,18 @@ void UMaterialEditorInstanceConstant::RegenerateArrays()
 					ParameterValue.bOverride = TRUE;
 					ParameterValue.ParameterValue = SourceParam.ParameterValue;
 				}
+			}
+		}
+		for(INT ParameterIdx=0; ParameterIdx<SourceInstance->TextureParameterValues.Num(); ParameterIdx++)
+		{
+			FTextureParameterValue& SourceParam = SourceInstance->TextureParameterValues(ParameterIdx);
+			if(!ParameterNames.ContainsItem(SourceParam.ParameterName))
+			{
+				FEditorTextureParameterValue& ParameterValue = TextureParameterValues(TextureParameterValues.AddZeroed());
+				ParameterValue.bOverride = TRUE;
+				ParameterValue.ParameterName = SourceParam.ParameterName;
+				ParameterValue.ExpressionId = SourceParam.ExpressionGUID;
+				ParameterValue.ParameterValue = SourceParam.ParameterValue;
 			}
 		}
 
@@ -206,6 +242,19 @@ void UMaterialEditorInstanceConstant::RegenerateArrays()
 					ParameterValue.FontValue = SourceParam.FontValue;
 					ParameterValue.FontPage = SourceParam.FontPage;
 				}
+			}
+		}
+		for(INT ParameterIdx=0; ParameterIdx<SourceInstance->FontParameterValues.Num(); ParameterIdx++)
+		{
+			FFontParameterValue& SourceParam = SourceInstance->FontParameterValues(ParameterIdx);
+			if(!ParameterNames.ContainsItem(SourceParam.ParameterName))
+			{
+				FEditorFontParameterValue& ParameterValue = FontParameterValues(FontParameterValues.AddZeroed());
+				ParameterValue.bOverride = TRUE;
+				ParameterValue.ParameterName = SourceParam.ParameterName;
+				ParameterValue.ExpressionId = SourceParam.ExpressionGUID;
+				ParameterValue.FontValue = SourceParam.FontValue;
+				ParameterValue.FontPage = SourceParam.FontPage;
 			}
 		}
 
@@ -1001,10 +1050,19 @@ UBOOL WxCustomPropertyItem_MaterialInstanceConstantParameter::IsDerivedForcedHid
 	UMaterialEditorInstanceConstant* MaterialInterface = Win->MaterialEditorInstance;
 	check(MaterialInterface);
 
-	if(Win->ToolBar->GetToolState(ID_MATERIALINSTANCE_CONSTANT_EDITOR_SHOWALLPARAMETERS) || MaterialInterface->VisibleExpressions.ContainsItem(ExpressionId))
+#if BATMAN
+	// BM2 cooked materials keep parameter expressions but often have stripped/null material inputs,
+	// so the editor visibility walk is not authoritative for MIC parameter rows.
+	ForceHide = FALSE;
+#else
+	const UBOOL bOverridden = const_cast<WxCustomPropertyItem_MaterialInstanceConstantParameter*>(this)->IsOverridden();
+	if(Win->ToolBar->GetToolState(ID_MATERIALINSTANCE_CONSTANT_EDITOR_SHOWALLPARAMETERS) ||
+		bOverridden ||
+		MaterialInterface->VisibleExpressions.ContainsItem(ExpressionId))
 	{
 		ForceHide = FALSE;
 	}
+#endif
 
 	return ForceHide;
 }
@@ -1702,4 +1760,3 @@ UMaterialInterface* WxMaterialInstanceConstantEditor::GetSyncObject()
 	}
 	return NULL;
 }
-

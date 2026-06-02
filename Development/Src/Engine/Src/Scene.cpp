@@ -448,6 +448,19 @@ FSceneView::FSceneView(
 		PreViewTranslation = FVector(0,0,0);
 	}
 
+#if BATMAN
+	if( !MakeFrustumPlane(
+		ViewProjectionMatrix.M[0][2],
+		ViewProjectionMatrix.M[1][2],
+		ViewProjectionMatrix.M[2][2],
+		ViewProjectionMatrix.M[3][2],
+		CameraPlane
+		) )
+	{
+		CameraPlane = FPlane(0,0,0,0);
+	}
+#endif
+
 	// Compute a transform from view origin centered world-space to clip space.
 	TranslatedViewMatrix = FTranslationMatrix(-PreViewTranslation) * ViewMatrix;
 	TranslatedViewProjectionMatrix = TranslatedViewMatrix * ProjectionMatrix;

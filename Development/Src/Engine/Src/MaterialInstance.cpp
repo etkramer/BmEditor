@@ -879,13 +879,26 @@ void UMaterialInstance::CacheResourceShaders(EShaderPlatform ShaderPlatform, UBO
 					CurrentShaderPlatform = OtherPlatformsToCompile[PlatformIndex];
 				}
 
-				const UBOOL bSuccess = Parent->CompileStaticPermutation(
-					StaticParameters[PlatformIndex], 
-					StaticPermutationResources[PlatformIndex], 
-					CurrentShaderPlatform, 
-					(EMaterialShaderPlatform)PlatformIndex,
-					bFlushExistingShaderMaps,
-					bDebugDump);
+				UBOOL bSuccess = FALSE;
+#if BATMAN
+				UPackage* Package = Cast<UPackage>(GetOutermost());
+				if (Package && (Package->PackageFlags & PKG_ContainsInlinedShaders))
+				{
+					bSuccess = StaticPermutationResources[PlatformIndex]->InitShaderMap(
+						StaticParameters[PlatformIndex],
+						CurrentShaderPlatform);
+				}
+				else
+#endif
+				{
+					bSuccess = Parent->CompileStaticPermutation(
+						StaticParameters[PlatformIndex],
+						StaticPermutationResources[PlatformIndex],
+						CurrentShaderPlatform,
+						(EMaterialShaderPlatform)PlatformIndex,
+						bFlushExistingShaderMaps,
+						bDebugDump);
+				}
 
 				if (bSuccess)
 				{

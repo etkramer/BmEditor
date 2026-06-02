@@ -301,12 +301,8 @@ void FSpotLightPolicy::ModShadowPixelParamsType::SetModShadowLight(FShader* Pixe
 		);
 	SetPixelShaderValue(
 		PixelShader->GetPixelShader(),
-		FalloffParameters, 
-		FVector(
-			Light->ShadowFalloffExponent,
-			Light->ShadowFalloffScale,
-			Light->ShadowFalloffBias
-			)
+		FalloffParameters,
+		Light->GetFalloffParameters()
 		);
 	// set spot light direction
 	SetPixelShaderValue(PixelShader->GetPixelShader(),SpotDirectionParam,Light->GetDirection());

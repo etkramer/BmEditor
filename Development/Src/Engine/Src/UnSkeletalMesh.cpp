@@ -1293,7 +1293,54 @@ void FStaticLODModel::ReleaseResources()
 		BeginReleaseResource(&VertexInfluences(VertexInfluenceIdx));
 	}
 
+#if BATMAN
+	SmoothNormalsTexture.SafeRelease();
+#endif
+
 }
+
+#if BATMAN
+const FTexture2DRHIRef& FStaticLODModel::GetSmoothNormalsTexture() const
+{
+	check(IsInRenderingThread());
+
+	if (!IsValidRef(SmoothNormalsTexture) && VertexBufferGPUSkin.GetNumVertices() > 0)
+	{
+		const UINT DisplacementNormalsTextureCapacity = 4096;
+		const UINT TextureWidth = Min<UINT>(VertexBufferGPUSkin.GetNumVertices(), DisplacementNormalsTextureCapacity);
+		const UINT TextureHeight = appCeil((FLOAT)VertexBufferGPUSkin.GetNumVertices() / (FLOAT)DisplacementNormalsTextureCapacity);
+
+		SmoothNormalsTexture = RHICreateTexture2D(TextureWidth, TextureHeight, PF_A32B32G32R32F, 1, TexCreate_Uncooked, NULL);
+
+		UINT DestStride = 0;
+		BYTE* DestBuffer = (BYTE*)RHILockTexture2D(SmoothNormalsTexture, 0, TRUE, DestStride, FALSE);
+		if (DestBuffer)
+		{
+			for (UINT RowIndex = 0; RowIndex < TextureHeight; ++RowIndex)
+			{
+				appMemzero(DestBuffer + RowIndex * DestStride, TextureWidth * sizeof(FVector4));
+			}
+
+			for (UINT VertexIndex = 0; VertexIndex < VertexBufferGPUSkin.GetNumVertices(); ++VertexIndex)
+			{
+				const UINT RowIndex = VertexIndex / DisplacementNormalsTextureCapacity;
+				const UINT ColumnIndex = VertexIndex - RowIndex * DisplacementNormalsTextureCapacity;
+				FVector4* DestNormal = (FVector4*)(DestBuffer + RowIndex * DestStride) + ColumnIndex;
+				const FVector Normal = (FVector)VertexBufferGPUSkin.GetVertexPtr(VertexIndex)->TangentZ;
+				*DestNormal = FVector4(Normal.X, Normal.Y, Normal.Z, 0.0f);
+			}
+
+			RHIUnlockTexture2D(SmoothNormalsTexture, 0, FALSE);
+		}
+		else
+		{
+			SmoothNormalsTexture.SafeRelease();
+		}
+	}
+
+	return SmoothNormalsTexture;
+}
+#endif
 
 /**
 * Utility function for returning total number of faces in this LOD. 
@@ -3667,6 +3714,9 @@ void FSkeletalMeshSceneProxy::DrawDynamicElementsSection(FPrimitiveDrawInterface
 	Mesh.Type = PT_TriangleList;
 	Mesh.DepthPriorityGroup = (ESceneDepthPriorityGroup)DPGIndex;
 	Mesh.bUsePreVertexShaderCulling = FALSE;
+#if BATMAN
+	Mesh.SmoothNormalsTexture = LODModel.GetSmoothNormalsTexture();
+#endif
 	Mesh.PlatformMeshData = NULL;
 
 	const INT NumPasses = DrawRichMesh(

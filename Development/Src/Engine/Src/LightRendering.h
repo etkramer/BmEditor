@@ -803,10 +803,10 @@ private:
 #define IMPLEMENT_LIGHT_SHADER_TYPE(LightPolicyType,VertexShaderFilename,PixelShaderFilename,MinPackageVersion,MinLicenseePackageVersion) \
 	IMPLEMENT_SHADOWLESS_LIGHT_SHADER_TYPE(LightPolicyType,VertexShaderFilename,PixelShaderFilename,MinPackageVersion,MinLicenseePackageVersion) \
 	IMPLEMENT_LIGHT_UNIFORMPCF_SHADER_TYPE(LightPolicyType,TEXT("HardwarePCFMain"),F4SampleHwPCF,Max((UINT)VER_CONTENT_RESAVE_AUGUST_2007_QA_BUILD,(UINT)MinPackageVersion),MinLicenseePackageVersion) \
-	IMPLEMENT_LIGHT_UNIFORMPCF_SHADER_TYPE(LightPolicyType,TEXT("Main"),F4SampleManualPCFPerPixel,Max((UINT)VER_CONTENT_RESAVE_AUGUST_2007_QA_BUILD,(UINT)MinPackageVersion),MinLicenseePackageVersion) \
+	IMPLEMENT_LIGHT_UNIFORMPCF_SHADER_TYPE(LightPolicyType,TEXT("Main"),F4SampleManualPCF,Max((UINT)VER_CONTENT_RESAVE_AUGUST_2007_QA_BUILD,(UINT)MinPackageVersion),MinLicenseePackageVersion) \
 	IMPLEMENT_LIGHT_UNIFORMPCF_SHADER_TYPE(LightPolicyType,TEXT("HardwarePCFMain"),F16SampleHwPCF,Max((UINT)VER_CONTENT_RESAVE_AUGUST_2007_QA_BUILD,(UINT)MinPackageVersion),MinLicenseePackageVersion) \
 	IMPLEMENT_LIGHT_UNIFORMPCF_SHADER_TYPE(LightPolicyType,TEXT("Fetch4Main"),F16SampleFetch4PCF,MinPackageVersion,MinLicenseePackageVersion) \
-	IMPLEMENT_LIGHT_UNIFORMPCF_SHADER_TYPE(LightPolicyType,TEXT("Main"),F16SampleManualPCFPerPixel,Max((UINT)VER_CONTENT_RESAVE_AUGUST_2007_QA_BUILD,(UINT)MinPackageVersion),MinLicenseePackageVersion) \
+	IMPLEMENT_LIGHT_UNIFORMPCF_SHADER_TYPE(LightPolicyType,TEXT("Main"),F16SampleManualPCF,Max((UINT)VER_CONTENT_RESAVE_AUGUST_2007_QA_BUILD,(UINT)MinPackageVersion),MinLicenseePackageVersion) \
 	IMPLEMENT_LIGHT_BPCF_SHADER_TYPE(LightPolicyType,TEXT("HardwarePCFMain"),FLowQualityHwPCF,Max((UINT)VER_CONTENT_RESAVE_AUGUST_2007_QA_BUILD,(UINT)MinPackageVersion),MinLicenseePackageVersion) \
 	IMPLEMENT_LIGHT_BPCF_SHADER_TYPE(LightPolicyType,TEXT("HardwarePCFMain"),FMediumQualityHwPCF,Max((UINT)VER_CONTENT_RESAVE_AUGUST_2007_QA_BUILD,(UINT)MinPackageVersion),MinLicenseePackageVersion) \
 	IMPLEMENT_LIGHT_BPCF_SHADER_TYPE(LightPolicyType,TEXT("HardwarePCFMain"),FHighQualityHwPCF,Max((UINT)VER_CONTENT_RESAVE_AUGUST_2007_QA_BUILD,(UINT)MinPackageVersion),MinLicenseePackageVersion) \

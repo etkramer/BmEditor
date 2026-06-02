@@ -107,7 +107,6 @@ struct FPointLightVSToPS
 		ISOLATE
 		{
 			O.Position = MulMatrix(ViewProjectionMatrixDS,WorldPosition);
-			O.Position = ApplyTemporalAAJitter(O.Position,TemporalAAParametersDS);
 		}
 			
 	#if WORLD_POS
@@ -165,7 +164,6 @@ void Main(
 	ISOLATE
 	{
 		Output.Position = MulMatrix(ViewProjectionMatrix,WorldPosition);
-		Output.Position = ApplyTemporalAAJitter(Output.Position,TemporalAAParameters);
 	}
 
 	Output.FactoryInterpolants = VertexFactoryGetInterpolantsVSToPS(Input, VFIntermediates);

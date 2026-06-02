@@ -30,7 +30,6 @@ float GetPerPixelLightingChannelMask(float2 UV)
 sampler2D ShadowDepthTexture;
 float4 SampleOffsets[NUM_SAMPLE_CHUNKS * 2];
 float3 ShadowBufferSizeAndSoftTransitionScale;
-float2 ShadowTexelSize;
 float LightingChannelMask;
 
 /** Returns an occlusion factor based on the depths. */
@@ -48,6 +47,11 @@ float4 CalculateOcclusion(float SceneDepth, float4 ShadowmapDepth)
 {
 	float TransitionScale = ShadowBufferSizeAndSoftTransitionScale.z;
 	return saturate((ShadowmapDepth - SceneDepth) * TransitionScale + 1);
+}
+
+float3 CalculateOcclusionVectorised(float SceneDepth, float3 ShadowmapDepth)
+{
+	return saturate((ShadowmapDepth - SceneDepth) * ShadowBufferSizeAndSoftTransitionScale.z + 1.f);
 }
 
 /**
@@ -104,28 +108,28 @@ half ManualPCF(float4 ShadowPosition)
 	float2 Sample00TexelCorner = floor(ShadowPosition.xy * ShadowBufferSizeAndSoftTransitionScale.xy - float2(1, 1));
 	float2 Sample00TexelCenter = Sample00TexelCorner + float2(.5, .5);
 
-	float Sample00Value = CalculateOcclusion(ShadowPosition.z, texDepth2Dlod(ShadowDepthTexture, float4(Sample00TexelCenter * ShadowTexelSize, 0, 0)));
-	
-	float Sample01Value = CalculateOcclusion(ShadowPosition.z, texDepth2Dlod(ShadowDepthTexture, float4((Sample00TexelCenter + float2(0, 1)) * ShadowTexelSize, 0, 0)));
-	float Sample02Value = CalculateOcclusion(ShadowPosition.z, texDepth2Dlod(ShadowDepthTexture, float4((Sample00TexelCenter + float2(0, 2)) * ShadowTexelSize, 0, 0)));
-	float Sample10Value = CalculateOcclusion(ShadowPosition.z, texDepth2Dlod(ShadowDepthTexture, float4((Sample00TexelCenter + float2(1, 0)) * ShadowTexelSize, 0, 0)));
-	float Sample11Value = CalculateOcclusion(ShadowPosition.z, texDepth2Dlod(ShadowDepthTexture, float4((Sample00TexelCenter + float2(1, 1)) * ShadowTexelSize, 0, 0)));
-	
-	float Sample12Value = CalculateOcclusion(ShadowPosition.z, texDepth2Dlod(ShadowDepthTexture, float4((Sample00TexelCenter + float2(1, 2)) * ShadowTexelSize, 0, 0)));
-	float Sample20Value = CalculateOcclusion(ShadowPosition.z, texDepth2Dlod(ShadowDepthTexture, float4((Sample00TexelCenter + float2(2, 0)) * ShadowTexelSize, 0, 0)));
-	float Sample21Value = CalculateOcclusion(ShadowPosition.z, texDepth2Dlod(ShadowDepthTexture, float4((Sample00TexelCenter + float2(2, 1)) * ShadowTexelSize, 0, 0)));
-	float Sample22Value = CalculateOcclusion(ShadowPosition.z, texDepth2Dlod(ShadowDepthTexture, float4((Sample00TexelCenter + float2(2, 2)) * ShadowTexelSize, 0, 0)));
-	
-	float2 HorizontalLerp00 = lerp(float2(Sample00Value, Sample01Value), float2(Sample10Value, Sample11Value), Fraction.xx);
-	float PCFResult00 = lerp(HorizontalLerp00.x, HorizontalLerp00.y, Fraction.y); 
-	float2 HorizontalLerp01 = lerp(float2(Sample01Value, Sample02Value), float2(Sample11Value, Sample12Value), Fraction.xx);
-	float PCFResult01 = lerp(HorizontalLerp01.x, HorizontalLerp01.y, Fraction.y); 
-	float2 HorizontalLerp10 = lerp(float2(Sample10Value, Sample11Value), float2(Sample20Value, Sample21Value), Fraction.xx);
-	float PCFResult10 = lerp(HorizontalLerp10.x, HorizontalLerp10.y, Fraction.y); 
-	float2 HorizontalLerp11 = lerp(float2(Sample11Value, Sample12Value), float2(Sample21Value, Sample22Value), Fraction.xx);
-	float PCFResult11 = lerp(HorizontalLerp11.x, HorizontalLerp11.y, Fraction.y); 
-	
-	return saturate((PCFResult00 + PCFResult01 + PCFResult10 + PCFResult11) * .25);
+	float3 Sample_x00_y01_z02;
+	float3 Sample_x10_y11_z12;
+	float3 Sample_x20_y21_z22;
+
+	Sample_x00_y01_z02.x = texDepth2D(ShadowDepthTexture, Sample00TexelCenter / ShadowBufferSizeAndSoftTransitionScale.xy).r;
+	Sample_x00_y01_z02.y = texDepth2D(ShadowDepthTexture, (Sample00TexelCenter + float2(0, 1)) / ShadowBufferSizeAndSoftTransitionScale.xy).r;
+	Sample_x00_y01_z02.z = texDepth2D(ShadowDepthTexture, (Sample00TexelCenter + float2(0, 2)) / ShadowBufferSizeAndSoftTransitionScale.xy).r;
+	Sample_x00_y01_z02.xyz = CalculateOcclusionVectorised(ShadowPosition.z, Sample_x00_y01_z02.xyz);
+
+	Sample_x10_y11_z12.x = texDepth2D(ShadowDepthTexture, (Sample00TexelCenter + float2(1, 0)) / ShadowBufferSizeAndSoftTransitionScale.xy).r;
+	Sample_x10_y11_z12.y = texDepth2D(ShadowDepthTexture, (Sample00TexelCenter + float2(1, 1)) / ShadowBufferSizeAndSoftTransitionScale.xy).r;
+	Sample_x10_y11_z12.z = texDepth2D(ShadowDepthTexture, (Sample00TexelCenter + float2(1, 2)) / ShadowBufferSizeAndSoftTransitionScale.xy).r;
+	Sample_x10_y11_z12.xyz = CalculateOcclusionVectorised(ShadowPosition.z, Sample_x10_y11_z12.xyz);
+
+	Sample_x20_y21_z22.x = texDepth2D(ShadowDepthTexture, (Sample00TexelCenter + float2(2, 0)) / ShadowBufferSizeAndSoftTransitionScale.xy).r;
+	Sample_x20_y21_z22.y = texDepth2D(ShadowDepthTexture, (Sample00TexelCenter + float2(2, 1)) / ShadowBufferSizeAndSoftTransitionScale.xy).r;
+	Sample_x20_y21_z22.z = texDepth2D(ShadowDepthTexture, (Sample00TexelCenter + float2(2, 2)) / ShadowBufferSizeAndSoftTransitionScale.xy).r;
+	Sample_x20_y21_z22.xyz = CalculateOcclusionVectorised(ShadowPosition.z, Sample_x20_y21_z22.xyz);
+
+	float3 aH = lerp(Sample_x00_y01_z02.xyz, Sample_x10_y11_z12.xyz, Fraction.xxx);
+	float3 bH = lerp(Sample_x10_y11_z12.xyz, Sample_x20_y21_z22.xyz, Fraction.xxx);
+	return saturate(dot(lerp(float4(aH.xy, bH.xy), float4(aH.yz, bH.yz), Fraction.y), 0.25f));
 
 #endif // #if !XBOX
 
@@ -135,25 +139,25 @@ half ManualPCF(float4 ShadowPosition)
 	float2 Fraction = frac(ShadowPosition.xy * ShadowBufferSizeAndSoftTransitionScale.xy);
 	float2 Sample00TexelCenter = floor(ShadowPosition.xy * ShadowBufferSizeAndSoftTransitionScale.xy - float2(1, 1));
 
-	float Sample00Value = CalculateOcclusion(ShadowPosition.z, texDepth2Dlod(ShadowDepthTexture, float4(Sample00TexelCenter * ShadowTexelSize, 0, 0)));
-	float Sample10Value = CalculateOcclusion(ShadowPosition.z, texDepth2Dlod(ShadowDepthTexture, float4((Sample00TexelCenter + float2(1, 0)) * ShadowTexelSize, 0, 0)));
-	float Sample20Value = CalculateOcclusion(ShadowPosition.z, texDepth2Dlod(ShadowDepthTexture, float4((Sample00TexelCenter + float2(2, 0)) * ShadowTexelSize, 0, 0)));
-	float Sample30Value = CalculateOcclusion(ShadowPosition.z, texDepth2Dlod(ShadowDepthTexture, float4((Sample00TexelCenter + float2(3, 0)) * ShadowTexelSize, 0, 0)));
-	
-	float Sample01Value = CalculateOcclusion(ShadowPosition.z, texDepth2Dlod(ShadowDepthTexture, float4((Sample00TexelCenter + float2(0, 1)) * ShadowTexelSize, 0, 0)));
-	float Sample11Value = CalculateOcclusion(ShadowPosition.z, texDepth2Dlod(ShadowDepthTexture, float4((Sample00TexelCenter + float2(1, 1)) * ShadowTexelSize, 0, 0)));
-	float Sample21Value = CalculateOcclusion(ShadowPosition.z, texDepth2Dlod(ShadowDepthTexture, float4((Sample00TexelCenter + float2(2, 1)) * ShadowTexelSize, 0, 0)));
-	float Sample31Value = CalculateOcclusion(ShadowPosition.z, texDepth2Dlod(ShadowDepthTexture, float4((Sample00TexelCenter + float2(3, 1)) * ShadowTexelSize, 0, 0)));
+	float Sample00Value = CalculateOcclusion(ShadowPosition.z, texDepth2D(ShadowDepthTexture, Sample00TexelCenter / ShadowBufferSizeAndSoftTransitionScale.xy).r);
+	float Sample10Value = CalculateOcclusion(ShadowPosition.z, texDepth2D(ShadowDepthTexture, (Sample00TexelCenter + float2(1, 0)) / ShadowBufferSizeAndSoftTransitionScale.xy).r);
+	float Sample20Value = CalculateOcclusion(ShadowPosition.z, texDepth2D(ShadowDepthTexture, (Sample00TexelCenter + float2(2, 0)) / ShadowBufferSizeAndSoftTransitionScale.xy).r);
+	float Sample30Value = CalculateOcclusion(ShadowPosition.z, texDepth2D(ShadowDepthTexture, (Sample00TexelCenter + float2(3, 0)) / ShadowBufferSizeAndSoftTransitionScale.xy).r);
 
-	float Sample02Value = CalculateOcclusion(ShadowPosition.z, texDepth2Dlod(ShadowDepthTexture, float4((Sample00TexelCenter + float2(0, 2)) * ShadowTexelSize, 0, 0)));
-	float Sample12Value = CalculateOcclusion(ShadowPosition.z, texDepth2Dlod(ShadowDepthTexture, float4((Sample00TexelCenter + float2(1, 2)) * ShadowTexelSize, 0, 0)));
-	float Sample22Value = CalculateOcclusion(ShadowPosition.z, texDepth2Dlod(ShadowDepthTexture, float4((Sample00TexelCenter + float2(2, 2)) * ShadowTexelSize, 0, 0)));
-	float Sample32Value = CalculateOcclusion(ShadowPosition.z, texDepth2Dlod(ShadowDepthTexture, float4((Sample00TexelCenter + float2(3, 2)) * ShadowTexelSize, 0, 0)));
+	float Sample01Value = CalculateOcclusion(ShadowPosition.z, texDepth2D(ShadowDepthTexture, (Sample00TexelCenter + float2(0, 1)) / ShadowBufferSizeAndSoftTransitionScale.xy).r);
+	float Sample11Value = CalculateOcclusion(ShadowPosition.z, texDepth2D(ShadowDepthTexture, (Sample00TexelCenter + float2(1, 1)) / ShadowBufferSizeAndSoftTransitionScale.xy).r);
+	float Sample21Value = CalculateOcclusion(ShadowPosition.z, texDepth2D(ShadowDepthTexture, (Sample00TexelCenter + float2(2, 1)) / ShadowBufferSizeAndSoftTransitionScale.xy).r);
+	float Sample31Value = CalculateOcclusion(ShadowPosition.z, texDepth2D(ShadowDepthTexture, (Sample00TexelCenter + float2(3, 1)) / ShadowBufferSizeAndSoftTransitionScale.xy).r);
 
-	float Sample03Value = CalculateOcclusion(ShadowPosition.z, texDepth2Dlod(ShadowDepthTexture, float4((Sample00TexelCenter + float2(0, 3)) * ShadowTexelSize, 0, 0)));
-	float Sample13Value = CalculateOcclusion(ShadowPosition.z, texDepth2Dlod(ShadowDepthTexture, float4((Sample00TexelCenter + float2(1, 3)) * ShadowTexelSize, 0, 0)));
-	float Sample23Value = CalculateOcclusion(ShadowPosition.z, texDepth2Dlod(ShadowDepthTexture, float4((Sample00TexelCenter + float2(2, 3)) * ShadowTexelSize, 0, 0)));
-	float Sample33Value = CalculateOcclusion(ShadowPosition.z, texDepth2Dlod(ShadowDepthTexture, float4((Sample00TexelCenter + float2(3, 3)) * ShadowTexelSize, 0, 0)));
+	float Sample02Value = CalculateOcclusion(ShadowPosition.z, texDepth2D(ShadowDepthTexture, (Sample00TexelCenter + float2(0, 2)) / ShadowBufferSizeAndSoftTransitionScale.xy).r);
+	float Sample12Value = CalculateOcclusion(ShadowPosition.z, texDepth2D(ShadowDepthTexture, (Sample00TexelCenter + float2(1, 2)) / ShadowBufferSizeAndSoftTransitionScale.xy).r);
+	float Sample22Value = CalculateOcclusion(ShadowPosition.z, texDepth2D(ShadowDepthTexture, (Sample00TexelCenter + float2(2, 2)) / ShadowBufferSizeAndSoftTransitionScale.xy).r);
+	float Sample32Value = CalculateOcclusion(ShadowPosition.z, texDepth2D(ShadowDepthTexture, (Sample00TexelCenter + float2(3, 2)) / ShadowBufferSizeAndSoftTransitionScale.xy).r);
+
+	float Sample03Value = CalculateOcclusion(ShadowPosition.z, texDepth2D(ShadowDepthTexture, (Sample00TexelCenter + float2(0, 3)) / ShadowBufferSizeAndSoftTransitionScale.xy).r);
+	float Sample13Value = CalculateOcclusion(ShadowPosition.z, texDepth2D(ShadowDepthTexture, (Sample00TexelCenter + float2(1, 3)) / ShadowBufferSizeAndSoftTransitionScale.xy).r);
+	float Sample23Value = CalculateOcclusion(ShadowPosition.z, texDepth2D(ShadowDepthTexture, (Sample00TexelCenter + float2(2, 3)) / ShadowBufferSizeAndSoftTransitionScale.xy).r);
+	float Sample33Value = CalculateOcclusion(ShadowPosition.z, texDepth2D(ShadowDepthTexture, (Sample00TexelCenter + float2(3, 3)) / ShadowBufferSizeAndSoftTransitionScale.xy).r);
 
 	float2 VerticalLerp00 = lerp(float2(Sample00Value, Sample01Value), float2(Sample10Value, Sample11Value), Fraction.xx);
 	float PCFResult00 = lerp(VerticalLerp00.x, VerticalLerp00.y, Fraction.y);

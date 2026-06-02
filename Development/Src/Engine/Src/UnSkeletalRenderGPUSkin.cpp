@@ -919,6 +919,7 @@ void InitGPUSkinVertexFactoryComponents(typename VertexFactoryType::DataType* Ve
 		VertexFactoryData->ColorComponent = FVertexStreamComponent(
 			VertexBuffers.ColorVertexBuffer,STRUCT_OFFSET(FGPUSkinVertexColor,VertexColor),VertexBuffers.ColorVertexBuffer->GetStride(),VET_Color);
 	}
+
 }
 
 /** 

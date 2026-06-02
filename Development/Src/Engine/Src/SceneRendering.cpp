@@ -8,6 +8,9 @@
 #include "ScenePrivate.h"
 #include "ScreenRendering.h"
 #include "SceneFilterRendering.h"
+#if BATMAN
+#include "AmbientPlus3DirectionalLightSceneInfo.h"
+#endif
 // STARTUPDATE_DWTRIOVIZ
 #include "DwTrioviz/DwTriovizImpl.h"
 // ENDUPDATE_DWTRIOVIZ
@@ -3517,6 +3520,12 @@ UBOOL FSceneRenderer::ProcessVisible(
 			const UBOOL bForceLightDynamic = ViewRelevance.bForceDirectionalLightsDynamic && (LightSceneInfo->LightType == LightType_Directional || LightSceneInfo->LightType == LightType_DominantDirectional);
 			const UBOOL bIsNotSkyLight = !Interaction->IsLightMapped() && LightSceneInfo->LightType != LightType_Sky;
 			const UBOOL bDirectionalLightAttached = PrimitiveSceneInfo->DynamicLightSceneInfo && PrimitiveSceneInfo->DynamicLightSceneInfo->LightType == LightType_Directional;
+#if BATMAN
+			const UBOOL bIsBasePassAPlus3DLight =
+				LightSceneInfo->LightType == LightType_AmbientPlus3Directional
+				&& PrimitiveSceneInfo->AmbientPlus3DLight
+				&& static_cast<const FLightSceneInfo*>(PrimitiveSceneInfo->AmbientPlus3DLight) == LightSceneInfo;
+#endif
 
 			const UBOOL bIsBasePassLitLightEnvironmentLight = 
 				LightSceneInfo->LightEnvironment 
@@ -3544,7 +3553,11 @@ UBOOL FSceneRenderer::ProcessVisible(
 				&& PrimitiveSceneInfo->BrightestDominantLightSceneInfo != LightSceneInfo;
 
 			const UBOOL bRenderLight = bForceLightDynamic || bIsNotSkyLight;
-			const UBOOL bMergedIntoBasePass = bIsBasePassLitLightEnvironmentLight || bIsBasePassLitShadowedLight || bIsBasePassSHLight || bIgnoredDominantLight;
+			const UBOOL bMergedIntoBasePass = bIsBasePassLitLightEnvironmentLight || bIsBasePassLitShadowedLight || bIsBasePassSHLight || bIgnoredDominantLight
+#if BATMAN
+				|| bIsBasePassAPlus3DLight
+#endif
+				;
 			
 			// Use multi-pass lighting to render dynamic, non-skylight lights that are not going to be merged into the base pass.
 			Interaction->SetNeedsLightRenderingPass(bRenderLight && !bMergedIntoBasePass);

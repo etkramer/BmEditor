@@ -148,6 +148,9 @@ static UBOOL IsParameterBoundByView(const FString& ParameterName, EShaderFrequen
 			|| ParameterName == TEXT("NvStereoEnabled")
 			|| ParameterName == TEXT("DiffuseOverrideParameter")
 			|| ParameterName == TEXT("SpecularOverrideParameter")
+#if BATMAN
+			|| ParameterName == TEXT("CameraPlane")
+#endif
 			|| ParameterName == TEXT("CameraPositionPS");
 	}
 
@@ -1578,7 +1581,6 @@ const void* GetPaddedShaderParameterValueGeneral(const void* Value,UINT NumBytes
 
 	return &PaddedShaderParameterValueBuffer(0);
 }
-
 
 
 

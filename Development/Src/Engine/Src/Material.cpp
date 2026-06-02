@@ -636,10 +636,9 @@ UBOOL UMaterial::GetParameterDesc(FName ParameterName, FString& OutDesc)
 	{
 		UMaterialExpression* Expression = Expressions(ExpressionIndex);
 		// Parameter is a basic Expression Parameter
-		if(Expression->IsA(UMaterialExpressionParameter::StaticClass()))
+		if(UMaterialExpressionParameter* Parameter = Cast<UMaterialExpressionParameter>(Expression))
 		{
-			UMaterialExpressionParameter* Parameter = CastChecked<UMaterialExpressionParameter>(Expression);
-			if(Parameter && Parameter->ParameterName == ParameterName)
+			if(Parameter->ParameterName == ParameterName)
 			{
 				OutDesc = Parameter->Desc;
 				bSuccess = TRUE;
@@ -647,10 +646,9 @@ UBOOL UMaterial::GetParameterDesc(FName ParameterName, FString& OutDesc)
 			}
 		}
 		// Parameter is a Texture Sample Parameter
-		else if(Expression->IsA(UMaterialExpressionTextureSampleParameter::StaticClass()))
+		else if(UMaterialExpressionTextureSampleParameter* Parameter = Cast<UMaterialExpressionTextureSampleParameter>(Expression))
 		{
-			UMaterialExpressionTextureSampleParameter* Parameter = CastChecked<UMaterialExpressionTextureSampleParameter>(Expression);
-			if(Parameter && Parameter->ParameterName == ParameterName)
+			if(Parameter->ParameterName == ParameterName)
 			{
 				OutDesc = Parameter->Desc;
 				bSuccess = TRUE;
@@ -658,10 +656,9 @@ UBOOL UMaterial::GetParameterDesc(FName ParameterName, FString& OutDesc)
 			}
 		}
 		// Parameter is a Font Sample Parameter
-		else if(Expression->IsA(UMaterialExpressionFontSampleParameter::StaticClass()))
+		else if(UMaterialExpressionFontSampleParameter* Parameter = Cast<UMaterialExpressionFontSampleParameter>(Expression))
 		{
-			UMaterialExpressionFontSampleParameter* Parameter = CastChecked<UMaterialExpressionFontSampleParameter>(Expression);
-			if(Parameter && Parameter->ParameterName == ParameterName)
+			if(Parameter->ParameterName == ParameterName)
 			{
 				OutDesc = Parameter->Desc;
 				bSuccess = TRUE;

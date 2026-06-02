@@ -1245,7 +1245,7 @@ public:
 	 */
 	static UBOOL ShouldCache(EShaderPlatform Platform, const class FMaterial *Material, const class FShaderType *ShaderType)
 	{
-		return Material->IsUsedWithAPEXMeshes() || Material->IsSpecialEngineMaterial();
+		return IsPCPlatform(Platform) && (Material->IsUsedWithAPEXMeshes() || Material->IsSpecialEngineMaterial());
 	}
 
 private:
@@ -1286,7 +1286,7 @@ public:
 
 	static UBOOL ShouldCache(EShaderPlatform Platform, const class FMaterial *Material, const class FShaderType *ShaderType)
 	{
-		return Material->IsUsedWithAPEXMeshes() || Material->IsSpecialEngineMaterial();
+		return IsPCPlatform(Platform) && (Material->IsUsedWithAPEXMeshes() || Material->IsSpecialEngineMaterial());
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -1317,7 +1317,7 @@ public:
 
 	static UBOOL ShouldCache(EShaderPlatform Platform, const class FMaterial *Material, const class FShaderType *ShaderType)
 	{
-		return Material->IsUsedWithAPEXMeshes() || Material->IsSpecialEngineMaterial();
+		return IsPCPlatform(Platform) && (Material->IsUsedWithAPEXMeshes() || Material->IsSpecialEngineMaterial());
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -1679,7 +1679,7 @@ private:
 #endif
 
 
-IMPLEMENT_VERTEX_FACTORY_TYPE(FLocalVertexFactoryApex, "LocalVertexFactory", TRUE, TRUE, TRUE, TRUE, VER_DEPRECATED_EDITOR_POSITION, 0);
+IMPLEMENT_VERTEX_FACTORY_TYPE(FLocalVertexFactoryApex, "LocalVertexFactory", TRUE, FALSE, TRUE, TRUE, VER_DEPRECATED_EDITOR_POSITION, 0);
 
 /**
  * FGPUSkinVertexFactoryShaderParametersApexDestructible
@@ -1701,7 +1701,7 @@ public:
 		BoneMatricesParameter.Bind(ParameterMap,TEXT("BoneMatrices"));
 		MeshOriginParameter.Bind(ParameterMap,TEXT("MeshOrigin"),TRUE);
 		MeshExtensionParameter.Bind(ParameterMap,TEXT("MeshExtension"),TRUE);
-		UsePerBoneMotionBlurParameter.Bind(ParameterMap,TEXT("bUsePerBoneMotionBlur"),TRUE);
+		UsePerBoneMotionBlurParameter.Bind(ParameterMap,TEXT("UsePerBoneMotionBlur"),TRUE);
 	}
 
 	virtual void Serialize(FArchive& Ar)

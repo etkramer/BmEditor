@@ -112,7 +112,11 @@ void Main(
 
 	//Don't flip the normal for backfaces of two-sided materials used with this shader.
 	//As a result, the backfaces will have the same lighting as the frontfaces, instead of being mostly black.
+#if PER_PIXEL_CAMERA_VECTOR || !ROCK_STRIP_VERTEX_COLOUR
 	CalcMaterialParameters(MaterialParameters,FacingSign,BasePassInterpolants.CameraVectorOrVertexColor,BasePassInterpolants.PixelPosition,TangentLightVector.xyz,false);
+#else
+	CalcMaterialParameters(MaterialParameters,FacingSign,float4(0,0,0,0),BasePassInterpolants.PixelPosition,TangentLightVector.xyz,false);
+#endif
 
 	//Clip if the blend mode requires it.
 	GetMaterialCoverageAndClipping(MaterialParameters,PixelShaderScreenPosition.xy,InCoverage,OutCoverage);
@@ -416,7 +420,12 @@ void Main(
 				OutColor = RETURN_COLOR(MaterialGammaCorrect(float4(Color,PackedAlpha)));
 			#else
 				// Output clip space w in scene color alpha
-				OutColor = RETURN_COLOR(MaterialGammaCorrect(float4(Color,EncodeFloatW(MaterialParameters.ScreenPosition.w))));
+#if ORTHOGRAPHIC_FRIENDLY_DEPTH
+				float W = dot(CameraPlane,float4(MaterialParameters.WorldPosition,1));
+#else
+				float W = MaterialParameters.ScreenPosition.w;
+#endif
+				OutColor = RETURN_COLOR(MaterialGammaCorrect(float4(Color,EncodeFloatW(W))));
 			#endif
 		#endif
 	#endif

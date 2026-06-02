@@ -177,8 +177,10 @@ private:
 	FShaderParameter TwoSidedSignParameter;
 	/** Inverse gamma parameter. Only used when USE_GAMMA_CORRECTION 1 */
 	FShaderParameter InvGammaParameter;
+#if !BATMAN
 	/** Parameter for distance to [near,far] plane for the decal (local or world space) */
 	FShaderParameter DecalNearFarPlaneDistanceParameter;
+#endif
 	/** Object position in post projection space. */
 	FShaderParameter ObjectPostProjectionPositionParameter;
 	/** Object position in Normalized Device Coordinates. */

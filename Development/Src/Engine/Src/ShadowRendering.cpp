@@ -16,15 +16,9 @@ const UINT SHADOW_BORDER=5;
  */
 UBOOL GRenderOnePassPointLightShadows = TRUE;
 
-static FLOAT GetShadowDepthBias(const FProjectedShadowInfo* ShadowInfo, const FMaterialRenderProxy* MaterialRenderProxy)
+static FLOAT GetShadowDepthBias(const FProjectedShadowInfo* ShadowInfo)
 {
 	FLOAT DepthBias = GSystemSettings.ShadowDepthBias * 512.0f / Max(ShadowInfo->ResolutionX,ShadowInfo->ResolutionY);
-
-	if (!ShadowInfo->bFullSceneShadow)
-	{
-		// Apply per-material depth bias 
-		DepthBias += MaterialRenderProxy->GetMaterial()->GetShadowDepthBias();
-	}
 
 	if (ShouldUseBranchingPCF(ShadowInfo->LightSceneInfo->ShadowProjectionTechnique))
 	{
@@ -58,7 +52,7 @@ public:
 	}
 
 	template<typename ShaderRHIParamRef>
-	void Set(ShaderRHIParamRef Shader, const FSceneView& View, const FProjectedShadowInfo* ShadowInfo, const FMaterialRenderProxy* MaterialRenderProxy)
+	void Set(ShaderRHIParamRef Shader, const FSceneView& View, const FProjectedShadowInfo* ShadowInfo)
 	{
 		SetShaderValue(
 			Shader,
@@ -67,23 +61,23 @@ public:
 			);
 
 		SetShaderValue(Shader,InvMaxSubjectDepthParameter,1.0f / ShadowInfo->MaxSubjectDepth);
-		const FLOAT DepthBias = GetShadowDepthBias(ShadowInfo, MaterialRenderProxy);
+		const FLOAT DepthBias = GetShadowDepthBias(ShadowInfo);
 		SetShaderValue(Shader,DepthBiasParameter,DepthBias);
 		// Only clamp vertices to the near plane when rendering whole scene directional light shadow depths or preshadows from directional lights
 		SetShaderValue(Shader,ClampToNearPlaneParameter,(FLOAT)((ShadowInfo->bFullSceneShadow || ShadowInfo->bPreShadow) && ShadowInfo->bDirectionalLight));
 	}
 
 	/** Set the vertex shader parameter values. */
-	void SetVertexShader(FShader* VertexShader, const FSceneView& View, const FProjectedShadowInfo* ShadowInfo, const FMaterialRenderProxy* MaterialRenderProxy)
+	void SetVertexShader(FShader* VertexShader, const FSceneView& View, const FProjectedShadowInfo* ShadowInfo)
 	{
-		Set(VertexShader->GetVertexShader(), View, ShadowInfo, MaterialRenderProxy);
+		Set(VertexShader->GetVertexShader(), View, ShadowInfo);
 	}
 
 #if WITH_D3D11_TESSELLATION
 	/** Set the domain shader parameter values. */
-	void SetDomainShader(FShader* DomainShader, const FSceneView& View, const FProjectedShadowInfo* ShadowInfo, const FMaterialRenderProxy* MaterialRenderProxy)
+	void SetDomainShader(FShader* DomainShader, const FSceneView& View, const FProjectedShadowInfo* ShadowInfo)
 	{
-		Set(DomainShader->GetDomainShader(), View, ShadowInfo, MaterialRenderProxy);
+		Set(DomainShader->GetDomainShader(), View, ShadowInfo);
 	}
 #endif
 
@@ -159,7 +153,7 @@ public:
 
 		MaterialParameters.Set(this,MaterialRenderContext);
 
-		ShadowParameters.SetVertexShader(this, View, ShadowInfo, MaterialRenderProxy);
+		ShadowParameters.SetVertexShader(this, View, ShadowInfo);
 	}
 
 	void SetMesh(const FPrimitiveSceneInfo* PrimitiveSceneInfo,const FMeshElement& Mesh,const FSceneView& View)
@@ -282,7 +276,7 @@ public:
 		)
 	{
 		FBaseDomainShader::SetParameters(MaterialRenderProxy, View);
-		ShadowParameters.SetDomainShader(this, View, ShadowInfo, MaterialRenderProxy);
+		ShadowParameters.SetDomainShader(this, View, ShadowInfo);
 	}
 
 private:
@@ -466,7 +460,7 @@ public:
 		MaterialParameters.Set(this,MaterialRenderContext);
 
 		SetPixelShaderValue(GetPixelShader(),InvMaxSubjectDepthParameter,1.0f / ShadowInfo->MaxSubjectDepth);
-		const FLOAT DepthBias = GetShadowDepthBias(ShadowInfo, MaterialRenderProxy);
+		const FLOAT DepthBias = GetShadowDepthBias(ShadowInfo);
 		SetPixelShaderValue(GetPixelShader(),DepthBiasParameter,DepthBias);
 	}
 
@@ -630,15 +624,23 @@ IMPLEMENT_SHADER_TYPE(,FModShadowProjectionVertexShader,TEXT("ModShadowProjectio
 //Cheap version that uses Hardware PCF
 IMPLEMENT_SHADER_TYPE(template<>,TShadowProjectionPixelShader<F4SampleHwPCF>,TEXT("ShadowProjectionPixelShader"),TEXT("HardwarePCFMain"),SF_Pixel,VER_CONTENT_RESAVE_AUGUST_2007_QA_BUILD,0);
 //Cheap version
+#if BATMAN
+IMPLEMENT_SHADER_TYPE(template<>,TShadowProjectionPixelShader<F4SampleManualPCF>,TEXT("ShadowProjectionPixelShader"),TEXT("Main"),SF_Pixel,VER_CONTENT_RESAVE_AUGUST_2007_QA_BUILD,0);
+#else
 IMPLEMENT_SHADER_TYPE(template<>,TShadowProjectionPixelShader<F4SampleManualPCFPerPixel>,TEXT("ShadowProjectionPixelShader"),TEXT("Main"),SF_Pixel,VER_CONTENT_RESAVE_AUGUST_2007_QA_BUILD,0);
 IMPLEMENT_SHADER_TYPE(template<>,TShadowProjectionPixelShader<F4SampleManualPCFPerFragment>,TEXT("ShadowProjectionPixelShader"),TEXT("Main"),SF_Pixel,VER_CONTENT_RESAVE_AUGUST_2007_QA_BUILD,0);
+#endif
 //Full version that uses Hardware PCF
 IMPLEMENT_SHADER_TYPE(template<>,TShadowProjectionPixelShader<F16SampleHwPCF>,TEXT("ShadowProjectionPixelShader"),TEXT("HardwarePCFMain"),SF_Pixel,VER_CONTENT_RESAVE_AUGUST_2007_QA_BUILD,0);
 //Full version that uses Fetch4
 IMPLEMENT_SHADER_TYPE(template<>,TShadowProjectionPixelShader<F16SampleFetch4PCF>,TEXT("ShadowProjectionPixelShader"),TEXT("Fetch4Main"),SF_Pixel,0,0);
 //Full version
+#if BATMAN
+IMPLEMENT_SHADER_TYPE(template<>,TShadowProjectionPixelShader<F16SampleManualPCF>,TEXT("ShadowProjectionPixelShader"),TEXT("Main"),SF_Pixel,VER_CONTENT_RESAVE_AUGUST_2007_QA_BUILD,0);
+#else
 IMPLEMENT_SHADER_TYPE(template<>,TShadowProjectionPixelShader<F16SampleManualPCFPerPixel>,TEXT("ShadowProjectionPixelShader"),TEXT("Main"),SF_Pixel,VER_CONTENT_RESAVE_AUGUST_2007_QA_BUILD,0);
 IMPLEMENT_SHADER_TYPE(template<>,TShadowProjectionPixelShader<F16SampleManualPCFPerFragment>,TEXT("ShadowProjectionPixelShader"),TEXT("Main"),SF_Pixel,VER_CONTENT_RESAVE_AUGUST_2007_QA_BUILD,0);
+#endif
 //Implement a geometry shader for rendering one pass point light shadows
 IMPLEMENT_SHADER_TYPE(,FOnePassPointShadowProjectionPixelShader,TEXT("ShadowProjectionPixelShader"),TEXT("MainOnePassPointLightPS"),SF_Pixel,0,0);
 
@@ -665,6 +667,10 @@ FShadowProjectionPixelShaderInterface* GetProjPixelShaderRef(BYTE LightShadowQua
 		}
 		else
 		{
+#if BATMAN
+			TShaderMapRef<TShadowProjectionPixelShader<F4SampleManualPCF> > FourSamplePixelShader(GetGlobalShaderMap());
+			PixelShader = *FourSamplePixelShader;
+#else
 			if(bPerFragment)
 			{
 				TShaderMapRef<TShadowProjectionPixelShader<F4SampleManualPCFPerFragment> > FourSamplePixelShader(GetGlobalShaderMap());
@@ -675,6 +681,7 @@ FShadowProjectionPixelShaderInterface* GetProjPixelShaderRef(BYTE LightShadowQua
 				TShaderMapRef<TShadowProjectionPixelShader<F4SampleManualPCFPerPixel> > FourSamplePixelShader(GetGlobalShaderMap());
 				PixelShader = *FourSamplePixelShader;
 			}
+#endif
 		}
 	}
 	//todo - implement medium quality path, 9 samples?
@@ -692,6 +699,10 @@ FShadowProjectionPixelShaderInterface* GetProjPixelShaderRef(BYTE LightShadowQua
 		}
 		else
 		{
+#if BATMAN
+			TShaderMapRef<TShadowProjectionPixelShader<F16SampleManualPCF> > SixteenSamplePixelShader(GetGlobalShaderMap());
+			PixelShader = *SixteenSamplePixelShader;
+#else
 			if(bPerFragment)
 			{
 				TShaderMapRef<TShadowProjectionPixelShader<F16SampleManualPCFPerFragment> > SixteenSamplePixelShader(GetGlobalShaderMap());
@@ -702,6 +713,7 @@ FShadowProjectionPixelShaderInterface* GetProjPixelShaderRef(BYTE LightShadowQua
 				TShaderMapRef<TShadowProjectionPixelShader<F16SampleManualPCFPerPixel> > SixteenSamplePixelShader(GetGlobalShaderMap());
 				PixelShader = *SixteenSamplePixelShader;
 			}
+#endif
 		}
 	}
 	return PixelShader;
@@ -757,7 +769,6 @@ FShadowDepthDrawingPolicy::FShadowDepthDrawingPolicy(
 	// Directional light shadows use an ortho projection and can use the non-perspective correct path without artifacts.
 	// One pass point lights don't output a linear depth, so they are already perspective correct.
 	const UBOOL bUsePerspectiveCorrectShadowDepths = (bInPreShadow || bInFullSceneShadow) && !bInDirectionalLight && !bInOnePassPointLightShadow;
-
 	// If the material is not masked, get the shaders from the default material.
 	// This still handles two-sided materials because we are only overriding which material the shaders come from,
 	// Not which material's two sided flag is checked.
@@ -910,6 +921,7 @@ FShadowDepthDrawingPolicy::FShadowDepthDrawingPolicy(
 			}
 		}
 	}
+
 }
 
 void FShadowDepthDrawingPolicy::DrawShared(const FSceneView* View,FBoundShaderStateRHIParamRef BoundShaderState) const
@@ -1653,6 +1665,18 @@ void FProjectedShadowInfo::RenderProjection(INT ViewIndex, const FViewInfo* View
 	// Shadow types that just mask out an area set this to FALSE.
 	// This is used to know what stencil value to test against later.
 	UBOOL bStenciledIntersectionWithScene = FALSE;
+#if BATMAN
+	const UBOOL bBM2SelfShadowStencil =
+		(bSelfShadowOnly || LightSceneInfo->bNonModulatedSelfShadowing && bRenderingBeforeLight)
+		&& (!ShouldUseDeferredShading() || LightSceneInfo->LightingChannels.GetDeferredShadingChannelMask() == 0);
+	const INT BM2MaskBranch =
+		(GSystemSettings.bEnableForegroundShadowsOnWorld
+			&& DepthPriorityGroup == SDPG_Foreground
+			&& (LightSceneInfo->LightShadowMode == LightShadow_Modulate || LightSceneInfo->LightShadowMode == LightShadow_ModulateBetter)) ? 1 :
+		(bPreShadow ? 2 :
+		(bBM2SelfShadowStencil ? 3 :
+		(IsWholeSceneDominantShadow() ? 4 : 5)));
+#endif
 
 	if( GSystemSettings.bEnableForegroundShadowsOnWorld &&
 		DepthPriorityGroup == SDPG_Foreground &&
@@ -1883,8 +1907,12 @@ void FProjectedShadowInfo::RenderProjection(INT ViewIndex, const FViewInfo* View
 			// Cache the bound shader state
 			SetGlobalBoundShaderState(MaskBoundShaderState,GShadowFrustumVertexDeclaration.VertexDeclarationRHI,*VertexShader,NULL,sizeof(FVector));
 
+			SetDepthBounds(View, FrustumVertices, ARRAY_COUNT(FrustumVertices));
+
 			// Draw the frustum using the stencil buffer to mask just the pixels which are inside the shadow frustum.
 			RHIDrawIndexedPrimitiveUP( PT_TriangleList, 0, 8, 12, GCubeIndices, sizeof(WORD), FrustumVertices, sizeof(FVector));
+
+			RHISetDepthBoundsTest(FALSE, FVector4(0.0f,0.0f,0.0f,1.0f), FVector4(0.0f,0.0f,1.0f,1.0f));
 
 			if (bForegroundCastingOnWorld)
 			{
@@ -2467,6 +2495,32 @@ void FProjectedShadowInfo::RenderFrustumWireframe(FPrimitiveDrawInterface* PDI) 
 		FColor(FLinearColor::FGetHSV(((SubjectPrimitiveId + LightSceneInfo->Id) * 31) & 255,0,255)),
 		SDPG_World
 		);
+}
+
+void FProjectedShadowInfo::SetDepthBounds(const FViewInfo* View, const FVector* Vertices, INT NumVertices) const
+{
+	if (View && Vertices && NumVertices > 0)
+	{
+		FVector MinViewSpaceVertex = View->ViewMatrix.TransformFVector(Vertices[0] - View->PreViewTranslation);
+		FVector MaxViewSpaceVertex = MinViewSpaceVertex;
+
+		for (INT VertexIndex = 1; VertexIndex < NumVertices; VertexIndex++)
+		{
+			const FVector ViewSpaceVertex = View->ViewMatrix.TransformFVector(Vertices[VertexIndex] - View->PreViewTranslation);
+			if (ViewSpaceVertex.Z < MinViewSpaceVertex.Z)
+			{
+				MinViewSpaceVertex = ViewSpaceVertex;
+			}
+			if (ViewSpaceVertex.Z > MaxViewSpaceVertex.Z)
+			{
+				MaxViewSpaceVertex = ViewSpaceVertex;
+			}
+		}
+
+		const FVector4 ClipSpaceNearPos = View->ProjectionMatrix.TransformFVector(MinViewSpaceVertex);
+		const FVector4 ClipSpaceFarPos = View->ProjectionMatrix.TransformFVector(MaxViewSpaceVertex);
+		RHISetDepthBoundsTest(TRUE, ClipSpaceNearPos, ClipSpaceFarPos);
+	}
 }
 
 FMatrix FProjectedShadowInfo::GetScreenToShadowMatrix(const FSceneView& View, UBOOL bTranslucentPreShadow) const

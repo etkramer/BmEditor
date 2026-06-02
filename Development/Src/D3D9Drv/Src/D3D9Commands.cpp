@@ -473,18 +473,29 @@ void FD3D9DynamicRHI::SetViewParametersWithOverrides( const FSceneView& View, co
 	const FVector4 TranslatedViewOrigin = View.ViewOrigin + FVector4(View.PreViewTranslation,0);
 	const FVector4 PreViewTranslation = View.PreViewTranslation;
 	const FVector4 NvStereoEnabled = nv::stereo::IsStereoEnabled() ? FVector4(1, 1, 1, 1) : FVector4(0, 0, 0, 0);
+#if !BATMAN
 	const FVector4 TemporalAAParameters = View.TemporalAAParameters.GetVector();
+#endif
+#if BATMAN
+	const FVector4 CameraPlane(View.CameraPlane.X, View.CameraPlane.Y, View.CameraPlane.Z, -View.CameraPlane.W);
+#endif
 
 	Direct3DDevice->SetVertexShaderConstantF( VSR_ViewProjMatrix, (const FLOAT*) &ViewProjectionMatrix, 4 );
 	Direct3DDevice->SetVertexShaderConstantF( VSR_ViewOrigin, (const FLOAT*) &TranslatedViewOrigin, 1 );
 	Direct3DDevice->SetVertexShaderConstantF( VSR_PreViewTranslation, (const FLOAT*) &PreViewTranslation, 1 );
+#if !BATMAN
 	Direct3DDevice->SetVertexShaderConstantF( VSR_TemporalAAParameters, (const FLOAT*) &TemporalAAParameters, 1 );
+#endif
 	Direct3DDevice->SetPixelShaderConstantF( PSR_MinZ_MaxZ_Ratio, (const FLOAT*) &View.InvDeviceZToWorldZTransform, 1 );
 	Direct3DDevice->SetPixelShaderConstantF( PSR_ScreenPositionScaleBias, (const FLOAT*) &View.ScreenPositionScaleBias, 1 );
 	Direct3DDevice->SetPixelShaderConstantF( PSR_NvStereoEnabled, (const FLOAT*) &NvStereoEnabled, 1 );
 	Direct3DDevice->SetPixelShaderConstantF( PSR_DiffuseOverride, (const FLOAT*) &DiffuseOverride, 1 );
 	Direct3DDevice->SetPixelShaderConstantF( PSR_SpecularOverride, (const FLOAT*) &SpecularOverride, 1 );
+#if BATMAN
+	Direct3DDevice->SetPixelShaderConstantF( PSR_CameraPlane, (const FLOAT*) &CameraPlane, 1 );
+#else
 	Direct3DDevice->SetPixelShaderConstantF( PSR_ViewOrigin, (const FLOAT*) &View.ViewOrigin, 1 );
+#endif
 }
 
 /**
@@ -1184,4 +1195,3 @@ void FD3D9DynamicRHI::SetMultipleViewports(UINT Count, FViewPortBounds* Data)
 { appErrorf(TEXT("D3D9 Render path does not support multiple Viewports!")); }
 FBlendStateRHIRef FD3D9DynamicRHI::CreateMRTBlendState(const FMRTBlendStateInitializerRHI&)
 { appErrorf(TEXT("D3D9 Render path does not support CreateMRTBlendState!")); return NULL; }
-

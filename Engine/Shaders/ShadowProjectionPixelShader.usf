@@ -12,6 +12,26 @@ float4x4 ScreenToShadowMatrix;
 /**
 * Entry point for uniform manual PCF that supports lights using normal shadows.
 */
+#if BATMAN
+void Main(
+	in float4 ScreenPosition : TEXCOORD0,
+	out float4 OutColor : COLOR0
+	)
+{
+	half SceneW = PreviousDepthForShadows(ScreenPosition);
+
+	float4 ShadowPosition = MulMatrix(ScreenToShadowMatrix,float4(ScreenPosition.xy / ScreenPosition.w * SceneW,SceneW,1));
+	ShadowPosition.xy /= ShadowPosition.w;
+	ShadowPosition.z = min(ShadowPosition.z,0.999);
+
+	half Shadow = ManualPCF(ShadowPosition);
+
+	// 0 is shadowed, 1 is unshadowed
+	// RETURN_COLOR not needed unless writing to SceneColor;
+	half FadedShadow = lerp(1.0f, Square(Shadow), ShadowFadeFraction);
+	OutColor = EncodeLightAttenuation(FadedShadow);
+}
+#else
 EARLYDEPTHSTENCIL
 void Main(
 	in float4 ScreenPosition : TEXCOORD0,
@@ -58,12 +78,15 @@ void Main(
 		OutColor = EncodeLightAttenuation(FadedShadow);
 	}
 }
+#endif
 
 
 /**
 * Entry point for uniform hardware PCF that supports lights using normal shadows.
 */
+#if !BATMAN
 EARLYDEPTHSTENCIL
+#endif
 void HardwarePCFMain(
 	in float4 ScreenPosition : TEXCOORD0,
 	out float4 OutColor : COLOR0
@@ -86,7 +109,9 @@ void HardwarePCFMain(
 /**
 * Entry point for uniform Fetch4 PCF that supports lights using normal shadows.
 */
+#if !BATMAN
 EARLYDEPTHSTENCIL
+#endif
 void Fetch4Main(
 	in float4 ScreenPosition : TEXCOORD0,
 	out float4 OutColor : COLOR0

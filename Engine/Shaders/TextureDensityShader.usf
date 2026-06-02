@@ -73,7 +73,6 @@ struct FTextureDensityVSToPS
 		ISOLATE
 		{
 			O.Position = MulMatrix(ViewProjectionMatrixDS,WorldPosition);
-			O.Position = ApplyTemporalAAJitter(O.Position,TemporalAAParametersDS);
 		}
 
 		O.WorldPosition = WorldPosition;
@@ -108,7 +107,6 @@ void MainVertexShader(
 	ISOLATE
 	{
 		Output.Position = MulMatrix(ViewProjectionMatrix, Output.WorldPosition);
-		Output.Position = ApplyTemporalAAJitter(Output.Position,TemporalAAParameters);
 	}
 
 	Output.FactoryInterpolants = VertexFactoryGetInterpolantsVSToPS(Input, VFIntermediates);

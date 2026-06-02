@@ -30,7 +30,9 @@ struct FVertexShaderOffsetConstantBufferContents
 	FMatrix ViewProjectionMatrix;
 	FVector4 ViewOrigin;
 	FVector4 PreViewTranslation;
+#if !BATMAN
 	FVector4 TemporalAAParameters;
+#endif
 };
 struct FPixelShaderOffsetConstantBufferContents
 {
@@ -39,7 +41,9 @@ struct FPixelShaderOffsetConstantBufferContents
 	FVector4 NvStereoEnabled;
 	FVector4 DiffuseOverrideParameter;
 	FVector4 SpecularOverrideParameter;
+#if !BATMAN
 	FVector4 ViewOrigin;
+#endif
 };
 
 class FOpenGLConstantBuffer : public FRenderResource, public FRefCountedObject

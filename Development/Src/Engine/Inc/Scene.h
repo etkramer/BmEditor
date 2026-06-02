@@ -665,6 +665,12 @@ struct FMeshElement
 	BITFIELD bIsDecal : 1;
 	BITFIELD bUseDownsampledTranslucency : 1;
 	BITFIELD SpriteScreenAlignment : 2;
+
+#if BATMAN
+	FTextureRHIRef BarycentricStepsTexture;
+	FTextureRHIRef SmoothNormalsTexture;
+	FTextureRHIRef NeighbouringCoordsTexture;
+#endif
 	void *PlatformMeshData; // FPlatformStaticMeshData
 
 	FORCEINLINE UBOOL IsTranslucent() const
@@ -760,7 +766,8 @@ struct FMeshElement
 		bUseAsOccluder(TRUE),
 		bIsDecal(FALSE),
 		bUseDownsampledTranslucency(FALSE),
-		SpriteScreenAlignment(SSA_CameraFacing)
+		SpriteScreenAlignment(SSA_CameraFacing),
+		PlatformMeshData(NULL)
 	{}
 };
 
@@ -1756,6 +1763,9 @@ public:
 	FConvexVolume ViewFrustum;
 	UBOOL bHasNearClippingPlane;
 	FPlane NearClippingPlane;
+#if BATMAN
+	FPlane CameraPlane;
+#endif
 	FLOAT NearClippingDistance;
 
 	/** TRUE if ViewMatrix.Determinant() is negative. */
@@ -1882,20 +1892,18 @@ public:
 	inline FLOAT EncodeFloatW(FLOAT W) const
 	{
 		checkSlow(!GSupportsDepthTextures);
-		float DepthAdd = -InvDeviceZToWorldZTransform.X;
-		float DepthMul = 1 - InvDeviceZToWorldZTransform.Y;
+		FLOAT DepthAdd = InvDeviceZToWorldZTransform.X;
+		FLOAT DepthMul = InvDeviceZToWorldZTransform.Y;
 		return DepthMul + DepthAdd / W;
 	}
 	/** 
 	 * Decodes the value stored in scene color alpha into world space depth. 
-	 * Note: This must match DecodeFloatW in Common.usf!
+	 * Note: This must match CalcSceneDepth in Common.usf!
 	 */
 	inline FLOAT DecodeFloatW(FLOAT EncodedW) const
 	{
 		checkSlow(!GSupportsDepthTextures);
-		FLOAT DepthAdd = -InvDeviceZToWorldZTransform.X;
-		FLOAT DepthMul = 1 - InvDeviceZToWorldZTransform.Y;
-		return DepthAdd / (EncodedW - DepthMul);
+		return 1.f / (EncodedW * InvDeviceZToWorldZTransform.Z - InvDeviceZToWorldZTransform.W);
 	}
 };
 
@@ -2021,4 +2029,3 @@ public:
 // Static-function 
 class FPrimitiveSceneProxy;
 FPrimitiveSceneProxy* Scene_GetProxyFromInfo(FPrimitiveSceneInfo* Info);
-

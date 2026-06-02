@@ -15,6 +15,5 @@ void Main(
 	ISOLATE
 	{
 		OutPosition = MulMatrix(ViewProjectionMatrix,WorldPos);
-		OutPosition = ApplyTemporalAAJitter(OutPosition,TemporalAAParameters);
 	}
 }

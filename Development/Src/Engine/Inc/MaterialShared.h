@@ -805,6 +805,12 @@ public:
 	virtual FLOAT GetImageReflectionNormalDampening() const { return 1.0f; }
 	virtual FLOAT GetShadowDepthBias() const { return 0.0f; }
 	virtual UBOOL UsesPerPixelCameraVector() const { return FALSE; }
+#if BATMAN
+	virtual UBOOL CanStripNormalsAndTangents() const { return FALSE; }
+	virtual UBOOL CanStripVertexColours() const { return FALSE; }
+	virtual UBOOL ShouldUseFastLODRendering() const { return FALSE; }
+	virtual INT GetMaxBonesPerBatch() const { return 75; }
+#endif
 	virtual UBOOL CastLitTranslucencyShadowAsMasked() const = 0;
 	virtual UBOOL TranslucencyInheritDominantShadowsFromOpaque() const { return FALSE; }
 	virtual enum EBlendMode GetBlendMode() const = 0;
@@ -1420,6 +1426,12 @@ public:
 	virtual FLOAT GetImageReflectionNormalDampening() const;
 	virtual FLOAT GetShadowDepthBias() const;
 	virtual UBOOL UsesPerPixelCameraVector() const;
+#if BATMAN
+	virtual UBOOL CanStripNormalsAndTangents() const;
+	virtual UBOOL CanStripVertexColours() const;
+	virtual UBOOL ShouldUseFastLODRendering() const;
+	virtual INT GetMaxBonesPerBatch() const;
+#endif
 	virtual UBOOL CastLitTranslucencyShadowAsMasked() const;
 	virtual UBOOL TranslucencyInheritDominantShadowsFromOpaque() const;
 	virtual FString GetFriendlyName() const;

@@ -64,7 +64,6 @@ FBasePassVSToPS PassFinalizeTessellationOutput(FBasePassVSToDS Interpolants, flo
 	ISOLATE
 	{
 		O.Position = MulMatrix(ViewProjectionMatrixDS,WorldPosition);
-		O.Position = ApplyTemporalAAJitter(O.Position,TemporalAAParametersDS);
 	}
 	
 	// Calc position-dependent interps

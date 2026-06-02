@@ -4,25 +4,18 @@
 =============================================================================*/
 
 #include "Common.usf"
-#include "SubsurfaceScatteringCommon.usf"
 
 /** The render target texture containing the sub-surface inscattering color. */
 sampler2D SubsurfaceInscatteringTexture;
-
-/** The render target surface containing the SSS attenuation parameters. */
-Texture2DMS<float4> SubsurfaceScatteringAttenuationSurface;
 
 /** The render target texture containing the SSS attenuation parameters. */
 sampler2D SubsurfaceScatteringAttenuationTexture;
 
 /** The delta UVs for the samples. */
-float4 SampleDeltaUVs[NUM_SAMPLE_PAIRS];
+float4 SampleDeltaUVs[NUM_SAMPLES / 2];
 
-/** The scale that transforms XY from clip-space to view-space. */
-float2 ClipToViewScaleXY;
-
-/** The scale that transforms XY from view-space to clip-space. */
-float2 ViewToClipScaleXY;
+/** Transform from clip-space with Z=W to view-space. */
+float4x4 ClipToViewTransform;
 
 /** RGBA8 linear texture containing random normals */
 sampler2D RandomAngleTexture;
@@ -30,13 +23,13 @@ sampler2D RandomAngleTexture;
 /** Buffer size / RandomAngleTexture size */
 float4 NoiseScaleAndOffset;
 
-float4 ScatteringAttenuation(float BaseToSampleDistance,float Radius,float3 LogSubsurfaceAbsorptionColorPerDistance)
+float4 ScatteringAttenuation(float BaseToSampleDistance,float3 LogSubsurfaceAbsorptionColorPerDistance)
 {
 	// Compute the cumulative absorption color for the sample.
 	float3 CumulativeAbsorptionColor = exp2(LogSubsurfaceAbsorptionColorPerDistance * BaseToSampleDistance);
 
 	// Compute the distance attenuation for the sample.
-	float DistanceFactor = saturate(1 / BaseToSampleDistance - 1 / Radius);
+	float DistanceFactor = saturate(1 / BaseToSampleDistance);
 
 	return float4(
 		DistanceFactor * CumulativeAbsorptionColor,
@@ -45,7 +38,7 @@ float4 ScatteringAttenuation(float BaseToSampleDistance,float Radius,float3 LogS
 }
 
 float4 ComputeInscatteringSample(
-	float3 BasePosition,
+	float4 BasePosition,
 	float3 LogSubsurfaceAbsorptionColorPerDistance,
 	float WorldFilterRadius,
 	float2 SampleDeltaUV,
@@ -57,22 +50,22 @@ float4 ComputeInscatteringSample(
 
 	// Add the sample offset to the current pixel's clip-space position, scaled by the world-space radius.
 	// These coordinates are in clip-space, so the divide below will scale the world-space radius to the appropriate size on the screen.
-	float3 SamplePosition = BasePosition + float3(SampleDeltaUV * ViewToClipScaleXY,0) * WorldFilterRadius;
+	float4 SamplePosition = BasePosition + float4(SampleDeltaUV,0,0) * WorldFilterRadius;
 
 	// Read the subsurface scattered light from the sample position.
-	float3 SampleSubsurfaceInscattering = DecodeSubsurfaceInscattering(tex2Dlod(
+	float3 SampleSubsurfaceInscattering = tex2Dlod(
 		SubsurfaceInscatteringTexture,
-		float4(SamplePosition.xy / SamplePosition.z * ScreenPositionScaleBias.xy + ScreenPositionScaleBias.wz,0,0)
-		));
+		float4(SamplePosition.xy / SamplePosition.w * ScreenPositionScaleBias.xy + ScreenPositionScaleBias.wz,0,0)
+		).rgb;
 
 	// Derive the view-space vector from the output pixel to the sample pixel.
-	float SampleW = PreviousDepthForShadows(float4(SamplePosition.xy,0,SamplePosition.z));
-	float3 BaseToSampleClipVector = float3(SamplePosition.xy / SamplePosition.z * SampleW,SampleW) - BasePosition;
-	float3 BaseToSampleViewVector = float3(BaseToSampleClipVector.xy * ClipToViewScaleXY,BaseToSampleClipVector.z);
+	float SampleW = PreviousDepthForShadows(SamplePosition);
+	float3 BaseToSampleClipVector = float3(SamplePosition.xy / SamplePosition.w * SampleW,SampleW) - float3(BasePosition.xy,BasePosition.w);
+	float4 BaseToSampleViewVector = MulMatrix(ClipToViewTransform,float4(BaseToSampleClipVector,0));
 
 	// Debug code to show the sampling pattern.
 #if 0
-	if(length(SamplePosition.xy / SamplePosition.z) >= (4 / 1000.0))
+	if(length(SamplePosition.xy / SamplePosition.w) >= (4 / 1000.0))
 	{
 		SampleSubsurfaceInscattering *= 0.1;
 	}
@@ -86,72 +79,33 @@ float4 ComputeInscatteringSample(
 	float BaseToSampleDistance = length(BaseToSampleViewVector);
 	float4 Attenuation = ScatteringAttenuation(
 		BaseToSampleDistance,
-		WorldFilterRadius,
 		LogSubsurfaceAbsorptionColorPerDistance
 		);
 	return float4(SampleSubsurfaceInscattering * Attenuation.rgb,Attenuation.a);
 }
 
 /** output distortion offsets as color so they can be accumulated (via blending) */
-#if PER_FRAGMENT
-	EARLYDEPTHSTENCIL
-#endif
 void Main(
 	float4 ScreenPosition : TEXCOORD0,
 	out float4 OutColor : COLOR0
-
-	#if PER_FRAGMENT
-		,in uint SampleIndex : SV_SampleIndex
-	#endif
 	)
 {
-	float2 SurfaceDimensions;
-	int NumSurfaceSamples;
-	SubsurfaceScatteringAttenuationSurface.GetDimensions(SurfaceDimensions.x,SurfaceDimensions.y,NumSurfaceSamples);
-	
-	float2 ScreenBufferUVs = ScreenPosition.xy * ScreenPositionScaleBias.xy + ScreenPositionScaleBias.wz;
-	int2 IntScreenBufferUVs = trunc(ScreenBufferUVs * SurfaceDimensions);
-
-	// Test whether this pixel needs per-fragment shading.
-	// There aren't many noticeable artifacts from depth discontinuities, so we just try to detect when the pixel has some samples that don't use the same radius.
-	// This prevents things like dithered translucent materials being overwritten by subsurface scattering.
-	#if !PER_FRAGMENT && MSAA_ENABLED
-		float MinRadius = 1000000;
-		float MaxRadius = 0;
-		for(uint SampleIndex = 0;SampleIndex < NumMSAASamples;++SampleIndex)
-		{
-			float Radius = SubsurfaceScatteringAttenuationSurface.Load(IntScreenBufferUVs,SampleIndex).w;
-			MinRadius = min(MinRadius,Radius);
-			MaxRadius = max(MaxRadius,Radius);
-		}
-		if((MaxRadius - MinRadius) > 0.1)
-		{
-			discard;
-		}
-	#endif
-
 	// Read the subsurface scattering attenuation parameters for this pixel.
-	#if PER_FRAGMENT
-		float4 SubsurfaceScatteringAttenuation = SubsurfaceScatteringAttenuationSurface.Load(IntScreenBufferUVs,SampleIndex);
-	#else
-		float4 SubsurfaceScatteringAttenuation = tex2Dlod(SubsurfaceScatteringAttenuationTexture,float4(ScreenBufferUVs,0,0));
-	#endif
-	float WorldFilterRadius = DecodeSubsurfaceScatteringRadius(SubsurfaceScatteringAttenuation);
-	float3 LogSubsurfaceAbsorptionColorPerDistance = log2(DecodeSubsurfaceAbsorptionColor(SubsurfaceScatteringAttenuation)) / WorldFilterRadius;
+	float2 ScreenBufferUVs = ScreenPosition.xy * ScreenPositionScaleBias.xy + ScreenPositionScaleBias.wz;
+	float4 SubsurfaceScatteringAttenuation = tex2Dlod(SubsurfaceScatteringAttenuationTexture,float4(ScreenBufferUVs,0,0));
+	float WorldFilterRadius = SubsurfaceScatteringAttenuation.w;
+	float3 LogSubsurfaceAbsorptionColorPerDistance = log2(SubsurfaceScatteringAttenuation.rgb) / WorldFilterRadius;
 
 	// If the subsurface scattering radius is 0, then don't compute subsurface scattering for this pixel.
 	float3 SubsurfaceOutscattering = 0;
 	BRANCH
-	if(IsSubsurfaceScatteringExitantPixel(SubsurfaceScatteringAttenuation))
+	if(SubsurfaceScatteringAttenuation.w > 0.01)
 	{
 		// Compute the real screen position from the quad's screen position and the stored depth at that position.
-		#if PER_FRAGMENT
-			float RealScreenW = PreviousDepthForShadowsMSAA(float4(ScreenPosition.xy,0,1),SampleIndex);
-		#else
-			float RealScreenW = PreviousDepthForShadows(float4(ScreenPosition.xy,0,1));
-		#endif
-		float3 RealScreenPosition = float3(
+		float RealScreenW = PreviousDepthForShadows(ScreenPosition);
+		float4 RealScreenPosition = float4(
 			ScreenPosition.xy * RealScreenW,
+			RealScreenW * MinZ_MaxZRatio[1] + MinZ_MaxZRatio[0],
 			RealScreenW
 			);
 
@@ -161,7 +115,7 @@ void Main(
 		// Sample the subsurface scattering.
 		float4 SubsurfaceOutscatteringNumeratorAndDenominator = 0;
 		LOOP
-		for(int SamplePairIndex = 0;SamplePairIndex < NUM_SAMPLE_PAIRS;++SamplePairIndex)
+		for(int SamplePairIndex = 0;SamplePairIndex < NUM_SAMPLES / 2;++SamplePairIndex)
 		{
 			SubsurfaceOutscatteringNumeratorAndDenominator += ComputeInscatteringSample(
 				RealScreenPosition,
@@ -174,7 +128,7 @@ void Main(
 				RealScreenPosition,
 				LogSubsurfaceAbsorptionColorPerDistance,
 				WorldFilterRadius,
-				SampleDeltaUVs[SamplePairIndex].zw,
+				SampleDeltaUVs[SamplePairIndex].wz,
 				SampleReflectionNormal
 				);
 		}

@@ -72,10 +72,12 @@ struct FSharedBasePassInterpolants
 		float4 PixelPosition	: TEXCOORD5;
 	#endif
 
-	// If we're computing the camera vector per-pixel, then we don't need to transport it to the pixel
-	// shader in an interpolator.  Instead, we'll use this slot for storing vertex color, which we
-	// normally wouldn't have space for (due to tangent -> world matrix for WORLD_COORDS=1)
-	float4 CameraVectorOrVertexColor : V_INPUT_CAMERAVECTOR;
+	#if PER_PIXEL_CAMERA_VECTOR || !ROCK_STRIP_VERTEX_COLOUR
+		// If we're computing the camera vector per-pixel, then we don't need to transport it to the pixel
+		// shader in an interpolator.  Instead, we'll use this slot for storing vertex color, which we
+		// normally wouldn't have space for (due to tangent -> world matrix for WORLD_COORDS=1)
+		float4 CameraVectorOrVertexColor : V_INPUT_CAMERAVECTOR;
+	#endif
 
 	#if !MATERIAL_LIGHTINGMODEL_UNLIT
 		#if ENABLE_TRANSLUCENCY_DOF	

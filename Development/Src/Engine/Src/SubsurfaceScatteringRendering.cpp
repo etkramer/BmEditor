@@ -16,7 +16,7 @@
 
 		static UBOOL ShouldCache(EShaderPlatform Platform)
 		{
-			return Platform == SP_PCD3D_SM5;
+			return IsPCPlatform(Platform);
 		}
 
 		FSubsurfaceScatteringVertexShader()	{}
@@ -57,12 +57,13 @@
 
 		static UBOOL ShouldCache(EShaderPlatform Platform)
 		{
-			return Platform == SP_PCD3D_SM5;
+			return IsPCPlatform(Platform);
 		}
 
 		static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 		{
 			FShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+			OutEnvironment.Definitions.Set(TEXT("NUM_SAMPLES"),*FString::Printf(TEXT("%u"),(UINT)NumSamples));
 			OutEnvironment.Definitions.Set(TEXT("NUM_SAMPLE_PAIRS"),*FString::Printf(TEXT("%u"),NumSamplePairs));
 			OutEnvironment.Definitions.Set(TEXT("MSAA_ENABLED"),MSAAShaderFrequency != MSAASF_NoMSAA ? TEXT("1") : TEXT("0"));
 			OutEnvironment.Definitions.Set(TEXT("PER_FRAGMENT"),MSAAShaderFrequency == MSAASF_PerFragment ? TEXT("1") : TEXT("0"));
@@ -73,12 +74,10 @@
 		{
 			SceneTextureParameters.Bind(Initializer.ParameterMap);
 			SampleDeltaUVsParameter.Bind(Initializer.ParameterMap,TEXT("SampleDeltaUVs"),TRUE);
-			ClipToViewScaleXYParameter.Bind(Initializer.ParameterMap,TEXT("ClipToViewScaleXY"),TRUE);
-			ViewToClipScaleXYParameter.Bind(Initializer.ParameterMap,TEXT("ViewToClipScaleXY"),TRUE);
+			ClipToViewTransformParameter.Bind(Initializer.ParameterMap,TEXT("ClipToViewTransform"),TRUE);
 			WorldFilterRadiusParameter.Bind(Initializer.ParameterMap,TEXT("WorldFilterRadius"),TRUE);
 			SubsurfaceInscatteringTextureParameter.Bind(Initializer.ParameterMap,TEXT("SubsurfaceInscatteringTexture"),TRUE);
 			SubsurfaceScatteringAttenuationTextureParameter.Bind(Initializer.ParameterMap,TEXT("SubsurfaceScatteringAttenuationTexture"),TRUE);
-			SubsurfaceScatteringAttenuationSurfaceParameter.Bind(Initializer.ParameterMap,TEXT("SubsurfaceScatteringAttenuationSurface"),TRUE);
 			RandomAngleTextureParameter.Bind(Initializer.ParameterMap,TEXT("RandomAngleTexture"),TRUE);
 			NoiseScaleAndOffsetParameter.Bind(Initializer.ParameterMap,TEXT("NoiseScaleAndOffset"),TRUE);
 		}
@@ -135,34 +134,18 @@
 			for(UINT SamplePairIndex = 0;SamplePairIndex < NumSamplePairs;++SamplePairIndex)
 			{
 				const FVector4 PackedSamplePair(
-					SampleDeltaUVs[SamplePairIndex * 2 + 0].X,
-					SampleDeltaUVs[SamplePairIndex * 2 + 0].Y,
-					SampleDeltaUVs[SamplePairIndex * 2 + 1].X,
-					SampleDeltaUVs[SamplePairIndex * 2 + 1].Y
+					SampleDeltaUVs[SamplePairIndex * 2 + 0].X * View.ProjectionMatrix.M[0][0],
+					SampleDeltaUVs[SamplePairIndex * 2 + 0].Y * View.ProjectionMatrix.M[1][1],
+					SampleDeltaUVs[SamplePairIndex * 2 + 1].X * View.ProjectionMatrix.M[0][0],
+					SampleDeltaUVs[SamplePairIndex * 2 + 1].Y * View.ProjectionMatrix.M[1][1]
 					);
 				SetPixelShaderValue(GetPixelShader(),SampleDeltaUVsParameter,PackedSamplePair,SamplePairIndex);
 			}
 
-			const FVector2D ClipToViewScaleXY(
-				1.0f / View.ProjectionMatrix.M[0][0],
-				1.0f / View.ProjectionMatrix.M[1][1]
-				);
-			SetPixelShaderValue(GetPixelShader(),ClipToViewScaleXYParameter,ClipToViewScaleXY);
-
-			const FVector2D ViewToClipScaleXY(
-				View.ProjectionMatrix.M[0][0],
-				View.ProjectionMatrix.M[1][1]
-				);
-			SetPixelShaderValue(GetPixelShader(),ViewToClipScaleXYParameter,ViewToClipScaleXY);
+			SetPixelShaderValue(GetPixelShader(),ClipToViewTransformParameter,View.InvProjectionMatrix);
 
 			SetTextureParameter(GetPixelShader(),SubsurfaceInscatteringTextureParameter,TStaticSamplerState<>::GetRHI(),GSceneRenderTargets.GetSubsurfaceInscatteringTexture());
 			SetTextureParameter(GetPixelShader(),SubsurfaceScatteringAttenuationTextureParameter,TStaticSamplerState<>::GetRHI(),GSceneRenderTargets.GetSubsurfaceScatteringAttenuationTexture());
-			
-			SetSurfaceParameter(
-				GetPixelShader(),
-				SubsurfaceScatteringAttenuationSurfaceParameter,
-				GSceneRenderTargets.GetSubsurfaceScatteringAttenuationSurface()
-				);
 		}
 
 		virtual UBOOL Serialize(FArchive& Ar)
@@ -170,12 +153,10 @@
 			UBOOL bShaderHasOutdatedParameters = FShader::Serialize(Ar);
 			Ar << SceneTextureParameters;
 			Ar << SampleDeltaUVsParameter;
-			Ar << ClipToViewScaleXYParameter;
-			Ar << ViewToClipScaleXYParameter;
+			Ar << ClipToViewTransformParameter;
 			Ar << WorldFilterRadiusParameter;
 			Ar << SubsurfaceInscatteringTextureParameter;
 			Ar << SubsurfaceScatteringAttenuationTextureParameter;
-			Ar << SubsurfaceScatteringAttenuationSurfaceParameter;
 			Ar << RandomAngleTextureParameter;
 			Ar << NoiseScaleAndOffsetParameter;
 			return bShaderHasOutdatedParameters;
@@ -186,13 +167,11 @@
 		FSceneTextureShaderParameters SceneTextureParameters;
 
 		FShaderParameter SampleDeltaUVsParameter;
-		FShaderParameter ClipToViewScaleXYParameter;
-		FShaderParameter ViewToClipScaleXYParameter;
+		FShaderParameter ClipToViewTransformParameter;
 		FShaderParameter WorldFilterRadiusParameter;
 
 		FShaderResourceParameter SubsurfaceInscatteringTextureParameter;
 		FShaderResourceParameter SubsurfaceScatteringAttenuationTextureParameter;
-		FShaderResourceParameter SubsurfaceScatteringAttenuationSurfaceParameter;
 		
 		FShaderResourceParameter RandomAngleTextureParameter;
 		FShaderParameter NoiseScaleAndOffsetParameter;

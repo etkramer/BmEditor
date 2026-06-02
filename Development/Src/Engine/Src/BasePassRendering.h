@@ -102,6 +102,13 @@ public:
 #endif
 	}
 
+#if BATMAN
+	void SetObjectFogColor(const FLinearColor& ObjectFogColor)
+	{
+		SetVertexShaderValue(GetVertexShader(), ObjectFogColorParameter, ObjectFogColor);
+	}
+#endif
+
 	void SetFogVolumeParameters(
 		const FVertexFactory* VertexFactory,
 		const FMaterialRenderProxy* MaterialRenderProxy,
@@ -269,8 +276,10 @@ public:
 		LightMapPolicyType::PixelParametersType::Bind(Initializer.ParameterMap);
 		MaterialParameters.Bind(Initializer.ParameterMap);
 		AmbientColorAndSkyFactorParameter.Bind(Initializer.ParameterMap,TEXT("AmbientColorAndSkyFactor"),TRUE);
+#if !BATMAN
 		UpperSkyColorParameter.Bind(Initializer.ParameterMap,TEXT("UpperSkyColor"),TRUE);
 		LowerSkyColorParameter.Bind(Initializer.ParameterMap,TEXT("LowerSkyColor"),TRUE);
+#endif
 #if BATMAN
 		MotionBlurMaskParameter.Bind(Initializer.ParameterMap,TEXT("MotionBlurMask"),TRUE);
 #else
@@ -334,8 +343,10 @@ public:
 
 	void SetSkyColor(const FLinearColor& UpperSkyColor,const FLinearColor& LowerSkyColor)
 	{
+#if !BATMAN
 		SetPixelShaderValue(GetPixelShader(),UpperSkyColorParameter,UpperSkyColor);
 		SetPixelShaderValue(GetPixelShader(),LowerSkyColorParameter,LowerSkyColor);
+#endif
 	}
 
 	virtual UBOOL Serialize(FArchive& Ar)
@@ -351,8 +362,10 @@ public:
 			LightMapPolicyType::PixelParametersType::Serialize(Ar);
 			Ar << MaterialParameters;
 			Ar << AmbientColorAndSkyFactorParameter;
-			Ar << UpperSkyColorParameter;
-			Ar << LowerSkyColorParameter;
+			FShaderParameter UnusedUpperSkyColorParameter;
+			FShaderParameter UnusedLowerSkyColorParameter;
+			Ar << UnusedUpperSkyColorParameter;
+			Ar << UnusedLowerSkyColorParameter;
 			Ar << MotionBlurMaskParameter;
 		}
 		else
@@ -362,8 +375,10 @@ public:
 			LightMapPolicyType::PixelParametersType::Serialize(Ar);
 			Ar << MaterialParameters;
 			Ar << AmbientColorAndSkyFactorParameter;
+#if !BATMAN
 			Ar << UpperSkyColorParameter;
 			Ar << LowerSkyColorParameter;
+#endif
 #if BATMAN
 			Ar << MotionBlurMaskParameter;
 #else
@@ -371,9 +386,11 @@ public:
 #endif
 		}
 
+#if !BATMAN
 		// set parameter names for platforms that need them
 		UpperSkyColorParameter.SetShaderParamName(TEXT("UpperSkyColor"));
 		LowerSkyColorParameter.SetShaderParamName(TEXT("LowerSkyColor"));
+#endif
 
 		return bShaderHasOutdatedParameters;
 	}
@@ -386,8 +403,10 @@ public:
 private:
 	FMaterialPixelShaderParameters MaterialParameters;
 	FShaderParameter AmbientColorAndSkyFactorParameter;
+#if !BATMAN
 	FShaderParameter UpperSkyColorParameter;
 	FShaderParameter LowerSkyColorParameter;
+#endif
 #if BATMAN
 	FShaderParameter MotionBlurMaskParameter;
 #else
@@ -471,6 +490,32 @@ public:
 	TBasePassPixelShader() {}
 };
 
+#if BATMAN
+template<typename LightMapPolicyType, UBOOL bEnableSkyLight>
+static UBOOL BM2HasCookedBasePassShaders(const FMaterial* Material, FVertexFactoryType* VertexFactoryType)
+{
+	if (!Material || !VertexFactoryType)
+	{
+		return FALSE;
+	}
+
+	FMeshMaterialShaderType* VertexShaderType = &TVertexShaderTessellationPermutation<TBasePassVertexShader<LightMapPolicyType,FNoDensityPolicy>,0>::StaticType;
+	FMeshMaterialShaderType* PixelShaderType = &TBasePassPixelShader<LightMapPolicyType,bEnableSkyLight>::StaticType;
+	// Prefer the cooked BM2 cache as the source of truth; local ShouldCache can differ while reconstruction is in flight.
+	const FMaterialShaderMap* MaterialShaderMap = Material->GetShaderMap();
+	const FMeshMaterialShaderMap* MeshShaderMap = MaterialShaderMap ? MaterialShaderMap->GetMeshShaderMap(VertexFactoryType) : NULL;
+	return MeshShaderMap
+		&& MeshShaderMap->GetShader(VertexShaderType)
+		&& MeshShaderMap->GetShader(PixelShaderType);
+}
+
+template<typename LightMapPolicyType>
+static UBOOL BM2HasCookedBasePassNoSkyLightShaders(const FMaterial* Material, FVertexFactoryType* VertexFactoryType)
+{
+	return BM2HasCookedBasePassShaders<LightMapPolicyType,FALSE>(Material, VertexFactoryType);
+}
+#endif
+
 /**
  * Draws the emissive color and the light-map of a mesh.
  */
@@ -516,7 +561,8 @@ public:
 		UBOOL bInRenderingToLowResTranslucency = FALSE,
 		UBOOL bInRenderingToDoFBlurBuffer = FALSE,
 		UBOOL bInShouldOverwriteTranslucentAlpha = FALSE,
-		UBOOL bInAllowGlobalFog = FALSE
+		UBOOL bInAllowGlobalFog = FALSE,
+		const FLinearColor& InObjectFogColor = FLinearColor(0.0f, 0.0f, 0.0f, 1.0f)
 		):
 		FMeshDrawingPolicy(InVertexFactory,InMaterialRenderProxy,bOverrideWithShaderComplexity),
 		LightMapPolicy(InLightMapPolicy),
@@ -526,9 +572,16 @@ public:
 		bRenderingToLowResTranslucency(bInRenderingToLowResTranslucency),
 		bRenderingToDoFBlurBuffer(bInRenderingToDoFBlurBuffer),
 		bShouldOverwriteTranslucentAlpha(bInShouldOverwriteTranslucentAlpha),
-		bAllowGlobalFog(bInAllowGlobalFog)
+		bAllowGlobalFog(bInAllowGlobalFog),
+		ObjectFogColor(InObjectFogColor)
 	{
 		const FMaterial* MaterialResource = InMaterialRenderProxy->GetMaterial();
+#if BATMAN
+		if (bEnableSkyLight && !BM2HasCookedBasePassShaders<LightMapPolicyType,TRUE>(MaterialResource, InVertexFactory->GetType()))
+		{
+			bEnableSkyLight = FALSE;
+		}
+#endif
 
 #if WITH_D3D11_TESSELLATION
 		HullShader = NULL;
@@ -586,6 +639,7 @@ public:
 				bRenderingToDoFBlurBuffer == Other.bRenderingToDoFBlurBuffer &&
 				bShouldOverwriteTranslucentAlpha == Other.bShouldOverwriteTranslucentAlpha &&
 				bAllowGlobalFog == Other.bAllowGlobalFog &&
+				ObjectFogColor == Other.ObjectFogColor &&
 
 				LightMapPolicy == Other.LightMapPolicy;
 		}
@@ -594,6 +648,9 @@ public:
 	void DrawShared(const FSceneView* View,FBoundShaderStateRHIParamRef BoundShaderState) const
 	{
 		VertexShader->SetParameters(VertexFactory,MaterialRenderProxy,*View, bAllowGlobalFog);
+#if BATMAN
+		VertexShader->SetObjectFogColor(ObjectFogColor);
+#endif
 #if WITH_D3D11_TESSELLATION
 		if(HullShader)
 		{
@@ -747,6 +804,7 @@ public:
 		}
 
 		FPixelShaderRHIParamRef PixelShaderRHIRef = PixelShader->GetPixelShader();
+		FVertexShaderRHIParamRef VertexShaderRHIRef = VertexShader->GetVertexShader();
 
 #if !FINAL_RELEASE
 		if (bOverrideWithShaderComplexity)
@@ -761,13 +819,13 @@ public:
 		BoundShaderState = RHICreateBoundShaderStateD3D11(
 			VertexDeclaration, 
 			StreamStrides, 
-			VertexShader->GetVertexShader(),
+			VertexShaderRHIRef,
 			GETSAFERHISHADER_HULL(HullShader), 
 			GETSAFERHISHADER_DOMAIN(DomainShader), 
 			PixelShaderRHIRef,
 			FGeometryShaderRHIRef());
 #else
-			BoundShaderState = RHICreateBoundShaderState(VertexDeclaration, StreamStrides, VertexShader->GetVertexShader(), PixelShaderRHIRef);
+			BoundShaderState = RHICreateBoundShaderState(VertexDeclaration, StreamStrides, VertexShaderRHIRef, PixelShaderRHIRef);
 #endif
 
 		return BoundShaderState;
@@ -881,6 +939,11 @@ public:
 			COMPAREDRAWINGPOLICYMEMBERS(bRenderingToDoFBlurBuffer);
 			COMPAREDRAWINGPOLICYMEMBERS(bShouldOverwriteTranslucentAlpha);
 			COMPAREDRAWINGPOLICYMEMBERS(bAllowGlobalFog);
+			for (INT ColorIndex = 0; ColorIndex < 4; ColorIndex++)
+			{
+				if (A.ObjectFogColor.Component(ColorIndex) < B.ObjectFogColor.Component(ColorIndex)) { return -1; }
+				else if (A.ObjectFogColor.Component(ColorIndex) > B.ObjectFogColor.Component(ColorIndex)) { return +1; }
+			}
 
 			return Compare(A.LightMapPolicy,B.LightMapPolicy);
 		}
@@ -905,6 +968,7 @@ protected:
 	BITFIELD bRenderingToDoFBlurBuffer : 1;
 	BITFIELD bShouldOverwriteTranslucentAlpha : 1;
 	BITFIELD bAllowGlobalFog : 1;
+	FLinearColor ObjectFogColor;
 
 	friend class FDrawTranslucentMeshAction;
 };
@@ -1014,6 +1078,35 @@ void ProcessBasePassMesh_LightMapped(
 
 	#undef HANDLE_FOG_VOLUME_DENSITY_FUNCTION
 }
+
+#if BATMAN
+template<typename ProcessActionType>
+void BM2ProcessNoLightCompatibleBasePassMesh(
+	const FProcessBasePassMeshParameters& Parameters,
+	const ProcessActionType& Action
+	)
+{
+	if (BM2HasCookedBasePassNoSkyLightShaders<FNoLightMapPolicy>(Parameters.Material, Parameters.Mesh.VertexFactory->GetType()))
+	{
+		ProcessBasePassMesh_LightMapped<ProcessActionType, FNoLightMapPolicy>(
+			Parameters,
+			Action,
+			FNoLightMapPolicy(),
+			FNoLightMapPolicy::ElementDataType());
+	}
+	else if (BM2HasCookedBasePassNoSkyLightShaders<FAPlus3DLightLightMapPolicy>(Parameters.Material, Parameters.Mesh.VertexFactory->GetType()))
+	{
+		ProcessBasePassMesh_LightMapped<ProcessActionType, FAPlus3DLightLightMapPolicy>(
+			Parameters,
+			Action,
+			FAPlus3DLightLightMapPolicy(),
+			FAPlus3DLightLightMapPolicy::ElementDataType());
+	}
+	else
+	{
+	}
+}
+#endif
 
 /** Processes a base pass mesh using an unknown light map policy, and unknown fog density policy. */
 template<typename ProcessActionType>
@@ -1201,9 +1294,19 @@ void ProcessBasePassMesh(
 #endif
 						{
 						const FSHVectorRGB* TranslucencyMergedLighting = Action.GetTranslucencyCompositedDynamicLighting();
+#if BATMAN
+						const UBOOL bCanUseSHLightBasePass = BM2HasCookedBasePassNoSkyLightShaders<FSHLightLightMapPolicy>(Parameters.Material, Parameters.Mesh.VertexFactory->GetType());
+						const UBOOL bCanUseDirectionalLightBasePass = BM2HasCookedBasePassNoSkyLightShaders<FDirectionalLightLightMapPolicy>(Parameters.Material, Parameters.Mesh.VertexFactory->GetType());
+						const UBOOL bCanUseSHAndMultiTypeLightBasePass = BM2HasCookedBasePassNoSkyLightShaders<FSHLightAndMultiTypeLightMapPolicy>(Parameters.Material, Parameters.Mesh.VertexFactory->GetType());
+						const UBOOL bCanUseDynamicMultiTypeLightBasePass = BM2HasCookedBasePassNoSkyLightShaders<FDynamicallyShadowedMultiTypeLightLightMapPolicy>(Parameters.Material, Parameters.Mesh.VertexFactory->GetType());
+#endif
 						// If this element is doing approximate one pass lighting for translucency, use a lightmap policy that supports this
 						// Note that Action.GetTranslucencyMergedDynamicLightInfo() can still be NULL if no directional, spot or point light was found affecting the translucency
-						if (TranslucencyMergedLighting)
+						if (TranslucencyMergedLighting
+#if BATMAN
+							&& bCanUseSHLightBasePass
+#endif
+							)
 						{
 							ProcessBasePassMesh_LightMapped<ProcessActionType, FSHLightLightMapPolicy>(Parameters, Action, 
 								FSHLightLightMapPolicy(), 
@@ -1211,14 +1314,22 @@ void ProcessBasePassMesh(
 									*TranslucencyMergedLighting,
 									FDirectionalLightLightMapPolicy::ElementDataType(bReceiveDynamicShadows, bOverrideDynamicShadowsOnTranslucency, Action.GetTranslucentPreShadow(), Action.GetTranslucencyMergedDynamicLightInfo())));
 						}
-						else if (Parameters.PrimitiveSceneInfo->DynamicLightSceneInfo)
+						else if (Parameters.PrimitiveSceneInfo->DynamicLightSceneInfo
+#if BATMAN
+							&& bCanUseDirectionalLightBasePass
+#endif
+							)
 						{
 							// Check if we should use a dynamically shadowed dynamic light in the base pass
 							if (GOnePassDominantLight && IsDominantLightType(Parameters.PrimitiveSceneInfo->DynamicLightSceneInfo->LightType))
 							{
 								// No need to check PrimitiveSceneInfo->bRenderSHLightInBasePass, 
 								// When combined with a dominant light the SH light can always be merged into the base pass. 
-								if (Parameters.PrimitiveSceneInfo->SHLightSceneInfo)
+								if (Parameters.PrimitiveSceneInfo->SHLightSceneInfo
+#if BATMAN
+									&& bCanUseSHAndMultiTypeLightBasePass
+#endif
+									)
 								{
 									// Render the SH light in the base pass instead of as a separate pass, along with a dynamically shadowed dynamic light
 									ProcessBasePassMesh_LightMapped<ProcessActionType, FSHLightAndMultiTypeLightMapPolicy>(Parameters, Action, 
@@ -1227,22 +1338,36 @@ void ProcessBasePassMesh(
 											Parameters.PrimitiveSceneInfo,
 											FDynamicallyShadowedMultiTypeLightLightMapPolicy::ElementDataType(bReceiveDynamicShadows, bOverrideDynamicShadowsOnTranslucency, Action.GetTranslucentPreShadow())));
 								}
+#if BATMAN
+								else if (bCanUseDynamicMultiTypeLightBasePass)
+#else
 								else
+#endif
 								{
 									// Render just a dynamically shadowed light in the base pass
 									ProcessBasePassMesh_LightMapped<ProcessActionType, FDynamicallyShadowedMultiTypeLightLightMapPolicy>(Parameters, Action, 
 										FDynamicallyShadowedMultiTypeLightLightMapPolicy(Parameters.PrimitiveSceneInfo->DynamicLightSceneInfo, bUseTranslucencyLightAttenuation), 
 										FDynamicallyShadowedMultiTypeLightLightMapPolicy::ElementDataType(bReceiveDynamicShadows, bOverrideDynamicShadowsOnTranslucency, Action.GetTranslucentPreShadow()));
 								}
+#if BATMAN
+								else
+								{
+									BM2ProcessNoLightCompatibleBasePassMesh<ProcessActionType>(Parameters,Action);
+								}
+#endif
 							}
 							else
 							{
 								// Using an unshadowed directional light
 								// Check if we should also use a spherical harmonic light in the base pass
-								if (Parameters.PrimitiveSceneInfo->bRenderSHLightInBasePass 
+								if ((Parameters.PrimitiveSceneInfo->bRenderSHLightInBasePass
 									// Also use an SH light in the base pass if one is affecting this primitive, the primitive is in the foreground DPG for this view and foreground self-shadowing is disabled.
 									// There will be no modulated shadow between the base pass and SH light pass in this case so it is more efficient to merge them together.
-									|| Parameters.PrimitiveSceneInfo->SHLightSceneInfo && !GSystemSettings.bEnableForegroundSelfShadowing && Action.GetDPG(Parameters) == SDPG_Foreground) 
+									|| Parameters.PrimitiveSceneInfo->SHLightSceneInfo && !GSystemSettings.bEnableForegroundSelfShadowing && Action.GetDPG(Parameters) == SDPG_Foreground)
+#if BATMAN
+									&& bCanUseSHLightBasePass
+#endif
+									)
 								{
 									ProcessBasePassMesh_LightMapped<ProcessActionType, FSHLightLightMapPolicy>(Parameters, Action, 
 										FSHLightLightMapPolicy(), 
@@ -1258,23 +1383,23 @@ void ProcessBasePassMesh(
 								}
 							}
 						}
-#if BATMAN
-						else if (Parameters.Mesh.VertexFactory->GetType()->SupportsDynamicLighting()
-							&& (Parameters.Material->HasSSSNormal() || Parameters.Material->IsSpecialEngineMaterial()))
-						{
-							FLightMapInteraction EmptyLightMap;
-							ProcessBasePassMesh_LightMapped<ProcessActionType, FDirectionalLightMapTexturePolicy>(Parameters,Action,FDirectionalLightMapTexturePolicy(),EmptyLightMap);
-						}
-#endif
 						else
 						{
+#if BATMAN
+							BM2ProcessNoLightCompatibleBasePassMesh<ProcessActionType>(Parameters,Action);
+#else
 							ProcessBasePassMesh_LightMapped<ProcessActionType, FNoLightMapPolicy>(Parameters,Action,FNoLightMapPolicy(),FNoLightMapPolicy::ElementDataType());
+#endif
 						}
 						}
 					}
 					else
 					{
+#if BATMAN
+						BM2ProcessNoLightCompatibleBasePassMesh<ProcessActionType>(Parameters,Action);
+#else
 						ProcessBasePassMesh_LightMapped<ProcessActionType, FNoLightMapPolicy>(Parameters,Action,FNoLightMapPolicy(),FNoLightMapPolicy::ElementDataType());
+#endif
 					}
 				}
 				break;

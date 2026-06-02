@@ -21,7 +21,7 @@
 
 =============================================================================*/
 
-#define MAX_BONES 75
+//@Rock - JG: Now defined by material system - #define MAX_BONES 75
 
 #ifndef GPUSKIN_MORPH_BLEND
 #define GPUSKIN_MORPH_BLEND 0
@@ -309,7 +309,7 @@ sampler PreviousBoneMatrices;
 float4 BoneIndexOffsetAndScale;
 #if !TRANSFORM_BLEND
 #if XBOX 
-bool bUsePerBoneMotionBlur;
+bool UsePerBoneMotionBlur;
 #endif // XBOX
 #endif
 
@@ -612,7 +612,7 @@ float3 SkinPreviousPosition( FVertexFactoryInput Input, FVertexFactoryIntermedia
 #if XBOX
 	// static branching
 	// Should be a bool on all platforms, but bool params don't work in vertex shaders yet (TTP 125134)
-	if(bUsePerBoneMotionBlur)
+	if(UsePerBoneMotionBlur)
 #elif PS3
 	// for now deactivated in PS3, see GSupportsVertexTextureFetch for more details
 	if(0)

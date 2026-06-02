@@ -144,12 +144,8 @@ void FPointLightPolicy::ModShadowPixelParamsType::SetModShadowLight(FShader* Pix
 		);
 	SetPixelShaderValue(
 		PixelShader->GetPixelShader(),
-		FalloffParameters, 
-		FVector(
-			Light->ShadowFalloffExponent,
-			Light->ShadowFalloffScale,
-			Light->ShadowFalloffBias
-			)
+		FalloffParameters,
+		Light->GetFalloffParameters()
 		);
 }
 

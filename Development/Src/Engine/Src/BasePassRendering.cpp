@@ -144,19 +144,16 @@ void FAPlus3DLightLightMapPolicy::SetMesh(
 	const ElementDataType& AmbientPlus3DirectionalLight
 	) const
 {
-	// Mirrors retail BM2 (sub_6E57F0): 3 vertex float4s (light directions, w=0) and
-	// 4 pixel float4s (3 colors + 1 ambient, w=0). The proxy stores FVectors so we
-	// pack into stack float4s before uploading.
-	if (!AmbientPlus3DirectionalLight)
-	{
-		return;
-	}
+	// Mirrors retail BM2 (sub_6E57F0) when AP3D scene info is present. The NULL path
+	// is only for editor preview draws that have BM2 AP3D cooked shaders but no game light environment.
 	if (VertexShaderParameters)
 	{
 		FVector4 Dirs[3];
 		for (INT i = 0; i < 3; i++)
 		{
-			Dirs[i] = FVector4(AmbientPlus3DirectionalLight->LightDirections[i], 0.0f);
+			Dirs[i] = AmbientPlus3DirectionalLight
+				? FVector4(AmbientPlus3DirectionalLight->LightDirections[i], 0.0f)
+				: FVector4(0.0f, 0.0f, 1.0f, 0.0f);
 		}
 		SetVertexShaderValues<FVector4>(
 			VertexShader->GetVertexShader(),
@@ -169,9 +166,13 @@ void FAPlus3DLightLightMapPolicy::SetMesh(
 		FVector4 ColorsAndAmbient[4];
 		for (INT i = 0; i < 3; i++)
 		{
-			ColorsAndAmbient[i] = FVector4(AmbientPlus3DirectionalLight->LightColours[i], 0.0f);
+			ColorsAndAmbient[i] = AmbientPlus3DirectionalLight
+				? FVector4(AmbientPlus3DirectionalLight->LightColours[i], 0.0f)
+				: FVector4(0.0f, 0.0f, 0.0f, 0.0f);
 		}
-		ColorsAndAmbient[3] = FVector4(AmbientPlus3DirectionalLight->Ambient, 0.0f);
+		ColorsAndAmbient[3] = AmbientPlus3DirectionalLight
+			? FVector4(AmbientPlus3DirectionalLight->Ambient, 0.0f)
+			: FVector4(1.0f, 1.0f, 1.0f, 0.0f);
 		SetPixelShaderValues<FVector4>(
 			PixelShader->GetPixelShader(),
 			PixelShaderParameters->APlus3DLightPixelInfoParameter,
@@ -426,7 +427,18 @@ public:
 		}
 		else
 		{
+#if BATMAN
+			if (BM2HasCookedBasePassNoSkyLightShaders<FNoLightMapPolicy>(Parameters.Material, Parameters.Mesh.VertexFactory->GetType()))
+			{
+				Process<FNoLightMapPolicy>(Parameters,FNoLightMapPolicy(),FNoLightMapPolicy::ElementDataType());
+			}
+			else
+			{
+				Process<LightMapPolicyType>(Parameters,LightMapPolicy,LightMapElementData);
+			}
+#else
 			Process<FNoLightMapPolicy>(Parameters,FNoLightMapPolicy(),FNoLightMapPolicy::ElementDataType());
+#endif
 		}
 	}
 };

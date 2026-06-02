@@ -258,12 +258,15 @@ half PhongShadingPow(half X, half Y)
 #define PSR_NvStereoEnabled         c3  // Whether stereo is enabled on the current rendering device
 #define PSR_DiffuseOverride         c4  // Overrides GetMaterialDiffuseColor for visualization
 #define PSR_SpecularOverride        c5  // Overrides GetMaterialSpecularColor for visualization
-#define PSR_ViewOrigin              c6  // World space position of the camera
+#define PSR_CameraPlane             c6  // BM2 camera plane used by depth biased blends
+#define PSR_ViewOrigin              PSR_CameraPlane
 
 #define VSR_ViewProjMatrix          c0  // View-projection matrix, transforming from World space to Projection space
 #define VSR_ViewOrigin              c4  // World space position of the camera
 #define VSR_PreViewTranslation      c5  // Offset applied to LocalToWorld to reduce precision problems far from the world space origin
+#if SM5_PROFILE
 #define VSR_TemporalAAParameters    c6
+#endif
 #endif
 
 // Helper macro used to interpolate the given member
@@ -338,16 +341,16 @@ half PhongShadingPow(half X, half Y)
 	/** Note - the vertex shader CameraPosition has been translated so the camera position is at the origin. */
 	float4		CameraPositionVS			VERTEXREGISTER(VSR_ViewOrigin);
 	float4		PreViewTranslation			VERTEXREGISTER(VSR_PreViewTranslation);
-	float4		TemporalAAParameters		VERTEXREGISTER(VSR_TemporalAAParameters);
+	static const float4 TemporalAAParameters = float4(0,0,0,0);
 
 	// Converts projection-space XY coordinates to texture-space UV coordinates
 	float4		ScreenPositionScaleBias		PIXELREGISTER(PSR_ScreenPositionScaleBias);
 	float4	    MinZ_MaxZRatio				PIXELREGISTER(PSR_MinZ_MaxZ_Ratio);
-	float4		CameraPositionPS			PIXELREGISTER(PSR_ViewOrigin);
 #if SM3_PROFILE
 	float		NvStereoEnabled				PIXELREGISTER(PSR_NvStereoEnabled);
 	float4		DiffuseOverrideParameter	PIXELREGISTER(PSR_DiffuseOverride);
 	float4		SpecularOverrideParameter	PIXELREGISTER(PSR_SpecularOverride);
+	float4		CameraPlane					PIXELREGISTER(PSR_CameraPlane);
 #endif
 #endif
 
@@ -401,8 +404,11 @@ float4 MonoToStereoClipPos(float4 monoClipPos)
 		float2 stereoParms = tex2D(NvStereoFixTexture, float2(0.0625f, 0.0f)).rg;
 
 		float4 stereoClipPos = monoClipPos;
-		
+
 		// Duplicate the stereo transform here.
+		// NVCHANGE_BEGIN: Calvin Lin -- 3D Vision Fixes
+		if (stereoClipPos.w != 1.0f)
+		// NVCHANGE_END: Calvin Lin -- 3D Vision Fixes
 		stereoClipPos.x += stereoParms.x * (stereoClipPos.w - stereoParms.y);
 		return stereoClipPos;
 	}
@@ -410,6 +416,28 @@ float4 MonoToStereoClipPos(float4 monoClipPos)
     // No correction needed for consoles, or old hardware
     return monoClipPos;
 }
+
+// NVCHANGE_BEGIN: Calvin Lin -- 3D Vision Fixes
+float4 StereoToMonoClipPos(float4 stereoClipPos)
+{
+#if ALLOW_NVIDIA_STEREO_3D
+	if (NvStereoEnabled)
+	{
+		float2 stereoParms = tex2D(NvStereoFixTexture, float2(0.0625f, 0)).xy;
+
+		float4 monoClipPos = stereoClipPos;
+
+		// De-stereo here.
+		if (monoClipPos.w != 1.0f)
+			monoClipPos.x -= stereoParms.x * (monoClipPos.w - stereoParms.y);
+
+		return monoClipPos;
+	}
+#endif
+    // No correction needed for consoles, or old hardware
+    return stereoClipPos;
+}
+// NVCHANGE_END: Calvin Lin -- 3D Vision Fixes
 
 
 // ----------------------------------------------------------------------------------------
@@ -501,9 +529,8 @@ sampler2D	LightAttenuationTexture;
 /** Fetches the values in the light attenuation buffer. */
 half4 GetLightAttenuation(float4 ScreenPosition)
 {
-	float4 stereoClipPos = MonoToStereoClipPos(ScreenPosition);
-	stereoClipPos.xy = float2(stereoClipPos.xy / stereoClipPos.w * ScreenPositionScaleBias.xy + ScreenPositionScaleBias.wz);
-	float4 Attenuation = tex2D(LightAttenuationTexture, stereoClipPos.xy);
+	float2 ClipPos = float2(ScreenPosition.xy / ScreenPosition.w * ScreenPositionScaleBias.xy + ScreenPositionScaleBias.wz);
+	float4 Attenuation = tex2D(LightAttenuationTexture, ClipPos);
 	// Undo the sqrt that was used to encode
 	return Square(Attenuation);
 }
@@ -537,50 +564,36 @@ half4 CalcFullSceneColor(float2 ScreenUV)
 // Converts depth buffer Z / W into W
 float ConvertFromDeviceZ(float DeviceZ)
 {
-	// Clamp to be valid
-	// Only values less than 1 - Z_PRECISION can be decoded, but background depths may have been cleared to 1
-	DeviceZ = min(DeviceZ, 1 - Z_PRECISION);
-	return 1.f / (DeviceZ * MinZ_MaxZRatio[2] - MinZ_MaxZRatio[3]);	
+	return 1.f / (DeviceZ * MinZ_MaxZRatio[2] - MinZ_MaxZRatio[3]);
 }
 
-/** 
- * Encodes the W coordinate of a pixel for storage in 16 bit floating point. 
- * Note: This must match EncodeFloatW in Scene.h!
- */
-float EncodeFloatW(float W)
+/** Encodes the W coordinate of a pixel for storage in floating point. */
+half EncodeFloatW(float W)
 {
 	#if SUPPORTS_DEPTH_TEXTURES
 		return 0;
 	#else
-		float DepthAdd = -MinZ_MaxZRatio[0];
-		float DepthMul = 1 - MinZ_MaxZRatio[1];
-		// Encode the depth so that it handles world space depth ranges much larger than 16 fp max
+		float DepthAdd = MinZ_MaxZRatio[0];
+		float DepthMul = MinZ_MaxZRatio[1];
 		return DepthMul + DepthAdd / W;
 	#endif
 }
 
-/** 
- * Decodes the value stored in scene color alpha into world space depth. 
- * Note: This must match DecodeFloatW in Scene.h!
- */
-float DecodeFloatW(float EncodedW)
+/** return the depth (half precision is ok) */
+half GetSceneDeviceZ( float2 ScreenUV )
 {
-	float DepthAdd = -MinZ_MaxZRatio[0];
-	float DepthMul = 1 - MinZ_MaxZRatio[1];
-	// Solve for W
-	return DepthAdd / (EncodedW - DepthMul);
+#if SUPPORTS_DEPTH_TEXTURES
+	return texDepth2D(SceneDepthTexture, ScreenUV).r;
+#else
+	/** return the depth value stored in lighting target's alpha */
+	return tex2Dlod(SceneColorTexture, float4(ScreenUV,0,0)).a;
+#endif
 }
 
 /** Returns clip space W, which is world space distance along the View Z axis. */
 float CalcSceneDepth( float2 ScreenUV )
 {
-#if SUPPORTS_DEPTH_TEXTURES
-	// Fetch the depth buffer Z / W value, solve for W
-	return ConvertFromDeviceZ(texDepth2Dlod(SceneDepthTexture, float4(ScreenUV,0,0)).r);
-#else
-	// Fetch the encoded W in scene color alpha, solve for W
-	return DecodeFloatW(tex2Dlod(SceneColorTexture, float4(ScreenUV,0,0)).a);
-#endif
+	return ConvertFromDeviceZ(GetSceneDeviceZ(ScreenUV));
 }
 
 /**
@@ -592,6 +605,12 @@ float4 CalcSceneColorAndDepth( float2 ScreenUV )
 }
 
 float PreviousDepth(float4 ScreenPosition)
+{
+	float2 ClipPos = float2(ScreenPosition.xy / ScreenPosition.w * ScreenPositionScaleBias.xy + ScreenPositionScaleBias.wz);
+	return CalcSceneDepth(ClipPos);
+}
+
+float PreviousDepth_FromMono(float4 ScreenPosition)
 {
 	float4 stereoClipPos = MonoToStereoClipPos(ScreenPosition);
 	stereoClipPos.xy = float2(stereoClipPos.xy / stereoClipPos.w * ScreenPositionScaleBias.xy + ScreenPositionScaleBias.wz);
@@ -638,7 +657,7 @@ float PreviousDepth(float4 ScreenPosition)
 #else
 	float PreviousDepthForShadows(float4 ScreenPosition)
 	{
-		return PreviousDepth(ScreenPosition);
+		return PreviousDepth_FromMono(ScreenPosition);
 	}
 #endif
 
@@ -755,6 +774,28 @@ float AntialiasedTextureMask( sampler2D Tex, float2 UV, float ThresholdConst, in
 	Result = saturate(Result);	// no always needed (e.g. DX9 framebuffer blending)
 
 	return Result;
+}
+
+//-----------------------------------------------
+//@Rock - JoelS: Cheap pow
+//-----------------------------------------------
+// originally: pow(base, exponent) = x^y
+// A and B are precomputed in code dependant on an error margin based off y as a constant with this basis:
+// A	= ( pow( 0.5, ((y + 1.0f) / 2) ) - 1.0f ) / ( -0.5 )
+// B	= 1.0 - A
+// And then solved with:
+// x^y	= max(0, A * x + B)^2
+
+half3 computeCheapPow(half3 base, half2 expBasisAB)
+{
+	half3 t = abs( expBasisAB.x * base + expBasisAB.y );
+	return t * t;
+}
+
+half computeCheapPow(half base, half2 expBasisAB)
+{
+	half t = abs( expBasisAB.x * base + expBasisAB.y );
+	return t * t;
 }
 
 /*

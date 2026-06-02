@@ -101,7 +101,6 @@ struct FDepthOnlyVSToPS
 		ISOLATE
 		{
 			O.OutPosition = MulMatrix(ViewProjectionMatrixDS,WorldPosition);
-			O.OutPosition = ApplyTemporalAAJitter(O.OutPosition,TemporalAAParametersDS);
 		}
 			
 		#if !MATERIALBLENDING_SOLID
@@ -150,7 +149,6 @@ void Main(
 	ISOLATE
 	{
 		Output.OutPosition = MulMatrix(ViewProjectionMatrix,WorldPos);
-		Output.OutPosition = ApplyTemporalAAJitter(Output.OutPosition,TemporalAAParameters);
 	}
 #endif
 

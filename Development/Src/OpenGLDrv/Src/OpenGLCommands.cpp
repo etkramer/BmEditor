@@ -327,7 +327,9 @@ void FOpenGLDynamicRHI::SetViewParametersWithOverrides( const FSceneView& View, 
 	VSCBContents.ViewProjectionMatrix = ViewProjectionMatrix;
 	VSCBContents.ViewOrigin = TranslatedViewOrigin;
 	VSCBContents.PreViewTranslation = View.PreViewTranslation;
+#if !BATMAN
 	VSCBContents.TemporalAAParameters = View.TemporalAAParameters.GetVector();
+#endif
 
 	VSConstantBuffers(GLOBAL_CONSTANT_BUFFER)->UpdateConstant((BYTE*)&VSCBContents,VS_GLOBAL_CONSTANT_BASE_INDEX * sizeof(FVector4),sizeof(VSCBContents));
 
@@ -337,7 +339,9 @@ void FOpenGLDynamicRHI::SetViewParametersWithOverrides( const FSceneView& View, 
 	PSCBContents.DiffuseOverrideParameter = DiffuseOverride;
 	PSCBContents.SpecularOverrideParameter = SpecularOverride;
 	PSCBContents.NvStereoEnabled = FVector4(0.0f,0.0f,0.0f,0.0f); //nv::stereo::IsStereoEnabled() ? 1.0f : 0.0f; // @todo opengl
+#if !BATMAN
 	PSCBContents.ViewOrigin = View.ViewOrigin;
+#endif
 
 	PSConstantBuffers(GLOBAL_CONSTANT_BUFFER)->UpdateConstant((BYTE*)&PSCBContents,PS_GLOBAL_CONSTANT_BASE_INDEX * sizeof(FVector4) + sizeof(FVector4),sizeof(PSCBContents));
 }

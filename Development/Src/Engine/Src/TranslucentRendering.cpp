@@ -111,6 +111,9 @@ public:
 		//Disable fog for objects that are in the foreground DPG (like the aiming players hair)
 		//An alternate solution is to apply fog a 2nd time selectively in the foreground DPG, but at the cost of performance
 		const UBOOL bAllowFog = Parameters.bAllowFog && (Parameters.Mesh.DepthPriorityGroup <= SDPG_World);
+#if BATMAN
+		const FLinearColor ObjectFogColor(0.0f, 0.0f, 0.0f, 1.0f);
+#endif
 
 		TBasePassDrawingPolicy<LightMapPolicyType,FogDensityPolicyType> DrawingPolicy(
 			Parameters.Mesh.VertexFactory,
@@ -124,6 +127,9 @@ public:
 			bRenderingToDoFBlurBuffer,
 			View.Family->bWriteOpacityToAlpha,
 			bAllowFog
+#if BATMAN
+			,ObjectFogColor
+#endif
 			);
 		DrawingPolicy.DrawShared(
 			&View,

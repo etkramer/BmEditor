@@ -127,6 +127,12 @@ public:
 
 	virtual const FPointLightSceneInfoBase* GetPointLightInfo() const { return this; }
 
+	FVector4 GetFalloffParameters() const
+	{
+		const FLOAT FalloffBasisA = (appPow(0.5f, ShadowFalloffExponent * 0.5f) - 1.0f) * -2.0f;
+		return FVector4(FalloffBasisA, ShadowFalloffScale, ShadowFalloffBias, 1.0f - FalloffBasisA);
+	}
+
 	virtual UBOOL AffectsBounds(const FBoxSphereBounds& Bounds) const
 	{
 		if((Bounds.Origin - this->LightToWorld.GetOrigin()).SizeSquared() > Square(Radius + Bounds.SphereRadius))

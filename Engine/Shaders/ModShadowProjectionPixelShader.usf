@@ -12,12 +12,64 @@ float4x4 ScreenToShadowMatrix;
 /**
 * Entry point for uniform manual PCF that supports lights using modulative shadows.
 */
+#if !BATMAN
 EARLYDEPTHSTENCIL
+#endif
 void Main(
 	in float4 ScreenPosition : TEXCOORD0,
 	out float4 OutColor : COLOR0
 	)
 {
+#if BATMAN
+	// NVCHANGE_BEGIN: Calvin Lin -- 3D Vision Fixes
+#if ALLOW_NVIDIA_STEREO_3D
+	// The stereo driver has shifted Position.x in the vertex shader. To make ScreenPosition correct, we have to
+	// manually shift it here. (Notice the geometry is a light volume, not a full screen quad.)
+	float4 StereoClipPos = MonoToStereoClipPos(ScreenPosition);
+
+	// Convert from [-1, 1] to [0, 1] for texture lookup.
+	float2 StereoUV = StereoClipPos.xy / StereoClipPos.w * ScreenPositionScaleBias.xy + ScreenPositionScaleBias.wz;
+	// Get scene depth from the alpha channel of the rendered scene.
+	half SceneW = CalcSceneDepth(StereoUV);
+
+	// Now convert the position back to scene position, as if the pixel was rendered from that scene location.
+	StereoClipPos = float4(StereoClipPos.xy / StereoClipPos.w * SceneW, 0, SceneW);
+	// Again, de-stereo to mono position. (Notice ScreenToShadowMatrix in next step is for mono position transform,
+	// we do need to convert stereo to mono here.)
+	float4 MonoClipPos = StereoToMonoClipPos(StereoClipPos);
+
+	// Transform back to shadow casting light space.
+	float4 ShadowPosition = MulMatrix(ScreenToShadowMatrix, float4(MonoClipPos.xy, SceneW, 1));
+#else
+	half SceneW = PreviousDepthForShadows(ScreenPosition);
+
+	float4 ShadowPosition = MulMatrix(ScreenToShadowMatrix,float4(ScreenPosition.xy / ScreenPosition.w * SceneW,SceneW,1));
+#endif	// ALLOW_NVIDIA_STEREO_3D
+	// NVCHANGE_END: Calvin Lin -- 3D Vision Fixes
+
+	ShadowPosition.xy /= ShadowPosition.w;
+	ShadowPosition.z = min(ShadowPosition.z,1.0f); //@Rock - JoelS: Can't see a visual reason this should be 0.999 - cheaper as 1.0
+
+	half Shadow = ManualPCF(ShadowPosition);
+
+#if MODSHADOW_LIGHTTYPE_DIRECTIONAL
+	// no attenuation necessary for directional lights
+	half ShadowAtt = 1;
+#else
+	// attenuate between shadow color and white based on distance
+	half ShadowAtt = ShadowAttenuation(ScreenPosition,SceneW);
+#endif
+
+	// add modulated/attenuated shadow color to shadow
+	float4 ShadowedColor = lerp(float4(1,1,1,1),ShadowModulateColor,ShadowAtt);
+	float4 UnshadowedColor = float4(1,1,1,1);
+
+	// allow the alpha channel to supply the emissive mask (when enabled)
+	Shadow = ApplyEmissiveToShadowCoverage(ScreenPosition, Shadow);
+
+	OutColor = lerp(ShadowedColor,UnshadowedColor,Square(Shadow));
+	// RETURN_COLOR not needed with modulative blending
+#else
 #if SM5_PROFILE
 	OutColor = 1;
 
@@ -56,21 +108,47 @@ void Main(
 		OutColor = lerp(ShadowedColor,UnshadowedColor,Square(Shadow));
 		// RETURN_COLOR not needed with modulative blending
 	}
+#endif
 }
 
 
 /**
 * Entry point for uniform hardware PCF that supports lights using modulative shadows.
 */
+#if !BATMAN
 EARLYDEPTHSTENCIL
+#endif
 void HardwarePCFMain(
 	in float4 ScreenPosition : TEXCOORD0,
-	out float4 OutColor : COLOR0
+	out half4 OutColor : COLOR0
 	)
 {
+	// NVCHANGE_BEGIN: Calvin Lin -- 3D Vision Fixes
+#if ALLOW_NVIDIA_STEREO_3D
+	// The stereo driver has shifted Position.x in the vertex shader. To make ScreenPosition correct, we have to
+	// manually shift it here. (Notice the geometry is a light volume, not a full screen quad.)
+	float4 StereoClipPos = MonoToStereoClipPos(ScreenPosition);
+
+	// Convert from [-1, 1] to [0, 1] for texture lookup.
+	float2 StereoUV = StereoClipPos.xy / StereoClipPos.w * ScreenPositionScaleBias.xy + ScreenPositionScaleBias.wz;
+	// Get scene depth from the alpha channel of the rendered scene.
+	half SceneW = CalcSceneDepth(StereoUV);
+
+	// Now convert the position back to scene position, as if the pixel was rendered from that scene location.
+	StereoClipPos = float4(StereoClipPos.xy / StereoClipPos.w * SceneW, 0, SceneW);
+	// Again, de-stereo to mono position. (Notice ScreenToShadowMatrix in next step is for mono position transform,
+	// we do need to convert stereo to mono here.)
+	float4 MonoClipPos = StereoToMonoClipPos(StereoClipPos);
+
+	// Transform back to shadow casting light space.
+	float4 ShadowPosition = MulMatrix(ScreenToShadowMatrix, float4(MonoClipPos.xy, SceneW, 1));
+#else
 	half SceneW = PreviousDepthForShadows(ScreenPosition);
 
 	float4 ShadowPosition = MulMatrix(ScreenToShadowMatrix,float4(ScreenPosition.xy / ScreenPosition.w * SceneW,SceneW,1));
+#endif	// ALLOW_NVIDIA_STEREO_3D
+	// NVCHANGE_END: Calvin Lin -- 3D Vision Fixes
+
 	ShadowPosition.xy /= ShadowPosition.w;
 	ShadowPosition.z = min(ShadowPosition.z,0.999);
 
@@ -85,8 +163,8 @@ void HardwarePCFMain(
 #endif
 
 	// add modulated/attenuated shadow color to shadow
-	float4 ShadowedColor = lerp(float4(1,1,1,1),ShadowModulateColor,ShadowAtt);
-	float4 UnshadowedColor = float4(1,1,1,1);
+	half4 ShadowedColor = lerp(half4(1,1,1,1),ShadowModulateColor,ShadowAtt);
+	half4 UnshadowedColor = half4(1,1,1,1);
 
 	// allow the alpha channel to supply the emissive mask (when enabled)
 	Shadow = ApplyEmissiveToShadowCoverage(ScreenPosition, Shadow);
@@ -98,7 +176,9 @@ void HardwarePCFMain(
 /**
 * Entry point for uniform Fetch4 PCF that supports lights using modulative shadows.
 */
+#if !BATMAN
 EARLYDEPTHSTENCIL
+#endif
 void Fetch4Main(
 	in float4 ScreenPosition : TEXCOORD0,
 	out float4 OutColor : COLOR0

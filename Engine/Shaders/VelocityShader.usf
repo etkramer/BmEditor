@@ -108,7 +108,6 @@ struct FVelocityVSToPS
 		ISOLATE
 		{
 			O.Position = MulMatrix(ViewProjectionMatrixDS, float4(WorldPosition.xyz, 1) );
-			O.Position = ApplyTemporalAAJitter(O.Position,TemporalAAParametersDS);
 		}
 
 		// Move all geometry a little bit towards the camera.
@@ -159,7 +158,9 @@ void MainVertexShader( FVertexFactoryInput Input, out FVertexOutput Output)
 #endif
 			ScreenPosition  = MulMatrix(     ViewProjectionMatrix, float4(WorldPosition.xyz, 1) );
 #if !USING_SM5_TESSELATION
-			Output.Position = ApplyTemporalAAJitter(ScreenPosition,TemporalAAParameters);
+			Output.Position = ScreenPosition;
+#endif
+#if !USING_SM5_TESSELATION
 		}
 #endif
 

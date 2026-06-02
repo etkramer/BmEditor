@@ -22,7 +22,8 @@ float4	LightPosition;
 /** needed to get world positions from deferred scene depth values */
 float4x4 ScreenToWorld;
 /** Falloff parameters for light casting a shadow */
-half3 FalloffParameters;
+//@Rock - JoelS: Increase to half4 to support the pow consts later...
+half4 FalloffParameters;
 static half FalloffExponent = FalloffParameters.x;
 static half FalloffDistanceScale = FalloffParameters.y;
 static half FalloffDistanceBias = FalloffParameters.z;
@@ -36,11 +37,16 @@ float ShadowAttenuation(float4 ScreenPositionVec,float SceneDepth)
 	// derive world position from scene depth
 	float4 WorldPosition = MulMatrix(ScreenToWorld,float4((ScreenPositionVec.xy/ScreenPositionVec.w)*SceneDepth,SceneDepth,1));
 	// vector from world position to light
-	float4 WorldLightVector = float4((LightPosition.xyz - WorldPosition.xyz),0) * LightPosition.w;	
+	float4 WorldLightVector = float4((LightPosition.xyz - WorldPosition.xyz),0) * LightPosition.w;
 	// mul world vector by 1/radius to get distance attenuation
-	half Attenuation = pow(
+	//half Attenuation = pow(
+	//	saturate(1.0f - Square(max(0,length(WorldLightVector) * FalloffDistanceScale + FalloffDistanceBias)) ),
+	//	FalloffExponent
+	//	);
+	//@Rock - JoelS: pow() function optimisation:
+	half Attenuation = computeCheapPow(
 		saturate(1.0f - Square(max(0,length(WorldLightVector) * FalloffDistanceScale + FalloffDistanceBias)) ),
-		FalloffExponent
+		FalloffParameters.xw
 		);
 	
 #if MODSHADOW_LIGHTTYPE_SPOT

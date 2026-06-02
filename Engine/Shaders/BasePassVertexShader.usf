@@ -48,7 +48,6 @@ void Main(
 	ISOLATE
 	{
 		Output.Position = MulMatrix(ViewProjectionMatrix,WorldPosition);
-		Output.Position = ApplyTemporalAAJitter(Output.Position,TemporalAAParameters);
 	}
 
 	#if WORLD_POS
@@ -65,12 +64,18 @@ void Main(
 	float3x3 TangentBasis = VertexFactoryGetTangentBasis(Input, VFIntermediates);
 #endif
 
+	#if PER_PIXEL_CAMERA_VECTOR || !ROCK_STRIP_VERTEX_COLOUR
 	Output.BasePassInterpolants.CameraVectorOrVertexColor = 1;
+	#endif
 #if PER_PIXEL_CAMERA_VECTOR
+	#if !ROCK_STRIP_VERTEX_COLOUR
 	Output.BasePassInterpolants.CameraVectorOrVertexColor = VertexFactoryGetVertexColor(Input, VFIntermediates);
+	#endif
 #elif !USING_SM5_TESSELATION
+	#if !ROCK_STRIP_NORMALS_AND_TANGENTS
 	// SM5 will calculate the camera vector off of the displaced world position in the domain shader
 	Output.BasePassInterpolants.CameraVectorOrVertexColor.xyz = VertexFactoryWorldToTangentSpace(Input,VFIntermediates,TangentBasis,CameraPositionVS.xyz - WorldPosition.xyz * CameraPositionVS.w);
+	#endif
 #endif
 
 #if TANGENT_LIGHT_VECTOR_DEFINED

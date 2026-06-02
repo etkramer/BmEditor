@@ -1065,7 +1065,12 @@ UBOOL FMaterial::InitShaderMap(FStaticParameterSet* StaticParameters, EShaderPla
 	// Find the material's cached shader map.
 	ShaderMap = FMaterialShaderMap::FindId(*StaticParameters, Platform);
 	UBOOL bRequiredRecompile = FALSE;
-	if(!bValidCompilationOutput || !ShaderMap || !ShaderMap->IsComplete(this, FALSE))
+#if BATMAN
+	const UBOOL bShaderMapIncomplete = ShaderMap && !ShaderMap->IsComplete(this, TRUE);
+#else
+	const UBOOL bShaderMapIncomplete = ShaderMap && !ShaderMap->IsComplete(this, FALSE);
+#endif
+	if(!bValidCompilationOutput || !ShaderMap || bShaderMapIncomplete)
 	{
 		if(bValidCompilationOutput)
 		{
@@ -1461,6 +1466,17 @@ FLOAT FMaterialResource::GetShadowDepthBias() const { return 0.0f; }
 
 /** @return TRUE if the author wants the camera vector to be computed per-pixel */
 UBOOL FMaterialResource::UsesPerPixelCameraVector() const {	return Material->bPerPixelCameraVector; }
+
+#if BATMAN
+UBOOL FMaterialResource::CanStripNormalsAndTangents() const { return Material->CanStripNormalsAndTangents; }
+
+UBOOL FMaterialResource::CanStripVertexColours() const { return Material->CanStripVertexColours; }
+
+UBOOL FMaterialResource::ShouldUseFastLODRendering() const { return Material->UseFastLODRendering; }
+
+INT FMaterialResource::GetMaxBonesPerBatch() const { return Material->MaxBonesPerBatch ? Material->MaxBonesPerBatch : 75; }
+
+#endif
 
 /** @return TRUE if lit translucent objects will cast shadow as if they were masked */
 UBOOL FMaterialResource::CastLitTranslucencyShadowAsMasked() const { return IsTranslucentBlendMode((EBlendMode)Material->BlendMode) && Material->bCastLitTranslucencyShadowAsMasked; }
@@ -1949,7 +1965,8 @@ public:
 		else
 		{
 			OutValue = NULL;
-			if(!Context.MaterialRenderProxy->GetTextureValue(ParameterName,&OutValue,Context))
+			const UBOOL bProxyResolved = Context.MaterialRenderProxy->GetTextureValue(ParameterName,&OutValue,Context);
+			if(!bProxyResolved)
 			{
 				UTexture* IndexedTexture = GetIndexedTexture(Material, TextureIndex);
 				OutValue = IndexedTexture ? IndexedTexture->Resource : NULL;
@@ -2900,6 +2917,25 @@ void FMaterial::SetupMaterialEnvironment(
 	{
 		OutEnvironment.Definitions.Set(TEXT("IMAGE_BASED_REFLECTIONS"),TEXT("1"));
 	}
+
+#if BATMAN
+	if (CanStripNormalsAndTangents())
+	{
+		OutEnvironment.Definitions.Set(TEXT("ROCK_STRIP_NORMALS_AND_TANGENTS"),TEXT("1"));
+	}
+
+	if (CanStripVertexColours())
+	{
+		OutEnvironment.Definitions.Set(TEXT("ROCK_STRIP_VERTEX_COLOUR"),TEXT("1"));
+	}
+
+	if (Platform == SP_PCD3D_SM3)
+	{
+		OutEnvironment.Definitions.Set(TEXT("ORTHOGRAPHIC_FRIENDLY_DEPTH"),TEXT("1"));
+	}
+
+	OutEnvironment.Definitions.Set(TEXT("MAX_BONES"),*FString::Printf(TEXT("%u"),GetMaxBonesPerBatch()));
+#endif
 
 	if (UsesMaskedAntialiasing())
 	{
@@ -5515,6 +5551,9 @@ private:
 UBOOL FMaterial::Compile(FStaticParameterSet* StaticParameters, EShaderPlatform Platform, TRefCountPtr<FMaterialShaderMap>& OutShaderMap, UBOOL bForceCompile, UBOOL bDebugDump)
 {
 #if !CONSOLE
+#if BATMAN
+	const TArray<UTexture*> SerializedUniformExpressionTextures = UniformExpressionTextures;
+#endif
 	// Generate the material shader code.
 	FUniformExpressionSet NewUniformExpressionSet;
 	FHLSLMaterialTranslator MaterialTranslator(this,NewUniformExpressionSet,Platform);
@@ -5524,7 +5563,19 @@ UBOOL FMaterial::Compile(FStaticParameterSet* StaticParameters, EShaderPlatform 
 	{
 		const FString MaterialShaderCode = MaterialTranslator.GetMaterialShaderCode();
 		bSuccess = CompileShaderMap(StaticParameters, Platform, NewUniformExpressionSet, OutShaderMap, MaterialShaderCode, bForceCompile, bDebugDump);
+#if BATMAN
+		if (bValidCompilationOutput)
+		{
+			UniformExpressionTextures = SerializedUniformExpressionTextures;
+		}
+#endif
 	}
+#if BATMAN
+	else
+	{
+		UniformExpressionTextures = SerializedUniformExpressionTextures;
+	}
+#endif
 
 	return bSuccess;
 #else
@@ -5594,7 +5645,12 @@ UBOOL FMaterial::CompileShaderMap(
 #if BATMAN
 	UBOOL bUsedCookedShaderMap = FALSE;
 #endif
-	if(!ExistingShaderMap || !ExistingShaderMap->IsComplete(this, FALSE))
+#if BATMAN
+	const UBOOL bExistingShaderMapIncomplete = ExistingShaderMap && !ExistingShaderMap->IsComplete(this, TRUE);
+#else
+	const UBOOL bExistingShaderMapIncomplete = ExistingShaderMap && !ExistingShaderMap->IsComplete(this, FALSE);
+#endif
+	if(!ExistingShaderMap || bExistingShaderMapIncomplete)
 	{
 		bRequiredCompile = TRUE;
 
@@ -5638,6 +5694,7 @@ UBOOL FMaterial::CompileShaderMap(
 		// Any code that changes the way uniform expressions are generated needs to bump the appropriate version version to discard outdated shader maps.
 		else if (!(OutShaderMap->GetUniformExpressionSet() == UniformExpressionSet))
 		{
+#if !BATMAN
 			static INT UniformMismatchLogs = 0;
 			if (UniformMismatchLogs++ < 20)
 			{
@@ -5653,6 +5710,7 @@ UBOOL FMaterial::CompileShaderMap(
 					*OutShaderMap->GetUniformExpressionSet().GetSummaryString()
 					);
 			}
+#endif
 		}
 		check(OutShaderMap->IsUniformExpressionSetValid());
 

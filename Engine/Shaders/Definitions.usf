@@ -90,6 +90,15 @@
 #define WORLD_POS										0
 #endif
 
+#ifndef ORTHOGRAPHIC_FRIENDLY_DEPTH
+#define ORTHOGRAPHIC_FRIENDLY_DEPTH						0
+#endif
+
+#if ORTHOGRAPHIC_FRIENDLY_DEPTH && !WORLD_POS
+#undef WORLD_POS
+#define WORLD_POS										1
+#endif
+
 #ifndef STATICLIGHTING_TEXTUREMASK
 #define STATICLIGHTING_TEXTUREMASK						0
 #endif
@@ -195,8 +204,16 @@
 #define PER_PIXEL_TANGENT_BASIS							0
 #endif
 
-/** 
- * Right now (6/2008) only the Xbox compiler supports empty structs, but only as out parameters. 
+#ifndef ROCK_STRIP_NORMALS_AND_TANGENTS
+#define ROCK_STRIP_NORMALS_AND_TANGENTS					0
+#endif
+
+#ifndef ROCK_STRIP_VERTEX_COLOUR
+#define ROCK_STRIP_VERTEX_COLOUR						0
+#endif
+
+/**
+ * Right now (6/2008) only the Xbox compiler supports empty structs, but only as out parameters.
  * We need to be able to use them as return values as well.
  */
 #define COMPILER_SUPPORTS_EMPTY_STRUCTS					0

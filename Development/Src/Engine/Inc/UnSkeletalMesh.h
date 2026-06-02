@@ -3254,6 +3254,11 @@ public:
 
 	/** Optional array of weight/bone influences that can be used by this mesh. Defaults are in VertexBufferGPUSkin */
 	TArray<FSkeletalMeshVertexInfluences> VertexInfluences;
+
+#if BATMAN
+	/** BM2 smooth-normal texture consumed by cooked tessellation/smooth-normal material shaders. */
+	mutable FTexture2DRHIRef		SmoothNormalsTexture;
+#endif
 	
 	/** Editor only data: array of the original point (wedge) indices for each of the vertices in a FStaticLODModel */
 	FIntBulkData				RawPointIndices;
@@ -3270,6 +3275,11 @@ public:
 	* Releases the LOD's render resources.
 	*/
 	void ReleaseResources();
+
+#if BATMAN
+	/** Returns a lazily-created smooth-normal texture for BM2 cooked shaders. Rendering thread only. */
+	const FTexture2DRHIRef& GetSmoothNormalsTexture() const;
+#endif
 
 	/** Constructor (default) */
 	FStaticLODModel()

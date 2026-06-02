@@ -613,26 +613,26 @@ void FSceneRenderTargets::BeginRenderingSceneColor( DWORD RenderTargetUsage /*= 
 			checkSlow(!(bGBufferPass && bLightingPass));
 			if (bGBufferPass)
 			{
-				RHISetMRTRenderTarget(GSceneRenderTargets.GetWorldNormalGBufferSurface(), 1);
-				RHISetMRTColorWriteEnable(TRUE, 1);
-
-				RHISetMRTRenderTarget(GSceneRenderTargets.GetWorldReflectionNormalGBufferSurface(), 2);
-				RHISetMRTColorWriteEnable(TRUE, 2);
-
-				RHISetMRTRenderTarget(GSceneRenderTargets.GetSpecularGBufferSurface(), 3);
-				RHISetMRTColorWriteEnable(TRUE, 3);
-
-				RHISetMRTRenderTarget(GSceneRenderTargets.GetDiffuseGBufferSurface(), 4);
-				RHISetMRTColorWriteEnable(TRUE, 4);
-
 				if (GSystemSettings.RenderThreadSettings.bAllowSubsurfaceScattering)
 				{
-					RHISetMRTRenderTarget(GetSubsurfaceInscatteringSurface(), 5);
-					RHISetMRTColorWriteEnable(TRUE, 5);
+					RHISetMRTRenderTarget(GetSubsurfaceInscatteringSurface(), 1);
+					RHISetMRTColorWriteEnable(TRUE, 1);
 
-					RHISetMRTRenderTarget(GetSubsurfaceScatteringAttenuationSurface(), 6);
-					RHISetMRTColorWriteEnable(TRUE, 6);
+					RHISetMRTRenderTarget(GetSubsurfaceScatteringAttenuationSurface(), 2);
+					RHISetMRTColorWriteEnable(TRUE, 2);
 				}
+
+				RHISetMRTRenderTarget(GSceneRenderTargets.GetWorldNormalGBufferSurface(), 3);
+				RHISetMRTColorWriteEnable(TRUE, 3);
+
+				RHISetMRTRenderTarget(GSceneRenderTargets.GetWorldReflectionNormalGBufferSurface(), 4);
+				RHISetMRTColorWriteEnable(TRUE, 4);
+
+				RHISetMRTRenderTarget(GSceneRenderTargets.GetSpecularGBufferSurface(), 5);
+				RHISetMRTColorWriteEnable(TRUE, 5);
+
+				RHISetMRTRenderTarget(GSceneRenderTargets.GetDiffuseGBufferSurface(), 6);
+				RHISetMRTColorWriteEnable(TRUE, 6);
 			}
 			else if (bLightingPass)
 			{
@@ -659,11 +659,14 @@ void FSceneRenderTargets::FinishRenderingSceneColor(UBOOL bKeepChanges, const FR
 	#if !CONSOLE
 		if (GRHIShaderPlatform == SP_PCD3D_SM5)
 		{
-			RHISetMRTRenderTarget(FSurfaceRHIRef(), 1);
-			RHISetMRTColorWriteEnable(FALSE, 1);
+			if (GSystemSettings.RenderThreadSettings.bAllowSubsurfaceScattering)
+			{
+				RHISetMRTRenderTarget(FSurfaceRHIRef(), 1);
+				RHISetMRTColorWriteEnable(FALSE, 1);
 
-			RHISetMRTRenderTarget(FSurfaceRHIRef(), 2);
-			RHISetMRTColorWriteEnable(FALSE, 2);
+				RHISetMRTRenderTarget(FSurfaceRHIRef(), 2);
+				RHISetMRTColorWriteEnable(FALSE, 2);
+			}
 
 			RHISetMRTRenderTarget(FSurfaceRHIRef(), 3);
 			RHISetMRTColorWriteEnable(FALSE, 3);
@@ -671,15 +674,11 @@ void FSceneRenderTargets::FinishRenderingSceneColor(UBOOL bKeepChanges, const FR
 			RHISetMRTRenderTarget(FSurfaceRHIRef(), 4);
 			RHISetMRTColorWriteEnable(FALSE, 4);
 
-			if (GSystemSettings.RenderThreadSettings.bAllowSubsurfaceScattering)
-			{
-				// Unset the subsurface scattering MRTs.
-				RHISetMRTRenderTarget(FSurfaceRHIRef(), 5);
-				RHISetMRTColorWriteEnable(FALSE, 5);
+			RHISetMRTRenderTarget(FSurfaceRHIRef(), 5);
+			RHISetMRTColorWriteEnable(FALSE, 5);
 
-				RHISetMRTRenderTarget(FSurfaceRHIRef(), 6);
-				RHISetMRTColorWriteEnable(FALSE, 6);
-			}
+			RHISetMRTRenderTarget(FSurfaceRHIRef(), 6);
+			RHISetMRTColorWriteEnable(FALSE, 6);
 		}
 	#endif
 }
@@ -2715,7 +2714,13 @@ void FSceneTextureShaderParameters::Set(const FSceneView* View,FShader* PixelSha
 {
 	const FTexture2DRHIRef* DesiredSceneColorTexture = &GSceneRenderTargets.GetSceneColorTexture();
 
+#if BATMAN
+	// BM2/Gangland projected shadow shaders read fallback scene depth from SceneColorTexture.a on DX9.
+	// Binding the raw scene color here feeds the shadow projection pass the wrong alpha/depth source.
+	if (GSceneRenderTargets.bSceneColorTextureIsRaw && DepthUsage != SceneDepthUsage_ProjectedShadows)
+#else
 	if (GSceneRenderTargets.bSceneColorTextureIsRaw)
+#endif
 	{
 		DesiredSceneColorTexture = &GSceneRenderTargets.GetSceneColorRawTexture();
 	}

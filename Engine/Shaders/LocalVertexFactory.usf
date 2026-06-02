@@ -52,13 +52,15 @@ struct FVertexFactoryInput
 	int		VertexIndex	: INDEX;
 #else
 	float4	Position	: POSITION;
+#if !ROCK_STRIP_NORMALS_AND_TANGENTS
 	half3	TangentX	: TANGENT;
 	// TangentZ.w contains sign of tangent basis determinant
 	half4	TangentZ	: NORMAL;
+#endif
 
 	// Normally COLOR1 is used to store user-defined per-vertex color and alpha
 	// When instancing is enabled, we use COLOR1 for InstanceShadowMapBias (see below.)
-#if !USE_INSTANCING
+#if !USE_INSTANCING && !ROCK_STRIP_VERTEX_COLOUR
 	half4	Color		: COLOR1;
 #endif
 
@@ -109,7 +111,7 @@ struct FVertexFactoryInterpolantsVSToPS
 	TANGENTTOWORLD_INTERPOLATOR_BLOCK
 #endif
 
-#if ALLOW_VERTEX_COLOR
+#if ALLOW_VERTEX_COLOR && (!ROCK_STRIP_VERTEX_COLOUR || USE_INSTANCING)
 	// NOTE: When USE_INSTANCING is 1, the Color interpolant is filled with PerInstanceRandom instead of VertexColor
 	float4	Color : COLOR0;
 #endif
@@ -248,19 +250,21 @@ FMaterialPixelParameters GetMaterialPixelParameters(FVertexFactoryInterpolantsVS
 	Result.UnMirrored = TangentToWorld2.w;
 #endif
 
-#if ALLOW_VERTEX_COLOR
+#if ALLOW_VERTEX_COLOR && (!ROCK_STRIP_VERTEX_COLOUR || USE_INSTANCING)
 	// NOTE: When USE_INSTANCING is 1, the Color interpolant is filled with PerInstanceRandom instead of VertexColor
 	Result.VertexColor = Interpolants.Color;
-#else
+#elif !ROCK_STRIP_VERTEX_COLOUR
 	Result.VertexColor = 1;
 #endif
 
+#if !ROCK_STRIP_NORMALS_AND_TANGENTS
 	Result.TangentNormal = 0;
 	Result.TangentCameraVector = 0;
 	Result.TangentReflectionVector = 0;
-	Result.ScreenPosition = 0;
 	Result.TangentLightVector = 0;
-#if WORLD_COORDS	
+#endif
+	Result.ScreenPosition = 0;
+#if WORLD_COORDS
 	#if DECAL_FACTORY
 		Result.TangentToWorld = CalcInvTangentBasisDecal( TangentToWorld0 );
 	#else
@@ -285,7 +289,9 @@ FMaterialPixelParameters GetMaterialPixelParameters(FVertexFactoryInterpolantsVS
 #endif
 #endif
 
+#if !ROCK_STRIP_NORMALS_AND_TANGENTS
 	Result.TwoSidedSign = 1;
+#endif
 	return Result;
 }
 
@@ -297,6 +303,7 @@ FMaterialPixelParameters GetMaterialPixelParameters(FVertexFactoryInterpolantsVS
 #endif
 
 
+#if !ROCK_STRIP_VERTEX_COLOUR || USE_INSTANCING
 float4 VertexFactoryGetVertexColor(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates)
 {
 	// NOTE: When USE_INSTANCING is 1, the Color interpolant is filled with PerInstanceRandom instead of VertexColor
@@ -306,14 +313,18 @@ float4 VertexFactoryGetVertexColor(FVertexFactoryInput Input, FVertexFactoryInte
 	return VertexAttributes.Color FCOLOR_COMPONENT_SWIZZLE;
 #endif
 }
+#endif
 
 /** Converts from vertex factory specific input to a FMaterialVertexParameters, which is used by vertex shader material inputs. */
 FMaterialVertexParameters GetMaterialVertexParameters( FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates, float3 WorldPosition, float3x3 TangentBasis )
 {
 	FMaterialVertexParameters Result;
 	Result.WorldPosition = WorldPosition - PreViewTranslation.xyz;
+#if !ROCK_STRIP_VERTEX_COLOUR
 	Result.VertexColor = VertexFactoryGetVertexColor(Input, Intermediates);
+#endif
 
+#if !ROCK_STRIP_NORMALS_AND_TANGENTS
 	float3x3 TangentToLocal = transpose(TangentBasis);
 
 	#if PS3
@@ -324,6 +335,7 @@ FMaterialVertexParameters GetMaterialVertexParameters( FVertexFactoryInput Input
 	#endif
 
 	Result.TangentToWorld = TangentToWorld;
+#endif
 #if NUM_MATERIAL_TEXCOORDS && !(DECAL_FACTORY && MATERIAL_DECAL)
 	for(int CoordinateIndex = 0; CoordinateIndex < NUM_MATERIAL_TEXCOORDS; CoordinateIndex++)
 	{
@@ -573,6 +585,7 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 * @param Input - vertex input stream structure
 * @return 3x3 matrix
 */
+#if !ROCK_STRIP_NORMALS_AND_TANGENTS
 float3x3 VertexFactoryGetTangentBasis( FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates )
 {
 	float3x3 Result=0;	
@@ -605,6 +618,7 @@ float3x3 VertexFactoryGetTangentBasis( FVertexFactoryInput Input, FVertexFactory
 
 	return Result;
 }
+#endif
 
 float4 VertexFactoryGetWorldPosition(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates)
 {
@@ -615,6 +629,7 @@ float4 VertexFactoryGetWorldPosition(FVertexFactoryInput Input, FVertexFactoryIn
 #endif
 }
 
+#if !ROCK_STRIP_NORMALS_AND_TANGENTS
 void CalcTangentToWorld(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates, out float3 TangentToWorld0, out float4 TangentToWorld2)
 {
 	#if DECAL_FACTORY
@@ -646,6 +661,7 @@ void CalcTangentToWorld(FVertexFactoryInput Input, FVertexFactoryIntermediates I
 	TangentToWorld0 = PackColor3( TangentToWorld0 );
 	TangentToWorld2 = PackColor4( TangentToWorld2 );
 }
+#endif
 
 FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates)
 {
@@ -716,7 +732,7 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFacto
 	CalcTangentToWorld(Input, Intermediates, Interpolants.TangentToWorld0.xyz, Interpolants.TangentToWorld2);
 #endif
 
-#if ALLOW_VERTEX_COLOR
+#if ALLOW_VERTEX_COLOR && !ROCK_STRIP_VERTEX_COLOUR
 	Interpolants.Color = VertexFactoryGetVertexColor(Input, Intermediates);
 #endif
 
@@ -733,7 +749,7 @@ FVertexFactoryInterpolantsVSToDS VertexFactoryGetInterpolantsVSToDS(FVertexFacto
 	
 	Interpolants.InterpolantsVSToPS = VertexFactoryGetInterpolantsVSToPS(Input, Intermediates);
 	
-#if !WORLD_COORDS
+#if !WORLD_COORDS && !ROCK_STRIP_NORMALS_AND_TANGENTS
 	// If the PS does not call for world coords, provide our own for use in the DS
 	CalcTangentToWorld(Input, Intermediates, Interpolants.TangentToWorld0, Interpolants.TangentToWorld2);
 #endif

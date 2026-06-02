@@ -225,7 +225,7 @@ public:
 		MeshOriginParameter.Bind(ParameterMap,TEXT("MeshOrigin"),TRUE);
 		MeshExtensionParameter.Bind(ParameterMap,TEXT("MeshExtension"),TRUE);
 		PreviousBoneMatricesParameter.Bind(ParameterMap,TEXT("PreviousBoneMatrices"),TRUE);
-		UsePerBoneMotionBlurParameter.Bind(ParameterMap,TEXT("bUsePerBoneMotionBlur"),TRUE);
+		UsePerBoneMotionBlurParameter.Bind(ParameterMap,TEXT("UsePerBoneMotionBlur"),TRUE);
 	}
 	/**
 	* Serialize shader params to an archive
@@ -356,13 +356,16 @@ public:
 	*/
 	virtual void SetMesh(FShader* VertexShader,const FMeshElement& Mesh,const FSceneView& View) const
 	{
+#if !BATMAN
 		const FGPUSkinVertexFactory* VertexFactory = (const FGPUSkinVertexFactory*)Mesh.VertexFactory;
 		const FGPUSkinVertexFactory::ShaderDataType& ShaderData = VertexFactory->GetShaderData();
+#endif
 
+		const FMatrix LocalToWorldWithPreViewTranslation = Mesh.LocalToWorld.ConcatTranslation(View.PreViewTranslation);
 		SetVertexShaderValue(
 			VertexShader->GetVertexShader(),
 			LocalToWorldParameter,
-			Mesh.LocalToWorld.ConcatTranslation(View.PreViewTranslation)
+			LocalToWorldWithPreViewTranslation
 			);
 
 		// Used to flip the normal direction if LocalToWorldRotDeterminant is negative.  
@@ -373,13 +376,19 @@ public:
 		//		 3x3 part for the WorldToLocal matrix, and the other 3 floats are general-purpose.
 		FMatrix WorldToLocalWithFriends = Mesh.WorldToLocal;
 
+#if !BATMAN
 		UBOOL bLocalPerBoneMotionBlur = (ShaderData.GetOldBoneData(View.FrameNumber) != 0xffffffff) && View.RenderingOverrides.bAllowMotionBlurSkinning;
+#endif
 
 		// NOTE: We pack the data into the WorldToLocal 4x4 matrix in
 		//		 order to free up vertex shader constants.
 		//       Bone matrices use up a lot of constants so this is crucial!
 		WorldToLocalWithFriends.M[0][3] = appFloatSelect(LocalToWorldRotDeterminant, 1, -1);
+#if BATMAN
+		WorldToLocalWithFriends.M[1][3] = 0.0f;
+#else
 		WorldToLocalWithFriends.M[1][3] = bLocalPerBoneMotionBlur ? 1.0f : 0.0f;
+#endif
 
 		// This matrix should always be treated as a 3x3 in the shader code so we'll zero out the other
 		// unused elements.
@@ -388,6 +397,7 @@ public:
 
 		// This does not set the full 4x4 matrix as the shader side only has the size of a 4x3 matrix.
 		SetVertexShaderValue(VertexShader->GetVertexShader(),WorldToLocalParameter,WorldToLocalWithFriends);
+
 	}
 private:
 	FShaderParameter LocalToWorldParameter;

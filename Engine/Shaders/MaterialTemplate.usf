@@ -105,11 +105,15 @@ struct FMaterialPixelParameters
 		float2 SampleTexCoords[1][NUM_MATERIAL_TEXCOORDS];
 	#endif
 #endif
+#if !ROCK_STRIP_VERTEX_COLOUR
 	float4	VertexColor;
+#endif
+#if !ROCK_STRIP_NORMALS_AND_TANGENTS
 	float3	TangentNormal,
 			TangentReflectionVector,
 			TangentCameraVector;
 	half3	TangentLightVector;
+#endif
 	float4	ScreenPosition;
 #if WORLD_COORDS
 	half		UnMirrored;
@@ -143,7 +147,9 @@ struct FMaterialPixelParameters
 #if LIGHTMAP_UV_ACCESS
 	float2	LightmapUVs;
 #endif
+#if !ROCK_STRIP_NORMALS_AND_TANGENTS
 	float TwoSidedSign;
+#endif
 };
 
 /** 
@@ -268,12 +274,22 @@ float3 RotateAboutAxis(float4 NormalizedRotationAxisAndAngle, float3 PositionOnA
 	return RotatedPosition - Position;
 }
 
+float GetPixelDepth(FMaterialPixelParameters Parameters)
+{
+#if ORTHOGRAPHIC_FRIENDLY_DEPTH
+	return dot(CameraPlane,float4(Parameters.WorldPosition,1));
+#else
+	return Parameters.ScreenPosition.w;
+#endif
+}
+
 float DepthBiasedAlpha( FMaterialPixelParameters Parameters, float InAlpha, float InBias, float InBiasScale )
 {
 	float Result;
 	half SceneDepth = PreviousDepth(Parameters.ScreenPosition);
 	float DepthBias = (1.0 - InBias) * InBiasScale;
-	float BlendAmt = saturate((SceneDepth - Parameters.ScreenPosition.w) / max(DepthBias,0.001));
+	float W = GetPixelDepth(Parameters);
+	float BlendAmt = saturate((SceneDepth - W) / max(DepthBias,0.001));
 	Result = InAlpha * BlendAmt;
 	return Result;
 }
@@ -284,10 +300,11 @@ float3 DepthBiasedBlend( FMaterialPixelParameters Parameters, float3 InColor, fl
 	float3 SceneColor = PreviousLighting(Parameters.ScreenPosition).rgb;
 	half SceneDepth = PreviousDepth(Parameters.ScreenPosition);
 	float DepthBias = (1.0 - InBias) * InBiasScale;
-	
-	float BlendAmt = saturate((SceneDepth - Parameters.ScreenPosition.w) / max(DepthBias,0.001));
+
+	float W = GetPixelDepth(Parameters);
+	float BlendAmt = saturate((SceneDepth - W) / max(DepthBias,0.001));
 	Result = lerp( SceneColor, InColor * 1.000001, BlendAmt );
-	
+
 	return Result;
 }
 
@@ -946,11 +963,17 @@ void GetMaterialClippingShadowDepth(FMaterialPixelParameters Parameters, float2 
  */
 void TwoSidedFlipVector(in out FMaterialPixelParameters Parameters)
 {
+#if ROCK_STRIP_NORMALS_AND_TANGENTS
+	#if MATERIAL_LIGHTINGMODEL_ANISOTROPIC
+		Parameters.TangentAnisotropicDirection = 0;
+	#endif
+#else
 	// flip the normal for backfaces being rendered with a two-sided material
 	Parameters.TangentNormal *= Parameters.TwoSidedSign;
 	#if MATERIAL_LIGHTINGMODEL_ANISOTROPIC
 		Parameters.TangentAnisotropicDirection *= Parameters.TwoSidedSign;
 	#endif
+#endif
 }
 
 
@@ -983,8 +1006,11 @@ void CalcMaterialParameters(
 	// When per-pixel camera vector is enabled, we store vertex color in the interpolator that
 	// is usually used for camera vector so that we can use vertex color and environment maps
 	// simultaneously in the base pass.  This is needed due to a low number of available interpolators.
+#if !ROCK_STRIP_VERTEX_COLOUR
 	Parameters.VertexColor = CameraVectorOrVertexColor;
+#endif
 
+#if !ROCK_STRIP_NORMALS_AND_TANGENTS
 	// Compute the world space camera -> pixel vector
 	// NOTE: Actually, we've already computed this! (-PixelPosition.xyz)
 	//		float3 WorldCameraVector = normalize( CameraWorldPos.xyz - Parameters.WorldPosition.xyz );
@@ -994,18 +1020,23 @@ void CalcMaterialParameters(
 	// be changed by this as the tangent->world matrix has been passed through interpolators.
 	Parameters.TangentCameraVector = TransformWorldVectorToTangent(Parameters.TangentToWorld, WorldCameraVector);
 	//		Parameters.TangentCameraVector = transpose(Parameters.TangentToWorld)[0];
+#endif
 #else
 	// When using per-vertex camera vectors, the value passed in will always be a camera vector
 	// and vertex color will be stored in a separate interpolator.
 	float3 CameraVector = CameraVectorOrVertexColor.xyz;
 
+#if !ROCK_STRIP_NORMALS_AND_TANGENTS
 	// Per-vertex camera vector
 	Parameters.TangentCameraVector = normalize(CameraVector);
 #endif
+#endif
 
+#if !ROCK_STRIP_NORMALS_AND_TANGENTS
 	Parameters.TangentLightVector = normalize((half3)LightVector);
 	Parameters.TangentNormal = normalize(GetMaterialNormal(Parameters));
 	Parameters.TwoSidedSign = 1.0f;
+#endif
 
 #if MATERIAL_LIGHTINGMODEL_ANISOTROPIC
 	Parameters.TangentAnisotropicDirection = normalize(GetMaterialAnisotropicDirection(Parameters));
@@ -1037,7 +1068,9 @@ void CalcMaterialParameters(
 	{
 		TwoSidedFlipVector(Parameters);
 	}
+#if !ROCK_STRIP_NORMALS_AND_TANGENTS
 	Parameters.TangentReflectionVector = -Parameters.TangentCameraVector + Parameters.TangentNormal * dot(Parameters.TangentNormal,Parameters.TangentCameraVector) * 2.0;
+#endif
 }
 
 /** Assemble the transform from tangent space into world space */

@@ -669,7 +669,14 @@ void UTexture2D::Serialize(FArchive& Ar)
 				// Read raw bytes from disk
 				TArray<BYTE> RawData(MipMap.Data.GetBulkDataSize());
 				FileReader->Seek(MipMap.Data.GetBulkDataOffsetInFile());
-				FileReader->SerializeCompressed(RawData.GetData(), MipMap.Data.GetBulkDataSizeOnDisk(), MipMap.Data.GetDecompressionFlags());
+				if (MipMap.Data.IsStoredCompressedOnDisk())
+				{
+					FileReader->SerializeCompressed(RawData.GetData(), MipMap.Data.GetBulkDataSize(), MipMap.Data.GetDecompressionFlags());
+				}
+				else
+				{
+					FileReader->Serialize(RawData.GetData(), MipMap.Data.GetBulkDataSize());
+				}
 
 				// Copy raw bytes to new bulk data
 				FTextureMipBulkData NewBulkData;
@@ -716,8 +723,9 @@ void UTexture2D::Serialize(FArchive& Ar)
 	}
 
 #if BATMAN
-	// BM2: discarded cached mips array (was used for PVRTC on mobile)
-	if( Ar.IsBmCooked() )
+	// BM2/Gangland consumes the cached iPhone/PVRTC mip array from all packages
+	// that are new enough to contain it.
+	if( Ar.Ver() >= VER_ADDED_CACHED_IPHONE_DATA )
 	{
 		TIndirectArray<FTexture2DMipMap> CachedMips;
 		CachedMips.Serialize( Ar, this );

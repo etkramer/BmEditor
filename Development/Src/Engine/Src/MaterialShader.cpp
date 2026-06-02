@@ -314,7 +314,7 @@ public:
 			FLOAT* SetSampleFractions = (FLOAT*)(DestBuffer + DestStride * SetIndex);
 			for(UINT SampleIndex = 0;SampleIndex < NumSamples;++SampleIndex)
 			{
-				SetSampleFractions[SampleIndex]  = (FLOAT)(Samples[SampleIndex] + appFrand()) / (FLOAT)NumSamples;
+				SetSampleFractions[SampleIndex]  = (FLOAT)(Samples[SampleIndex] + appFrand()) / (FLOAT)NumSamples + 0.01f;
 			}
 		}
 
@@ -338,7 +338,7 @@ public:
 	}
 };
 
-FTexture* GStratifiedTranslucencySampleTexture = new TGlobalResource<TStratifiedTranslucencySampleTexture<4,16> >;
+FTexture* GStratifiedTranslucencySampleTexture = new TGlobalResource<TStratifiedTranslucencySampleTexture<8,16> >;
 
 FArchive& operator<<(FArchive& Ar,FMaterialShaderParameters& Parameters)
 {
@@ -525,6 +525,40 @@ void FMaterialShaderParameters::SetMeshShader(
 			SetShaderValue(Shader,FoliageImpulseDirectionParameter,FoliageImpluseDirection);
 			SetShaderValue(Shader,FoliageNormalizedRotationAxisAndAngleParameter,FoliageNormalizedRotationAxisAndAngle);
 		}
+		if (LODFadeParameter.IsBound())
+		{
+			FLOAT LODFade = 1.0f;
+#if USE_MASSIVE_LOD
+			const FLOAT MassiveLODDistance = PrimitiveSceneInfo->MassiveLODDistance;
+			if (MassiveLODDistance > 0.0f)
+			{
+#if !CONSOLE
+				const FVector4& ViewOriginForDistance = View.ViewOrigin.W > 0.0f ? View.ViewOrigin : View.OverrideLODViewOrigin;
+#else
+				const FVector4& ViewOriginForDistance = View.ViewOrigin;
+#endif
+				const FVector ViewOrigin(ViewOriginForDistance.X, ViewOriginForDistance.Y, ViewOriginForDistance.Z);
+				const FLOAT Distance = appSqrt(PrimitiveSceneInfo->Bounds.GetBox().ComputeSquaredDistanceToPoint(ViewOrigin));
+				FLOAT LinearFade;
+				if (Distance <= MassiveLODDistance * 0.5f)
+				{
+					LinearFade = 1.0f;
+				}
+				else if (Distance < MassiveLODDistance)
+				{
+					LinearFade = 1.0f - (Distance - MassiveLODDistance * 0.5f) / (MassiveLODDistance * 0.5f);
+				}
+				else
+				{
+					LinearFade = 0.0f;
+				}
+				const FLOAT InvFade = 1.0f - LinearFade;
+				const FLOAT SmoothedFade = 1.0f - InvFade * InvFade * InvFade * InvFade;
+				LODFade = SmoothedFade * SmoothedFade;
+			}
+#endif
+			SetShaderValue(Shader,LODFadeParameter,LODFade);
+		}
 	}
 }
 
@@ -605,7 +639,8 @@ void FMaterialPixelShaderParameters::Bind(const FShaderParameterMap& ParameterMa
 	InvGammaParameter.Bind(ParameterMap,TEXT("MatInverseGamma"),TRUE);
 	// Only used for decal materials
 #if BATMAN
-	DecalNearFarPlaneDistanceParameter.Bind(ParameterMap,TEXT("DecalFarPlaneDistance"),TRUE);
+	FShaderParameter DummyDecalFarPlaneDistanceParameter;
+	DummyDecalFarPlaneDistanceParameter.Bind(ParameterMap,TEXT("DecalFarPlaneDistance"),TRUE);
 #else
 	DecalNearFarPlaneDistanceParameter.Bind(ParameterMap,TEXT("DecalNearFarPlaneDistance"),TRUE);
 #endif
@@ -765,7 +800,6 @@ void FMaterialPixelShaderParameters::SetMesh(
 	DOFParameters.SetPS(PixelShader, View.DepthOfFieldParams);
 #endif
 
-	const FMaterial* Material = Mesh.MaterialRenderProxy->GetMaterial();
 	// set world matrix for use by world/view space Transform expressions
 	SetPixelShaderValue(PixelShader->GetPixelShader(),LocalToWorldParameter,Mesh.LocalToWorld);
 	// set world to local matrix used by Transform expressions
@@ -777,7 +811,9 @@ void FMaterialPixelShaderParameters::SetMesh(
 		XOR(bBackFace,XOR(View.bReverseCulling,Mesh.ReverseCulling)) ? -1.0f : +1.0f
 		);
 
+#if !BATMAN
 	// set the distance to the decal far plane used for clipping the decal
+	const FMaterial* Material = Mesh.MaterialRenderProxy->GetMaterial();
 	if( Material->IsUsedWithDecals() )
 	{	
 		FLOAT DecalNearFarPlaneDist[2] = {-65536.f,65536.f};
@@ -792,6 +828,7 @@ void FMaterialPixelShaderParameters::SetMesh(
 		}
 		SetPixelShaderValue(PixelShader->GetPixelShader(),DecalNearFarPlaneDistanceParameter,DecalNearFarPlaneDist);
 	}
+#endif
 
 	if (PrimitiveSceneInfo)
 	{
@@ -941,7 +978,12 @@ FArchive& operator<<(FArchive& Ar,FMaterialPixelShaderParameters& Parameters)
 	Ar << Parameters.SceneTextureParameters;
 	Ar << Parameters.TwoSidedSignParameter;
 	Ar << Parameters.InvGammaParameter;
+#if BATMAN
+	FShaderParameter DummyDecalFarPlaneDistanceParameter;
+	Ar << DummyDecalFarPlaneDistanceParameter;
+#else
 	Ar << Parameters.DecalNearFarPlaneDistanceParameter;
+#endif
 	Ar << Parameters.ObjectPostProjectionPositionParameter;
 	Ar << Parameters.ObjectMacroUVScalesParameter;
 	Ar << Parameters.ObjectNDCPositionParameter;
@@ -1129,6 +1171,10 @@ void FMaterialVertexShaderParameters::SetMesh(
 		FMatrix ObjectRotation = Mesh.LocalToWorld;
 		ObjectRotation.RemoveScaling();
 		SetVertexShaderValue(VertexShader->GetVertexShader(), ObjectRotationParameter, ObjectRotation);
+	}
+	if( SmoothNormalsTextureParameter.IsBound() && IsValidRef(Mesh.SmoothNormalsTexture) )
+	{
+		SetVertexShaderTextureParameter(VertexShader->GetVertexShader(), SmoothNormalsTextureParameter, Mesh.SmoothNormalsTexture);
 	}
 #endif
 #if !BATMAN

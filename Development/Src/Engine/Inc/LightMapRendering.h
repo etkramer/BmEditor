@@ -439,18 +439,7 @@ public:
 
 	static UBOOL ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-#if BATMAN
-		if (Material && Material->GetLightingModel() == MLM_Unlit)
-		{
-			return FALSE;
-		}
-		return VertexFactoryType
-			&& VertexFactoryType->SupportsDynamicLighting()
-			&& Material
-			&& (Material->HasSSSNormal() || Material->IsSpecialEngineMaterial());
-#else
 		return Material->GetLightingModel() != MLM_Unlit && VertexFactoryType->SupportsStaticLighting() && (Material->IsUsedWithStaticLighting() || Material->IsSpecialEngineMaterial());
-#endif
 	}
 
 	/**

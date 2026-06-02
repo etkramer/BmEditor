@@ -679,7 +679,11 @@ enum EPixelShaderRegisters
 	PSR_NvStereoEnabled = 3,			// Whether stereo is enabled on the current rendering device.
 	PSR_DiffuseOverride = 4,			// Overrides GetMaterialDiffuseColor for visualization
 	PSR_SpecularOverride = 5,			// Overrides GetMaterialSpecularColor for visualization
+#if BATMAN
+	PSR_CameraPlane = 6,					// Camera plane used by BM/Gangland PC-D3D base pass shaders
+#else
 	PSR_ViewOrigin = 6,					// World space position of the view's origin (camera position)
+#endif
 	PSR_MaxPixelShaderRegister
 };
 
@@ -689,8 +693,12 @@ enum EVertexShaderRegister
 	VSR_ViewProjMatrix = 0,		// View-projection matrix, transforming from World space to Projection space
 	VSR_ViewOrigin = 4,			// World space position of the view's origin (camera position)
 	VSR_PreViewTranslation = 5,
+#if !BATMAN
 	VSR_TemporalAAParameters = 6,
 	VSR_MaxVertexShaderRegister = 7
+#else
+	VSR_MaxVertexShaderRegister = 6
+#endif
 };
 
 /**
@@ -1135,4 +1143,3 @@ enum ESceneMemoryStats
 
 
 #endif // !__RHI_H__
-
