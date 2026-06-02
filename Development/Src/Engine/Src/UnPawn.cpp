@@ -3129,7 +3129,7 @@ FLOAT APawn::GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, APla
 				Time *= 0.5f;
 		}
 	}
-	return NetPriority * Time;
+	return Time;
 }
 
 /** GetNetPriority()
@@ -3175,7 +3175,7 @@ FLOAT AProjectile::GetNetPriority(const FVector& ViewPos, const FVector& ViewDir
 		}
 	}
 
-	return NetPriority * Time;
+	return Time;
 }
 
 UBOOL APawn::SharingVehicleWith(APawn *P)

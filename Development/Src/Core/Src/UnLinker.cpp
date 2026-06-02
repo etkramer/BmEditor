@@ -3737,9 +3737,6 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 
         // BM: Skip currently unsupported types.
         if (IsBmCooked() && (
-			LoadClass->GetName() == "World" ||
-			LoadClass->GetName() == "Level" ||
-
 			// Don't load class functions for now
 			LoadClass->GetName() == "Function" ||
 
@@ -3750,6 +3747,8 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 			LoadClass->GetName() == "PhysicsAsset" ||
 			LoadClass->GetName() == "RB_BodySetup" ||
 
+			LoadClass->GetName() == "Emitter" ||
+			LoadClass->GetName() == "Sequence" ||
 			LoadClass->GetName() == "ParticleSystem" ||
 			LoadClass->GetName() == "PhysicalMaterial" ||
 

@@ -17,8 +17,13 @@ var	transient	const	bool			bNeedsReattach;
 /** Is this component's transform in need of an update? */
 var	transient	const	bool			bNeedsUpdateTransform;
 
+var	native	transient	bool			bDisableTick;
+var						bool			bLevelHidden;
+
 /** The ticking group this component belongs to */
-var const ETickingGroup TickGroup;
+var const Object.ETickingGroup TickGroup;
+
+var byte ComponentArrayPriority;
 
 /** Changes the ticking group for this component */
 native final function SetTickGroup(ETickingGroup NewTickGroup);

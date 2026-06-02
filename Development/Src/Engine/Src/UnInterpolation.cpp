@@ -11117,7 +11117,7 @@ FLOAT AInterpActor::GetNetPriority(const FVector& ViewPos, const FVector& ViewDi
 {
 	if ( Viewer && Viewer->ViewTarget && Viewer->ViewTarget->Base == this )
 	{
-		return 4.f * Time * NetPriority;
+		return 4.f * Time;
 	}
 	else 
 	{

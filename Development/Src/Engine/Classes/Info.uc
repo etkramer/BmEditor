@@ -61,7 +61,6 @@ defaultproperties
 	Components.Add(Sprite)
 
 	RemoteRole=ROLE_None
-	NetUpdateFrequency=10
 	bHidden=TRUE
 	bOnlyDirtyReplication=TRUE
 	bSkipActorPropertyReplication=TRUE

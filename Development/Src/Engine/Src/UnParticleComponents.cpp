@@ -4915,7 +4915,7 @@ void UParticleSystemComponent::Tick(FLOAT DeltaTime)
 	}
 
 	bForcedInActive = FALSE;
-	DeltaTime *= (GetOwner() ? GetOwner()->CustomTimeDilation : 1.f) * CustomTimeDilation;
+	DeltaTime *= CustomTimeDilation;
 
 	AccumTickTime += DeltaTime;
 

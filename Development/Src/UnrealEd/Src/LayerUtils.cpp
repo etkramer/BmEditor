@@ -47,8 +47,8 @@ UBOOL FLayerUtils::AddActorToLayer(AActor* Actor, const FString& LayerName, UBOO
 				Actor->Modify();
 			}
 
-			const FString CurLayer = Actor->Layer.ToString();
-			Actor->Layer = FName( *FString::Printf(TEXT("%s%s%s"), *CurLayer, (CurLayer.Len() ? TEXT(","):TEXT("")), *LayerName ) );
+			const FString CurLayer = Actor->Group.ToString();
+			Actor->Group = FName( *FString::Printf(TEXT("%s%s%s"), *CurLayer, (CurLayer.Len() ? TEXT(","):TEXT("")), *LayerName ) );
 
 			// Remove the actor from "None.
 			const FString NoneLayer( TEXT("None") );
@@ -77,7 +77,7 @@ UBOOL FLayerUtils::RemoveActorFromLayer(AActor* Actor, const FString& LayerToRem
 	if(	IsValid( Actor ) )
 	{
 		TArray<FString> LayerArray;
-		FString LayerName = Actor->Layer.ToString();
+		FString LayerName = Actor->Group.ToString();
 		LayerName.ParseIntoArray( &LayerArray, TEXT(","), FALSE );
 
 		const UBOOL bRemovedFromLayer = LayerArray.RemoveItem( LayerToRemove ) > 0;
@@ -98,7 +98,7 @@ UBOOL FLayerUtils::RemoveActorFromLayer(AActor* Actor, const FString& LayerToRem
 			{
 				Actor->Modify();
 			}
-			Actor->Layer = FName( *LayerName );
+			Actor->Group = FName( *LayerName );
 
 			// update per-view visibility info
 			UpdateActorAllViewsVisibility(Actor);
@@ -140,7 +140,7 @@ UBOOL FLayerUtils::AddSelectedActorsToLayers(const TArray<FString>& LayerNames)
 		if ( IsValid( Actor ) )
 		{
 			// Break the actors layer names down and only add the ones back in that don't occur in LayerNames.
-			FString LayerName = Actor->Layer.ToString();
+			FString LayerName = Actor->Group.ToString();
 			LayerName.ParseIntoArray( &LayerArray, TEXT(","), FALSE );
 
 			const INT OldLayerNum = LayerArray.Num();
@@ -176,7 +176,7 @@ UBOOL FLayerUtils::AddSelectedActorsToLayers(const TArray<FString>& LayerNames)
 					LayerName += LayerArray(LayerIndex);
 				}
 				Actor->Modify();
-				Actor->Layer = FName( *LayerName );
+				Actor->Group = FName( *LayerName );
 
 				// update per-view visibility info
 				UpdateActorAllViewsVisibility(Actor);
@@ -216,8 +216,8 @@ UBOOL FLayerUtils::AddSelectedActorsToLayer(const FString& LayerName)
 				// Add the layer to the actors layer list.
 				Actor->Modify();
 
-				const FString CurLayer = Actor->Layer.ToString();
-				Actor->Layer = FName( *FString::Printf(TEXT("%s%s%s"), *CurLayer, (CurLayer.Len() ? TEXT(","):TEXT("")), *LayerName ) );
+				const FString CurLayer = Actor->Group.ToString();
+				Actor->Group = FName( *FString::Printf(TEXT("%s%s%s"), *CurLayer, (CurLayer.Len() ? TEXT(","):TEXT("")), *LayerName ) );
 
 				// If we're not adding to the "None" layer and the actor has single membership in the "None" layer, remove the actor from "None.
 				if ( !bAddingToNoneLayer && Actor->IsInLayer( *NoneLayer ) )
@@ -254,7 +254,7 @@ UBOOL FLayerUtils::RemoveSelectedActorsFromLayers(const TArray<FString>& LayerNa
 		if ( IsValid( Actor ) )
 		{
 			// Break the actors layer names down and only add the ones back in that don't occur in LayerNames.
-			FString LayerName = Actor->Layer.ToString();
+			FString LayerName = Actor->Group.ToString();
 			LayerName.ParseIntoArray( &LayerArray, TEXT(","), FALSE );
 
 			UBOOL bRemovedFromLayer = FALSE;
@@ -281,7 +281,7 @@ UBOOL FLayerUtils::RemoveSelectedActorsFromLayers(const TArray<FString>& LayerNa
 					LayerName += LayerArray(LayerIndex);
 				}
 				Actor->Modify();
-				Actor->Layer = FName( *LayerName );
+				Actor->Group = FName( *LayerName );
 
 				// update per-view visibility info
 				UpdateActorAllViewsVisibility(Actor);
@@ -373,7 +373,7 @@ void FLayerUtils::UpdatePerViewVisibility(INT ViewIndex, FName LayerThatChanged)
 			}
 			// else if we were given a name that was changed, only update actors with that name in their layers,
 			// otherwise update all actors
-			else if (LayerThatChanged == NAME_Skip || Actor->Layer.ToString().InStr(*LayerString) != INDEX_NONE)
+			else if (LayerThatChanged == NAME_Skip || Actor->Group.ToString().InStr(*LayerString) != INDEX_NONE)
 			{
 				UpdateActorViewVisibility(ViewIndex, Actor);
 			}

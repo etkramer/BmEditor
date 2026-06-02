@@ -25,7 +25,7 @@ UBOOL UBrushBuilder::EndBrush()
 
 	// Ensure the builder brush is unhidden.
 	BuilderBrush->bHidden = FALSE;
-	BuilderBrush->bHiddenEdLayer = FALSE;
+	BuilderBrush->bHiddenEdGroup = FALSE;
 
 	AActor* Actor = GEditor->GetSelectedActors()->GetTop<AActor>();
 	FVector Location = Actor ? Actor->Location : BuilderBrush->Location;
@@ -37,7 +37,7 @@ UBOOL UBrushBuilder::EndBrush()
 			const FScopedTransaction Transaction( *LocalizeUnrealEd(TEXT("BrushSet")) );
 			Brush->Modify();
 			BuilderBrush->Modify();
-			BuilderBrush->Layer = Layer;
+			BuilderBrush->Group = Layer;
 			FRotator Temp(0.0f,0.0f,0.0f);
 			GEditor->Constraints.Snap( Location, FVector(0,0,0), Temp );
 			BuilderBrush->Location = Location;

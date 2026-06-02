@@ -164,6 +164,18 @@
         "visualizerFile": "${workspaceFolder}/UE3.natvis",
         "internalConsoleOptions": "openOnSessionStart"
       },
+{
+        "name": "Launch Make",
+        "type": "cppvsdbg",
+        "request": "launch",
+        "program": "${workspaceFolder}/Binaries/Win32/Debug-BmGame.exe",
+        "args": ["make", "-d3d9", "-forcelogflush"],
+        "stopAtEntry": false,
+        "cwd": "${workspaceFolder}",
+        "environment": [],
+        "visualizerFile": "${workspaceFolder}/UE3.natvis",
+        "internalConsoleOptions": "openOnSessionStart"
+      },
     ],
   },
 }

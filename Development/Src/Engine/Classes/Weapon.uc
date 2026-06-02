@@ -1905,7 +1905,6 @@ defaultproperties
 	RespawnTime=+00030.000000
 
 	bHidden=true
-	MessageClass=class'LocalMessage'
 
 	bCanThrow=true
 	bReplicateInstigator=true

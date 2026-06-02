@@ -234,7 +234,7 @@ AActor* UEditorEngine::AddActor(UClass* Class, const FVector& Location, UBOOL bS
 	if( Actor )
 	{
 		TArray<FString> NewLayers;
-		Actor->Layer.ToString().ParseIntoArray( &NewLayers, TEXT(","), 0 );
+		Actor->Group.ToString().ParseIntoArray( &NewLayers, TEXT(","), 0 );
 
 		TArray<FString> VisibleLayers;
 		GWorld->GetWorldInfo()->VisibleLayers.ParseIntoArray( &VisibleLayers, TEXT(","), 0 );
@@ -558,7 +558,7 @@ void UEditorEngine::ReplaceSelectedActors(UActorFactory* Factory, UClass* NewAct
 					NewActor->DrawScale = OldActor->DrawScale;
 					NewActor->DrawScale3D = OldActor->DrawScale3D;
 				}
-				NewActor->Layer = OldActor->Layer;
+				NewActor->Group = OldActor->Group;
 				NewActor->Tag = OldActor->Tag;
 				SelectActor(OldActor, FALSE, NULL, TRUE);
 				SelectActor(NewActor, TRUE, NULL, TRUE);
@@ -4746,7 +4746,7 @@ UBOOL FEditorLevelViewportClient::InputKey(FViewport* Viewport,INT ControllerId,
 
 					// Parse the actor's layers into an array.
 					TArray<FString> NewLayers;
-					Actor->Layer.ToString().ParseIntoArray( &NewLayers, TEXT(","), 0 );
+					Actor->Group.ToString().ParseIntoArray( &NewLayers, TEXT(","), 0 );
 
 					// Add them to the list of selected layers.
 					for( INT NewLayerIndex = 0 ; NewLayerIndex < NewLayers.Num() ; ++NewLayerIndex )
@@ -4764,7 +4764,7 @@ UBOOL FEditorLevelViewportClient::InputKey(FViewport* Viewport,INT ControllerId,
 						AActor* Actor = *It;
 
 						// Take the actor's layer string and break it up into an array.
-						const FString LayerNames = Actor->Layer.ToString();
+						const FString LayerNames = Actor->Group.ToString();
 
 						TArray<FString> LayerList;
 						LayerNames.ParseIntoArray( &LayerList, TEXT(","), FALSE );

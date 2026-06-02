@@ -68,6 +68,7 @@ class ALight : public AActor
 public:
     //## BEGIN PROPS Light
     class ULightComponent* LightComponent;
+    FName LightGroup;
     BITFIELD bEnabled:1;
     SCRIPT_ALIGN;
     //## END PROPS Light
@@ -1023,6 +1024,7 @@ FNativeFunctionLookup GEngineUDynamicLightEnvironmentComponentNatives[] =
 #ifdef VERIFY_CLASS_SIZES
 VERIFY_CLASS_SIZE_NODIE(ALightVolume)
 VERIFY_CLASS_OFFSET_NODIE(ALight,Light,LightComponent)
+VERIFY_CLASS_OFFSET_NODIE(ALight,Light,LightGroup)
 VERIFY_CLASS_SIZE_NODIE(ALight)
 VERIFY_CLASS_SIZE_NODIE(ADirectionalLight)
 VERIFY_CLASS_SIZE_NODIE(ADirectionalLightToggleable)

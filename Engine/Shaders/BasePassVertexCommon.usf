@@ -34,6 +34,8 @@ float4 LightPositionAndInvRadius;
 	/** Maximum extrema of the AABB of the intersecting fog volume */
 	float3 FogVolumeBoxMax;
 
+	float4 ObjectFogColor;
+
 	/*
 	* Combines height fog and fog volume contribution.  Height fog is always applied after the fog volume 
 	* since height fog is infinite in extent and fog volumes are bounded.
@@ -63,7 +65,7 @@ float4 LightPositionAndInvRadius;
 		/** Computes fog contribution from no fog volume. */
 		half4 GetFogDensity(float4 WorldPosition, float4 CameraPos)
 		{
-			return half4(0,0,0,1);
+			return ObjectFogColor;
 		}
 	#endif
 

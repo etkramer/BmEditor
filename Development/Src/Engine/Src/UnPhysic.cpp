@@ -390,14 +390,6 @@ void AActor::performPhysics(FLOAT DeltaSeconds)
 		physicsRotation(DeltaSeconds,OldVelocity);
 	}
 
-	// allow touched actors to impact physics
-	if( PendingTouch )
-	{
-		PendingTouch->eventPostTouch(this);
-		AActor *OldTouch = PendingTouch;
-		PendingTouch = PendingTouch->PendingTouch;
-		OldTouch->PendingTouch = NULL;
-	}
 }
 
 void APawn::performPhysics(FLOAT DeltaSeconds)
@@ -480,16 +472,6 @@ void APawn::performPhysics(FLOAT DeltaSeconds)
 
 	AvgPhysicsTime = 0.8f * AvgPhysicsTime + 0.2f * DeltaSeconds;
 
-	if( PendingTouch )
-	{
-		PendingTouch->eventPostTouch(this);
-		if( PendingTouch )
-		{
-			AActor *OldTouch = PendingTouch;
-			PendingTouch = PendingTouch->PendingTouch;
-			OldTouch->PendingTouch = NULL;
-		}
-	}
 }
 
 void APawn::setPhysics(BYTE NewPhysics, AActor* NewFloor, FVector NewFloorV)
@@ -2840,10 +2822,6 @@ void AActor::physProjectile( FLOAT DeltaTime, INT Iterations )
 		RemainingTime			= 0.f;
 		Hit.Time				= 1.f;
 		
-		if( bProjectileMoveSingleBlocking )
-		{
-			MoveFlags |= MOVE_SingleBlocking;
-		}
 		GWorld->MoveActor( this, Adjusted, Rotation, MoveFlags, Hit );	
 
 		if( bDeleteMe )
@@ -3450,4 +3428,3 @@ void AActor::physInterpolating(FLOAT DeltaTime)
 	}
 	bIsMoving = bMovingNow;
 }
-

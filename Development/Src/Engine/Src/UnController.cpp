@@ -30,7 +30,7 @@ FLOAT APlayerController::GetNetPriority(const FVector& ViewPos, const FVector& V
 {
 	if ( Viewer == this )
 		Time *= 4.f;
-	return NetPriority * Time;
+	return Time;
 }
 
 /**
@@ -2795,7 +2795,6 @@ void APlayerController::ForceSingleNetUpdateFor(AActor* Target)
 			UActorChannel* Channel = Conn->ActorChannels.FindRef(Target);
 			if (Channel != NULL)
 			{
-				Target->bPendingNetUpdate = TRUE; // will cause some other clients to do lesser checks too, but that's unavoidable with the current functionality
 				Channel->ActorDirty = TRUE;
 			}
 		}
@@ -3425,7 +3424,6 @@ void UCheatManager::DumpCoverStats()
 {
 	GWorld->DumpCoverStats();
 }
-
 
 
 

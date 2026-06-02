@@ -11,6 +11,4 @@ class InterpActor_ForCinematic extends InterpActor
 
 defaultproperties
 {
-	// since these InterpActors are usually invisible and not on screen we need to make certain they are getting full ticking
-	TickFrequencyAtEndDistance=0
 }

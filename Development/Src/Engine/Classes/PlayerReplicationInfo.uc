@@ -597,7 +597,6 @@ defaultproperties
 
 	RemoteRole=ROLE_SimulatedProxy
 	bAlwaysRelevant=True
-	NetUpdateFrequency=1
 	GameMessageClass=class'GameMessage'
 
 	// The default online session is the game one

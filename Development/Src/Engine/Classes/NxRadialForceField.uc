@@ -63,6 +63,5 @@ defaultproperties
 	RemoteRole=ROLE_SimulatedProxy
 	bNoDelete=true
 	bAlwaysRelevant=true
-	NetUpdateFrequency=0.1
 	bOnlyDirtyReplication=true
 }

@@ -114,7 +114,7 @@ IMPLEMENT_COMPARE_POINTER( AActor, SM_TYPE, \
 
 IMPLEMENT_COMPARE_POINTER( AActor, SM_LAYERS, \
 { \
-	UBOOL Comp = appStricmp( *(A->Layer.ToString()), *(B->Layer.ToString()) ); \
+	UBOOL Comp = appStricmp( *(A->Group.ToString()), *(B->Group.ToString()) ); \
 	return (Comp == 0) ? \
 			appStricmp( *A->GetName(), *B->GetName() ) : \
 			Comp; \
@@ -737,7 +737,7 @@ void WxSceneManager::PopulateGrid(const TArray<ULevel*>& Levels)
 		Grid->SetCellValue( ActorIndex, SM_ACTOR, *Actor->GetName() );
 		Grid->SetCellValue( ActorIndex, SM_TAG, *(Actor->Tag.ToString()) );
 		Grid->SetCellValue( ActorIndex, SM_TYPE, *Actor->GetClass()->GetName() );
-		Grid->SetCellValue( ActorIndex, SM_LAYERS, *(Actor->Layer.ToString()) );
+		Grid->SetCellValue( ActorIndex, SM_LAYERS, *(Actor->Group.ToString()) );
 		
 		if (Actor->Base)
 		{

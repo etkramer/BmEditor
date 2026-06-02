@@ -1190,7 +1190,6 @@ void USkeletalMeshComponent::Tick(FLOAT DeltaTime)
 {
 	SCOPE_CYCLE_COUNTER(STAT_SkelComponentTickTime);
 
-	DeltaTime *= GetOwner() ? GetOwner()->CustomTimeDilation : 1.f;
 
 	// See if this mesh was rendered recently.
 	bRecentlyRendered = (LastRenderTime > GWorld->GetWorldInfo()->TimeSeconds - 1.0f);

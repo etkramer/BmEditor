@@ -36,12 +36,27 @@ struct CheckpointRecord
 /** whether this should be saved in checkpoints */
 var bool bShouldSaveForCheckpoint;
 
-/** NavigationPoint associated with this actor for sending AI related notifications (could be a LiftCenter or DoorMarker) */
-var NavigationPoint MyMarker;
 /** true when AI is waiting for us to finish moving */
 var bool bMonitorMover;
 /** if true, call MoverFinished() event on all Controllers with us as their PendingMover when we reach peak Z velocity */
 var bool bMonitorZVelocity;
+/** if set this mover blows up projectiles when it encroaches them */
+var() bool bDestroyProjectilesOnEncroach;
+/** if set, this mover keeps going if it encroaches an Actor in PHYS_RigidBody.  */
+var() bool bContinueOnEncroachPhysicsObject;
+/** true by default, prevents mover from completing the movement that would leave it encroaching another actor */
+var() bool bStopOnEncroach;
+
+/**
+ * This is used for having the Actor ShadowParent all of the components that are "SetBased" onto it.  This allows LDs to
+ * take InterpActors in the level and then SetBase a ton of other meshes to them and not incur multiple shadow casters.
+ **/
+var() bool bShouldShadowParentAllAttachedActors;
+
+/** If true, have a liftcenter associated with this interpactor, so it is being used as a lift */
+var bool bIsLift;
+/** NavigationPoint associated with this actor for sending AI related notifications (could be a LiftCenter or DoorMarker) */
+var NavigationPoint MyMarker;
 /** set while monitoring lift movement */
 var float MaxZVelocity;
 /** delay after mover finishes interpolating before it notifies any mover events */
@@ -60,22 +75,6 @@ var() SoundCue ClosingAmbientSound;
 var() SoundCue ClosedSound;
 /** component for looping sounds */
 var AudioComponent AmbientSoundComponent;
-
-/** if set this mover blows up projectiles when it encroaches them */
-var() bool bDestroyProjectilesOnEncroach;
-/** if set, this mover keeps going if it encroaches an Actor in PHYS_RigidBody.  */
-var() bool bContinueOnEncroachPhysicsObject;
-/** true by default, prevents mover from completing the movement that would leave it encroaching another actor */
-var() bool bStopOnEncroach;
-
-/**
- * This is used for having the Actor ShadowParent all of the components that are "SetBased" onto it.  This allows LDs to
- * take InterpActors in the level and then SetBase a ton of other meshes to them and not incur multiple shadow casters.
- **/
-var() bool bShouldShadowParentAllAttachedActors;
-
-/** If true, have a liftcenter associated with this interpactor, so it is being used as a lift */
-var bool bIsLift;
 
 simulated event PostBeginPlay()
 {
@@ -508,8 +507,6 @@ defaultproperties
 	bUpdateSimulatedPosition=false
 	bOnlyDirtyReplication=true
 	RemoteRole=ROLE_None
-	NetPriority=2.7
-	NetUpdateFrequency=1.0
 	bDestroyProjectilesOnEncroach=true
 	bStopOnEncroach=true
 	bContinueOnEncroachPhysicsObject=TRUE
@@ -518,9 +515,4 @@ defaultproperties
 	bShouldSaveForCheckpoint=true
 
 	SupportedEvents.Add(class'SeqEvent_Mover')
-
-	TickFrequencyDecreaseDistanceStart=4000
-	TickFrequencyDecreaseDistanceEnd=8000
-	TickFrequencyAtEndDistance=0.1
 }
-

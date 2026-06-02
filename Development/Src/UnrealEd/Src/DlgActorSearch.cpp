@@ -219,7 +219,7 @@ void WxDlgActorSearch::UpdateResults()
 						const LONG Idx = ResultsList->InsertItem( ASF_Name, *Actor->GetName() );
 						ResultsList->SetItem( Idx, ASF_Level, *Actor->GetOutermost()->GetName() );
 						ResultsList->SetItem( Idx, ASF_PathName, *Actor->GetPathName() );
-						ResultsList->SetItem( Idx, ASF_Layer, *Actor->Layer.ToString() );
+						ResultsList->SetItem( Idx, ASF_Layer, *Actor->Group.ToString() );
 						ResultsList->SetItem( Idx, ASF_Tag, *Actor->Tag.ToString() );
 
 						PTRINT ActorAsPtrInt = reinterpret_cast< PTRINT >( Actor ); 
@@ -289,7 +289,7 @@ FString WxDlgActorSearch::GetActorSearchString( AActor* InActor, EActorSearchFie
 
 		// Handle layer search
 		case ASF_Layer:
-			SearchString = InActor->Layer.ToString();
+			SearchString = InActor->Group.ToString();
 			break;
 		default:
 			break;

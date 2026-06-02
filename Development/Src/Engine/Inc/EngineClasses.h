@@ -48,29 +48,6 @@ enum ETravelType
     op(TRAVEL_Absolute) \
     op(TRAVEL_Partial) \
     op(TRAVEL_Relative) 
-enum ECollisionType
-{
-    COLLIDE_CustomDefault   =0,
-    COLLIDE_NoCollision     =1,
-    COLLIDE_BlockAll        =2,
-    COLLIDE_BlockWeapons    =3,
-    COLLIDE_TouchAll        =4,
-    COLLIDE_TouchWeapons    =5,
-    COLLIDE_BlockAllButWeapons=6,
-    COLLIDE_TouchAllButWeapons=7,
-    COLLIDE_BlockWeaponsKickable=8,
-    COLLIDE_MAX             =9,
-};
-#define FOREACH_ENUM_ECOLLISIONTYPE(op) \
-    op(COLLIDE_CustomDefault) \
-    op(COLLIDE_NoCollision) \
-    op(COLLIDE_BlockAll) \
-    op(COLLIDE_BlockWeapons) \
-    op(COLLIDE_TouchAll) \
-    op(COLLIDE_TouchWeapons) \
-    op(COLLIDE_BlockAllButWeapons) \
-    op(COLLIDE_TouchAllButWeapons) \
-    op(COLLIDE_BlockWeaponsKickable) 
 enum ENetRole
 {
     ROLE_None               =0,
@@ -114,6 +91,29 @@ enum EMoveDir
     op(MD_Right) \
     op(MD_Up) \
     op(MD_Down) 
+enum ECollisionType
+{
+    COLLIDE_CustomDefault   =0,
+    COLLIDE_NoCollision     =1,
+    COLLIDE_BlockAll        =2,
+    COLLIDE_BlockWeapons    =3,
+    COLLIDE_TouchAll        =4,
+    COLLIDE_TouchWeapons    =5,
+    COLLIDE_BlockAllButWeapons=6,
+    COLLIDE_TouchAllButWeapons=7,
+    COLLIDE_BlockWeaponsKickable=8,
+    COLLIDE_MAX             =9,
+};
+#define FOREACH_ENUM_ECOLLISIONTYPE(op) \
+    op(COLLIDE_CustomDefault) \
+    op(COLLIDE_NoCollision) \
+    op(COLLIDE_BlockAll) \
+    op(COLLIDE_BlockWeapons) \
+    op(COLLIDE_TouchAll) \
+    op(COLLIDE_TouchWeapons) \
+    op(COLLIDE_BlockAllButWeapons) \
+    op(COLLIDE_TouchAllButWeapons) \
+    op(COLLIDE_BlockWeaponsKickable) 
 enum EPhysics
 {
     PHYS_None               =0,
@@ -129,9 +129,11 @@ enum EPhysics
     PHYS_RigidBody          =10,
     PHYS_SoftBody           =11,
     PHYS_NavMeshWalking     =12,
-    PHYS_Unused             =13,
-    PHYS_Custom             =14,
-    PHYS_MAX                =15,
+    PHYS_Floating           =13,
+    PHYS_Ceiling            =14,
+    PHYS_Unused             =15,
+    PHYS_Custom             =16,
+    PHYS_MAX                =17,
 };
 #define FOREACH_ENUM_EPHYSICS(op) \
     op(PHYS_None) \
@@ -147,6 +149,8 @@ enum EPhysics
     op(PHYS_RigidBody) \
     op(PHYS_SoftBody) \
     op(PHYS_NavMeshWalking) \
+    op(PHYS_Floating) \
+    op(PHYS_Ceiling) \
     op(PHYS_Unused) \
     op(PHYS_Custom) 
 enum ECsgOper
@@ -1464,12 +1468,61 @@ struct FAnimSlotDesc
     }
 };
 
+struct FBlockingVolumeTypesContainer
+{
+    BITFIELD AllActors:1;
+    BITFIELD Player:1;
+    BITFIELD Enemies:1;
+    BITFIELD Friendlies:1;
+    BITFIELD Physics:1;
+    BITFIELD Batarang:1;
+    BITFIELD BatClaw:1;
+    BITFIELD LineLauncher:1;
+    BITFIELD GrappleGun:1;
+    BITFIELD Camera:1;
+    BITFIELD WeaponsOrLOS:1;
+    BITFIELD MagneticObjects:1;
+    BITFIELD ClimbOnly:1;
+    BITFIELD IgnoreWallPounces:1;
+    BITFIELD FreezeGrenades:1;
+    BITFIELD SmokeBomb:1;
+    BITFIELD REC:1;
+    SCRIPT_ALIGN;
+
+    /** Constructors */
+    FBlockingVolumeTypesContainer() {}
+    FBlockingVolumeTypesContainer(EEventParm)
+    {
+        appMemzero(this, sizeof(FBlockingVolumeTypesContainer));
+    }
+};
+
+struct FInvestigationData
+{
+    FStringNoInit InvestigationInfoTitle;
+    FStringNoInit InvestigationInfo;
+    class UObject* BatmanThought;
+    FName GlobalFlagCheck;
+    BITFIELD bInvertFlag:1;
+    BITFIELD bWarningFlag:1;
+    SCRIPT_ALIGN;
+
+    /** Constructors */
+    FInvestigationData() {}
+    FInvestigationData(EEventParm)
+    {
+        appMemzero(this, sizeof(FInvestigationData));
+    }
+};
+
 struct FPhysEffectInfo
 {
-    FLOAT Threshold;
+    FLOAT MinEffectSpeed;
+    FLOAT MaxEffectSpeed;
     FLOAT ReFireDelay;
     class UParticleSystem* Effect;
-    class USoundCue* Sound;
+    class UObject* Sound;
+    class UActorComponent* Force;
 
     /** Constructors */
     FPhysEffectInfo() {}
@@ -2212,27 +2265,24 @@ public:
     FVector PrePivot;
     FColor EditorIconColor;
     FRenderCommandFence DetachFence;
-    FLOAT CustomTimeDilation;
     BYTE Physics;
     BYTE RemoteRole;
     BYTE Role;
     BYTE CollisionType;
     BYTE ReplicatedCollisionType;
     BYTE TickGroup;
+    BYTE FramesTillInvestigateSightCheck;
     class AActor* Owner;
     class AActor* Base;
     TArrayNoInit<struct FTimerData> Timers;
-private:
     BITFIELD bStatic:1;
-public:
     BITFIELD bHidden:1;
     BITFIELD bNoDelete:1;
     BITFIELD bDeleteMe:1;
     BITFIELD bTicked:1;
     BITFIELD bOnlyOwnerSee:1;
-private:
     BITFIELD bTickIsDisabled:1;
-public:
+    BITFIELD bStasis:1;
     BITFIELD bWorldGeometry:1;
     BITFIELD bIgnoreRigidBodyPawns:1;
     BITFIELD bOrientOnSlope:1;
@@ -2244,6 +2294,7 @@ public:
     BITFIELD bAlwaysEncroachCheck:1;
     BITFIELD bHasAlternateTargetLocation:1;
     BITFIELD bCanStepUpOn:1;
+    BITFIELD bAICanStepUpOn:1;
     BITFIELD bNetTemporary:1;
     BITFIELD bOnlyRelevantToOwner:1;
     BITFIELD bNetDirty:1;
@@ -2265,10 +2316,14 @@ public:
     BITFIELD bConsiderAllStaticMeshComponentsForStreaming:1;
     BITFIELD bDebug:1;
     BITFIELD bPostRenderIfNotVisible:1;
+    BITFIELD bAllowActorThoughts:1;
+    BITFIELD bAllowTwoWayEncroach:1;
     BITFIELD bForceNetUpdate:1;
-    BITFIELD bPendingNetUpdate:1;
+    BITFIELD bManualPerformPhysics:1;
     BITFIELD bHardAttach:1;
+    BITFIELD bSnapAttach:1;
     BITFIELD bIgnoreBaseRotation:1;
+    BITFIELD bBasedActorsNoMove:1;
     BITFIELD bShadowParented:1;
     BITFIELD bCanBeAdheredTo:1;
     BITFIELD bCanBeFrictionedTo:1;
@@ -2290,8 +2345,10 @@ public:
     BITFIELD bBlockActors:1;
     BITFIELD bProjTarget:1;
     BITFIELD bBlocksTeleport:1;
+    BITFIELD bForceZeroExtentCollision:1;
+    BITFIELD bPlayerMovementCheck:1;
     BITFIELD bMoveIgnoresDestruction:1;
-    BITFIELD bProjectileMoveSingleBlocking:1;
+    BITFIELD bForceNoVolumeTrace:1;
     BITFIELD bNoEncroachCheck:1;
     BITFIELD bCollideAsEncroacher:1;
     BITFIELD bPhysRigidBodyOutOfWorldCheck:1;
@@ -2303,41 +2360,46 @@ public:
     BITFIELD bJustTeleported:1;
     BITFIELD bNetInitial:1;
     BITFIELD bNetOwner:1;
+    BITFIELD bOwnerAlwaysReplicated:1;
     BITFIELD bHiddenEd:1;
     BITFIELD bEditable:1;
-    BITFIELD bHiddenEdGroup_DEPRECATED:1;
-    BITFIELD bHiddenEdLayer:1;
+    BITFIELD bHiddenEdGroup:1;
     BITFIELD bHiddenEdCustom:1;
     BITFIELD bHiddenEdTemporary:1;
     BITFIELD bHiddenEdLevel:1;
     BITFIELD bEdShouldSnap:1;
     BITFIELD bTempEditor:1;
     BITFIELD bPathColliding:1;
+    BITFIELD bIgnoreStaticForPathBuilding:1;
     BITFIELD bPathTemp:1;
     BITFIELD bScriptInitialized:1;
     BITFIELD bLockLocation:1;
     BITFIELD bForceAllowKismetModification:1;
+    BITFIELD bStripThisActorWhenCooking:1;
+    BITFIELD bDonePostBeginPlay:1;
+    BITFIELD bBatmanCanClimb:1;
+    BITFIELD bAllowSlopedEdges:1;
+    BITFIELD bAllowCrevice:1;
+    BITFIELD bGrappleToSlopedRoof:1;
+    BITFIELD CanAlwaysLinkEdges:1;
+    BITFIELD bDisallowShimmy:1;
+    BITFIELD bValidLineLauncherTarget:1;
+    BITFIELD bValidGelTarget:1;
+    BITFIELD bCurrentInvestigateHightlighted:1;
+    BITFIELD CachedInvestigateSightCheck:1;
     BITFIELD bDebugEffectIsRelevant:1;
-    INT NetTag;
-    FLOAT NetUpdateTime;
-    FLOAT NetUpdateFrequency;
-    FLOAT NetPriority;
-    FLOAT LastNetUpdateTime;
-    FLOAT TimeSinceLastTick;
-    FLOAT TickFrequency;
-    FLOAT TickFrequencyAtEndDistance;
-    FLOAT TickFrequencyDecreaseDistanceStart;
-    FLOAT TickFrequencyDecreaseDistanceEnd;
-    FLOAT TickFrequencyLastSeenTimeBeforeForcingMaxTickFrequency;
+    BITFIELD bLoadIfPhysXLevel0:1;
+    BITFIELD bLoadIfPhysXLevel1:1;
+    BITFIELD bLoadIfPhysXLevel2:1;
+    FStringNoInit LastEdit;
     class APawn* Instigator;
     class AWorldInfo* WorldInfo;
     FLOAT LifeSpan;
     FLOAT CreationTime;
+    struct FBlockingVolumeTypesContainer CanTraceActorBlockedTypes;
     FLOAT LastRenderTime;
     FName Tag;
-    FName InitialState;
-    FName Layer;
-    FName Group_DEPRECATED;
+    FName Group;
     QWORD HiddenEditorViews;
     TArrayNoInit<class AActor*> Touching;
     TArrayNoInit<class AActor*> Children;
@@ -2355,11 +2417,12 @@ public:
     class UPrimitiveComponent* CollisionComponent;
     INT OverlapTag;
     FRotator RotationRate;
-    class AActor* PendingTouch;
-    class UClass* MessageClass;
     TArrayNoInit<class UClass*> SupportedEvents;
     TArrayNoInit<class USequenceEvent*> GeneratedEvents;
     TArrayNoInit<class USeqAct_Latent*> LatentActions;
+    FLOAT InvestigationMaxDistance;
+    TArrayNoInit<struct FInvestigationData> InvestigationDataArray;
+    FLOAT InvestigationPriorityOverride;
     //## END PROPS Actor
 
     virtual void ForceUpdateComponents(UBOOL bCollisionUpdate=FALSE,UBOOL bTransformOnly=TRUE);
@@ -5684,11 +5747,11 @@ public:
     class UStaticMeshComponent* StaticMeshComponent;
     class UDynamicLightEnvironmentComponent* LightEnvironment;
     class UStaticMesh* ReplicatedMesh;
-    class UMaterialInterface* ReplicatedMaterial0;
-    class UMaterialInterface* ReplicatedMaterial1;
+    class UMaterialInterface* ReplicatedMaterial;
     BITFIELD bForceStaticDecals:1;
     BITFIELD bPawnCanBaseOn:1;
     BITFIELD bSafeBaseIfAsleep:1;
+    BITFIELD bGoIntoStasisWhenHidden:1;
     SCRIPT_ALIGN;
     FVector ReplicatedMeshTranslation;
     FRotator ReplicatedMeshRotation;
@@ -11013,6 +11076,17 @@ public:
 	////// EditorLinkSelectionInterface
 	virtual void LinkSelection(USelection* SelectedActors);
 
+};
+
+class AWindDirectionalSource : public AInfo
+{
+public:
+    //## BEGIN PROPS WindDirectionalSource
+    class UWindDirectionalSourceComponent* Component;
+    //## END PROPS WindDirectionalSource
+
+    DECLARE_CLASS(AWindDirectionalSource,AInfo,0,Engine)
+    NO_DEFAULT_CONSTRUCTOR(AWindDirectionalSource)
 };
 
 class AWindPointSource : public AInfo
@@ -20152,6 +20226,7 @@ AUTOGENERATE_FUNCTION(UUIManager,-1,execGetUIManager);
 	APotentialClimbWatcher::StaticClass(); \
 	ARoute::StaticClass(); \
 	GNativeLookupFuncs.Set(FName("Route"), GEngineARouteNatives); \
+	AWindDirectionalSource::StaticClass(); \
 	AWindPointSource::StaticClass(); \
 	AZoneInfo::StaticClass(); \
 	AInventory::StaticClass(); \
@@ -21279,7 +21354,7 @@ FNativeFunctionLookup GEngineUUIManagerNatives[] =
 
 #ifdef VERIFY_CLASS_SIZES
 VERIFY_CLASS_OFFSET_NODIE(AActor,Actor,Components)
-VERIFY_CLASS_OFFSET_NODIE(AActor,Actor,LatentActions)
+VERIFY_CLASS_OFFSET_NODIE(AActor,Actor,InvestigationPriorityOverride)
 VERIFY_CLASS_SIZE_NODIE(AActor)
 VERIFY_CLASS_OFFSET_NODIE(ABrush,Brush,CsgOper)
 VERIFY_CLASS_OFFSET_NODIE(ABrush,Brush,SavedSelections)
@@ -21362,6 +21437,8 @@ VERIFY_CLASS_SIZE_NODIE(APotentialClimbWatcher)
 VERIFY_CLASS_OFFSET_NODIE(ARoute,Route,RouteType)
 VERIFY_CLASS_OFFSET_NODIE(ARoute,Route,RouteIndexOffset)
 VERIFY_CLASS_SIZE_NODIE(ARoute)
+VERIFY_CLASS_OFFSET_NODIE(AWindDirectionalSource,WindDirectionalSource,Component)
+VERIFY_CLASS_SIZE_NODIE(AWindDirectionalSource)
 VERIFY_CLASS_OFFSET_NODIE(AWindPointSource,WindPointSource,Component)
 VERIFY_CLASS_SIZE_NODIE(AWindPointSource)
 VERIFY_CLASS_OFFSET_NODIE(AZoneInfo,ZoneInfo,KillZ)
@@ -21460,6 +21537,7 @@ VERIFY_CLASS_SIZE_NODIE(ATrigger)
 VERIFY_CLASS_OFFSET_NODIE(UActorComponent,ActorComponent,Scene)
 VERIFY_CLASS_OFFSET_NODIE(UActorComponent,ActorComponent,Owner)
 VERIFY_CLASS_OFFSET_NODIE(UActorComponent,ActorComponent,TickGroup)
+VERIFY_CLASS_OFFSET_NODIE(UActorComponent,ActorComponent,ComponentArrayPriority)
 VERIFY_CLASS_SIZE_NODIE(UActorComponent)
 VERIFY_CLASS_OFFSET_NODIE(UAudioComponent,AudioComponent,SoundCue)
 VERIFY_CLASS_OFFSET_NODIE(UAudioComponent,AudioComponent,CueFirstNode)

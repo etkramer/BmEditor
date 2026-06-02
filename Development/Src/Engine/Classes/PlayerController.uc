@@ -1224,9 +1224,9 @@ reliable server function ServerShortTimeout()
 		{
 			foreach AllActors(class'Actor', A)
 			{
-				if ( (A.NetUpdateFrequency < 1) && !A.bOnlyRelevantToOwner )
+				if ( !A.bOnlyRelevantToOwner )
 				{
-					A.SetNetUpdateTime(FMin(A.NetUpdateTime, WorldInfo.TimeSeconds + 0.2 * FRand()));
+					A.bForceNetUpdate = TRUE;
 				}
 			}
 		}
@@ -1234,9 +1234,9 @@ reliable server function ServerShortTimeout()
 		{
 			foreach AllActors(class'Actor', A)
 			{
-				if ( (A.NetUpdateFrequency < 1) && !A.bOnlyRelevantToOwner )
+				if ( !A.bOnlyRelevantToOwner )
 				{
-					A.SetNetUpdateTime(FMin(A.NetUpdateTime, WorldInfo.TimeSeconds + 0.5 * FRand()));
+					A.bForceNetUpdate = TRUE;
 				}
 			}
 		}
@@ -1916,7 +1916,7 @@ reliable client function ClientSetHUD(class<HUD> newHUDType)
 
 function HandlePickup(Inventory Inv)
 {
-	ReceiveLocalizedMessage(Inv.MessageClass,,,,Inv.class);
+	ReceiveLocalizedMessage(class'LocalMessage',,,,Inv.class);
 }
 
 /* epic ===============================================
@@ -2755,7 +2755,6 @@ function float GetServerMoveDeltaTime(float TimeStamp)
 	}
 	else
 	{
-		DeltaTime *= Pawn.CustomTimeDilation;
 		bWasSpeedHack = FALSE;
 	}
 
@@ -3692,7 +3691,7 @@ function ReplicateMove
 	}
 
 	MaxResponseTime = Default.MaxResponseTime * WorldInfo.TimeDilation;
-	DeltaTime = ((Pawn != None) ? Pawn.CustomTimeDilation : CustomTimeDilation) * FMin(DeltaTime, MaxResponseTime);
+	DeltaTime = FMin(DeltaTime, MaxResponseTime);
 
 	// find the most recent move (LastMove), and the oldest (unacknowledged) important move (OldMove)
 	// a SavedMove is interesting if it differs significantly from the last acknowledged move
@@ -8973,7 +8972,6 @@ defaultproperties
 	Components.Add(CollisionCylinder)
 
 	FOVAngle=85.000
-	NetPriority=3
 	bIsPlayer=true
 	bCanDoSpecial=true
 	Physics=PHYS_None

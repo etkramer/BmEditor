@@ -786,7 +786,6 @@ void UNetDriver::UpdateStandbyCheatStatus(void)
 				// Controller won't be present until the join message is sent, which is after loading has completed
 				if (NetConn &&
 					NetConn->Actor &&
-					CurrentTime - NetConn->Actor->CreationTime > JoinInProgressStandbyWaitTime &&
 					// Ignore players with pending delete (kicked/timed out, but connection not closed)
 					NetConn->Actor->bPendingDelete == FALSE)
 				{

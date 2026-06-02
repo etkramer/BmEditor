@@ -529,7 +529,7 @@ void FAIProfiler::ExtractControllerInfo( const AAIController* InAIController, FA
 	OutControllerInfo.ControllerNameIndex = GetNameIndex( InAIController->GetFName().GetNameString() );
 	OutControllerInfo.ControllerNameInstance = InAIController->GetFName().GetNumber();
 	OutControllerInfo.ControllerClassNameIndex = GetNameIndex( InAIController->GetClass()->GetFName().GetNameString() );
-	OutControllerInfo.ControllerCreationTime = InAIController->CreationTime;
+	OutControllerInfo.ControllerCreationTime = 0.f;
 }
 
 /** Helper method to flush the memory writer to HDD */

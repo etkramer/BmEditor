@@ -446,15 +446,15 @@ void FLevelUtils::SetLevelVisibility(ULevelStreaming* StreamingLevel, ULevel* Le
 				if ( bShouldBeVisible && bForceLayersVisible && IsValidForLayerVisibility( Actor ) )
 				{
 					// Make the actor layer visible, if it's not already.
-					if ( Actor->bHiddenEdLayer )
+					if ( Actor->bHiddenEdGroup )
 					{
 						// While this action "dirties" the actor, intentionally do not call Modify() in order to prevent
 						// the level from dirtying over a visibility change
-						Actor->bHiddenEdLayer = FALSE;
+						Actor->bHiddenEdGroup = FALSE;
 					}
 
 					// Add the actor's layers to the list of visible layers.
-					const FString LayerName = *Actor->Layer.ToString();
+					const FString LayerName = *Actor->Group.ToString();
 					LayerName.ParseIntoArray( &NewLayers, TEXT(","), FALSE );
 
 					for( INT x = 0 ; x < NewLayers.Num() ; ++x )

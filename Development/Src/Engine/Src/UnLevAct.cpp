@@ -529,7 +529,6 @@ AActor* UWorld::SpawnActor
 		Actor->Tag = Class->GetFName();
 	}
 	Actor->bTicked		= !Ticked;
-	Actor->CreationTime = GetTimeSeconds();
 	Actor->WorldInfo	= GetWorldInfo();
 
 	// Set network role.

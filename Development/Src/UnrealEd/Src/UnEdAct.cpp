@@ -292,7 +292,7 @@ void UUnrealEdEngine::edactPasteSelected(UBOOL bDuplicate, UBOOL bOffsetLocation
 
 		// Add any layers this actor belongs to into the visible array.
 		TArray<FString> ActorLayers;
-		Actor->Layer.ToString().ParseIntoArray( &ActorLayers, TEXT(","), 0 );
+		Actor->Group.ToString().ParseIntoArray( &ActorLayers, TEXT(","), 0 );
 
 		for( INT LayerIndex = 0 ; LayerIndex < ActorLayers.Num() ; ++LayerIndex )
 		{
@@ -963,7 +963,7 @@ void UUnrealEdEngine::edactReplaceSelectedBrush()
 			LevelBrowserRefresh.Request();
 
 			NewBrush->Modify();
-			NewBrush->Layer = SrcBrush->Layer;
+			NewBrush->Group = SrcBrush->Group;
 			NewBrush->CopyPosRotScaleFrom( SrcBrush );
 			NewBrush->PostEditMove( TRUE );
 			SelectActor( SrcBrush, FALSE, NULL, FALSE );
@@ -981,7 +981,7 @@ static void CopyActorProperties( AActor* Dest, const AActor *Src )
 	Dest->Tag	= Src->Tag;
 
 	// Object
-	Dest->Layer	= Src->Layer;
+	Dest->Group	= Src->Group;
 }
 
 /**
@@ -1222,7 +1222,7 @@ void UUnrealEdEngine::edactHideUnselected()
 
 /**
  * Attempt to unhide all actors and BSP models by setting their bHiddenEdTemporary flags to FALSE if they
- * are TRUE. Note: Will not unhide actors/BSP hidden by higher priority visibility settings, such as bHiddenEdLayer,
+ * are TRUE. Note: Will not unhide actors/BSP hidden by higher priority visibility settings, such as bHiddenEdGroup,
  * but also will not modify/dirty actors/BSP.
  */
 void UUnrealEdEngine::edactUnHideAll()
@@ -1510,9 +1510,9 @@ void UUnrealEdEngine::edactSelectAll( UBOOL UseLayerSelect/*=FALSE*/ )
 			AActor* Actor = static_cast<AActor*>( *It );
 			checkSlow( Actor->IsA(AActor::StaticClass()) );
 
-			if( !Actor->IsHiddenEd() && Actor->Layer!=NAME_None )
+			if( !Actor->IsHiddenEd() && Actor->Group!=NAME_None )
 			{
-				LayerArray.AddUniqueItem( Actor->Layer );
+				LayerArray.AddUniqueItem( Actor->Group );
 			}
 		}
 	}
@@ -1542,7 +1542,7 @@ void UUnrealEdEngine::edactSelectAll( UBOOL UseLayerSelect/*=FALSE*/ )
 			{
 				for( INT j=0; j<LayerArray.Num(); j++ ) 
 				{
-					if( appStrfind( *Actor->Layer.ToString(), *LayerArray(j).ToString() ) != NULL ) 
+					if( appStrfind( *Actor->Group.ToString(), *LayerArray(j).ToString() ) != NULL )
 					{
 						SelectActor( Actor, 1, NULL, 0 );
 						break;
@@ -2425,4 +2425,3 @@ void UUnrealEdEngine::edactAlignVertices()
 }
 
 PRAGMA_ENABLE_OPTIMIZATION
-

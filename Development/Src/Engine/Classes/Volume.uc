@@ -48,7 +48,6 @@ event PostBeginPlay()
 	if ( AssociatedActor != None )
 	{
 		GotoState('AssociatedTouch');
-		InitialState = GetStateName();
 	}
 }
 

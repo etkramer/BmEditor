@@ -2,6 +2,7 @@
  * Copyright 1998-2011 Epic Games, Inc. All Rights Reserved.
  */
 class WindDirectionalSource extends Info
+	native
 	ClassGroup(Wind)
 	placeable;
 

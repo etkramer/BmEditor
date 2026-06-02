@@ -892,15 +892,6 @@ void APawn::TickSimulated( FLOAT DeltaSeconds )
 		//simulated pawns just predict location, no script execution
 		moveSmooth(Velocity * DeltaSeconds);
 
-		// allow touched actors to impact physics
-		if( PendingTouch )
-		{
-			PendingTouch->eventPostTouch(this);
-			AActor *OldTouch = PendingTouch;
-			PendingTouch = PendingTouch->PendingTouch;
-			OldTouch->PendingTouch = NULL;
-		}
-
 		// if simulated gravity, check if falling
 		if ( bSimulateGravity && !bSimGravityDisabled && !PhysicsVolume->bWaterVolume)
 		{
@@ -1088,53 +1079,6 @@ UBOOL AActor::Tick( FLOAT DeltaSeconds, ELevelTick TickType )
 	const UBOOL bShouldTick = ((TickType!=LEVELTICK_ViewportsOnly) || PlayerControlled());
 	if(bShouldTick)
 	{
-		// do decreased frequency ticking if this actor needs it
-		if (GEngine->HACK_UseTickFrequency && (TickFrequency != 0.f || TickFrequencyAtEndDistance > 0.0f))
-		{
-			// let time pass
-			TimeSinceLastTick += DeltaSeconds;
-
-			// are we ready to tick this actor?
-			if (TimeSinceLastTick < TickFrequency)
-			{
-				return FALSE;
-			}
-
-
-			// replace the delta time with the time since it was ticked last, in case multiple ticks have passed
-			DeltaSeconds = TimeSinceLastTick;
-			TimeSinceLastTick = 0.0f;
-
-			// update the frequency based on distance to player
-			if (TickFrequencyAtEndDistance > 0.f)
-			{
-				const FLOAT DistSquared = (Location - HACK_PlayerLocation).SizeSquared();
-				if (( ( GWorld->GetTimeSeconds() - LastRenderTime ) < TickFrequencyLastSeenTimeBeforeForcingMaxTickFrequency ) )
-				{
-					if (DistSquared < TickFrequencyDecreaseDistanceStart * TickFrequencyDecreaseDistanceStart)
-					{
-						TickFrequency = 0.0f;
-					}
-					else if (DistSquared > TickFrequencyDecreaseDistanceEnd * TickFrequencyDecreaseDistanceEnd)
-					{
-						// by multiplying by a scale of .9 to 1.1, we help keep the ticks spread out over frames without actors bunching up too much
-						TickFrequency = TickFrequencyAtEndDistance * (0.9f + (appFrand() * 0.2f));
-					}
-					else
-					{
-						const FLOAT Dist = appSqrt(DistSquared);
-						TickFrequency = ((Dist - TickFrequencyDecreaseDistanceStart) / (TickFrequencyDecreaseDistanceEnd - TickFrequencyDecreaseDistanceStart)) * TickFrequencyAtEndDistance * (0.9f + (appFrand() * 0.2f));
-					}
-				}
-				else
-				{
-					TickFrequency = TickFrequencyAtEndDistance * (0.9f + (appFrand() * 0.2f));
-				}
-			}
-
-			//debugf(TEXT("Actor %s has TickFrequency of %f, dist %.2f"), *GetName(), TickFrequency, appSqrt(DistSquared));
-		}
-
 		// This actor is tickable.
 		if( RemoteRole == ROLE_AutonomousProxy )
 		{
@@ -1872,28 +1816,10 @@ INT UWorld::ServerTickClients( FLOAT DeltaSeconds )
 	for( FNetRelevantActorIterator It; It; ++It )
 	{
 		AActor* Actor = *It;
-		if( (Actor->RemoteRole!=ROLE_None) && (Actor->bPendingNetUpdate || Actor->bForceNetUpdate || WorldInfo->TimeSeconds > Actor->NetUpdateTime) ) 
+		if( Actor->RemoteRole!=ROLE_None )
 		{
-			// if this actor isn't being considered due to a previous ServerTickClients() call where not all clients were able to replicate the actor
-			if (!Actor->bPendingNetUpdate)
-			{
-				//debugf(NAME_DevNetTraffic, TEXT("actor %s requesting new net update, forced? %s, time: %2.3f"),*Actor->GetName(), Actor->bForceNetUpdate?TEXT("TRUE"):TEXT("FALSE"),WorldInfo->TimeSeconds);
-				// then set the next update time
-				Actor->NetUpdateTime = WorldInfo->TimeSeconds + appSRand() * ServerTickTime + 1.f/Actor->NetUpdateFrequency; // FIXME - cache 1/netupdatefreq
-				// and mark when the actor first requested an update
-				//@note: using NetDriver->Time because it's compared against UActorChannel.LastUpdateTime which also uses that value
-				Actor->LastNetUpdateTime = NetDriver->Time;
-			}
-			/*
-			else
-			{
-				debugf(TEXT("actor %s still pending update, time since update request: %2.3f"),*Actor->GetName(),WorldInfo->TimeSeconds-Actor->LastNetUpdateTime);
-			}
-			*/
 			// clear the forced update flag
 			Actor->bForceNetUpdate = FALSE;
-			// and clear the pending update flag assuming all clients will be able to consider it
-			Actor->bPendingNetUpdate = FALSE;
 		
 			// if this actor is always relevant, or relevant to any client
 			if ( Actor->bAlwaysRelevant || !Actor->bOnlyRelevantToOwner ) 
@@ -1950,15 +1876,6 @@ INT UWorld::ServerTickClients( FLOAT DeltaSeconds )
 				}
 			}
 		}
-		/*
-		else
-		{
-			if( Actor->GetAPawn() && (Actor->RemoteRole!=ROLE_None) && (GWorld->GetTimeSeconds() <= Actor->NetUpdateTime) ) 
-			{
-				debugfSuppressed(NAME_DevNetTraffic, TEXT("%s skipped in considerlist because of NetUpdateTime %f"), *Actor->GetName(), (GWorld->GetTimeSeconds() - Actor->NetUpdateTime) );
-			}
-		}
-		*/
 	}
 
 	for( INT i=0; i < NetDriver->ClientConnections.Num(); i++ )
@@ -1968,25 +1885,6 @@ INT UWorld::ServerTickClients( FLOAT DeltaSeconds )
 		// if this client shouldn't be ticked this frame
 		if (i >= NumClientsToTick)
 		{
-			//debugf(TEXT("skipping update to %s"),*Connection->GetName());
-			// then mark each considered actor as bPendingNetUpdate so that they will be considered again the next frame when the connection is actually ticked
-			for (INT ConsiderIdx = 0; ConsiderIdx < ConsiderListSize; ConsiderIdx++)
-			{
-				AActor *Actor = ConsiderList[ConsiderIdx];
-				// if the actor hasn't already been flagged by another connection,
-				if (Actor != NULL && !Actor->bPendingNetUpdate)
-				{
-					// find the channel
-					UActorChannel *Channel = Connection->ActorChannels.FindRef(Actor);
-					// and if the channel last update time doesn't match the last net update time for the actor
-					if (Channel != NULL && Channel->LastUpdateTime < Actor->LastNetUpdateTime)
-					{
-						//debugf(TEXT("flagging %s for a future update"),*Actor->GetName());
-						// flag it for a pending update
-						Actor->bPendingNetUpdate = TRUE;
-					}
-				}
-			}
 			// clear the time sensitive flag to avoid sending an extra packet to this connection
 			Connection->TimeSensitive = FALSE;
 		}
@@ -2010,14 +1908,14 @@ INT UWorld::ServerTickClients( FLOAT DeltaSeconds )
 			FLOAT PruneActors = 0.f;
 			CLOCK_CYCLES(PruneActors);
 			FMemMark RelevantActorMark(GMainThreadMemStack);
-			NetTag++;
 			Connection->TickCount++;
 
 			// Set up to skip all sent temporary actors.
+			TArray<AActor*> ConsideredActors;
 			INT j;
 			for( j=0; j<Connection->SentTemporaries.Num(); j++ )
 			{
-				Connection->SentTemporaries(j)->NetTag = NetTag;
+				ConsideredActors.AddUniqueItem(Connection->SentTemporaries(j));
 			}
 
 			// set the replication viewers to the current connection (and children) so that actors can determine who is currently being considered for relevancy checks
@@ -2049,7 +1947,7 @@ INT UWorld::ServerTickClients( FLOAT DeltaSeconds )
 			for( j=0; j<ConsiderListSize; j++ )
 			{
 				AActor* Actor = ConsiderList[j];
-				if( Actor->NetTag!=NetTag )
+				if( !ConsideredActors.ContainsItem(Actor) )
 				{
 					//debugf(NAME_DevNetTraffic, TEXT("Consider %s alwaysrelevant %d frequency %f "),*Actor->GetName(), Actor->bAlwaysRelevant, Actor->NetUpdateFrequency);
 					UActorChannel* Channel = Connection->ActorChannels.FindRef(Actor);
@@ -2064,7 +1962,7 @@ INT UWorld::ServerTickClients( FLOAT DeltaSeconds )
 					}
 					else
 					{
-						Actor->NetTag                 = NetTag;
+						ConsideredActors.AddItem(Actor);
 						PriorityList  [ConsiderCount] = FActorPriority(Connection, Channel, Actor, ConnectionViewers, bLowNetBandwidth);
 						PriorityActors[ConsiderCount] = PriorityList + ConsiderCount;
 						ConsiderCount++;
@@ -2080,7 +1978,7 @@ INT UWorld::ServerTickClients( FLOAT DeltaSeconds )
 				{
 					AActor* Actor = NextConnection->OwnedConsiderList[j];
 					//debugf(NAME_DevNetTraffic, TEXT("Consider owned %s always relevant %d frequency %f  "),*Actor->GetName(), Actor->bAlwaysRelevant,Actor->NetUpdateFrequency);
-					if (Actor->NetTag != NetTag)
+					if (!ConsideredActors.ContainsItem(Actor))
 					{
 						UActorChannel* Channel = Connection->ActorChannels.FindRef(Actor);
 						if( Actor->bOnlyDirtyReplication
@@ -2093,7 +1991,7 @@ INT UWorld::ServerTickClients( FLOAT DeltaSeconds )
 						}
 						else
 						{
-							Actor->NetTag                 = NetTag;
+							ConsideredActors.AddItem(Actor);
 							PriorityList  [ConsiderCount] = FActorPriority(NextConnection, Channel, Actor, ConnectionViewers, bLowNetBandwidth);
 							PriorityActors[ConsiderCount] = PriorityList + ConsiderCount;
 							ConsiderCount++;
@@ -2155,12 +2053,6 @@ INT UWorld::ServerTickClients( FLOAT DeltaSeconds )
 								{
 									Channel->SetChannelActor( Actor );
 								}
-							}
-							// if we couldn't replicate it for a reason that should be temporary, and this Actor is updated very infrequently, make sure we update it again soon
-							else if (Actor->NetUpdateFrequency < 1.0f)
-							{
-								//debugf(NAME_DevNetTraffic, TEXT("Unable to replicate %s"),*Actor->GetName());
-								Actor->NetUpdateTime = WorldInfo->TimeSeconds + 0.2f * appFrand();
 							}
 						}
 
@@ -2237,8 +2129,6 @@ INT UWorld::ServerTickClients( FLOAT DeltaSeconds )
 				debugfSuppressed(NAME_DevNetTraffic, TEXT("Saturated. %s"), *Actor->GetName());
 				if (Channel != NULL && NetDriver->Time - Channel->RelevantTime <= 1.f)
 				{
-					//debugf(NAME_DevNetTraffic, TEXT(" Saturated. Mark %s NetUpdateTime to be checked for next tick"), *Actor->GetName());
-					Actor->bPendingNetUpdate = TRUE;
 				}
 				else
 				{
@@ -2246,8 +2136,6 @@ INT UWorld::ServerTickClients( FLOAT DeltaSeconds )
 					{
 						if (Actor->IsNetRelevantFor(ConnectionViewers(h).InViewer, ConnectionViewers(h).Viewer, ConnectionViewers(h).ViewLocation))
 						{
-							//debugf(NAME_DevNetTraffic, TEXT(" Saturated. Mark %s NetUpdateTime to be checked for next tick"), *Actor->GetName());
-							Actor->bPendingNetUpdate = TRUE;
 							if (Channel != NULL)
 							{
 								Channel->RelevantTime = NetDriver->Time + 0.5f * appSRand();
@@ -2568,14 +2456,14 @@ static void TickNewlySpawned(UWorld* World,FLOAT DeltaSeconds,
 			UBOOL bTicked;
 			{
 				GAMEPLAY_PROFILER_TRACK_ACTOR(Actor);
-				bTicked = Actor->Tick(DeltaSeconds*Actor->CustomTimeDilation,TickType);
+				bTicked = Actor->Tick(DeltaSeconds,TickType);
 				GAMEPLAY_PROFILER_SET_ACTOR_TICKING(Actor, bTicked);
 			}
 			// If this actor actually ticked, ticks it's components
 			if (bTicked == TRUE)
 			{
 				debugfSlow(NAME_DevTick,TEXT("Ticked newly spawned (%s) in group (%d)"), *Actor->GetName(),(INT)GWorld->TickGroup);
-				TickActorComponents(Actor,DeltaSeconds*Actor->CustomTimeDilation,TickType,NULL);
+				TickActorComponents(Actor,DeltaSeconds,TickType,NULL);
 			}
 		}
 	}
@@ -2638,7 +2526,7 @@ template<typename ITER> void TickActors(UWorld* World,FLOAT DeltaSeconds,
 				if (Actor->bTicked != GWorld->Ticked)
 				{
 					GAMEPLAY_PROFILER_TRACK_ACTOR(Actor);
-					bTicked = Actor->Tick(DeltaSeconds*Actor->CustomTimeDilation,TickType);
+					bTicked = Actor->Tick(DeltaSeconds,TickType);
 					GAMEPLAY_PROFILER_SET_ACTOR_TICKING(Actor, bTicked);
 				}
 				else
@@ -3739,4 +3627,3 @@ void AWorldInfo::VerifyNavList()
 	UWorld::VerifyNavList( *FString::Printf(TEXT("From script...")) );
 #endif
 }
-

@@ -373,7 +373,6 @@ UBOOL UWorld::SaveWorld( const FString& Filename, UBOOL bForceGarbageCollection,
 	for( FActorIterator It; It; ++It )
 	{
 		AActor* Actor = *It;
-		Actor->CreationTime = 0.0f;
 	}
 
 	if( bForceGarbageCollection )
@@ -2592,20 +2591,6 @@ UBOOL UWorld::Exec( const TCHAR* Cmd, FOutputDevice& Ar )
 	else if ( ParseCommand( &Cmd, TEXT("TICKFREQ") ) )
 	{
 		GEngine->HACK_UseTickFrequency = !GEngine->HACK_UseTickFrequency;
-
-		// if we are on then we need to reset the time since last tick
-		if( GEngine->HACK_UseTickFrequency == TRUE )
-		{
-			// Iterate over each actor in the level
-			for( FDynamicActorIterator It; It; ++It )
-			{
-				if( It->TickFrequencyAtEndDistance != 0.0f )
-				{
-					It->TimeSinceLastTick = appFrand() * It->TickFrequencyAtEndDistance;
-					It->TickFrequency = It->TickFrequencyAtEndDistance;
-				}
-			}
-		}
 
 		return 1;
 	}
@@ -6585,4 +6570,3 @@ void UWorld::DumpCoverStats()
 	warnf(TEXT("+++	Total Inside LEVELS Bytes: %d"), TotalLevelBYTES );
 	warnf(TEXT("TOTAL BYTES: %d"),TotalBytes);
 }
-

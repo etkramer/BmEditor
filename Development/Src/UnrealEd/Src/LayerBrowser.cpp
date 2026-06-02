@@ -415,7 +415,7 @@ void WxLayerBrowser::UpdateActorVisibility()
 			//Actor->Modify();
 
 			FString ActorLayer( TEXT(",") );
-			ActorLayer += Actor->Layer.ToString();
+			ActorLayer += Actor->Group.ToString();
 			ActorLayer += TEXT(",");
 
 			INT LayerIndex;
@@ -424,11 +424,11 @@ void WxLayerBrowser::UpdateActorVisibility()
 				if( ActorLayer.InStr( VisibleLayers(LayerIndex) ) != INDEX_NONE )
 				{
 					//debugf(TEXT("F: %s"), *Actor->GetPathName() );
-					if ( Actor->bHiddenEdLayer )
+					if ( Actor->bHiddenEdGroup )
 					{
 						ActorsNeedingComponentUpdate.AddItem( Actor );
 					}
-					Actor->bHiddenEdLayer = FALSE;
+					Actor->bHiddenEdGroup = FALSE;
 					break;
 				}
 			}
@@ -437,7 +437,7 @@ void WxLayerBrowser::UpdateActorVisibility()
 			if( LayerIndex == VisibleLayers.Num() )
 			{
 				//debugf(TEXT("T: %s"), *Actor->GetPathName() );
-				if ( !Actor->bHiddenEdLayer )
+				if ( !Actor->bHiddenEdGroup )
 				{
 					ActorsNeedingComponentUpdate.AddItem( Actor );
 				}
@@ -447,7 +447,7 @@ void WxLayerBrowser::UpdateActorVisibility()
 					bActorWasDeselected = TRUE;
 					GEditor->SelectActor( Actor, FALSE, NULL, FALSE, TRUE );
 				}
-				Actor->bHiddenEdLayer = TRUE;
+				Actor->bHiddenEdGroup = TRUE;
 			}
 		}
 	}

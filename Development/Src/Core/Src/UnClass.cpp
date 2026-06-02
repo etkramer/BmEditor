@@ -668,28 +668,27 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 				// at obj+PropertyOffset. End marker (Type == NAME_None) is handled below.
 				if (Ar.IsBmCooked(TRUE, FALSE) && Tag.Type != NAME_None)
 				{
-					UProperty* OffsetProp = NULL;
-					for (UProperty* P = PropertyLink; P; P = P->PropertyLinkNext)
+					const UClass* SerializedClass = ConstCast<UClass>(this);
+					if (SerializedClass == NULL || !SerializedClass->HasAnyClassFlags(CLASS_Intrinsic))
 					{
-						// BM: cooked tags for fixed-array elements carry the per-element
-						// offset (BaseOffset + Index * ElementSize), so accept any tag
-						// offset that lands inside this property's footprint.
-						const INT PropEnd = P->Offset + P->ArrayDim * P->ElementSize;
-						if ((INT)Tag.PropertyOffset >= P->Offset && (INT)Tag.PropertyOffset < PropEnd)
+						UProperty* OffsetProp = NULL;
+						for (UProperty* P = PropertyLink; P; P = P->PropertyLinkNext)
 						{
-							OffsetProp = P;
-							break;
+							// BM: cooked tags for fixed-array elements carry the per-element
+							// offset (BaseOffset + Index * ElementSize), so accept any tag
+							// offset that lands inside this property's footprint.
+							const INT PropEnd = P->Offset + P->ArrayDim * P->ElementSize;
+							if ((INT)Tag.PropertyOffset >= P->Offset && (INT)Tag.PropertyOffset < PropEnd)
+							{
+								OffsetProp = P;
+								break;
+							}
 						}
-
-						// if (Ar.ContainsCookedData())
-						// {
-						// 	warnf(NAME_Warning, TEXT("BM2 offset %s: %d"), *P->GetName(), P->Offset);
-						// }
-					}
-					if (!OffsetProp)
-					{
-						appErrorf(TEXT("BM2 cooked: no property at offset %u (type %s) in %s (package %s)"),
-							(UINT)Tag.PropertyOffset, *Tag.Type.ToString(), *GetName(), *Ar.GetArchiveName());
+						if (!OffsetProp)
+						{
+							appErrorf(TEXT("BM2 cooked: no property at offset %u (type %s) in %s (package %s)"),
+								(UINT)Tag.PropertyOffset, *Tag.Type.ToString(), *GetName(), *Ar.GetArchiveName());
+						}
 					}
 
 					BYTE* Dest = Data + Tag.PropertyOffset;

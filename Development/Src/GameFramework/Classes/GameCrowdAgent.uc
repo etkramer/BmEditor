@@ -597,8 +597,6 @@ event KillAgent()
 	
 	LifeSpan = -0.1;
 
-	// make sure to tick right away to destroy
-	TimeSinceLastTick = 1000.0;
 }
 
 /**
@@ -612,7 +610,6 @@ function ResetPooledAgent()
 	PreviousDestination = None;
 	LifeSpan = 0.0;
 	Health = default.Health;
-	TimeSinceLastTick = 0.0;
 	LastKnownGoodPosition = Location;
 	LastKnownGoodPosition.Z += EyeZOffset;
 	ForceUpdateTime = WorldInfo.TimeSeconds;
@@ -1551,6 +1548,5 @@ defaultproperties
 	ReachThreshold=1.0
 	DesiredGroupRadius=200.0
 }
-
 
 

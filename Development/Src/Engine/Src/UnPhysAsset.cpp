@@ -2783,7 +2783,7 @@ FPhysEffectInfo UPhysicalMaterial::FindPhysEffectInfo(BYTE Type)
 	UPhysicalMaterial* TestMat = this;
 
 	// ..keep looking until we find all source data or run out of materials
-	while( (!Info.Effect || !Info.Sound || Info.Threshold == 0.f || Info.ReFireDelay == 0.f) && TestMat )
+	while( (!Info.Effect || !Info.Sound || Info.MinEffectSpeed == 0.f || Info.ReFireDelay == 0.f) && TestMat )
 	{
 		// Attempt to replace any empty slots in the info
 
@@ -2797,9 +2797,9 @@ FPhysEffectInfo UPhysicalMaterial::FindPhysEffectInfo(BYTE Type)
 			Info.Sound = (Type == EPMET_Impact) ? TestMat->ImpactSound : TestMat->SlideSound;
 		}
 
-		if(Info.Threshold == 0.f)
+		if(Info.MinEffectSpeed == 0.f)
 		{
-			Info.Threshold = (Type == EPMET_Impact) ? TestMat->ImpactThreshold : TestMat->SlideThreshold;
+			Info.MinEffectSpeed = (Type == EPMET_Impact) ? TestMat->ImpactThreshold : TestMat->SlideThreshold;
 		}
 
 		if(Info.ReFireDelay == 0.f)

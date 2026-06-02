@@ -101,7 +101,7 @@ function SetInitialPosition(Pawn P)
 	StartVelocity = P.Velocity;
 	StartBase = P.Base;
 	StartFloor = P.Floor;
-	CustomTimeDilation = P.CustomTimeDilation;
+	CustomTimeDilation = 1.0;
 
 	if( (StartBase != None) && !StartBase.bWorldGeometry )
 	{

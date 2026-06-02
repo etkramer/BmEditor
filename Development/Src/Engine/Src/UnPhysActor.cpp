@@ -1262,7 +1262,7 @@ void AKActor::OnRigidBodyCollision(const FRigidBodyCollisionInfo& MyInfo, const 
 	FRotator LocalContactRot = LocalContactNormal.Rotation();
 
 	// We don't allow impact effects to fire when sliding.
-	if( (ImpactVelMag > ImpactEffectInfo.Threshold) && (TimeSinceLastImpact > ImpactEffectInfo.ReFireDelay) && !bSlideActive)
+	if( (ImpactVelMag > ImpactEffectInfo.MinEffectSpeed) && (TimeSinceLastImpact > ImpactEffectInfo.ReFireDelay) && !bSlideActive)
 	{
 		if(ImpactEffectComponent)
 		{
@@ -1296,7 +1296,7 @@ void AKActor::OnRigidBodyCollision(const FRigidBodyCollisionInfo& MyInfo, const 
 	}
 
 	// Slide effect
-	bCurrentSlide = (SlideVelMag > SlideEffectInfo.Threshold);
+	bCurrentSlide = (SlideVelMag > SlideEffectInfo.MinEffectSpeed);
 	FLOAT TimeSinceLastSlide = GWorld->GetTimeSeconds() - LastSlideTime;
 
 	// If we think a slide is active, but it isn't now
@@ -1346,8 +1346,7 @@ void AKActorSpawnable::ResetComponents()
 	//DetachComponent(LightEnvironment);
     //LightEnvironment = NULL;
     ReplicatedMesh = NULL;
-    ReplicatedMaterial0 = NULL;
-	ReplicatedMaterial1 = NULL;
+    ReplicatedMaterial = NULL;
 
 	//AKActor
 	DetachComponent(ImpactEffectComponent);

@@ -2984,7 +2984,7 @@ UBOOL UEngine::Exec( const TCHAR* Cmd, FOutputDevice& Ar )
 					{
 						// Calculate time actor has been alive for. Certain actors can be spawned before TimeSeconds is valid
 						// so we manually reset them to the same time as TimeSeconds.
-						FLOAT TimeAlive	= TimeSeconds - Actor->CreationTime;
+						FLOAT TimeAlive	= TimeSeconds;
 						if( TimeAlive < 0 )
 						{
 							TimeAlive = TimeSeconds;
@@ -3006,7 +3006,7 @@ UBOOL UEngine::Exec( const TCHAR* Cmd, FOutputDevice& Ar )
 					{
 						// Calculate time actor has been alive for. Certain actors can be spawned before TimeSeconds is valid
 						// so we manually reset them to the same time as TimeSeconds.
-						FLOAT TimeAlive	= TimeSeconds - Actor->CreationTime;
+						FLOAT TimeAlive	= TimeSeconds;
 						if( TimeAlive < 0 )
 						{
 							TimeAlive = TimeSeconds;

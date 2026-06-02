@@ -937,7 +937,7 @@ void UGeomModifier_Lathe::Apply( INT InTotalSegments, INT InSegments, EAxis InAx
 
 	// Ensure the builder brush is unhidden.
 	BuilderBrush->bHidden = FALSE;
-	BuilderBrush->bHiddenEdLayer = FALSE;
+	BuilderBrush->bHiddenEdGroup = FALSE;
 	BuilderBrush->bHiddenEdTemporary = FALSE;
 
 	// Some convenience flags
@@ -1249,7 +1249,7 @@ void UGeomModifier_Pen::Apply()
 
 		// Ensure the builder brush is unhidden.
 		ResultingBrush->bHidden = FALSE;
-		ResultingBrush->bHiddenEdLayer = FALSE;
+		ResultingBrush->bHiddenEdGroup = FALSE;
 		ResultingBrush->bHiddenEdTemporary = FALSE;
 
 		FPoly Poly;

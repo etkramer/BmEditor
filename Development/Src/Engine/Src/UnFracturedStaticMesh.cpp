@@ -3144,10 +3144,10 @@ void AFracturedStaticMeshPart::OnRigidBodyCollision(const FRigidBodyCollisionInf
 				// Then project along contact normal, and take magnitude.
 				const FLOAT ImpactVelMag =  Abs( RelVel | RigidCollisionData.ContactInfos(0).ContactNormal );
 				// If hard enough impact - play sound, and remember time!
-				if(ImpactVelMag > PartImpactEffect.Threshold)
+				if(ImpactVelMag > PartImpactEffect.MinEffectSpeed)
 				{
 					FVector ContactPos = RigidCollisionData.ContactInfos(0).ContactPosition;
-					PlaySound(PartImpactEffect.Sound, TRUE, TRUE, TRUE, &ContactPos, TRUE);
+					PlaySound(Cast<USoundCue>(PartImpactEffect.Sound), TRUE, TRUE, TRUE, &ContactPos, TRUE);
 					LastImpactSoundTime = GWorld->GetTimeSeconds();
 				}
 			}

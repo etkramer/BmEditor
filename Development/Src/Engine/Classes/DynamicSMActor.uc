@@ -13,20 +13,21 @@ var() const editconst StaticMeshComponent	StaticMeshComponent;
 var() const editconst DynamicLightEnvironmentComponent LightEnvironment;
 /** Used to replicate mesh to clients */
 var repnotify transient StaticMesh ReplicatedMesh;
-/** used to replicate the materials in indices 0 and 1 */
-var repnotify MaterialInterface ReplicatedMaterial0, ReplicatedMaterial1;
+/** used to replicate the material in index 0 */
+var repnotify MaterialInterface ReplicatedMaterial;
 /** used to replicate StaticMeshComponent.bForceStaticDecals */
 var repnotify bool bForceStaticDecals;
-
-/** Extra component properties to replicate */
-var repnotify vector ReplicatedMeshTranslation;
-var repnotify rotator ReplicatedMeshRotation;
-var repnotify vector ReplicatedMeshScale3D;
 
 /** If a Pawn can be 'based' on this KActor. If not, they will 'bounce' off when they try to. */
 var() bool	bPawnCanBaseOn;
 /** Pawn can base on this KActor if it is asleep -- Pawn will disable KActor physics while based */
 var() bool	bSafeBaseIfAsleep;
+var() bool bGoIntoStasisWhenHidden;
+
+/** Extra component properties to replicate */
+var repnotify vector ReplicatedMeshTranslation;
+var repnotify rotator ReplicatedMeshRotation;
+var repnotify vector ReplicatedMeshScale3D;
 
 cpptext
 {
@@ -49,7 +50,7 @@ protected:
 replication
 {
 	if (bNetDirty)
-		ReplicatedMesh, ReplicatedMaterial0, ReplicatedMaterial1, ReplicatedMeshTranslation, ReplicatedMeshRotation, ReplicatedMeshScale3D, bForceStaticDecals;
+		ReplicatedMesh, ReplicatedMaterial, ReplicatedMeshTranslation, ReplicatedMeshRotation, ReplicatedMeshScale3D, bForceStaticDecals;
 }
 
 event PostBeginPlay()
@@ -73,13 +74,9 @@ simulated event ReplicatedEvent(name VarName)
 
 		StaticMeshComponent.SetStaticMesh(ReplicatedMesh);
 	}
-	else if (VarName == nameof(ReplicatedMaterial0))
+	else if (VarName == nameof(ReplicatedMaterial))
 	{
-		StaticMeshComponent.SetMaterial(0, ReplicatedMaterial0);
-	}
-	else if (VarName == nameof(ReplicatedMaterial1))
-	{
-		StaticMeshComponent.SetMaterial(1, ReplicatedMaterial1);
+		StaticMeshComponent.SetMaterial(0, ReplicatedMaterial);
 	}
 	else if (VarName == 'ReplicatedMeshTranslation')
 	{
@@ -91,7 +88,7 @@ simulated event ReplicatedEvent(name VarName)
 	}
 	else if (VarName == 'ReplicatedMeshScale3D')
 	{
-		StaticmeshComponent.SetScale3D(ReplicatedMeshScale3D / 100.0); // remove compensation for replication rounding
+		StaticmeshComponent.SetScale3D(ReplicatedMeshScale3D);
 	}
 	else if (VarName == nameof(bForceStaticDecals))
 	{
@@ -134,12 +131,7 @@ function OnSetMaterial(SeqAct_SetMaterial Action)
 	StaticMeshComponent.SetMaterial( Action.MaterialIndex, Action.NewMaterial );
 	if (Action.MaterialIndex == 0)
 	{
-		ReplicatedMaterial0 = Action.NewMaterial;
-		ForceNetRelevant();
-	}
-	else if (Action.MaterialIndex == 1)
-	{
-		ReplicatedMaterial1 = Action.NewMaterial;
+		ReplicatedMaterial = Action.NewMaterial;
 		ForceNetRelevant();
 	}
 }
@@ -152,7 +144,7 @@ function SetStaticMesh(StaticMesh NewMesh, optional vector NewTranslation, optio
 	if (!IsZero(NewScale3D))
 	{
 		StaticMeshComponent.SetScale3D(NewScale3D);
-		ReplicatedMeshScale3D = NewScale3D * 100.0; // avoid rounding in replication code
+		ReplicatedMeshScale3D = NewScale3D;
 	}
 	ReplicatedMesh = NewMesh;
 	ReplicatedMeshTranslation = NewTranslation;
@@ -277,6 +269,7 @@ defaultproperties
 
 	bCollideActors=false
 	bPawnCanBaseOn=true
+	bGoIntoStasisWhenHidden=true
 
 	// Automatically shadow parent to whatever this actor is attached to by default
 	bShadowParented=true

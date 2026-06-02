@@ -953,7 +953,7 @@ FLOAT AActor::GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, APl
 		}
 	}
 
-	return NetPriority * Time;
+	return Time;
 }
 
 //
@@ -1204,7 +1204,7 @@ void APawn::PostNetReceiveLocation()
 	}
 
 	// always consider Location as changed if we were spawned this tick as in that case our replicated Location was set as part of spawning, before PreNetReceive()
-	if (Location == SavedLocation && CreationTime != WorldInfo->TimeSeconds)
+	if (Location == SavedLocation)
 	{
 		return;
 	}
@@ -1624,11 +1624,6 @@ void AActor::PostLoad()
 		}
 	}
 
-	if (GetLinker() && (GetLinker()->Ver() < VER_RENAMED_GROUPS_TO_LAYERS))
-	{
-		Layer = Group_DEPRECATED;
-		bHiddenEdLayer = bHiddenEdGroup_DEPRECATED;
-	}
 }
 
 void AActor::ProcessEvent( UFunction* Function, void* Parms, void* Result )
@@ -2853,7 +2848,7 @@ UBOOL AActor::IsInLayer(const TCHAR* LayerName) const
 void AActor::GetLayers(TArray<FString>& OutLayers) const
 {
 	OutLayers.Empty();
-	Layer.ToString().ParseIntoArray( &OutLayers, TEXT(","), FALSE );
+	Group.ToString().ParseIntoArray( &OutLayers, TEXT(","), FALSE );
 }
 #endif
 
@@ -3330,7 +3325,7 @@ AActor* AActor::GetHitActor()
 UBOOL AActor::IsHiddenEd() const
 {
 	// If any of the standard hide flags are set, return TRUE
-	if( bHiddenEdLayer || bHiddenEdCustom || !bEditable || ( GIsEditor && ( bHiddenEdTemporary || bHiddenEdLevel ) ) )
+	if( bHiddenEdGroup || bHiddenEdCustom || !bEditable || ( GIsEditor && ( bHiddenEdTemporary || bHiddenEdLevel ) ) )
 	{
 		return TRUE;
 	}
@@ -4095,7 +4090,6 @@ UBOOL AActor::IsRelevancyOwnerFor(AActor* ReplicatedActor, AActor* ActorOwner, A
 
 void AActor::SetNetUpdateTime(FLOAT NewUpdateTime)
 {
-	NetUpdateTime = NewUpdateTime;
 }
 
 /** adds/removes a property from a list of properties that will always be replicated when this Actor is bNetInitial, even if the code thinks

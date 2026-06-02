@@ -176,11 +176,11 @@ simulated function SetPhysicalCollisionProperties()
 	{
 		ImpactSoundComponent = new(self) class'AudioComponent';
 		AttachComponent(ImpactSoundComponent);
-		ImpactSoundComponent.SoundCue = ImpactEffectInfo.Sound;
+		ImpactSoundComponent.SoundCue = SoundCue(ImpactEffectInfo.Sound);
 
 		ImpactSoundComponent2 = new(self) class'AudioComponent';
 		AttachComponent(ImpactSoundComponent2);
-		ImpactSoundComponent2.SoundCue = ImpactEffectInfo.Sound;
+		ImpactSoundComponent2.SoundCue = SoundCue(ImpactEffectInfo.Sound);
 	}
 
 	if(SlideEffectInfo.Effect != None)
@@ -195,7 +195,7 @@ simulated function SetPhysicalCollisionProperties()
 	{
 		SlideSoundComponent = new(self) class'AudioComponent';
 		AttachComponent(SlideSoundComponent);
-		SlideSoundComponent.SoundCue = SlideEffectInfo.Sound;
+		SlideSoundComponent.SoundCue = SoundCue(SlideEffectInfo.Sound);
 	}
 }
 

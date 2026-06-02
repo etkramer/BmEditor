@@ -181,8 +181,7 @@ event Touch( Actor Other, PrimitiveComponent OtherComp, vector HitLocation, vect
 
 	if (CanTeleport(Other) && !Other.PreTeleport(self))
 	{
-		PendingTouch = Other.PendingTouch;
-		Other.PendingTouch = self;
+		PostTouch(Other);
 	}
 }
 

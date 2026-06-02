@@ -9,6 +9,7 @@ class Light extends Actor
 
 
 var() editconst const LightComponent	LightComponent;
+var(Object) name LightGroup;
 
 
 

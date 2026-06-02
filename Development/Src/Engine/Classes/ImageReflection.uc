@@ -91,7 +91,6 @@ defaultproperties
 
 	// Network settings taken from AInfo
 	RemoteRole=ROLE_None
-	NetUpdateFrequency=10
 	bOnlyDirtyReplication=TRUE
 	bSkipActorPropertyReplication=TRUE
 

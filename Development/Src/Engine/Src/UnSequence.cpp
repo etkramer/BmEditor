@@ -5982,10 +5982,10 @@ UObject** UDEPRECATED_SeqVar_Group::GetObjectRef(INT Idx)
 			FString LayerString = GroupName.ToString();
 			for (FActorIterator ActorIt; ActorIt; ++ActorIt)
 			{
-				if (ActorIt->Layer != NAME_None)
+				if (ActorIt->Group != NAME_None)
 				{
 					TArray<FString> ActorLayers;
-					ActorIt->Layer.ToString().ParseIntoArray(&ActorLayers,TEXT(","),FALSE);
+					ActorIt->Group.ToString().ParseIntoArray(&ActorLayers,TEXT(","),FALSE);
 					for (INT LayerIdx = 0; LayerIdx < ActorLayers.Num(); LayerIdx++)
 					{
 						if (ActorLayers(LayerIdx) == LayerString)
@@ -11484,4 +11484,3 @@ void USeqAct_HeadTrackingControl::Activated()
 
 	Super::Activated();
 }
-
