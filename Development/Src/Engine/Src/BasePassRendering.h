@@ -99,6 +99,8 @@ public:
 		MaterialParameters.Set(this,MaterialRenderContext);
 #if !BATMAN
 		HeightFogParameters.SetVertexShader(VertexFactory, MaterialRenderProxy, &View, bAllowGlobalFog, this);
+#else
+		DOFParameters.SetVS(this, View.DepthOfFieldParams);
 #endif
 	}
 
@@ -276,10 +278,8 @@ public:
 		LightMapPolicyType::PixelParametersType::Bind(Initializer.ParameterMap);
 		MaterialParameters.Bind(Initializer.ParameterMap);
 		AmbientColorAndSkyFactorParameter.Bind(Initializer.ParameterMap,TEXT("AmbientColorAndSkyFactor"),TRUE);
-#if !BATMAN
 		UpperSkyColorParameter.Bind(Initializer.ParameterMap,TEXT("UpperSkyColor"),TRUE);
 		LowerSkyColorParameter.Bind(Initializer.ParameterMap,TEXT("LowerSkyColor"),TRUE);
-#endif
 #if BATMAN
 		MotionBlurMaskParameter.Bind(Initializer.ParameterMap,TEXT("MotionBlurMask"),TRUE);
 #else
@@ -343,10 +343,8 @@ public:
 
 	void SetSkyColor(const FLinearColor& UpperSkyColor,const FLinearColor& LowerSkyColor)
 	{
-#if !BATMAN
 		SetPixelShaderValue(GetPixelShader(),UpperSkyColorParameter,UpperSkyColor);
 		SetPixelShaderValue(GetPixelShader(),LowerSkyColorParameter,LowerSkyColor);
-#endif
 	}
 
 	virtual UBOOL Serialize(FArchive& Ar)
@@ -362,10 +360,8 @@ public:
 			LightMapPolicyType::PixelParametersType::Serialize(Ar);
 			Ar << MaterialParameters;
 			Ar << AmbientColorAndSkyFactorParameter;
-			FShaderParameter UnusedUpperSkyColorParameter;
-			FShaderParameter UnusedLowerSkyColorParameter;
-			Ar << UnusedUpperSkyColorParameter;
-			Ar << UnusedLowerSkyColorParameter;
+			Ar << UpperSkyColorParameter;
+			Ar << LowerSkyColorParameter;
 			Ar << MotionBlurMaskParameter;
 		}
 		else
@@ -375,10 +371,8 @@ public:
 			LightMapPolicyType::PixelParametersType::Serialize(Ar);
 			Ar << MaterialParameters;
 			Ar << AmbientColorAndSkyFactorParameter;
-#if !BATMAN
 			Ar << UpperSkyColorParameter;
 			Ar << LowerSkyColorParameter;
-#endif
 #if BATMAN
 			Ar << MotionBlurMaskParameter;
 #else
@@ -386,11 +380,9 @@ public:
 #endif
 		}
 
-#if !BATMAN
 		// set parameter names for platforms that need them
 		UpperSkyColorParameter.SetShaderParamName(TEXT("UpperSkyColor"));
 		LowerSkyColorParameter.SetShaderParamName(TEXT("LowerSkyColor"));
-#endif
 
 		return bShaderHasOutdatedParameters;
 	}
@@ -403,10 +395,8 @@ public:
 private:
 	FMaterialPixelShaderParameters MaterialParameters;
 	FShaderParameter AmbientColorAndSkyFactorParameter;
-#if !BATMAN
 	FShaderParameter UpperSkyColorParameter;
 	FShaderParameter LowerSkyColorParameter;
-#endif
 #if BATMAN
 	FShaderParameter MotionBlurMaskParameter;
 #else

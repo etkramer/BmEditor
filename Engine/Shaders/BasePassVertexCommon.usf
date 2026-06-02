@@ -9,6 +9,10 @@
 #include "Material.usf"
 #include "VertexFactory.usf"
 
+#if ENABLE_A_PLUS_THREE_D_LIGHT
+	#include "AmbientPlus3DirectionalVertexCommon.usf"
+#endif
+
 #if NEEDS_BASEPASS_FOGGING
 	#include "HeightFogCommon.usf"
 	#include "FogVolumeCommon.usf"

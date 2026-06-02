@@ -1387,8 +1387,16 @@ void FDynamicLightEnvironmentState::CreateEnvironmentLightList(ULightComponent* 
 		// This ensures that there is only one directional light affecting the DLE most of the time
 		const FLOAT PrimaryLightWeight = TransitionFraction;
 		const FLOAT ContrastFactor = Component->bIsCharacterLightEnvironment ? GWorld->GetWorldInfo(TRUE)->CharacterLightingContrastFactor : 1.0f;
+#if BATMAN
+		// Our AP3D path is merged into the base pass before the synthesized directional-light
+		// path is considered, so extracting a primary light here would starve AP3D.
+		const UBOOL bUsePrimaryRepresentativeLight = GDLEC_Mode < DLEC_APlus3D;
+#else
+		const UBOOL bUsePrimaryRepresentativeLight = TRUE;
+#endif
 
-		if(Component->bSynthesizeDirectionalLight 
+		if(bUsePrimaryRepresentativeLight
+			&& Component->bSynthesizeDirectionalLight
 			&& GLightEnvironmentDebugInfo.bShowPrimaryLight
 			&& CurrentDominantShadowTransitionDistance > Component->DominantShadowTransitionEndDistance)
 		{
@@ -1418,7 +1426,7 @@ void FDynamicLightEnvironmentState::CreateEnvironmentLightList(ULightComponent* 
 		if (GLightEnvironmentDebugInfo.bShowSecondaryLight)
 		{
 			// Scale the contribution of the secondary light down to increase contrast
-			const FLOAT SecondaryLightWeight = 1.0f / Lerp(1.0f, ContrastFactor, PrimaryLightWeight);
+			const FLOAT SecondaryLightWeight = 1.0f / Lerp(1.0f, ContrastFactor, bUsePrimaryRepresentativeLight ? PrimaryLightWeight : 0.0f);
 #if BATMAN
 			if (GDLEC_Mode >= DLEC_APlus3D)
 			{
@@ -1443,10 +1451,10 @@ void FDynamicLightEnvironmentState::CreateEnvironmentLightList(ULightComponent* 
 					FLinearColor Intensity;
 					if (ExtractDominantLight(Remaining, Dir, Intensity, 1.0f))
 					{
-						// Match the polarity used elsewhere in the engine: store the direction
-						// TOWARDS the light source, with intensity desaturated like the primary fit.
+						// ExtractDominantLight returns the direction towards the light source,
+						// which is the polarity consumed by the AP3D base pass shader.
 						const FLinearColor DesaturatedIntensity = Intensity.Desaturate(Component->LightDesaturation);
-						AP3DLight->LightDirections[DirIndex] = -Dir;
+						AP3DLight->LightDirections[DirIndex] = Dir;
 						AP3DLight->LightColours[DirIndex] = FVector(DesaturatedIntensity.R, DesaturatedIntensity.G, DesaturatedIntensity.B);
 					}
 					else

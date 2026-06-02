@@ -449,16 +449,9 @@ FSceneView::FSceneView(
 	}
 
 #if BATMAN
-	if( !MakeFrustumPlane(
-		ViewProjectionMatrix.M[0][2],
-		ViewProjectionMatrix.M[1][2],
-		ViewProjectionMatrix.M[2][2],
-		ViewProjectionMatrix.M[3][2],
-		CameraPlane
-		) )
-	{
-		CameraPlane = FPlane(0,0,0,0);
-	}
+	// Gangland stores the inverse view matrix's Z axis plus its dot with the inverse view origin.
+	const FVector CameraPlaneNormal(InvViewMatrix.M[2][0], InvViewMatrix.M[2][1], InvViewMatrix.M[2][2]);
+	CameraPlane = FPlane(CameraPlaneNormal, CameraPlaneNormal | InvViewMatrix.GetOrigin());
 #endif
 
 	// Compute a transform from view origin centered world-space to clip space.

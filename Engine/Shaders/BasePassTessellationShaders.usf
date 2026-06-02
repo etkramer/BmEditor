@@ -32,9 +32,15 @@ FBasePassVSToDS PassInterpolate(FBasePassVSToDS a, float aInterp, FBasePassVSToD
 		TESSELLATION_INTERPOLATE_MEMBER(BasePassInterpolants.WorldLightVector);
 	#endif
 
+	#if ENABLE_A_PLUS_THREE_D_LIGHT
+		TESSELLATION_INTERPOLATE_MEMBER(BasePassInterpolants.TangentLightVector0);
+		TESSELLATION_INTERPOLATE_MEMBER(BasePassInterpolants.TangentLightVector1);
+		TESSELLATION_INTERPOLATE_MEMBER(BasePassInterpolants.TangentLightVector2);
+	#endif
+
 	TESSELLATION_INTERPOLATE_MEMBER(BasePassInterpolants.CameraVectorOrVertexColor);
 
-	#if !MATERIAL_LIGHTINGMODEL_UNLIT
+	#if !MATERIAL_LIGHTINGMODEL_UNLIT && !ENABLE_A_PLUS_THREE_D_LIGHT
 		TESSELLATION_INTERPOLATE_MEMBER(BasePassInterpolants.SkyVector);
 	#else
 		#if ENABLE_TRANSLUCENCY_DOF

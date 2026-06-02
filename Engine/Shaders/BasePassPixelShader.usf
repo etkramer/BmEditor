@@ -14,6 +14,10 @@
 	#include "SphericalHarmonicCommon.usf"
 #endif
 
+#if ENABLE_A_PLUS_THREE_D_LIGHT
+	#include "AmbientPlus3DirectionalPixelCommon.usf"
+#endif
+
 #include "DeferredLightingCommon.usf"
 
 /** 1 if this object has MotionBlurScale set to enable motionblur, and 0 if disabled */
@@ -45,7 +49,7 @@ half3 LowerSkyColor;
 	static const half SkyFactor = AmbientColorAndSkyFactor.a;
 #endif
 
-#if TEXTURE_LIGHTMAP || SIMPLE_TEXTURE_LIGHTMAP
+#if !ENABLE_A_PLUS_THREE_D_LIGHT && (TEXTURE_LIGHTMAP || SIMPLE_TEXTURE_LIGHTMAP)
 	// Directional lightmaps use 3 samplers here, and ShadowTexture uses one more, and if DYNAMICALLY_SHADOWED_BASEPASS_LIGHT is defined, another will be used for that,
 	// So the most a material with static lighting can use is 11.  This is enforced by the material compiler through MAX_ME_STATICLIGHTING_PIXELSHADER_SAMPLERS,
 	// Dynamically lit materials are enforced through MAX_ME_DYNAMICLIGHTING_PIXELSHADER_SAMPLERS.
@@ -104,7 +108,9 @@ void Main(
 	{
 #endif
 
-	#if TANGENT_LIGHT_VECTOR_DEFINED
+	#if ENABLE_A_PLUS_THREE_D_LIGHT
+		float4 TangentLightVector = BasePassInterpolants.TangentLightVector0;
+	#elif TANGENT_LIGHT_VECTOR_DEFINED
 		float4 TangentLightVector = BasePassInterpolants.TangentLightVector;
 	#else
 		float4 TangentLightVector = float4(0,0,1,1);
@@ -256,6 +262,16 @@ void Main(
 			float3 WorldNormal = TransformTangentVectorToWorld(MaterialParameters.TangentToWorld, MaterialParameters.TangentNormal);
 			Color += ComputeSHLighting(DiffuseColor, CustomLightingDiffuse, WorldNormal, MaterialParameters);
 			IncidentLighting += ComputeSHLighting(1, 1, WorldNormal, MaterialParameters);
+		#endif
+
+		#if ENABLE_A_PLUS_THREE_D_LIGHT
+			half3 DummyCombinedShadowFactor = 1.0f;
+			Color.rgb += DiffuseColor * APlus3DLightPixelInfo[APLUS3D_AMBIENT_COLOUR].rgb;
+			Color.rgb += GetMaterialPointLightTransfer(DiffuseColor, SpecularColor, MaterialParameters, 0, DummyCombinedShadowFactor) * APlus3DLightPixelInfo[APLUS3D_COLOUR_0].rgb;
+			MaterialParameters.TangentLightVector = normalize(BasePassInterpolants.TangentLightVector1.xyz);
+			Color.rgb += GetMaterialPointLightTransfer(DiffuseColor, SpecularColor, MaterialParameters, 0, DummyCombinedShadowFactor) * APlus3DLightPixelInfo[APLUS3D_COLOUR_1].rgb;
+			MaterialParameters.TangentLightVector = normalize(BasePassInterpolants.TangentLightVector2.xyz);
+			Color.rgb += GetMaterialPointLightTransfer(DiffuseColor, SpecularColor, MaterialParameters, 0, DummyCombinedShadowFactor) * APlus3DLightPixelInfo[APLUS3D_COLOUR_2].rgb;
 		#endif
 
 		//Flip normals now for lighting because we skipped flipping them in CalculateMaterialParameters

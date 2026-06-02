@@ -82,8 +82,17 @@ void Main(
 	Output.BasePassInterpolants.TangentLightVector = 0;
 #endif
 
+#if ENABLE_A_PLUS_THREE_D_LIGHT
+	Output.BasePassInterpolants.TangentLightVector0.xyz = VertexFactoryWorldToTangentSpace(Input, VFIntermediates, TangentBasis, APlus3DLightVertexInfo[APLUS3D_DIRECTION_0].xyz);
+	Output.BasePassInterpolants.TangentLightVector0.w = 0;
+	Output.BasePassInterpolants.TangentLightVector1.xyz = VertexFactoryWorldToTangentSpace(Input, VFIntermediates, TangentBasis, APlus3DLightVertexInfo[APLUS3D_DIRECTION_1].xyz);
+	Output.BasePassInterpolants.TangentLightVector1.w = 0;
+	Output.BasePassInterpolants.TangentLightVector2.xyz = VertexFactoryWorldToTangentSpace(Input, VFIntermediates, TangentBasis, APlus3DLightVertexInfo[APLUS3D_DIRECTION_2].xyz);
+	Output.BasePassInterpolants.TangentLightVector2.w = 0;
+#endif
+
 #if ENABLE_MULTITYPE_BASEPASS_LIGHT && XBOX
-	// Isolate instructions used for the base pass dynamic light on xbox, 
+	// Isolate instructions used for the base pass dynamic light on xbox,
 	// As these cause the optimizer to generate different position calculating instructions for skinned meshes between the depth only and base passes.
 	ISOLATE
 #endif
@@ -102,7 +111,7 @@ void Main(
 		#endif
 	}
 
-#if !MATERIAL_LIGHTINGMODEL_UNLIT
+#if !MATERIAL_LIGHTINGMODEL_UNLIT && !ENABLE_A_PLUS_THREE_D_LIGHT
 	// Calculate sky vector
 	Output.BasePassInterpolants.SkyVector.xyz = VertexFactoryWorldToTangentSpace(Input, VFIntermediates, TangentBasis,float3(0,0,1));
 #endif
