@@ -564,7 +564,7 @@ public:
 		if ( Ar.IsLoading() || Ar.IsSaving() )
 		{
 			Ar << Impl;
-			G.SmallGuid = Impl.A;
+			G.SmallGuid = Impl.A ^ Impl.B ^ Impl.C ^ Impl.D;
 		}
 		else if ( Ar.IsCountingMemory() )
 		{

@@ -8,7 +8,7 @@ class LightComponent extends ActorComponent
 
 
 //@warning: this structure is manually mirrored in UnActorComponent.h
-struct LightingChannelContainer
+struct immutablewhencooked LightingChannelContainer
 {
 	/** Whether the lighting channel has been initialized. Used to determine whether UPrimitveComponent::Attach should set defaults. */
 	var		bool	bInitialized;

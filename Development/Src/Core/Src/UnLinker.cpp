@@ -3757,6 +3757,9 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 			LoadClass->GetName() == "PhysicsAsset" ||
 			LoadClass->GetName() == "RB_BodySetup" ||
 
+			LoadClass->GetName() == "Pylon" ||
+			LoadClass->GetName() == "SceneCaptureReflectActor" ||
+
 			LoadClass->GetName() == "Emitter" ||
 			LoadClass->GetName() == "InterpData" ||
 			LoadClass->GetName() == "ParticleSystem" ||
@@ -3765,7 +3768,7 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 			LoadClass->GetName() == "SeqAct_Interp" ||
 			LoadClass->GetName() == "NavigationMeshBase" ||
 
-			LoadClass->GetName() == "TextureCube" ||
+			// LoadClass->GetName() == "TextureCube" ||
 			LoadClass->GetName() == "TextureRenderTarget2D" ||
             LoadClass->GetName() == "FaceFxAnimSet"
             ))

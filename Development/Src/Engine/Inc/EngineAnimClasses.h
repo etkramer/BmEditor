@@ -354,7 +354,9 @@ public:
     BITFIELD bCollideActors_OldValue_DEPRECATED:1;
     class USkeletalMeshComponent* SkeletalMeshComponent;
     class ULightEnvironmentComponent* LightEnvironment;
-    class UAudioComponent* FacialAudioComp;
+    class UObject* ImpactSoundEvent;
+    FLOAT LastImpactTime;
+    class UObject* ImpactForceComponent;
     class USkeletalMesh* ReplicatedMesh;
     class UMaterialInterface* ReplicatedMaterial;
     TArrayNoInit<struct FSkelMeshActorControlTarget> ControlTargets;

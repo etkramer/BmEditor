@@ -3089,7 +3089,7 @@ void ASkeletalMeshActor::PreviewActorStopFaceFX()
 /** Used in Matinee to get the AudioComponent we should play facial animation audio on. */
 UAudioComponent* ASkeletalMeshActor::PreviewGetFaceFXAudioComponent()
 {
-	return FacialAudioComp;
+	return NULL;
 }
 
 /** Get the UFaceFXAsset that is currently being used by this Actor when playing facial animations. */

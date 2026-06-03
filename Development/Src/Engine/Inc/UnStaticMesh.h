@@ -1554,8 +1554,12 @@ struct FStaticMeshComponentLODInfo
 			}
 		}
 
-		// Serialize out the vertex color positions
-		if ( Ar.Ver() >= VER_PRESERVE_SMC_VERT_COLORS )
+		// Serialize out the vertex color positions (BM2's LODInfo struct has no such field)
+		if ( Ar.Ver() >= VER_PRESERVE_SMC_VERT_COLORS
+#if BATMAN
+			&& !Ar.IsBmCooked(TRUE)
+#endif
+			)
 		{
 			Ar << I.VertexColorPositions;
 		}

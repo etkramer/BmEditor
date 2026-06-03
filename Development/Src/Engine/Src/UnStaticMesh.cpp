@@ -4207,6 +4207,24 @@ void UStaticMeshComponent::AddReferencedObjects( TArray<UObject*>& ObjectArray )
 void UStaticMeshComponent::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
+#if BATMAN
+	if( Ar.IsBmCooked(TRUE) )
+	{
+		// BM2 stores a single inline FStaticMeshComponentLODInfo, not a counted array.
+		if( Ar.IsLoading() )
+		{
+			LODData.Empty(1);
+			LODData.AddZeroed(1);
+			Ar << LODData(0);
+		}
+		else
+		{
+			FStaticMeshComponentLODInfo EmptyLOD;
+			Ar << ( LODData.Num() ? LODData(0) : EmptyLOD );
+		}
+	}
+	else
+#endif
 	Ar << LODData;
 
 	if (Ar.Ver() < VER_INTEGRATED_LIGHTMASS)

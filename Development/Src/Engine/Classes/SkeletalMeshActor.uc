@@ -14,7 +14,9 @@ var() bool bShouldDoAnimNotifies;
 var()	SkeletalMeshComponent			SkeletalMeshComponent;
 var() const editconst LightEnvironmentComponent LightEnvironment;
 
-var		AudioComponent					FacialAudioComp;
+var		object							ImpactSoundEvent;
+var		float							LastImpactTime;
+var		object							ImpactForceComponent;
 
 /** Used to replicate mesh to clients */
 var repnotify transient SkeletalMesh ReplicatedMesh;
@@ -263,7 +265,7 @@ simulated event StopActorFaceFXAnim()
 /** Used to let FaceFX know what component to play dialogue audio on. */
 simulated event AudioComponent GetFaceFXAudioComponent()
 {
-	return FacialAudioComp;
+	return None;
 }
 
 /** Function for handling the SeqAct_PlayFaceFXAnim Kismet action working on this Actor. */
@@ -653,11 +655,6 @@ defaultproperties
 	CollisionComponent=SkeletalMeshComponent0
 	SkeletalMeshComponent=SkeletalMeshComponent0
 	Components.Add(SkeletalMeshComponent0)
-
-	Begin Object Class=AudioComponent Name=FaceAudioComponent
-	End Object
-	FacialAudioComp=FaceAudioComponent
-	Components.Add(FaceAudioComponent)
 
 	Physics=PHYS_None
 	bEdShouldSnap=TRUE
