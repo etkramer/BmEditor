@@ -7,9 +7,6 @@ class InterpTrackInstDirector extends InterpTrackInst
 
 var	Actor	OldViewTarget;
 
-/** Rendering overrides that were active on the player camera, used to restore settings when the director track ends in game. */
-var RenderingPerformanceOverrides OldRenderingOverrides;
-
 cpptext
 {
 	/** Initialise this Track instance. Called in-game before doing any interpolation. */

@@ -3633,6 +3633,19 @@ UBOOL ULinkerLoad::WillTextureBeLoaded( UClass* Class, INT ExportIndex )
 	}
 }
 
+#if BATMAN
+// BM: Strip a single leading underscore from a cooked package name (e.g. _BmGame -> BmGame) so that
+// objects from prefixed seekfree packages merge into the unprefixed package.
+static FString BmRemapPackageName( const FString& InName )
+{
+	if( InName.Len() > 1 && InName[0] == TEXT('_') )
+	{
+		return InName.Mid(1);
+	}
+	return InName;
+}
+#endif
+
 UObject* ULinkerLoad::CreateExport( INT Index )
 {
 	FScopedCreateExportCounter ScopedCounter( this, Index );
@@ -3730,7 +3743,8 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 
 #if BATMAN
 		// BM: Skip classes (BmGame.upk needs this for now)
-		if (IsBmCooked() && (LoadClass->GetName() == "Class"))
+		// if (IsBmCooked() && (LoadClass->GetName() == "Class"))
+		if (IsBmCooked() && (LoadClass->GetName() == "Class") && (Export.ObjectName.ToString() != "RSkeletalMeshActor"))
         {
             return NULL;
         }
@@ -3740,15 +3754,11 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 			// Don't load class functions for now
 			LoadClass->GetName() == "Function" ||
 
-			// Lots of new classes that need offsets matched up (BmGame.upk)
-			// LoadClass->GetName() == "RGameInfo" ||
-			// LoadClass->GetName() == "RPawn" ||
-
 			LoadClass->GetName() == "PhysicsAsset" ||
 			LoadClass->GetName() == "RB_BodySetup" ||
 
 			LoadClass->GetName() == "Emitter" ||
-			// LoadClass->GetName() == "Sequence" ||
+			LoadClass->GetName() == "InterpData" ||
 			LoadClass->GetName() == "ParticleSystem" ||
 			LoadClass->GetName() == "PhysicalMaterial" ||
 
@@ -3841,13 +3851,27 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 		{
 			// Create the forced export in the TopLevel instead of LinkerRoot. Please note that CreatePackage
 			// will find and return an existing object if one exists and only create a new one if there doesn't.
+#if BATMAN
+			Export._Object = CreatePackage( NULL, *BmRemapPackageName(Export.ObjectName.ToString()) );
+#else
 			Export._Object = CreatePackage( NULL, *Export.ObjectName.ToString() );
+#endif
 			check(Export._Object);
 			((UPackage*)Export._Object)->InitNetInfo(this, Index);
 			GForcedExportCount++;
 		}
 		else
 		{
+#if BATMAN
+			// BM: Route top-level objects from a prefixed package (e.g. _BmGame) into the unprefixed
+			// package (BmGame), merging into an existing one if it's already loaded.
+			const FString RemappedRootName = BmRemapPackageName(LinkerRoot->GetName());
+			if( IsBmCooked() && RemappedRootName != LinkerRoot->GetName() )
+			{
+				ThisParent = CreatePackage( NULL, *RemappedRootName );
+			}
+			else
+#endif
 			ThisParent = LinkerRoot;
 		}
 
@@ -4135,6 +4159,15 @@ UObject* ULinkerLoad::CreateImport( INT Index )
 
 	if( Import.XObject == NULL )
 	{
+#if BATMAN
+		// BM: Seekfree resolves imports by path first; do the same so references to forced exports embedded
+		// in this package (which have no separate .upk on disk) resolve in the editor.
+		if( IsBmCooked() )
+		{
+			Import.XObject = StaticFindObject( UObject::StaticClass(), NULL, *GetImportPathName(Index) );
+		}
+#endif
+
 		// Look in memory first.
 		if ((!GIsEditor && !GIsUCC)
 #if SUPPORTS_SCRIPTPATCH_CREATION
@@ -4158,7 +4191,11 @@ UObject* ULinkerLoad::CreateImport( INT Index )
 					// Import is a toplevel package.
 					if( Import.OuterIndex == ROOTPACKAGE_INDEX )
 					{
+#if BATMAN
+						FindObject = CreatePackage( NULL, *BmRemapPackageName(Import.ObjectName.ToString()) );
+#else
 						FindObject = CreatePackage( NULL, *Import.ObjectName.ToString() );
+#endif
 					}
 					// Import is regular import/ export.
 					else
@@ -4177,7 +4214,11 @@ UObject* ULinkerLoad::CreateImport( INT Index )
 							// Outer is toplevel package, create/ find it.
 							else if( OuterImport.OuterIndex == ROOTPACKAGE_INDEX )
 							{
+#if BATMAN
+								FindOuter = CreatePackage( NULL, *BmRemapPackageName(OuterImport.ObjectName.ToString()) );
+#else
 								FindOuter = CreatePackage( NULL, *OuterImport.ObjectName.ToString() );
+#endif
 							}
 							// Outer is regular import/ export, use IndexToObject to potentially recursively load/ find it.
 							else
@@ -5200,5 +5241,3 @@ FArchive& ULinkerSave::operator<<( UObject*& Obj )
 IMPLEMENT_CLASS(ULinker);
 IMPLEMENT_CLASS(ULinkerLoad);
 IMPLEMENT_CLASS(ULinkerSave);
-
-

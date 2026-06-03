@@ -75,6 +75,17 @@ IMPLEMENT_CLASS(ULightMapTexture2D);
 void FLightMap::Serialize(FArchive& Ar)
 {
 	Ar << LightGuids;
+#if BATMAN
+	if( (Ar.IsLoading() || Ar.IsSaving()) && Ar.IsBmCooked(TRUE) && !Ar.ForEdit() )
+	{
+		UBOOL bSerializedAllowDirectionalLightMaps = bAllowDirectionalLightMaps;
+		Ar << bSerializedAllowDirectionalLightMaps;
+		if( Ar.IsLoading() )
+		{
+			const_cast<UBOOL&>(bAllowDirectionalLightMaps) = bSerializedAllowDirectionalLightMaps;
+		}
+	}
+#endif
 }
 
 void FLightMap::FinishCleanup()

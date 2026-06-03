@@ -47,11 +47,23 @@ struct native DirectorTrackCut
 	var()	name	TargetCamGroup;
 };	
 
-/** Array of cuts between cameras. */
-var	array<DirectorTrackCut>	CutTrack;
+var() bool bResetCameraBehindBatman;
+
+var() bool bKeepBatmanOnScreen;
+
+var() bool bDisableCamerCollisionDuringBlend;
+
+var() bool bResetCameraBehindBatmanOnSkip;
 
 /** True to allow clients to simulate their own camera cuts.  Can help with latency-induced timing issues. */
 var() bool bSimulateCameraCutsOnClients;
+
+var() bool bDetachMic;
+
+var() float SkipBlendTime;
+
+/** Array of cuts between cameras. */
+var	array<DirectorTrackCut>	CutTrack;
 
 defaultproperties
 {

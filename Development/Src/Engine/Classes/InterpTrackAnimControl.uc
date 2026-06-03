@@ -134,8 +134,7 @@ var	array<AnimControlTrackKey>	AnimSeqs;
 /** Enable root motion. This only works if you delete Movement Track to avoid conflicts **/
 var()	bool    bEnableRootMotion;
 
-/**  Skip all anim notifiers **/
-var()	bool	bSkipAnimNotifiers;
+var()	bool	bEnableAutomaticTeleports;
 
 defaultproperties
 {

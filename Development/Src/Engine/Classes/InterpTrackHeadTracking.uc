@@ -70,6 +70,9 @@ var() float LookAtActorRadius;
 /** Interp back to zero strength if limit surpassed */
 var() bool	bDisableBeyondLimit;
 
+/** Quick check box for allowing it to look Pawn - due to Pawn not being listed in the Actor class **/
+var(Target) bool bLookAtPawns;
+
 /** How long can one person to look at one **/
 var() float MaxLookAtTime;
 /** At least this time to look at one **/
@@ -77,9 +80,6 @@ var() float MinLookAtTime;
 
 /** Once entered the radius, how long do I really care to lok  ? This affects rating. It will give benefit to the person who just entered **/
 var() float MaxInterestTime;
-
-/** Quick check box for allowing it to look Pawn - due to Pawn not being listed in the Actor class **/
-var(Target) bool bLookAtPawns;
 
 /** Actor classes to look at as 0 index being the highest priority if you have anything specific **/
 var(Target) array< class<Actor> >  ActorClassesToLookAt;

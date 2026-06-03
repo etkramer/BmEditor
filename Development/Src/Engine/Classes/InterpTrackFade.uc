@@ -25,6 +25,7 @@ cpptext
 }
 
 var() bool bPersistFade;
+var() bool bAlsoFadesAudio;
 
 defaultproperties
 {

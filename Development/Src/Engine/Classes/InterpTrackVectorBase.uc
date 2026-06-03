@@ -69,11 +69,29 @@ cpptext
 	virtual void	UpgradeInterpMethod();
 }
 
+struct native RandomGeneratorVector
+{
+	var() bool bUseRandomise;
+	var() int RandomSeed;
+	var() float StepValue;
+	var() float StepValueMax;
+	var() float StartTime;
+	var() float EndTime;
+	var() float StartValues[6];
+	var() float EndValues[6];
+	var() float ValueVariationsPerc[6];
+	var() bool bStartAtMaxX;
+	var() bool bStartAtMaxY;
+	var() bool bStartAtMaxZ;
+};
+
 /** Actually track data containing keyframes of a vector as it varies over time. */
 var		InterpCurveVector	VectorTrack;
 
 /** Tension of curve, used for keypoints using automatic tangents. */
 var()	float				CurveTension;
+
+var()	RandomGeneratorVector	Randomiser;
 
 defaultproperties
 {

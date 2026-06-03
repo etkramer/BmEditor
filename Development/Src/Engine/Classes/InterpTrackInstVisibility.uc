@@ -10,6 +10,7 @@ var()	EVisibilityTrackAction	Action;
  *	During UpdateTrack, events between this time and the current time will be processed.
  */
 var		float				LastUpdatePosition; 
+var		bool				SavedActorHidden;
 
 cpptext
 {

@@ -4317,7 +4317,6 @@ public:
     FLOAT EdSectionEnd;
     BITFIELD bShouldBakeAndPrune:1;
     TArrayNoInit<struct FAnimSetBakeAndPruneStatus> BakeAndPruneStatus;
-    class UInterpGroupDirector* CachedDirectorGroup;
     //## END PROPS InterpData
 
     DECLARE_CLASS(UInterpData,USequenceVariable,0,Engine)
@@ -5396,7 +5395,7 @@ VERIFY_CLASS_SIZE_NODIE(USeqEvent_Used)
 VERIFY_CLASS_OFFSET_NODIE(USequenceVariable,SequenceVariable,VarName)
 VERIFY_CLASS_SIZE_NODIE(USequenceVariable)
 VERIFY_CLASS_OFFSET_NODIE(UInterpData,InterpData,InterpLength)
-VERIFY_CLASS_OFFSET_NODIE(UInterpData,InterpData,CachedDirectorGroup)
+VERIFY_CLASS_OFFSET_NODIE(UInterpData,InterpData,BakeAndPruneStatus)
 VERIFY_CLASS_SIZE_NODIE(UInterpData)
 VERIFY_CLASS_OFFSET_NODIE(USeqVar_Bool,SeqVar_Bool,bValue)
 VERIFY_CLASS_SIZE_NODIE(USeqVar_Bool)

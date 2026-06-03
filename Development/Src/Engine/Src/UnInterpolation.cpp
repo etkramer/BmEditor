@@ -666,27 +666,9 @@ void UInterpData::PostLoad(void)
 {
 	Super::PostLoad();
 
-	// Ensure the cached director group is emptied out
-	CachedDirectorGroup = NULL;
-
 #if WITH_EDITOR
 	UpdateBakeAndPruneStatus();
 #endif
-
-	// If in the game, cache off the director group intentionally to avoid
-	// frequent searches for it
-	if ( GIsGame )
-	{
-		for( INT i = 0; i < InterpGroups.Num(); ++i )
-		{
-			UInterpGroupDirector* TestDirGroup = Cast<UInterpGroupDirector>( InterpGroups(i) );
-			if( TestDirGroup )
-			{
-				check( !CachedDirectorGroup ); // Should only have 1 DirectorGroup at most!
-				CachedDirectorGroup = TestDirGroup;
-			}
-		}
-	}
 }
 
 FString UInterpData::GetValueStr()
@@ -742,25 +724,14 @@ UInterpGroupDirector* UInterpData::FindDirectorGroup()
 {
 	UInterpGroupDirector* DirGroup = NULL;
 
-	// If not in game, recheck all the interp groups to ensure there's either zero or one
-	// director group and that it hasn't changed
-	if ( !GIsGame )
+	for(INT i=0; i<InterpGroups.Num(); i++)
 	{
-		for(INT i=0; i<InterpGroups.Num(); i++)
+		UInterpGroupDirector* TestDirGroup = Cast<UInterpGroupDirector>( InterpGroups(i) );
+		if(TestDirGroup)
 		{
-			UInterpGroupDirector* TestDirGroup = Cast<UInterpGroupDirector>( InterpGroups(i) );
-			if(TestDirGroup)
-			{
-				check(!DirGroup); // Should only have 1 DirectorGroup at most!
-				DirGroup = TestDirGroup;
-			}
+			check(!DirGroup); // Should only have 1 DirectorGroup at most!
+			DirGroup = TestDirGroup;
 		}
-	}
-
-	// If in game, just use the cached director group, as it cannot have changed
-	else
-	{
-		DirGroup = CachedDirectorGroup;
 	}
 
 	return DirGroup;
@@ -7669,8 +7640,6 @@ void UInterpTrackInstDirector::InitTrackInst(UInterpTrack* Track)
 			UInterpTrackDirector* DirTrack = DirGroup->GetDirectorTrack();
 			if (DirTrack && DirTrack->CutTrack.Num() > 0)
 			{
-				// Backup existing player camera settings
-				OldRenderingOverrides = PC->PlayerCamera->RenderingOverrides;
 				// Apply the matinee's rendering overrides
 				PC->PlayerCamera->RenderingOverrides = Seq->RenderingOverrides;
 			}
@@ -7700,19 +7669,6 @@ void UInterpTrackInstDirector::TermTrackInst(UInterpTrack* Track)
 		PC->eventNotifyDirectorControl(FALSE, Seq);
 		PC->SetControllingDirector( NULL );
 		PC->bClientSimulatingViewTarget = FALSE;
-		if (PC->PlayerCamera)
-		{
-			UInterpGroupDirector* DirGroup = Cast<UInterpGroupDirector>(GrInst->Group);
-			if (DirGroup)
-			{
-				UInterpTrackDirector* DirTrack = DirGroup->GetDirectorTrack();
-				if (DirTrack && DirTrack->CutTrack.Num() > 0)
-				{
-					// Restore the existing settings
-					PC->PlayerCamera->RenderingOverrides = OldRenderingOverrides;
-				}
-			}
-		}
 	}
 	
 	OldViewTarget = NULL;
@@ -8266,7 +8222,7 @@ void UInterpTrackAnimControl::PreviewUpdateTrack(FLOAT NewPosition, class UInter
 		}
 
 		// if we're going backward or if not @ the first frame of the animation
-		UBOOL bFireNotifier = !bSkipAnimNotifiers && (TimeElapsed < 0.f || !bResetTime) ;
+		UBOOL bFireNotifier = (TimeElapsed < 0.f || !bResetTime) ;
 		Actor->PreviewSetAnimPosition(SlotName, ChannelIndex, NewAnimSeqName, NewAnimPosition, bNewLooping, bFireNotifier, bEnableRootMotion, TimeElapsed);
 		AnimInst->LastUpdatePosition = NewPosition;
 	}
@@ -8390,7 +8346,7 @@ void UInterpTrackAnimControl::UpdateTrack(FLOAT NewPosition, UInterpTrackInst* T
 
 						if( CurrentAnimName != NAME_None )
 						{
-							Actor->eventSetAnimPosition(SlotName, ChannelIndex, CurrentAnimName, AnimPos, !bSkipAnimNotifiers, TRUE, bEnableRootMotion);
+							Actor->eventSetAnimPosition(SlotName, ChannelIndex, CurrentAnimName, AnimPos, TRUE, TRUE, bEnableRootMotion);
 						}
 					}
 					// If we failed to find the sequence, just use simpler method.
@@ -8398,7 +8354,7 @@ void UInterpTrackAnimControl::UpdateTrack(FLOAT NewPosition, UInterpTrackInst* T
 					{
 						if( CurrentAnimName != NAME_None )
 						{
-							Actor->eventSetAnimPosition(SlotName, ChannelIndex, CurrentAnimName, ((ToTime - CurrentSeqStart) * CurrentRate) + CurrentStartOffset, !bSkipAnimNotifiers, TRUE, bEnableRootMotion);
+							Actor->eventSetAnimPosition(SlotName, ChannelIndex, CurrentAnimName, ((ToTime - CurrentSeqStart) * CurrentRate) + CurrentStartOffset, TRUE, TRUE, bEnableRootMotion);
 						}
 					}
 				}
@@ -8421,7 +8377,7 @@ void UInterpTrackAnimControl::UpdateTrack(FLOAT NewPosition, UInterpTrackInst* T
 					{
 						// if Current Animation Position == StartOffset, that means we clear all PreviousTime and new Time, 
 						// jump there - bFireNotifier == FALSE will clear PreviousTime and CurrentTime to match
-						Actor->eventSetAnimPosition(SlotName, ChannelIndex, CurrentAnimName, AnimPos, (AnimPos != CurrentStartOffset)?!bSkipAnimNotifiers:FALSE , FALSE, bEnableRootMotion);
+						Actor->eventSetAnimPosition(SlotName, ChannelIndex, CurrentAnimName, AnimPos, (AnimPos != CurrentStartOffset), FALSE, bEnableRootMotion);
 					}
 				}
 

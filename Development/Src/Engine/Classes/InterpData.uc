@@ -59,9 +59,6 @@ struct native AnimSetBakeAndPruneStatus
 /** AnimSets referenced by this matinee, and whether to allow bake and prune on them during cooking. */
 var() editfixedsize array<AnimSetBakeAndPruneStatus> BakeAndPruneStatus;
 
-/** Cached version of the director group, if any, for easy access while in game */
-var transient InterpGroupDirector CachedDirectorGroup; 
-
 cpptext
 {
 	// UObject interface
