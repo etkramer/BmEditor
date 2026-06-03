@@ -188,13 +188,13 @@ FPrimitiveSceneInfo::FPrimitiveSceneInfo(UPrimitiveComponent* InComponent,FPrimi
 	Id(INDEX_NONE),
 	TranslucencySortPriority(Clamp(InComponent->TranslucencySortPriority, SHRT_MIN, SHRT_MAX)),
 	NumAffectingDominantLights(0),
-	VisibilityId(InComponent->VisibilityId),
+	VisibilityId(INDEX_NONE),
 	bStaticShadowing(InComponent->HasStaticShadowing()),
 	// Disable dynamic shadow casting if the primitive only casts indirect shadows, since dynamic shadows are always shadowing direct lighting
 	bCastDynamicShadow(InComponent->bCastDynamicShadow && InComponent->CastShadow && !InComponent->GetShadowIndirectOnly()),
 	bSelfShadowOnly(InComponent->bSelfShadowOnly),
 	bAcceptsDynamicDominantLightShadows(InComponent->bAcceptsDynamicDominantLightShadows),
-	bCastStaticShadow(InComponent->CastShadow && InComponent->bCastStaticShadow),
+	bCastStaticShadow(InComponent->CastShadow),
 	bCastHiddenShadow(InComponent->bCastHiddenShadow),
 	bCastShadowAsTwoSided(InComponent->bCastShadowAsTwoSided),
 	bAllowPreShadow((InComponent->LightEnvironment && InComponent->LightEnvironment->IsEnabled()) ?
@@ -231,8 +231,8 @@ FPrimitiveSceneInfo::FPrimitiveSceneInfo(UPrimitiveComponent* InComponent,FPrimi
 	PreviewEnvironmentShadowing(InComponent->PreviewEnvironmentShadowing),
 	Bounds(InComponent->Bounds),
 	MaxDrawDistance(InComponent->CachedMaxDrawDistance),
-	MinDrawDistance(InComponent->MinDrawDistance),
-	MotionBlurInstanceScale(InComponent->MotionBlurInstanceScale),
+	MinDrawDistance(0.0f),
+	MotionBlurInstanceScale(InComponent->MotionBlurScale),
 	LightingChannels(InComponent->LightingChannels),
 	LightEnvironment(
 		(InComponent->LightEnvironment && InComponent->LightEnvironment->IsEnabled()) ?
@@ -244,7 +244,7 @@ FPrimitiveSceneInfo::FPrimitiveSceneInfo(UPrimitiveComponent* InComponent,FPrimi
 			InComponent->LightEnvironment->GetAffectingDominantLight() :
 			NULL
 		),
-	OverrideLightComponent(InComponent->OverrideLightComponent),
+	OverrideLightComponent(NULL),
 	LevelName(InComponent->GetOutermost()->GetFName()),
 	LightList(NULL),
 	UpperSkyLightColor(FLinearColor::Black),
@@ -280,7 +280,7 @@ FPrimitiveSceneInfo::FPrimitiveSceneInfo(UPrimitiveComponent* InComponent,FPrimi
 		bCullModulatedShadowOnEmissive = ShadowParent->bCullModulatedShadowOnEmissive;
 	}
 
-	if(InComponent->MotionBlurInstanceScale == 0.0f)
+	if(InComponent->MotionBlurScale == 0.0f)
 	{
 		bVelocityIsSupressed = TRUE;
 	}

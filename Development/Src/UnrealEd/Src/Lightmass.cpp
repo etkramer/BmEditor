@@ -849,9 +849,9 @@ void FLightmassExporter::WriteVisibilityData( INT Channel )
 					for (INT ComponentIndex = 0; ComponentIndex < CurrentActor->Components.Num(); ComponentIndex++)
 					{
 						UPrimitiveComponent* CurrentComponent = Cast<UPrimitiveComponent>(CurrentActor->Components(ComponentIndex));
-						if (CurrentComponent && CurrentComponent->VisibilityId != INDEX_NONE)
+						if (CurrentComponent && INDEX_NONE != INDEX_NONE)
 						{
-							VisibilityIds.AddUniqueItem(CurrentComponent->VisibilityId);
+							VisibilityIds.AddUniqueItem(INDEX_NONE);
 						}
 					}
 				}
@@ -865,9 +865,9 @@ void FLightmassExporter::WriteVisibilityData( INT Channel )
 					for (INT ComponentIndex = 0; ComponentIndex < RemoveActor->Components.Num(); ComponentIndex++)
 					{
 						UPrimitiveComponent* RemoveComponent = Cast<UPrimitiveComponent>(RemoveActor->Components(ComponentIndex));
-						if (RemoveComponent && RemoveComponent->VisibilityId != INDEX_NONE)
+						if (RemoveComponent && INDEX_NONE != INDEX_NONE)
 						{
-							InvisibilityIds.AddUniqueItem(RemoveComponent->VisibilityId);
+							InvisibilityIds.AddUniqueItem(INDEX_NONE);
 						}
 					}
 				}
@@ -2182,9 +2182,10 @@ void FLightmassExporter::WriteMeshInstances( INT Channel )
 						}
 						Lightmass::FMaterialElementData NewElementData;
 						Copy(Material->LightingGuid, NewElementData.MaterialId);
-						NewElementData.bUseTwoSidedLighting = Primitive->LightmassSettings.bUseTwoSidedLighting;
-						NewElementData.bShadowIndirectOnly = Primitive->LightmassSettings.bShadowIndirectOnly;
-						if (Primitive->LightmassSettings.bUseEmissiveForStaticLighting)
+						// Per-component LightmassSettings was removed to match retail BM2; use neutral defaults.
+						NewElementData.bUseTwoSidedLighting = FALSE;
+						NewElementData.bShadowIndirectOnly = FALSE;
+						if (FALSE)
 						{
 							if (StaticMesh->IsA(UFracturedStaticMesh::StaticClass()))
 							{
@@ -2202,12 +2203,12 @@ void FLightmassExporter::WriteMeshInstances( INT Channel )
 							NewElementData.bUseEmissiveForStaticLighting = FALSE;
 						}
 						// Combine primitive and level boost settings so we don't have to send the level settings over to Lightmass  
-						Copy(Primitive->LightmassSettings.EmissiveLightFalloffExponent, NewElementData.EmissiveLightFalloffExponent);
-						Copy(Primitive->LightmassSettings.EmissiveLightExplicitInfluenceRadius, NewElementData.EmissiveLightExplicitInfluenceRadius);
+						Copy(2.0f, NewElementData.EmissiveLightFalloffExponent);
+						Copy(0.0f, NewElementData.EmissiveLightExplicitInfluenceRadius);
 						Copy(Primitive->GetEmissiveBoost(ElementIndex) * LevelSettings.EmissiveBoost, NewElementData.EmissiveBoost);
 						Copy(Primitive->GetDiffuseBoost(ElementIndex) * LevelSettings.DiffuseBoost, NewElementData.DiffuseBoost);
 						Copy(Primitive->GetSpecularBoost(ElementIndex) * LevelSettings.SpecularBoost, NewElementData.SpecularBoost);
-						Copy(Primitive->LightmassSettings.FullyOccludedSamplesFraction, NewElementData.FullyOccludedSamplesFraction);
+						Copy(1.0f, NewElementData.FullyOccludedSamplesFraction);
 						MaterialElementData.AddItem(NewElementData);
 					}
 				}
@@ -3052,12 +3053,12 @@ void FLightmassExporter::WriteDebugInput( Lightmass::FDebugLightingInputData& In
 				{
 					if (DebugVisibilityId == INDEX_NONE)
 					{
-						DebugVisibilityId = Component->VisibilityId;
+						DebugVisibilityId = INDEX_NONE;
 					}
-					else if (DebugVisibilityId != Component->VisibilityId)
+					else if (DebugVisibilityId != INDEX_NONE)
 					{
 						warnf(NAME_DevLightmassSolver, TEXT("Not debugging visibility for component %s with vis id %u, as it was not the first component on the selected actor."),
-							*Component->GetPathName(), Component->VisibilityId);
+							*Component->GetPathName(), INDEX_NONE);
 					}
 				}
 			}
@@ -3079,12 +3080,12 @@ void FLightmassExporter::WriteDebugInput( Lightmass::FDebugLightingInputData& In
 							UModelComponent* SomeModelComponent = Level->ModelComponents(Node.ComponentIndex);
 							if (DebugVisibilityId == INDEX_NONE)
 							{
-								DebugVisibilityId = SomeModelComponent->VisibilityId;
+								DebugVisibilityId = INDEX_NONE;
 							}
-							else if (DebugVisibilityId != SomeModelComponent->VisibilityId)
+							else if (DebugVisibilityId != INDEX_NONE)
 							{
 								warnf(NAME_DevLightmassSolver, TEXT("Not debugging visibility for model component %s with vis id %u!"),
-									*SomeModelComponent->GetPathName(), SomeModelComponent->VisibilityId);
+									*SomeModelComponent->GetPathName(), INDEX_NONE);
 							}
 						}
 					}

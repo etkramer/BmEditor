@@ -161,7 +161,6 @@ native final function PhysicalMaterial GetFracturedMeshPhysMaterial();
 
 defaultproperties
 {
-	OverriddenLightMapResolution=64
 	OverriddenLightMapRes=64
 	TopBottomFragmentDistThreshold=0.1
 	bUsePrecomputedShadows=TRUE

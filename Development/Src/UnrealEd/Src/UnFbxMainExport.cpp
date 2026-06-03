@@ -588,7 +588,7 @@ void FbxExporter::ExportStaticMesh( AActor* Actor, UStaticMeshComponent* StaticM
 	// Retrieve the static mesh rendering information at the correct LOD level.
 	UStaticMesh* StaticMesh = StaticMeshComponent->StaticMesh;
 	if (StaticMesh == NULL || StaticMesh->LODModels.Num() == 0) return;
-	INT LODIndex = StaticMeshComponent->ForcedLodModel;
+	INT LODIndex = 0;
 	if (LODIndex >= StaticMesh->LODModels.Num())
 	{
 		LODIndex = StaticMesh->LODModels.Num() - 1;

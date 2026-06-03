@@ -138,7 +138,6 @@ defaultproperties
 {
 	bUseDynamicIndexBuffer=true
 	bInitialVisibilityValue=true
-	bAcceptsDecalsDuringGameplay=FALSE
 	bAcceptsStaticDecals=FALSE
 	bAcceptsDynamicDecals=TRUE
 }

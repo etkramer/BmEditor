@@ -997,8 +997,6 @@ void UFracturedStaticMeshComponent::UpdateBounds()
 	{
 		// Convert to FBoxSphereBounds and assign.
 		Bounds = FBoxSphereBounds(VisibleBox.TransformBy(LocalToWorld));
-		Bounds.BoxExtent *= BoundsScale;
-		Bounds.SphereRadius *= BoundsScale;
 	}
 	else
 	{
@@ -1084,74 +1082,6 @@ void UFracturedStaticMeshComponent::Attach()
 */
 void UFracturedStaticMeshComponent::Detach( UBOOL bWillReattach )
 {
-	if( DecalList.Num() > 0 )
-	{	
-		// detach decals which are interacting with this receiver primitive
-		TArray<UDecalComponent*> DecalsToDetach;
-		for( INT DecalIdx=0; DecalIdx < DecalList.Num(); ++DecalIdx )
-		{
-			FDecalInteraction* DecalInteraction = DecalList(DecalIdx);
-			if( DecalInteraction && 
-				DecalInteraction->Decal )
-			{
-				if( bWillReattach &&
-					DecalInteraction->RenderData &&
-					// detach all decals if reseting the static mesh since visibility will be reset as well
-					!bResetStaticMesh )
-				{
-					UBOOL bHasVisibleFragments = FALSE;
-					UBOOL bAllFragmentsVisible = TRUE;
-
-					FDecalRenderData* DecalRenderData = DecalInteraction->RenderData;
-					for( TSet<INT>::TIterator It(DecalRenderData->FragmentIndices); It; ++It )
-					{
-						UBOOL bFragmentVisible = IsFragmentVisible(*It);
-						if( bFragmentVisible )
-						{
-							bHasVisibleFragments = TRUE;							
-						}
-						else
-						{							
-							bAllFragmentsVisible = FALSE;							
-						}						
-					}
-
-					if( bHasVisibleFragments )
-					{
-						if( bAllFragmentsVisible )
-						{
-							// if all of the fragments for the decal interaction are visible then leave it attached
-						}
-						else
-						{
-							// if only some of the fragments for the decal interaction are visible then detach/reattach it
-							DecalsToDetach.AddUniqueItem(DecalInteraction->Decal);
-							DecalsToReattach.AddUniqueItem(DecalInteraction->Decal);
-							DecalRenderData->FragmentIndices.Empty();							
-						}
-					}
-					else
-					{
-						// if all of the fragments for the decal interaction are hidden then detach it
-						DecalsToDetach.AddUniqueItem(DecalInteraction->Decal);
-					}
-				}
-				else
-				{
-					// remove all decals if the mesh is being detached
-					DecalsToDetach.AddUniqueItem(DecalInteraction->Decal);
-				}
-			}
-		}
-
-		// detach desired decals from this primitive
-		for( INT DetachIdx=0; DetachIdx < DecalsToDetach.Num(); ++DetachIdx )
-		{
-			UDecalComponent* DecalToDetach = DecalsToDetach(DetachIdx);
-			DecalToDetach->DetachFromReceiver(this);
-		}
-	}
-
 	Super::Detach(bWillReattach);
 }
 
@@ -2153,7 +2083,7 @@ void UFracturedSkinnedMeshComponent::Attach()
 
 	// Don't allow cull distance volumes to affect this component
 	// This is also enforced by bAllowCullDistanceVolume=FALSE but legacy content will have CachedCullDistance set incorrectly
-	CachedMaxDrawDistance = LDCullDistance;
+	CachedMaxDrawDistance = LDMaxDrawDistance;
 
 	Super::Attach();
 

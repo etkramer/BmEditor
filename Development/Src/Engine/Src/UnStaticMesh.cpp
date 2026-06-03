@@ -4212,7 +4212,6 @@ void UStaticMeshComponent::Serialize(FArchive& Ar)
 	if (Ar.Ver() < VER_INTEGRATED_LIGHTMASS)
 	{
 		bOverrideLightMapRes = bOverrideLightMapResolution_DEPRECATED;
-		OverriddenLightMapRes = OverriddenLightMapResolution_DEPRECATED;
 	}
 
 	// Cache mesh vertex positions of older components to handle updates in the future
@@ -4328,13 +4327,6 @@ void UStaticMeshComponent::PostEditChangeProperty(FPropertyChangedEvent& Propert
 			MaterialInterface = NULL;
 		}
 	}
-
-	LightmassSettings.EmissiveBoost = Max(LightmassSettings.EmissiveBoost, 0.0f);
-	LightmassSettings.DiffuseBoost = Max(LightmassSettings.DiffuseBoost, 0.0f);
-	LightmassSettings.SpecularBoost = Max(LightmassSettings.SpecularBoost, 0.0f);
-
-	// Ensure properties are in sane range.
-	SubDivisionStepSize = Clamp( SubDivisionStepSize, 1, 128 );
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
@@ -4471,18 +4463,6 @@ void UStaticMeshComponent::CheckForErrors()
 		}
 	}
 
-	// Any simple lightmap modification texture should be marked as such in its compression settings
-	if( SimpleLightmapModificationTexture != NULL )
-	{
-		if( SimpleLightmapModificationTexture->CompressionSettings != TC_SimpleLightmapModification )
-		{
-			GWarn->MapCheck_Add(
-				MCTYPE_WARNING, Owner,
-				*FString::Printf( TEXT( "Mesh '%s' has a simple lightmap modifiaction texture assigned, but the texture's compression settings are incorrect (should be TC_SimpleLightmapModification)" ),
-				*StaticMesh->GetName() ), MCACTION_NONE );
-		}
-	}
-
 	FLightingChannelContainer NonDefaultChannels;
 	NonDefaultChannels.SetAllChannels();
 	NonDefaultChannels.BSP = FALSE;
@@ -4529,8 +4509,6 @@ void UStaticMeshComponent::UpdateBounds()
 		// Takes into account that the static mesh collision code nudges collisions out by up to 1 unit.
 		Bounds.BoxExtent += FVector(1,1,1);
 		Bounds.SphereRadius += 1.0f;
-		Bounds.BoxExtent *= BoundsScale;
-		Bounds.SphereRadius *= BoundsScale;
 
 #if !CONSOLE
 		if ( !GIsGame && Scene->GetWorld() == GWorld &&

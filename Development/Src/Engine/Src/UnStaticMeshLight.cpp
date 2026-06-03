@@ -299,8 +299,8 @@ FStaticMeshStaticLightingVertexMapping::FStaticMeshStaticLightingVertexMapping(
 			InMesh,
 			InPrimitive,
 			InPrimitive->bForceDirectLightMap,
-			1.0f / Square((FLOAT)InPrimitive->SubDivisionStepSize),
-			!(bPerformFullQualityBuild && InPrimitive->bUseSubDivisions)
+			1.0f / Square((FLOAT)32),
+			!(bPerformFullQualityBuild && TRUE)
 		),
 		Primitive(InPrimitive),
 		LODIndex(InLODIndex)
@@ -470,19 +470,19 @@ ELightMapInteractionType UStaticMeshComponent::GetStaticLightingType() const
 /** Gets the emissive boost for the primitive component. */
 FLOAT UStaticMeshComponent::GetEmissiveBoost(INT ElementIndex) const
 {
-	return LightmassSettings.EmissiveBoost;
+	return 1.0f;
 }
 
 /** Gets the diffuse boost for the primitive component. */
 FLOAT UStaticMeshComponent::GetDiffuseBoost(INT ElementIndex) const
 {
-	return LightmassSettings.DiffuseBoost;
+	return 1.0f;
 }
 
 /** Gets the specular boost for the primitive component. */
 FLOAT UStaticMeshComponent::GetSpecularBoost(INT ElementIndex) const
 {
-	return LightmassSettings.SpecularBoost;
+	return 1.0f;
 }
 
 /** Allocates an implementation of FStaticLightingMesh that will handle static lighting for this component */

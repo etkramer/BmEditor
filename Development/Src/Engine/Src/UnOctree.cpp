@@ -34,6 +34,17 @@
 
 static const FOctreeNodeBounds RootNodeBounds(FVector(0,0,0),HALF_WORLD_MAX);
 
+// Get-or-add the node list for a primitive in the octree's side map (UPrimitiveComponent no longer stores OctreeNodes).
+static FORCEINLINE TArray<FOctreeNode*>& GetPrimitiveNodes(FPrimitiveOctree* o, UPrimitiveComponent* Primitive)
+{
+	TArray<FOctreeNode*>* Found = o->PrimitiveNodeMap.Find(Primitive);
+	if(!Found)
+	{
+		Found = &o->PrimitiveNodeMap.Set(Primitive, TArray<FOctreeNode*>());
+	}
+	return *Found;
+}
+
 /**
  * Enum values for octree stats
  */
@@ -532,7 +543,8 @@ void FOctreeNode::RemoveAllPrimitives(FPrimitiveOctree* o)
 	{
 		UPrimitiveComponent* Primitive = Primitives(0);
 
-		if(Primitive->OctreeNodes.Num() > 0)
+		TArray<FOctreeNode*>* PrimNodes = o->PrimitiveNodeMap.Find(Primitive);
+		if(PrimNodes && PrimNodes->Num() > 0)
 		{
 			o->RemovePrimitive(Primitive);
 		}
@@ -581,7 +593,8 @@ UBOOL FOctreeNode::MultiNodeFilter(UPrimitiveComponent* Primitive, FPrimitiveOct
 	if(!Children || Bounds.IsInsideBox(Primitive->Bounds.GetBox()) )
 	{
 		// If we are in too many nodes - bail out here returning false.
-		if(Primitive->OctreeNodes.Num() >= MAX_NODES_PER_PRIMITIVE)
+		TArray<FOctreeNode*>* PrimNodes = o->PrimitiveNodeMap.Find(Primitive);
+		if(PrimNodes && PrimNodes->Num() >= MAX_NODES_PER_PRIMITIVE)
 		{
 			return FALSE;
 		}
@@ -707,7 +720,7 @@ void FOctreeNode::FilterTest(const FBox& TestBox, UBOOL bMulti, TArray<FOctreeNo
 }
 
 /** Iterate over this node and children, trying to collapse up the tree, up to the point that there are MAX_PRIMITIVES_PER_NODE in a node.*/
-void FOctreeNode::CollapseChildren()
+void FOctreeNode::CollapseChildren(FPrimitiveOctree* o)
 {
 	// Only does something if we have children!
 	if(Children)
@@ -717,7 +730,7 @@ void FOctreeNode::CollapseChildren()
 		UBOOL bChildrenAllLeafNodes = TRUE;
 		for(INT ChildIndex = 0; ChildIndex < 8; ChildIndex++)
 		{
-			Children[ChildIndex].CollapseChildren();
+			Children[ChildIndex].CollapseChildren(o);
 
 			if(Children[ChildIndex].Children != NULL)
 			{
@@ -757,7 +770,7 @@ void FOctreeNode::CollapseChildren()
 					// For each prim in this child node, remove pointer to child node
 					for(INT PrimIndex=0; PrimIndex<ChildNode->Primitives.Num(); PrimIndex++)
 					{
-						ChildNode->Primitives(PrimIndex)->OctreeNodes.RemoveItemSwap(ChildNode);
+						GetPrimitiveNodes(o, ChildNode->Primitives(PrimIndex)).RemoveItemSwap(ChildNode);
 					}
 
 					// then clear child's prim array
@@ -778,7 +791,7 @@ void FOctreeNode::CollapseChildren()
 					Primitives.AddItem(PrimComp);
 					INC_MEMORY_STAT_BY(STAT_Octree_Memory, sizeof(UPrimitiveComponent*));
 
-					PrimComp->OctreeNodes.AddItem(this);
+					GetPrimitiveNodes(o, PrimComp).AddItem(this);
 				}
 			}
 		}
@@ -816,7 +829,7 @@ void FOctreeNode::StoreActor(UPrimitiveComponent* Primitive, FPrimitiveOctree* o
 		for(INT i=0; i<PendingPrimitives.Num(); i++)
 		{
 			// Remove this primitives reference to this node.
-			PendingPrimitives(i)->OctreeNodes.RemoveSingleItemSwap(this);
+			GetPrimitiveNodes(o, PendingPrimitives(i)).RemoveSingleItemSwap(this);
 
 			// Then re-check it against this node, which will then check against children.
 			if(PendingPrimitives(i)->bWasSNFiltered)
@@ -841,7 +854,7 @@ void FOctreeNode::StoreActor(UPrimitiveComponent* Primitive, FPrimitiveOctree* o
 		INC_MEMORY_STAT_BY(STAT_Octree_Memory, sizeof(UPrimitiveComponent*));
 
 		// and add this node to the primitives list of nodes.
-		Primitive->OctreeNodes.AddItem(this);
+		GetPrimitiveNodes(o, Primitive).AddItem(this);
 	}
 }
 
@@ -2203,7 +2216,8 @@ void FPrimitiveOctree::AddPrimitive(UPrimitiveComponent* Primitive)
 	//debugf(TEXT("Add: %x : %s CollideActors: %d"), Primitive, *Primitive->GetName(), Primitive->CollideActors);
 
 	// Just to be sure - if the actor is already in the octree, remove it and re-add it.
-	if(Primitive->OctreeNodes.Num() > 0)
+	TArray<FOctreeNode*>* ExistingNodes = PrimitiveNodeMap.Find(Primitive);
+	if(ExistingNodes && ExistingNodes->Num() > 0)
 	{
 		if(!GIsEditor)
 		{
@@ -2285,15 +2299,19 @@ void FPrimitiveOctree::RemovePrimitive(UPrimitiveComponent* Primitive)
 	//debugf(TEXT("RemovePrimitive: %s (Owner: %s)."), *Primitive->GetName(), Primitive->GetOwner() ? *Primitive->GetOwner()->GetName() : TEXT("None"));
 
 	// Work through this actors list of nodes, removing itself from each one.
-	for(INT i=0; i<Primitive->OctreeNodes.Num(); i++)
+	TArray<FOctreeNode*>* PrimNodes = PrimitiveNodeMap.Find(Primitive);
+	if(PrimNodes)
 	{
-		FOctreeNode* node = Primitive->OctreeNodes(i);
-		check(node);
-		node->Primitives.RemoveItemSwap(Primitive);
-		DEC_DWORD_STAT_BY(STAT_Octree_Memory,sizeof(UPrimitiveComponent*));
+		for(INT i=0; i<PrimNodes->Num(); i++)
+		{
+			FOctreeNode* node = (*PrimNodes)(i);
+			check(node);
+			node->Primitives.RemoveItemSwap(Primitive);
+			DEC_DWORD_STAT_BY(STAT_Octree_Memory,sizeof(UPrimitiveComponent*));
+		}
+		// Then empty the list of nodes by erasing the map entry.
+		PrimitiveNodeMap.Remove(Primitive);
 	}
-	// Then empty the list of nodes.
-	Primitive->OctreeNodes.Empty();
 }
 
 static FLOAT ToInfinity(FLOAT f)
@@ -2766,7 +2784,7 @@ void FPrimitiveOctree::GetPrimitives(TArray<UPrimitiveComponent*>& Primitives) c
 /** Try and remove empty/nearly empty nodes.  */
 void FPrimitiveOctree::CollapseTreeChildren()
 {
-	RootNode->CollapseChildren();
+	RootNode->CollapseChildren(this);
 }
 
 //

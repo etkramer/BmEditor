@@ -721,15 +721,6 @@ void AProcBuilding::PostLoad()
 		GEngine->DeferredCommands.AddUniqueItem(TEXT("CLEANUPOLDBUILDINGTEXTURES"));
 	}
 
-	// copy over MinDrawDistance to MassiveLODDistance for old content
-	if (GetLinker() && GetLinker()->Ver() < VER_ADDED_CROSSLEVEL_REFERENCES && SimpleMeshComp)
-	{
-		SimpleMeshComp->MassiveLODDistance = SimpleMeshComp->MinDrawDistance;
-
-		// update the building's version of the MassiveLOD distance from the component's setting
-		SimpleMeshMassiveLODDistance = SimpleMeshComp->MassiveLODDistance;
-	}
-
 	// if the low LOD building is in another map, then we need to fixup LOD quad materials to point back to where they should be
 	if (LowLODPersistentActor)
 	{

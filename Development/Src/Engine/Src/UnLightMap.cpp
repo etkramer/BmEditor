@@ -219,7 +219,7 @@ FStaticLightingMesh::FStaticLightingMesh(
 	NumVertices(InNumVertices),
 	NumShadingVertices(InNumShadingVertices),
 	TextureCoordinateIndex(InTextureCoordinateIndex),
-	bCastShadow(bInCastShadow && InComponent->bCastStaticShadow),
+	bCastShadow(bInCastShadow),
 	bSelfShadowOnly(bInSelfShadowOnly),
 	bTwoSidedMaterial(bInTwoSidedMaterial),
 	RelevantLights(InRelevantLights),
@@ -1126,119 +1126,7 @@ static UINT PendingLightMapSize = 0;
 
 void ApplySimpleLightmapModification( FLightMapAllocation* Allocation )
 {
-	// For simple lightmaps, we may have an optional texture used to modulate them
-	if( Allocation->Primitive->GetClass() == UStaticMeshComponent::StaticClass() )
-	{
-		UStaticMeshComponent* StaticMeshPrimitive = (UStaticMeshComponent*)Allocation->Primitive;
-		if( StaticMeshPrimitive->bUseSimpleLightmapModifications &&
-			StaticMeshPrimitive->SimpleLightmapModificationTexture &&
-			StaticMeshPrimitive->SimpleLightmapModificationTexture->GetClass() == UTexture2D::StaticClass() )
-		{
-			UTexture2D* LightmapModificationTexture2D = (UTexture2D*)StaticMeshPrimitive->SimpleLightmapModificationTexture;
-
-			// Only textures that have been set up properly as lightmap modification textures can be used.
-			// A map-check is also in place to warn users that any texture used for lightmap modification
-			// must be marked as such.
-			if( LightmapModificationTexture2D->CompressionSettings == TC_SimpleLightmapModification )
-			{
-				FTextureMipBulkData* RawTextureBulkData = &(LightmapModificationTexture2D->Mips(0).Data);
-				if( RawTextureBulkData->GetBulkDataSize() > 0 )
-				{
-					BYTE* RawTextureData = (BYTE*)RawTextureBulkData->Lock( LOCK_READ_ONLY );
-
-					// Get the texels into floats
-					TArray<FLOAT> FinalTextureData( RawTextureBulkData->GetBulkDataSize() );
-					for( INT i = 0; i < RawTextureBulkData->GetBulkDataSize(); i++ )
-					{
-						FinalTextureData(i) = (FLOAT)(RawTextureData[i] / 255.0f);
-					}
-					// Done with the original data now
-					RawTextureBulkData->Unlock();
-
-					INT SrcW = LightmapModificationTexture2D->GetOriginalSurfaceWidth();
-					INT SrcH = LightmapModificationTexture2D->GetOriginalSurfaceHeight();
-					INT DstW = Allocation->TotalSizeX;
-					INT DstH = Allocation->TotalSizeY;
-
-					// Do we need to scale the modulation texture?
-					FLOAT StepSizeX = SrcW / (FLOAT)DstW;
-					FLOAT StepSizeY = SrcH / (FLOAT)DstH;
-					if( StepSizeX != 1.0f || StepSizeY != 1.0f )
-					{
-						TArray<FLOAT> FinalTextureDataCopy( FinalTextureData );
-						FinalTextureData.Reset( DstW * DstH * 4 );
-						FinalTextureData.Add( DstW * DstH * 4 );
-						FLOAT SrcX = 0.0f;
-						FLOAT SrcY = 0.0f;
-						INT SrcPixelPos = 0;
-						INT DstPixelPos = 0;
-
-						for( INT Y = 0; Y < DstH; Y++ )
-						{
-							SrcX = 0.0f;
-							DstPixelPos = Y * DstW;
-							for( INT X = 0; X < DstW; X++ )
-							{
-								INT PixelCount = 0;
-								FLOAT EndX = SrcX + StepSizeX;
-								FLOAT EndY = SrcY + StepSizeY;
-
-								// Generate a rectangular region of pixels and then find the average color of the region.
-								INT PosY = Clamp<INT>( appTrunc( SrcY + 0.5f ), 0, (SrcH - 1) );
-								INT PosX = Clamp<INT>( appTrunc( SrcX + 0.5f ), 0, (SrcW - 1) );
-								INT EndPosY = Clamp<INT>( appTrunc( EndY + 0.5f ), 0, (SrcH - 1) );
-								INT EndPosX = Clamp<INT>( appTrunc( EndX + 0.5f ), 0, (SrcW - 1) );
-
-								FLOAT ColorSum[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-								for(INT PixelY = PosY; PixelY <= EndPosY; PixelY++)
-								{
-									for(INT PixelX = PosX; PixelX <= EndPosX; PixelX++)
-									{
-										SrcPixelPos = PixelY * SrcW + PixelX;
-										ColorSum[0] += FinalTextureDataCopy(SrcPixelPos * 4 + 0);
-										ColorSum[1] += FinalTextureDataCopy(SrcPixelPos * 4 + 1);
-										ColorSum[2] += FinalTextureDataCopy(SrcPixelPos * 4 + 2);
-										ColorSum[3] += FinalTextureDataCopy(SrcPixelPos * 4 + 3);
-										PixelCount++;
-									}
-								}
-								FinalTextureData(DstPixelPos * 4 + 0) = ColorSum[0] / (FLOAT)PixelCount;
-								FinalTextureData(DstPixelPos * 4 + 1) = ColorSum[1] / (FLOAT)PixelCount;
-								FinalTextureData(DstPixelPos * 4 + 2) = ColorSum[2] / (FLOAT)PixelCount;
-								FinalTextureData(DstPixelPos * 4 + 3) = ColorSum[3] / (FLOAT)PixelCount;
-
-								SrcX += StepSizeX;
-								DstPixelPos++;
-							}
-							SrcY += StepSizeY;
-						}
-					}
-
-					if( StaticMeshPrimitive->SimpleLightmapModificationFunction == UStaticMeshComponent::MLMF_ModulateAlpha )
-					{
-						// Pre-scale the RGB by the computed Alpha
-						for( INT T = 0; T < DstW * DstH * 4; T++ )
-						{
-							FLOAT Alpha = FinalTextureData(T + 3);
-							FinalTextureData(T + 0) *= Alpha;
-							FinalTextureData(T + 1) *= Alpha;
-							FinalTextureData(T + 2) *= Alpha;
-						}
-					}
-
-					// Modulate the lightmap
-					for( INT T = 0; T < DstW * DstH; T++ )
-					{
-						FLightMapCoefficients& DestCoefficients = Allocation->RawData(T);
-						// Modification texture format is BGRA
-						DestCoefficients.Coefficients[SIMPLE_LIGHTMAP_COEF_INDEX][0] *= FinalTextureData(T * 4 + 2);
-						DestCoefficients.Coefficients[SIMPLE_LIGHTMAP_COEF_INDEX][1] *= FinalTextureData(T * 4 + 1);
-						DestCoefficients.Coefficients[SIMPLE_LIGHTMAP_COEF_INDEX][2] *= FinalTextureData(T * 4 + 0);
-					}
-				}
-			}
-		}
-	}
+	// Simple lightmap modification was removed to match retail BM2 (no per-component modification members). No-op.
 }
 
 #endif //_MSC_VER && !CONSOLE && !UE3_LEAN_AND_MEAN && !DEDICATED_SERVER

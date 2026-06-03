@@ -108,12 +108,6 @@ FStaticLightingSystem::FStaticLightingSystem(const FLightingBuildOptions& InOpti
 	GShadowmapTotalSize360 = 0;
 	GShadowmapTotalStreamingSize = 0;
 
-	for( TObjectIterator<UPrimitiveComponent> It ; It ; ++It )
-	{
-		UPrimitiveComponent* Component = *It;
-		Component->VisibilityId = INDEX_NONE;
-	}
-
 	FString SkippedLevels;
 	for ( INT LevelIndex=0; LevelIndex < GWorld->Levels.Num(); LevelIndex++ )
 	{
@@ -551,7 +545,7 @@ FStaticLightingSystem::FStaticLightingSystem(const FLightingBuildOptions& InOpti
 									bMarkLevelDirty = TRUE;
 								}
 								
-								PrimitiveInfo.VisibilityId = Primitive->VisibilityId = NextVisibilityId;
+								PrimitiveInfo.VisibilityId = NextVisibilityId;
 								NextVisibilityId++;
 							}
 							AddPrimitiveStaticLightingInfo(PrimitiveInfo,bBuildActorLighting,Primitive->bAcceptsLights);
@@ -1236,18 +1230,6 @@ void FStaticLightingSystem::AddBSPStaticLightingInfo(ULevel* Level, UBOOL bBuild
 					NodeGroup->TriangleSurfaceMap.AddItem(Node.iSurf);
 				}
 
-				UModelComponent* Component = Level->ModelComponents(Node.ComponentIndex);
-				if (Component->VisibilityId == INDEX_NONE)
-				{
-					if (GWorld->GetWorldInfo()->bPrecomputeVisibility)
-					{
-						// Make sure the level gets dirtied since we are changing the visibility Id of a component in it
-						bMarkLevelDirty = TRUE;
-					}
-					Component->VisibilityId = NextVisibilityId;
-					NextVisibilityId++;
-				}
-				ComponentVisibilityIds.AddUniqueItem(Component->VisibilityId);
 			}
 
 			// Continue only if the component accepts lights (all components in a node group have the same value)

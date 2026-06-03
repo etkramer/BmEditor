@@ -848,9 +848,8 @@ public:
 	/**
 	 * Called when this actor component has moved, allowing it to discard statically cached lighting information.
 	 */
-	virtual void InvalidateLightingCache() 
+	virtual void InvalidateLightingCache()
 	{
-		VisibilityId = INDEX_NONE;
 	}
 
 	/**

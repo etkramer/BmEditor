@@ -35,10 +35,10 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 	, bMovable(FALSE)
 	, bSelected(InComponent->IsOwnerSelected() && InComponent->bSelectable)
 	, bHovered(FALSE)
-	, bUseViewOwnerDepthPriorityGroup(InComponent->bUseViewOwnerDepthPriorityGroup)
+	, bUseViewOwnerDepthPriorityGroup(FALSE)
 	, bHasMotionBlurVelocityMeshes(InComponent->HasMotionBlurVelocityMeshes())
 	, StaticDepthPriorityGroup(InComponent->GetStaticDepthPriorityGroup())
-	, ViewOwnerDepthPriorityGroup(InComponent->ViewOwnerDepthPriorityGroup)
+	, ViewOwnerDepthPriorityGroup(InComponent->DepthPriorityGroup)
 	, bRequiresOcclusionForCorrectness(FALSE)
 	, MaxDrawDistance(InComponent->CachedMaxDrawDistance > 0 ? InComponent->CachedMaxDrawDistance : FLT_MAX)
 #if !CONSOLE
@@ -82,16 +82,7 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 	}
 
 
-	// Copy the primitive's initial decal interactions.
-	if( InComponent->bAcceptsStaticDecals || 
-		InComponent->bAcceptsDynamicDecals )
-	{
-		Decals.Empty(InComponent->DecalList.Num());
-		for(INT DecalIndex = 0;DecalIndex < InComponent->DecalList.Num();DecalIndex++)
-		{
-			Decals.AddItem(new FDecalInteraction(*InComponent->DecalList(DecalIndex)));
-		}
-	}
+	// Decals start empty; they are (re)added via AttachDecal / the decal components themselves.
 
 #if !CONSOLE
 	if (GIsEditor && InComponent)
@@ -711,23 +702,6 @@ void UPrimitiveComponent::SetParentToWorld(const FMatrix& ParentToWorld)
 
 void UPrimitiveComponent::AttachDecal(UDecalComponent* Decal, FDecalRenderData* RenderData, const FDecalState* DecalState)
 {
-#if !FINAL_RELEASE
-	// Unless the decal is applied to an instanced static mesh, then we'll make sure that the
-	// decal is only attached to this component once!
-	// @todo: We should also check to be sure a decal is never bound to the same instance more than once
-	if( RenderData->InstanceIndex == INDEX_NONE )
-	{
-		for(INT DecalIndex = 0;DecalIndex < DecalList.Num();DecalIndex++)
-		{
-			if( Decal && 
-				DecalList(DecalIndex)->Decal == Decal)
-			{
-				debugf(TEXT("Duplicate decal interaction! decal=%s"), *Decal->GetPathName());
-			}
-		}
-	}
-#endif
-
 	FDecalInteraction* NewDecalInteraction = new FDecalInteraction( Decal, RenderData );
 	if ( DecalState )
 	{
@@ -747,35 +721,21 @@ void UPrimitiveComponent::AttachDecal(UDecalComponent* Decal, FDecalRenderData* 
 	// keep track of the transform used during attachment
 	NewDecalInteraction->DecalState.UpdateAttachmentLocalToWorld(InstanceLocalToWorld);
 
-	// each primitive component keeps track of its attached decals
-	DecalList.AddItem( NewDecalInteraction );
-
 	// If the primitive has been added to the scene, add the decal interaction to its proxy.
+	// The proxy keeps its own copy, so we own and free NewDecalInteraction here (no per-component DecalList).
 	if(SceneInfo)
 	{
 		SceneInfo->Proxy->AddDecalInteraction_GameThread(*NewDecalInteraction);
 	}
 	INC_DWORD_STAT_BY( STAT_DecalInteractionMemory, NewDecalInteraction->DecalState.GetMemoryFootprint()*2 /** x2 for RT copy */ );
+
+	delete NewDecalInteraction;
 }
 
 void UPrimitiveComponent::DetachDecal(UDecalComponent* Decal)
 {
-	for ( INT i = 0 ; i < DecalList.Num() ; ++i )
-	{
-		FDecalInteraction* DecalInteraction = DecalList(i);
-
-		if ( DecalInteraction && DecalInteraction->Decal == Decal )
-		{
-			DEC_DWORD_STAT_BY( STAT_DecalInteractionMemory, DecalInteraction->DecalState.GetMemoryFootprint()*2 /** x2 for RT copy */ );
-			// Remove the interaction element from the decal list.  RenderData will be cleared by the decal.
-			delete DecalInteraction;
-			DecalList.Remove(i);
-			i--;
-		}
-	}
-
-	// If the primitive has been added to the scene, and we found a decal interaction for the decal,
-	// remove the decal interaction from the primitive's rendering thread scene proxy.
+	// If the primitive has been added to the scene, remove the decal interaction from the
+	// primitive's rendering thread scene proxy (the proxy owns and frees its own copy).
 	if(SceneInfo)
 	{
 		SceneInfo->Proxy->RemoveDecalInteraction_GameThread(Decal);
@@ -869,20 +829,6 @@ void UPrimitiveComponent::Attach()
 	{
 		Scene->AddPrimitive(this);
 	}
-
-	// reattach any decals which were interacting with this receiver primitive
-	if( DecalsToReattach.Num() > 0 )
-	{	
-		for( INT Idx=0; Idx < DecalsToReattach.Num(); ++Idx )
-		{
-			UDecalComponent* ReattachDecal = DecalsToReattach(Idx);
-			if( ReattachDecal )
-			{
-				ReattachDecal->AttachReceiver(this);
-			}
-		}
-		DecalsToReattach.Empty();
-	}
 }
 
 void UPrimitiveComponent::UpdateTransform()
@@ -922,33 +868,6 @@ void UPrimitiveComponent::Detach( UBOOL bWillReattach )
 		ShadowParent = NULL;
 	}
 
-	// detach decals which are interacting with this receiver primitive
-	if( DecalList.Num() > 0 &&
-		AllowDecalRemovalOnDetach() )
-	{	
-		TArray<UDecalComponent*> DecalsToDetach;
-		for( INT DecalIdx=0; DecalIdx < DecalList.Num(); ++DecalIdx )
-		{
-			FDecalInteraction* DecalInteraction = DecalList(DecalIdx);
-			if( DecalInteraction && 
-				DecalInteraction->Decal )
-			{
-				DecalsToDetach.AddUniqueItem(DecalInteraction->Decal);
-			}
-		}
-		for( INT DetachIdx=0; DetachIdx < DecalsToDetach.Num(); ++DetachIdx )
-		{
-			UDecalComponent* DecalToDetach = DecalsToDetach(DetachIdx);
-			DecalToDetach->DetachFromReceiver(this);
-		}
-		if( bWillReattach &&
-			AllowDecalAutomaticReAttach() )
-		{
-			// reattach these decals to this primitive during Attach()
-			DecalsToReattach = DecalsToDetach;
-		}
-	}
-
 	// If there primitive collides(or it's the editor) and the scene is associated with a world, remove the primitive from the world's hash.
 	UWorld* World = Scene->GetWorld();
 	if(World)
@@ -985,15 +904,6 @@ void UPrimitiveComponent::Detach( UBOOL bWillReattach )
 		LightEnvironment->RemoveAffectedComponent(this);
 	}
 
-	for( INT DecalIdx=0; DecalIdx < DecalList.Num(); DecalIdx++ )
-	{
-		FDecalInteraction* DecalInteraction = DecalList(DecalIdx);
-		if( DecalInteraction->Decal )
-		{ 
-			DecalInteraction->Decal->DetachFence.BeginFence();
-		}
-	}	
-
 	Super::Detach( bWillReattach );
 }
 
@@ -1010,17 +920,6 @@ void UPrimitiveComponent::Serialize(FArchive& Ar)
 		Ar << BodyInstance;
 	}
 
-	if( Ar.Ver() < VER_UPDATED_DECAL_USAGE_FLAGS )
-	{
-		bAcceptsStaticDecals = bAcceptsDecals;
-		bAcceptsDynamicDecals = bAcceptsDecalsDuringGameplay;
-	}
-
-	if (Ar.Ver() < VER_RENAMED_CULLDISTANCE)
-	{
-		LDMaxDrawDistance = LDCullDistance;
-		CachedMaxDrawDistance = CachedCullDistance_DEPRECATED;
-	}
 }
 
 //
@@ -1058,12 +957,6 @@ void UPrimitiveComponent::PostEditChangeProperty(FPropertyChangedEvent& Property
 		if( PropertyName == TEXT("MaxDrawDistance") || PropertyName == TEXT("bAllowCullDistanceVolume") )
 		{
 			CachedMaxDrawDistance = LDMaxDrawDistance;
-		}
-
-		// we need to reattach the primitive if the min draw distnace changed to propagate the change to the rendering thread
-		if (PropertyThatChanged->GetName() == TEXT("MinDrawDistance"))
-		{
-			FPrimitiveSceneAttachmentContext ReattachDueToMinDrawDistanceChange(this);
 		}
 	}
 
@@ -1146,11 +1039,6 @@ void UPrimitiveComponent::CheckForErrors()
 	if( DepthPriorityGroup == SDPG_UnrealEdBackground || DepthPriorityGroup == SDPG_UnrealEdForeground )
 	{
 		GWarn->MapCheck_Add( MCTYPE_WARNING, Owner, *FString::Printf(TEXT("Actor is in Editor depth priority group") ), MCACTION_NONE, TEXT("BadDepthPriorityGroup") );
-	}
-
-	if (bAcceptsLights && CastShadow && bCastDynamicShadow && !bUsePrecomputedShadows && BoundsScale > 1.0f)
-	{
-		GWarn->MapCheck_Add( MCTYPE_PERFORMANCEWARNING, Owner, *FString::Printf(TEXT("Actor casts dynamic shadows and has a BoundsScale greater than 1!  Will have a large performance hit.") ), MCACTION_NONE, TEXT("ShadowCasterUsingBoundsScale") );
 	}
 }
 #endif
@@ -1516,9 +1404,7 @@ void UPrimitiveComponent::SetViewOwnerDepthPriorityGroup(
 	ESceneDepthPriorityGroup NewViewOwnerDepthPriorityGroup
 	)
 {
-	bUseViewOwnerDepthPriorityGroup = bNewUseViewOwnerDepthPriorityGroup;
-	ViewOwnerDepthPriorityGroup = NewViewOwnerDepthPriorityGroup;
-	BeginDeferredReattach();
+	// View-owner DPG feature was removed in retail; the component no longer stores these members.
 }
 
 /**

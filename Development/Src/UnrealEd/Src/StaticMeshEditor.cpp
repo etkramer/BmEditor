@@ -253,6 +253,9 @@ struct FStaticMeshEditorViewportClient: public FEditorLevelViewportClient, priva
 	FVector		LocalManDir;
 	FLOAT		ManipulateAccumulator;
 
+	// Editor-side forced preview LOD index (0 = Auto). StaticMeshComponent no longer stores ForcedLodModel.
+	INT			PreviewLODLevel;
+
 	// Constructor.
 
 	FStaticMeshEditorViewportClient( class WxStaticMeshEditor* InStaticMeshEditor );
@@ -286,6 +289,7 @@ FStaticMeshEditorViewportClient::FStaticMeshEditorViewportClient( WxStaticMeshEd
 	,	StaticMeshComponent(NULL)
 	,	bLock( TRUE )
 	,	CorePreviewComponent(NULL)
+	,	PreviewLODLevel(0)
 {
 	// Disable widget and grid rendering in this viewport.
 	ShowFlags &= ~SHOW_ModeWidgets;
@@ -770,7 +774,7 @@ void FStaticMeshEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDraw
 	}
 
 	UStaticMesh* StaticMesh = StaticMeshEditor->StaticMesh;
-	const UINT LODLevel = Clamp( StaticMeshComponent->ForcedLodModel - 1, 0, StaticMesh->LODModels.Num() - 1 );
+	const UINT LODLevel = Clamp( PreviewLODLevel - 1, 0, StaticMesh->LODModels.Num() - 1 );
 
 	// Draw any edges that are currently selected by the user
 	if( StaticMeshEditor->SelectedEdgeIndices.Num() > 0 )
@@ -860,7 +864,7 @@ void FStaticMeshEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDraw
 void FStaticMeshEditorViewportClient::DrawUVs(FViewport* Viewport,FCanvas* Canvas, INT TextYPos )
 {
 	//use the overriden LOD level
-	const UINT LODLevel = Clamp(StaticMeshComponent->ForcedLodModel - 1, 0, StaticMeshEditor->StaticMesh->LODModels.Num() - 1);
+	const UINT LODLevel = Clamp(PreviewLODLevel - 1, 0, StaticMeshEditor->StaticMesh->LODModels.Num() - 1);
 
 	INT LightMapCoordinateIndex = StaticMeshEditor->LightMapCoordinateIndex;
 
@@ -1105,7 +1109,7 @@ UBOOL FStaticMeshEditorViewportClient::InputKey(FViewport* Viewport,INT Controll
 							TArray< INT > ClosestEdgeIndices;
 							FVector ClosestEdgeVertices[ 2 ];
 
-							const UINT LODLevel = Clamp( StaticMeshComponent->ForcedLodModel - 1, 0, StaticMeshComponent->StaticMesh->LODModels.Num() - 1 );
+							const UINT LODLevel = Clamp( PreviewLODLevel - 1, 0, StaticMeshComponent->StaticMesh->LODModels.Num() - 1 );
 							FStaticMeshRenderData& LODModel = StaticMeshComponent->StaticMesh->LODModels( LODLevel );
 
 							const INT RawEdgeCount = LODModel.RawTriangles.GetElementCount() * 3;
@@ -1826,7 +1830,7 @@ void WxStaticMeshEditor::SetEditorMesh(UStaticMesh* NewMesh)
 	}
 
 	// We're switching the mesh out, so make sure the forced LOD settings get reset
-	ViewportClient->StaticMeshComponent->ForcedLodModel = 0;
+	ViewportClient->PreviewLODLevel = 0;
 	ToolBar->ToggleTool( IDM_SME_LOD_AUTO, true );
 
 	// Clear the selected edge list
@@ -2445,27 +2449,27 @@ void WxStaticMeshEditor::OnForceLODLevel( wxCommandEvent& In)
 	if(In.GetId() == IDM_SME_LOD_AUTO)
 	{
 		UpdateLODStats(0);
-		ViewportClient->StaticMeshComponent->ForcedLodModel = 0;
+		ViewportClient->PreviewLODLevel = 0;
 	}
 	else if(In.GetId() == IDM_SME_LOD_BASE)
 	{
 		UpdateLODStats(0);
-		ViewportClient->StaticMeshComponent->ForcedLodModel = 1;
+		ViewportClient->PreviewLODLevel = 1;
 	}
 	else if(In.GetId() == IDM_SME_LOD_1)
 	{
 		UpdateLODStats(1);
-		ViewportClient->StaticMeshComponent->ForcedLodModel = 2;
+		ViewportClient->PreviewLODLevel = 2;
 	}
 	else if(In.GetId() == IDM_SME_LOD_2)
 	{
 		UpdateLODStats(2);
-		ViewportClient->StaticMeshComponent->ForcedLodModel = 3;
+		ViewportClient->PreviewLODLevel = 3;
 	}
 	else if(In.GetId() == IDM_SME_LOD_3)
 	{
 		UpdateLODStats(3);
-		ViewportClient->StaticMeshComponent->ForcedLodModel = 4;
+		ViewportClient->PreviewLODLevel = 4;
 	}
 
 	// Clear the selected edge list
@@ -2519,7 +2523,7 @@ void WxStaticMeshEditor::OnRemoveLOD(wxCommandEvent &In)
 			StaticMesh->PostEditChange();
 
 			// Set the forced LOD to Auto.
-			ViewportClient->StaticMeshComponent->ForcedLodModel = 0;
+			ViewportClient->PreviewLODLevel = 0;
 			ToolBar->ToggleTool( IDM_SME_LOD_AUTO, true );
 			UpdateToolbars();
 

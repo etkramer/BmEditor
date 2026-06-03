@@ -274,7 +274,7 @@ public:
 	void FilterTest(const FBox& TestBox, UBOOL bMulti, TArray<FOctreeNode*> *Nodes, const FOctreeNodeBounds& Bounds);
 
 	/** Iterate over this node and children, trying to collapse up the tree, up to the point that there are MAX_PRIMITIVES_PER_NODE in a node.*/
-	void CollapseChildren();
+	void CollapseChildren(FPrimitiveOctree* o);
 
 private:
 	void StoreActor(UPrimitiveComponent* Primitive, FPrimitiveOctree* o, const FOctreeNodeBounds& Bounds);
@@ -286,6 +286,9 @@ public:
 	// Root node - assumed to have size WORLD_MAX
 	FOctreeNode*	RootNode;
 	INT				OctreeTag;
+
+	// Per-primitive list of nodes it resides in. Relocated off UPrimitiveComponent (which no longer has OctreeNodes).
+	TMap<UPrimitiveComponent*, TArray<FOctreeNode*> >	PrimitiveNodeMap;
 
 	/// This is a bit nasty...
 	// Temporary storage while recursing for line checks etc.

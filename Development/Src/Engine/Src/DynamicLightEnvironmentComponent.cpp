@@ -871,8 +871,6 @@ void FDynamicLightEnvironmentState::UpdateStaticEnvironment(ULightComponent* New
 				VolumeSample.ToSHVector(NewLight->WorldSpaceIncidentLighting, Component->bIsCharacterLightEnvironment);
 				Component->GetOwner()->AttachComponent(NewLight);
 
-				// Set the light as the override light on the mesh, so that only this light can affect the mesh
-				NewMesh->OverrideLightComponent = NewLight;
 				Component->GetOwner()->AttachComponent(NewMesh);
 
 				DebugVolumeSampleLights.AddItem(NewLight);

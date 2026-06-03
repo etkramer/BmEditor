@@ -4386,8 +4386,6 @@ void UStaticMeshComponent::UpdateBounds()
 		// Takes into account that the static mesh collision code nudges collisions out by up to 1 unit.
 		Bounds.BoxExtent += FVector(1,1,1);
 		Bounds.SphereRadius += 1.0f;
-		Bounds.BoxExtent *= BoundsScale;
-		Bounds.SphereRadius *= BoundsScale;
 
 #if !CONSOLE
 		if ( !GIsGame && Scene->GetWorld() == GWorld &&

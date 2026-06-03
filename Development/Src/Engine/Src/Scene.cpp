@@ -748,19 +748,6 @@ void FScene::AddPrimitive(UPrimitiveComponent* Primitive)
 	GMalloc->Exec( TEXT("BEGINTRACKINGTHREAD") );
 #endif
 
-	// Save the world transform for next time the primitive is added to the scene
-	FLOAT DeltaTime = GWorld->GetTimeSeconds() - Primitive->LastSubmitTime;
-	if ( DeltaTime < -0.0001f || Primitive->LastSubmitTime < 0.0001f )
-	{
-		// Time was reset?
-		Primitive->LastSubmitTime = GWorld->GetTimeSeconds();
-	}
-	else if ( DeltaTime > 0.0001f )
-	{
-		// First call for the new frame?
-		Primitive->LastSubmitTime = GWorld->GetTimeSeconds();
-	}
-
 	// Create the primitive's scene proxy.
 	FPrimitiveSceneProxy* Proxy = Primitive->CreateSceneProxy();
 	if(!Proxy)
@@ -852,19 +839,6 @@ private:
 
 void FScene::UpdatePrimitiveTransform(UPrimitiveComponent* Primitive)
 {
-	// Save the world transform for next time the primitive is added to the scene
-	FLOAT DeltaTime = GWorld->GetTimeSeconds() - Primitive->LastSubmitTime;
-	if ( DeltaTime < -0.0001f || Primitive->LastSubmitTime < 0.0001f )
-	{
-		// Time was reset?
-		Primitive->LastSubmitTime = GWorld->GetTimeSeconds();
-	}
-	else if ( DeltaTime > 0.0001f )
-	{
-		// First call for the new frame?
-		Primitive->LastSubmitTime = GWorld->GetTimeSeconds();
-	}
-
 	if(Primitive->SceneInfo)
 	{
 		// Check if the primitive needs to recreate its proxy for the transform update.

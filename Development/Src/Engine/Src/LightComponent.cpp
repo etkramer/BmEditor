@@ -63,9 +63,8 @@ UBOOL ULightComponent::AffectsPrimitive(const UPrimitiveComponent* Primitive, UB
 		return FALSE;
 	}
 
-	// If the primitive has an OverrideLightComponent specified, only that light can affect it
-	if (Primitive->OverrideLightComponent && Primitive->OverrideLightComponent != this
-		|| !Primitive->OverrideLightComponent && bExplicitlyAssignedLight)
+	// Explicitly assigned lights only affect their assigned meshes
+	if (bExplicitlyAssignedLight)
 	{
 		return FALSE;
 	}

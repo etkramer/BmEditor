@@ -20,7 +20,6 @@ defaultproperties
 	CastShadow=TRUE
 	bAcceptsLights=TRUE
 	bAcceptsStaticDecals=TRUE
-	bAcceptsDecals=TRUE
 	bUsePrecomputedShadows=TRUE
 	bUseAsOccluder=TRUE
 	bCullModulatedShadowOnBackfaces=TRUE

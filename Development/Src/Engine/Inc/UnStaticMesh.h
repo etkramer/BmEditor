@@ -1579,17 +1579,18 @@ class UStaticMeshComponent : public UMeshComponent
 public:
 	UStaticMeshComponent();
 
-	/** Force drawing of a specific lodmodel-1. 0 is automatic selection */
-	INT									ForcedLodModel;
-	/** LOD that was desired for rendering this StaticMeshComponent last frame. */
-	INT									PreviousLODLevel;
-
 	UStaticMesh* StaticMesh;
 	FColor WireframeColor;
 
-	/** 
-	 *	Ignore this instance of this static mesh when calculating streaming information. 
-	 *	This can be useful when doing things like applying character textures to static geometry, 
+	/** Light map resolution used if bOverrideLightMapRes is TRUE */
+	INT OverriddenLightMapRes;
+
+	/** Whether to use per-vertex Rock atmospheric fog */
+	BITFIELD bPerVertexRockAtmosFog:1;
+
+	/**
+	 *	Ignore this instance of this static mesh when calculating streaming information.
+	 *	This can be useful when doing things like applying character textures to static geometry,
 	 *	to avoid them using distance-based streaming.
 	 */
 	BITFIELD bIgnoreInstanceForTextureStreaming:1;
@@ -1600,38 +1601,11 @@ public:
 	/** Whether to override the lightmap resolution defined in the static mesh. */
 	BITFIELD bOverrideLightMapRes:1;
 
-	/** Deprecated. Replaced by 'OverriddenLightMapRes'. */
-	INT OverriddenLightMapResolution_DEPRECATED;
-
-	/** Light map resolution used if bOverrideLightMapRes is TRUE */
-	INT OverriddenLightMapRes;
-
-	FLOAT OverriddenLODMaxRange;
-
-	/** Subdivision step size for static vertex lighting.				*/
-	INT	SubDivisionStepSize;
-	/** Whether to use subdivisions or just the triangle's vertices.	*/
-	BITFIELD bUseSubDivisions:1;
 	/** if True then decals will always use the fast path and will be treated as static wrt this mesh */
 	BITFIELD bForceStaticDecals:1;
+
 	/** Whether or not we can highlight selected sections - this should really only be done in the editor */
 	BITFIELD bCanHighlightSelectedSections:1;
-
-	/** Whether or not to use the optional simple lightmap modification texture */
-	BITFIELD bUseSimpleLightmapModifications:1;
-
-	/** The texture to use when modifying the simple lightmap texture */
-	UTexture* SimpleLightmapModificationTexture;
-
-	enum ELightmapModificationFunction
-	{
-		/** Lightmap.RGB * Modification.RGB */
-		MLMF_Modulate,
-		/** Lightmap.RGB * (Modification.RGB * Modification.A) */
-		MLMF_ModulateAlpha,
-	};
-	/** The function to use when modifying the simple lightmap texture */
-	ELightmapModificationFunction SimpleLightmapModificationFunction;
 
 	/** Whether this static mesh component can become dynamic (and be affected by physics) */
 	BITFIELD bNeverBecomeDynamic:1;
@@ -1643,9 +1617,6 @@ public:
 
 	/** Incremented any time the position of vertices from the source mesh change, used to determine if an update from the source static mesh is required */
 	INT VertexPositionVersionNumber;
-
-	/** The Lightmass settings for this object. */
-	FLightmassPrimitiveSettings	LightmassSettings;
 
 	// UStaticMeshComponent interface
 
@@ -1824,9 +1795,9 @@ public:
 	virtual FLOAT GetDiffuseBoost(INT ElementIndex) const;
 	/** Gets the specular boost for the primitive component. */
 	virtual FLOAT GetSpecularBoost(INT ElementIndex) const;
-	virtual UBOOL GetShadowIndirectOnly() const 
-	{ 
-		return LightmassSettings.bShadowIndirectOnly;
+	virtual UBOOL GetShadowIndirectOnly() const
+	{
+		return FALSE;
 	}
 
 	/** Allocates an implementation of FStaticLightingMesh that will handle static lighting for this component */

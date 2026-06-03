@@ -4072,11 +4072,6 @@ UBOOL USkeletalMeshComponent::LegLineCheck(const FVector& Start, const FVector& 
 			{
 				continue;
 			}
-			// If Primitive Component should skip foot placement line checks, do so.
-			else if( Hit->Component && !Hit->Component->bBlockFootPlacement )
-			{
-				continue;
-			}
 			// Valid hit!
 			else
 			{
@@ -4190,9 +4185,6 @@ void USkeletalMeshComponent::UpdateBounds()
 			}
 		}
 	}
-
-	Bounds.BoxExtent *= BoundsScale;
-	Bounds.SphereRadius *= BoundsScale;
 
 	UpdateClothBounds();
 }

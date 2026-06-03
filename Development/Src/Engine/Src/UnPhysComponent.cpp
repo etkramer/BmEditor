@@ -5582,8 +5582,8 @@ INT UStaticMeshComponent::GetActorMetrics(EActorMetricsType MetricsType)
 {
 	if(StaticMesh != NULL)
 	{
-		check(PreviousLODLevel >= 0 && PreviousLODLevel < StaticMesh->LODModels.Num());
-		FStaticMeshRenderData* LODModel = &StaticMesh->LODModels(PreviousLODLevel);
+		check(StaticMesh->LODModels.Num() > 0);
+		FStaticMeshRenderData* LODModel = &StaticMesh->LODModels(0);
 		check(LODModel);
 
 		if(MetricsType == METRICS_VERTS)
