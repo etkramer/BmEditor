@@ -264,7 +264,7 @@ simulated event TakeDamage(int Damage, Controller EventInstigator, vector HitLoc
 	local float PhysChance, PartScale;
 	local byte bWantPhysChunksAndParticles;
 	local Pawn InstigatorPawn;
-	local WorldFractureSettings FractureSettings;
+	local WorldInfo.WorldFractureSettings FractureSettings;
 	local vector NewHitLocation, HitNormal;
 
 	// call Actor's version to handle any SeqEvent_TakeDamage for scripting

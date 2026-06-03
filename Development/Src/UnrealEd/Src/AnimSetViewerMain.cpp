@@ -235,7 +235,7 @@ void DrawVertInfluenceLocations(FPrimitiveDrawInterface* PDI, const USkeletalMes
 			FVector WorldPos;
 			const FGPUSkinVertexBase* SrcRigidVertex = NULL;
 
-			UBOOL bUseInfluences = bContributingVerts && SkelComp->LODInfo(LODIdx).bAlwaysUseInstanceWeights && LODModel.VertexInfluences.Num() > 0 && LODModel.VertexInfluences(InfluenceIdx).Influences.Num() > 0;
+			UBOOL bUseInfluences = bContributingVerts && SkelComp->bAlwaysUseInstanceWeights && LODModel.VertexInfluences.Num() > 0 && LODModel.VertexInfluences(InfluenceIdx).Influences.Num() > 0;
 			for( TSet<INT>::TConstIterator VertIter( BoneInfluenceVerts ); VertIter != NULL; ++VertIter )
 			{
 				//Get the bind pose position of the vertex
@@ -539,7 +539,7 @@ void DrawVertexInformation( FPrimitiveDrawInterface* PDI, USkeletalMeshComponent
 
 	TArray<INT> MorphVertIndices;
 	UINT NumValidMorphs = GetMorphVertexIndices(SkelComp->ActiveMorphs,LODIdx,MorphVertIndices);
-	UBOOL bUseInfluences = SkelComp->LODInfo(LODIdx).bAlwaysUseInstanceWeights && LOD.VertexInfluences.Num() > 0 && LOD.VertexInfluences(InfluenceIdx).Influences.Num() > 0;
+	UBOOL bUseInfluences = SkelComp->bAlwaysUseInstanceWeights && LOD.VertexInfluences.Num() > 0 && LOD.VertexInfluences(InfluenceIdx).Influences.Num() > 0;
 	INT CurBaseVertIdx = 0;
 	// VertexCopy for morph. Need to allocate right struct
 	// To avoid re-allocation, create 2 statics, and assign right struct
@@ -1967,10 +1967,7 @@ void FASVViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 	FString WeightUsage;
 
 	// for full weight swap show new section/chunk info instead of base info
-	if (AnimSetViewer != NULL && 
-		AnimSetViewer->bPreviewInstanceWeights && 
-		MeshLODInfo.InstanceWeightUsage == IWU_FullSwap &&
-		LODModel.VertexInfluences.Num() > 0)
+	if (FALSE)
 	{
 		NumBonesInUse  = LODModel.VertexInfluences(0).RequiredBones.Num();
 		NumChunksInUse =  LODModel.VertexInfluences(0).Chunks.Num();
@@ -4604,10 +4601,6 @@ void WxAnimSetViewer::NotifyPostChange( void* Src, UProperty* PropertyThatChange
 		PreviewSkelComp->UpdateClothParams();
 
 		PreviewSkelComp->TermSoftBodySim(NULL);
-		if(PreviewSkelComp->bEnableSoftBodySimulation)
-		{
-			PreviewSkelComp->InitSoftBodySim(RBPhysScene, TRUE);
-		}
 		PreviewSkelComp->UpdateSoftBodyParams();
 	}
 

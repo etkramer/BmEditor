@@ -11,6 +11,7 @@
 #include "UnSoftBodySupport.h"
 #endif // WITH_NOVODEX
 
+#if 0
 void USkeletalMeshComponent::InitSoftBodySim(FRBPhysScene* Scene,  UBOOL bRunsInAnimSetViewer)
 {
 #if WITH_NOVODEX && !NX_DISABLE_SOFTBODY
@@ -461,4 +462,49 @@ void USkeletalMeshComponent::execWakeSoftBody( FFrame& Stack, RESULT_DECL )
 	P_FINISH;
 
 	WakeSoftBody();
+}
+#endif
+
+void USkeletalMeshComponent::InitSoftBodySim(FRBPhysScene* Scene, UBOOL bRunsInAnimSetViewer)
+{
+}
+
+void USkeletalMeshComponent::InitSoftBodySimBuffers()
+{
+}
+
+void USkeletalMeshComponent::InitSoftBodyAttachments()
+{
+}
+
+void USkeletalMeshComponent::TermSoftBodySim(FRBPhysScene* Scene)
+{
+}
+
+void USkeletalMeshComponent::UpdateSoftBodyParams()
+{
+}
+
+void USkeletalMeshComponent::execUpdateSoftBodyParams( FFrame& Stack, RESULT_DECL )
+{
+	P_FINISH;
+}
+
+void USkeletalMeshComponent::SetSoftBodyFrozen(UBOOL bNewFrozen)
+{
+}
+
+void USkeletalMeshComponent::execSetSoftBodyFrozen( FFrame& Stack, RESULT_DECL )
+{
+	P_GET_UBOOL(bNewFrozen);
+	P_FINISH;
+}
+
+void USkeletalMeshComponent::WakeSoftBody()
+{
+}
+
+void USkeletalMeshComponent::execWakeSoftBody( FFrame& Stack, RESULT_DECL )
+{
+	P_FINISH;
 }

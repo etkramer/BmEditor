@@ -284,8 +284,7 @@ public:
 			FullyIteratedFields.AddItem(PKDT_IsDepthOnlyRendering);
 
 			//FOG - if the world doesn't exist (a script referenced asset) or fog is both enabled and the material uses it
-			// BM2 has no per-material mobile-fog flag; only honour the world setting.
-			UBOOL bFogRequested = !InWorld || InWorld->GetWorldInfo()->bFogEnabled;
+			UBOOL bFogRequested = !InWorld;
 			if (bFogRequested)
 			{
 				FullyIteratedFields.AddItem(PKDT_IsGradientFogEnabled);

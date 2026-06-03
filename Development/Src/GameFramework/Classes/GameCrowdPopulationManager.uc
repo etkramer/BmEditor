@@ -60,7 +60,7 @@ function PostBeginPlay()
 
 	if( !bDeleteMe )
 	{
-		WorldInfo.PopulationManager = self;
+		WorldInfo.Game.PopulationManager = self;
 	}
 
 	if( NavigationHandleClass != None )
@@ -768,7 +768,6 @@ defaultproperties
 	HeadVisibilityOffset=40.0
 
 	RemoteRole=ROLE_None
-	NetUpdateFrequency=10
 	bHidden=TRUE
 	bOnlyDirtyReplication=TRUE
 	bSkipActorPropertyReplication=TRUE

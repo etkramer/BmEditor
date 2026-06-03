@@ -113,7 +113,7 @@ function AgentDestroyed( GameCrowdAgent Agent )
 {
 	local GameCrowdPopulationManager PopMgr;
 
-	PopMgr = GameCrowdPopulationManager(Agent.WorldInfo.PopulationManager);
+	PopMgr = GameCrowdPopulationManager(Agent.WorldInfo.Game.PopulationManager);
 	if( PopMgr != None )
 	{
 		PopMgr.AgentDestroyed( Agent );

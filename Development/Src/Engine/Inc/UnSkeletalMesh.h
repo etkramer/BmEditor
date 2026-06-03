@@ -163,8 +163,9 @@ enum ERootMotionMode
 	RMM_Velocity	= 1,
 	RMM_Ignore		= 2,
 	RMM_Accel		= 3,
-	RMM_Relative	= 4,
-	RMM_MAX			= 5,
+	RMM_SetVelocity	= 4,
+	RMM_Relative	= 5,
+	RMM_MAX			= 6,
 };
 
 enum ERootMotionRotationMode
@@ -250,23 +251,103 @@ struct FSkelMeshComponentLODInfo
 {
 	/** Material corresponds to section. To show/hide each section, use this **/
 	TArrayNoInit<UBOOL> HiddenMaterials;
-	/** If TRUE, update the instanced vertex influences for this mesh during the next update */
-	BITFIELD bNeedsInstanceWeightUpdate:1;
-	/** If TRUE, always use instanced vertex influences for this mesh */
-	BITFIELD bAlwaysUseInstanceWeights:1;
-	/** Align the following byte */
-	SCRIPT_ALIGN;
-	/** Whether the instance weights are used for a partial/full swap */
-	BYTE InstanceWeightUsage;
-	/** Current index into the skeletal mesh VertexInfluences for the current LOD */
-	INT InstanceWeightIdx;
 
-	FSkelMeshComponentLODInfo()	 :
-		  bNeedsInstanceWeightUpdate(FALSE)
-		, bAlwaysUseInstanceWeights(FALSE)
-		, InstanceWeightUsage(IWU_PartialSwap)
-		, InstanceWeightIdx(INDEX_NONE)
-	{ appMemzero(&HiddenMaterials, sizeof(TArray<UBOOL>));}
+	FSkelMeshComponentLODInfo()
+	{ appMemzero(&HiddenMaterials, sizeof(TArray<UBOOL>)); }
+};
+
+struct FBM2DepthBiasData
+{
+	FLOAT DepthBias;
+	BYTE DepthBiasCalculationType;
+	SCRIPT_ALIGN;
+	FVector DepthBiasVaryingDirection;
+	FLOAT InterpStartAngle;
+	FLOAT InterpEndAngle;
+	FLOAT AlternateDepthBias;
+	BYTE DepthBiasApplicationType;
+	SCRIPT_ALIGN;
+	FVector DepthBiasCustomTestPoint;
+	FLOAT DepthBiasMinDistanceFromCameraPlaneOverride;
+	FLOAT MinDepthBiasMultiplier;
+};
+
+struct FBM2TwistBoneFixer
+{
+	INT BaseBoneIndex;
+	INT DriverBoneIndex;
+	INT TwistBoneIndex;
+	INT SubTwistBone1Index;
+	INT SubTwistBone2Index;
+	INT AwkwardBoneIndex;
+};
+
+struct FBM2TwistBoneFixers
+{
+	TArrayNoInit<FBM2TwistBoneFixer> Fixers;
+};
+
+struct FBM2ClavicleFixer
+{
+	INT NeckBoneIndex;
+	INT LeftClavicleBoneIndex;
+	INT RightClavicleBoneIndex;
+	BITFIELD Enabled:1;
+};
+
+struct FBM2BreathingFixer
+{
+	BITFIELD Enabled:1;
+	BITFIELD BonesPresent:1;
+	SCRIPT_ALIGN;
+	INT Spine1Index;
+	INT Spine2Index;
+	INT Spine3Index;
+	FLOAT Amount;
+};
+
+struct FBM2FaceFXRegisterTransition
+{
+	INT Index;
+	FLOAT FromValue;
+	FLOAT ToValue;
+	FLOAT OneOverDuration;
+	FLOAT NormalizedTime;
+	BYTE Owner;
+	SCRIPT_ALIGN;
+};
+
+struct FBM2FaceFXRegisterState
+{
+	INT Index;
+	FLOAT Value;
+	BYTE Owner;
+	SCRIPT_ALIGN;
+};
+
+struct FBM2FaceFXEmbeddedAnimSample
+{
+	class UFaceFXAnimSet* FaceFXAnimSet;
+	FLOAT Time;
+	FLOAT Weight;
+	BITFIELD AllowAutomaticBlinks:1;
+	BITFIELD Mirror:1;
+};
+
+struct FBM2StretchInstance
+{
+	FVector4 TranslationAndScale;
+	INT BoneIndex;
+};
+
+struct FBM2StretchPhaseInstances
+{
+	TArrayNoInit<FBM2StretchInstance> Instances;
+};
+
+struct FBM2StretchInstances
+{
+	FBM2StretchPhaseInstances Phases[2];
 };
 
 //
@@ -278,6 +359,8 @@ class USkeletalMeshComponent : public UMeshComponent
 	DECLARE_CLASS_NOEXPORT(USkeletalMeshComponent,UMeshComponent,0,Engine)
 
 	USkeletalMesh*						SkeletalMesh;
+	TArrayNoInit<class UMaterialInterface*> XRayMaterials;
+	TArrayNoInit<class UMaterialInterface*> ThermalMaterials;
 
 	/** If this component is attached to another SkeletalMeshComponent, this is the one it's attached to. */
 	USkeletalMeshComponent*				AttachedToSkelComponent;
@@ -297,10 +380,17 @@ class USkeletalMeshComponent : public UMeshComponent
 	TArray<class USkelControlBase*>		SkelControlTickArray;
 	class UPhysicsAsset*				PhysicsAsset;
 	class UPhysicsAssetInstance*		PhysicsAssetInstance;
+	UObject*							FlapsAssetInstance;
 	/*** Defines the FIApexClothing interface.  Must exactly match the layout of the corresponding .UC file; so if APEX is unavailable it declares a void pointer. */
 	FIApexClothing*						ApexClothing;
+	TArrayNoInit<class UNxForceFieldComponent*> ForceFieldComponents;
 
 	FLOAT								PhysicsWeight;
+	FLOAT								MaxNearlyStillSpeed;
+	FLOAT								SecondaryPhysicsWeight;
+	BYTE								BoundsType;
+	SCRIPT_ALIGN;
+	FBoxSphereBounds					FixedBounds;
 
 	/** Used to scale speed of all animations on this skeletal mesh. */
 	FLOAT								GlobalAnimRateScale;
@@ -322,6 +412,9 @@ class USkeletalMeshComponent : public UMeshComponent
 	/** Required Bones array for 3 pass skeleton composing */
 	TArray<BYTE>						ComposeOrderedRequiredBones;
 	USkeletalMeshComponent*				ParentAnimComponent;
+	BYTE								ParentAnimComponentMode;
+	BYTE								MotionBlurBoneIndex;
+	SCRIPT_ALIGN;
 	TArrayNoInit<INT>					ParentBoneMap;
 
 
@@ -361,6 +454,7 @@ class USkeletalMeshComponent : public UMeshComponent
 
 	/** As SkelControlIndex, but only for controllers flagged with bPostPhysicsController. */
 	TArrayNoInit<BYTE>						PostPhysSkelControlIndex;
+	FBM2StretchInstances					Stretches;
 
 	// Editor/debugging rendering mode flags.
 
@@ -380,9 +474,6 @@ class USkeletalMeshComponent : public UMeshComponent
 	/** LOD level from previous frame, so we can detect changes in LOD to recalc required bones. */
 	INT									OldPredictedLODLevel;
 
-	/** If MaxDistanceFactor goes below this value (and it is non 0), start playing animations at a low frame rate */
-	FLOAT								AnimationLODDistanceFactor;
-
 	/**	High (best) DistanceFactor that was desired for rendering this SkeletalMesh last frame. Represents how big this mesh was in screen space   */
 	FLOAT								MaxDistanceFactor;
 
@@ -400,6 +491,7 @@ class USkeletalMeshComponent : public UMeshComponent
 
 	/** Draw the skeleton hierarchy for this skel mesh. */
 	UBOOL								bDisplayBones;
+	UBOOL								bDisplayRFlaps;
 
 	/** Bool that enables debug drawing of the skeleton before it is passed to the physics. Useful for debugging animation-driven physics. */
 	UBOOL								bShowPrePhysBones;
@@ -467,8 +559,6 @@ class USkeletalMeshComponent : public UMeshComponent
 
 	/** force root motion to be discarded, no matter what the AnimNodeSequence(s) are set to do */
 	BITFIELD bForceDiscardRootMotion:1;
-	/** Call RootMotionProcessed notification on Owner */
-	BITFIELD bNotifyRootMotionProcessed:1;
 
 	/** 
 	 * if TRUE, notify owning actor of root motion mode changes.
@@ -485,11 +575,13 @@ class USkeletalMeshComponent : public UMeshComponent
 	 * This notification can be used to alter extracted root motion before it is forwarded to physics.
 	 */
 	BITFIELD bRootMotionExtractedNotify:1;
-	/** Flag set when processing root motion. */
-	BITFIELD bProcessingRootMotion:1;
 
 	/** If true, FaceFX will not automatically create material instances. */
 	BITFIELD bDisableFaceFXMaterialInstanceCreation:1;
+	BITFIELD bEnableFaceFX:1;
+	BITFIELD FaceFXRegistersDirty:1;
+	BITFIELD FaceFXEmbeddedAnimSamplesDirty:1;
+	BITFIELD bUseParentAnimComponentBounds:1;
 
 	/** If true, AnimTree has been initialised. */
 	BITFIELD bAnimTreeInitialised:1;
@@ -502,6 +594,7 @@ class USkeletalMeshComponent : public UMeshComponent
 	 *	@see SetHasPhysicsAssetInstance
 	 */
 	BITFIELD bHasPhysicsAssetInstance:1;
+	BITFIELD bAllowRFlapsAssetInstance:1;
 
 	/** If we are running physics, should we update bFixed bones based on the animation bone positions. */
 	BITFIELD bUpdateKinematicBonesFromAnimation:1;
@@ -564,9 +657,27 @@ class USkeletalMeshComponent : public UMeshComponent
 
 	/** Whether or not we can highlight selected sections - this should really only be done in the editor */
 	BITFIELD bCanHighlightSelectedSections:1;
+	BITFIELD bUseAggressiveLODScale:1;
+	BITFIELD bAutomaticEmbeddedFaceFXAnims:1;
 
 	/** If bEnableLineCheckWithBounds is TRUE, scale the bounds by this value before doing line check. */
 	FVector LineCheckBoundsScale;
+
+	BITFIELD bAllowPermanentFixOnSleep:1;
+	BITFIELD bHasBeenPermanentlyFixed:1;
+	BITFIELD bHasEverBeenPermanentlyFixed:1;
+	BITFIELD bDisableRagdollCalmingMeasures:1;
+	BITFIELD bDebugDisableRagdollCalmingMeasures:1;
+	BITFIELD bDisableCollisionWhenPermanentlyFixed:1;
+	BITFIELD bForceJointProjection:1;
+	BITFIELD bForceUseRagdollPhysicsTranslation:1;
+	BITFIELD bAllowAngularDampingRamping:1;
+	SCRIPT_ALIGN;
+	FLOAT CurrDampingRampupTime;
+	FLOAT DampingRampupMinTime;
+	FLOAT DampingRampupMaxTime;
+	FLOAT PermanentFixRampupTime;
+	FLOAT AggressiveLODMultiplier;
 
 	// CLOTH
 
@@ -611,17 +722,13 @@ class USkeletalMeshComponent : public UMeshComponent
 	BITFIELD bRecentlyRendered:1;
 
 	BITFIELD bCacheAnimSequenceNodes:1;
+	BITFIELD bNeedsInstanceWeightUpdate:1;
+	BITFIELD bAlwaysUseInstanceWeights:1;
 
 	/** TRUE if it needs to rebuild the required bones array for multi pass compose */
 	BITFIELD bUpdateComposeSkeletonPasses:1;
-	/** Flag to remember if cache saved is valid or not to make sure Save/Restore always happens with a pair **/
-	BITFIELD bValidTemporarySavedAnimSets:1;
-
-	/** 
-	 * Set of bones which will be used to find vertices to switch to using instanced influence weights
-	 * instead of the default skeletal mesh weighting.
-	 */
-	TArrayNoInit<FBonePair> InstanceVertexWeightBones;	
+	BITFIELD bUseParentAnimComponentLODLevel:1;
+	SCRIPT_ALIGN;
 
 	/** LOD specific setup for the skeletal mesh component */
 	TArrayNoInit<FSkelMeshComponentLODInfo> LODInfo;
@@ -733,20 +840,11 @@ class USkeletalMeshComponent : public UMeshComponent
 	/** Types of objects that this clothing will collide with. */
 	FRBCollisionChannelContainer	ApexClothingRBCollideWithChannels;
 
-	/** Align the following byte */
-	SCRIPT_ALIGN;
-
-	/** Enum indicating what channel the apex clothing collision shapes should be placed in */
-	BYTE		ApexClothingCollisionRBChannel;
-
-	/** Align the following bitfields */
-	SCRIPT_ALIGN;
-
 	/** If true, the clothing actor will stop simulating when it is not rendered */
 	BITFIELD						bAutoFreezeApexClothingWhenNotRendered:1;
-
-	/** If TRUE, WindVelocity is applied in the local space of the component, rather than world space. */
-	BITFIELD						bLocalSpaceWind:1;
+	BITFIELD						bApexClothingBaseVelClamp:1;
+	SCRIPT_ALIGN;
+	FVector							ApexClothingBaseVelClampRange;
 
 	/** The Wind Velocity applied to Apex Clothing */
 	FVector							WindVelocity;
@@ -756,55 +854,7 @@ class USkeletalMeshComponent : public UMeshComponent
 
     /** Don't attempt to initialize clothing when component is attached */
 	BITFIELD						bSkipInitClothing:1;
-
-	/** Pointer to the simulated NxSoftBody object. */
-	FPointer						SoftBodySim;
-
-    /** Index of the Novodex scene the soft-body resides in. */
-	INT								SoftBodySceneIndex;
-
-    /** Whether soft-body simulation should currently be used on this SkeletalMeshComponent. */
-	BITFIELD						bEnableSoftBodySimulation:1;
-
-    /** Buffer of the updated tetrahedron-vertex positions. */
-	TArray<FVector>					SoftBodyTetraPosData;
-
-    /** Buffer of the updated tetrahedron-indices. */
-	TArray<INT>						SoftBodyTetraIndexData;
-
-    /** Number of tetrahedron vertices of the soft-body mesh. */
-	INT								NumSoftBodyTetraVerts;
-
-    /** Number of tetrahedron indices of the soft-body mesh (equal to four times the number of tetrahedra). */
-	INT								NumSoftBodyTetraIndices;
-
-	/** Number of tetrahedron indices of the soft-body mesh (equal to four times the number of tetrahedra). */
-	FLOAT							SoftBodyImpulseScale;
-
-	/** If true, the soft-body is 'frozen' and no simulation is taking place for it, though it will keep its shape. */
-	BITFIELD						bSoftBodyFrozen:1;
-
-	/** If true, the soft-body will automatically have bSoftBodyFrozen set when it is not rendered, and have it turned off when it is seen. */
-	BITFIELD						bAutoFreezeSoftBodyWhenNotRendered:1;
-
-	/** If true, the soft-body will be awake when a level is started, otherwise it will be instantly put to sleep. */
-	BITFIELD						bSoftBodyAwakeOnStartup:1;
-
-	/** If TRUE, soft body uses compartment in physics scene (usually with fixed timstep for better behaviour) */
-	BITFIELD						bSoftBodyUseCompartment:1;
-
-	/** Align the following byte */
 	SCRIPT_ALIGN;
-
-    /** Enum indicating what type of object this soft-body should be considered for rigid body collision. */
-	ERBCollisionChannel				SoftBodyRBChannel;
-
-    /** Types of objects that this soft-body will collide with. */
-	FRBCollisionChannelContainer	SoftBodyRBCollideWithChannels;
-
-    /** Pointer to the Novodex plane-actor used when previewing the soft-body in the AnimSet Editor. */
-	FPointer						SoftBodyASVPlane;
-
 
 	/** For rendering physics limits. TODO remove! */
 	UMaterialInterface*					LimitMaterial;
@@ -813,9 +863,6 @@ class USkeletalMeshComponent : public UMeshComponent
 	FBoneAtom	RootMotionDelta;
 	/** Root Motion velocity */
 	FVector		RootMotionVelocity;
-
-	/** Root Bone offset */
-	FVector		RootBoneTranslation;
 
 	/** Scale applied in physics when RootMotionMode == RMM_Accel */
 	FVector		RootMotionAccelScale;
@@ -829,8 +876,6 @@ class USkeletalMeshComponent : public UMeshComponent
 	INT		bRMMOneFrameDelay;
 	/** Root Motion Rotation mode (uses ERootMotionRotationMode) */
 	BYTE	RootMotionRotationMode;
-	/** SkeletalMeshComponent settings for AnimRotationOnly (EAnimRotationOnly) */
-	BYTE AnimRotationOnly;
 
 	/** How should be blend FaceFX animations? */
 	BYTE	FaceFXBlendMode;
@@ -842,17 +887,46 @@ class USkeletalMeshComponent : public UMeshComponent
 	void* FaceFXActorInstance;
 #endif
 
-	/** 
-	 *	The audio component that we are using to play audio for a facial animation. 
-	 *	Assigned in PlayFaceFXAnim and cleared in StopFaceFXAnim.
-	 */
-	UAudioComponent* CachedFaceFXAudioComp;
+	FLOAT FaceFxAnimStartTime;
+	TArrayNoInit<FBM2FaceFXRegisterTransition> FaceFXRegisterTransitions;
+	TArrayNoInit<FBM2FaceFXRegisterState> FaceFXRegisterStates;
+	TArrayNoInit<FBM2FaceFXEmbeddedAnimSample> FaceFXEmbeddedAnimSamples;
+	TArrayNoInit<FBoneAtom> FaceFXBoneAtoms;
+	UObject* CachedFaceFXDialogueEvent;
+	UObject* DrivenMaterialParameterInstance;
 
 	/** Array of bone visibilities (containing one of the values in EBoneVisibilityStatus for each bone).  A bone is only visible if it is *exactly* 1 (BVS_Visible) */
-	TArrayNoInit <BYTE>	BoneVisibilityStates;
+	TArrayNoInit <BYTE>	BoneVisibility;
 
 	/* To cache it rather than re-calculating all the time : have guard for stale data*/
 	FBoneAtom LocalToWorldBoneAtom;
+
+	BITFIELD bDontPlaySoundWhenPlayingFaceFx:1;
+	SCRIPT_ALIGN;
+	FLOAT NextSubtitlePriority;
+	FBM2DepthBiasData CurrDepthBiasData;
+	BITFIELD bDisableColourWrites:1;
+	BITFIELD bNeedsProxyUpdate:1;
+	BITFIELD bUseComposeSkeletonLite:1;
+	BITFIELD bEnableTwistBoneFixers:1;
+	BITFIELD bEnableClavicleFixer:1;
+	BITFIELD bEnableBreathingFixer:1;
+	BITFIELD bEnableDrivenMaterialParameters:1;
+	BITFIELD bAllowRagdollContainmentChecks:1;
+	BITFIELD bStuckAsARagdoll:1;
+	SCRIPT_ALIGN;
+	INT StuckBodyPartIndex;
+	DOUBLE StuckStartTime;
+	FLOAT CurrRagdollTime;
+	FLOAT ContainmentTestDelay;
+	FLOAT MaxRagdollLiveTime;
+	FLOAT MinRagdollStuckTime;
+	FLOAT MinNearlyStillBodiesProportionForNearlyStillRagdoll;
+	TArrayNoInit<INT> BoneToBody;
+	TArrayNoInit<INT> BodyToBone;
+	FBM2TwistBoneFixers TwistBoneFixers;
+	FBM2ClavicleFixer ClavicleFixer;
+	FBM2BreathingFixer BreathingFixer;
 
 	/** Editor only. Used for visualizing drawing order in Animset Viewer. If < 1.0,
 	* only the specified fraction of triangles will be rendered

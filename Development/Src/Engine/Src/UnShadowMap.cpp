@@ -386,11 +386,6 @@ UShadowMap2D::UShadowMap2D( UObject* Primitive, const FShadowMapData2D& RawData,
 	Allocation->Bounds			= Bounds;
 	// Check to compress shadow map or not
 	EShadowMapFlags SMFlags = InShadowmapFlags;
-	AWorldInfo* WorldInfo = GWorld->GetWorldInfo();
-	if (WorldInfo && WorldInfo->LightmassSettings.bCompressShadowmap)
-	{
-		SMFlags = EShadowMapFlags(SMFlags | SMF_Compressed);
-	}
 	Allocation->ShadowmapFlags	= SMFlags;
 	if ( !GAllowStreamingLightmaps )
 	{

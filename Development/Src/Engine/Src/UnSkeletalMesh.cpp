@@ -2642,7 +2642,7 @@ void ASkeletalMeshActor::RestoreAnimSetsToDefault()
 		// only in editor save animation state and recover 
 		// - make sure to check the flag for SkelMeshComponent we saved the state BEFORE recovering
 		// this is to avoid same flag 
-		if ( SkeletalMeshComponent->bValidTemporarySavedAnimSets )
+		if ( SkeletalMeshComponent->TemporarySavedAnimSets.Num() > 0 )
 		{
 			// recover saved animation state if saved information is valid - still check if we have any
 			if (SavedAnimSeqName != NAME_None)
@@ -2668,7 +2668,7 @@ void ASkeletalMeshActor::SaveDefaultsToAnimSets()
 	if (GIsEditor)
 	{
 		// make sure our state is not cached state
-		if ( SkeletalMeshComponent->bValidTemporarySavedAnimSets == FALSE )
+		if ( SkeletalMeshComponent->TemporarySavedAnimSets.Num() == 0 )
 		{
 			// save animation state
 			if( SkeletalMeshComponent->Animations && SkeletalMeshComponent->Animations->IsA(UAnimNodeSequence::StaticClass()) )
@@ -2699,7 +2699,7 @@ void ASkeletalMeshActor::PreviewBeginAnimControl(UInterpGroup* InInterpGroup)
 	// Toggle on cinematic weighting for the skeletal mesh while previewing
 	for ( INT LODIdx = 0; LODIdx < SkeletalMeshComponent->LODInfo.Num(); ++LODIdx )
 	{
-		if ( SkeletalMeshComponent->LODInfo(LODIdx).InstanceWeightUsage == IWU_FullSwap )
+		if ( FALSE )
 		{
 			SkeletalMeshComponent->ToggleInstanceVertexWeights( TRUE, LODIdx );
 		}
@@ -2777,7 +2777,7 @@ void ASkeletalMeshActor::PreviewFinishAnimControl(UInterpGroup* InInterpGroup)
 	// Toggle off cinematic weighting when done previewing
 	for ( INT LODIdx = 0; LODIdx < SkeletalMeshComponent->LODInfo.Num(); ++LODIdx )
 	{
-		if ( SkeletalMeshComponent->LODInfo(LODIdx).InstanceWeightUsage == IWU_FullSwap )
+		if ( FALSE )
 		{
 			SkeletalMeshComponent->ToggleInstanceVertexWeights( FALSE, LODIdx );
 		}
@@ -4184,7 +4184,6 @@ void USkeletalMeshComponent::Serialize(FArchive& Ar)
  		ParentBoneMap.CountBytes(Ar);
  		TemporarySavedAnimSets.CountBytes(Ar);
  		MorphTargetIndexMap.CountBytes(Ar);
- 		InstanceVertexWeightBones.CountBytes(Ar);
  		ClothMeshWeldedPosData.CountBytes(Ar);
  		ClothMeshWeldedNormalData.CountBytes(Ar);
  		ClothMeshWeldedIndexData.CountBytes(Ar);

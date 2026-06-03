@@ -290,22 +290,6 @@ UBOOL USkeletalMeshComponent::LineCheck(
 	}
 #endif
 
-#if WITH_NOVODEX && !NX_DISABLE_SOFTBODY
-	if(SoftBodySim && bEnableSoftBodySimulation && SkeletalMesh && SkeletalMesh->bEnableSoftBodyLineChecks && (TraceFlags & TRACE_ComplexCollision))
-	{
-		FCheckResult TempResult;
-
-		if(!SoftBodyLineCheck(this, TempResult, End, Start, Extent, TraceFlags))
-		{// hit
-			if( Retval || (TempResult.Time < Result.Time) )
-			{
-				Result = TempResult;
-				Retval = FALSE;
-			}
-		}
-	}
-#endif
-
 	return Retval;
 }
 
@@ -544,4 +528,3 @@ UBOOL USkeletalMeshComponent::GetBonesWithinRadius( const FVector& Origin, FLOAT
 
 	return (out_Bones.Num()>0);
 }
-

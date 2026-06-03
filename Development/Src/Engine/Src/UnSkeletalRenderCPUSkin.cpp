@@ -1329,15 +1329,6 @@ FDynamicSkelMeshObjectDataCPUSkin::FDynamicSkelMeshObjectDataCPUSkin(
 #endif
 
 
-#if !NX_DISABLE_SOFTBODY
-		
-	if(InSkelMeshComponent->SoftBodyTetraPosData.Num() > 0 && LODIndex == 0)
-	{
-		SoftBodyTetraPosData = InSkelMeshComponent->SoftBodyTetraPosData;
-	}
-
-#endif //!NX_DISABLE_SOFTBODY
-
 }
 
 /*-----------------------------------------------------------------------------
@@ -1928,5 +1919,4 @@ void CalculateBoneWeights(FFinalSkinVertex* DestVertex, FStaticLODModel& LOD, co
 }
 
 #pragma warning(pop)
-
 

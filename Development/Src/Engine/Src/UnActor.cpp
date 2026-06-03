@@ -673,7 +673,6 @@ INT* AWorldInfo::GetOptimizedRepList( BYTE* Recent, FPropertyRetirement* Retire,
 		DOREP(WorldInfo,TimeDilation);
 		DOREP(WorldInfo,WorldGravityZ);
 		DOREP(WorldInfo,bHighPriorityLoading);
-		DOREP(WorldInfo,ReplicatedMusicTrack);
 	}
 
 	return Ptr;

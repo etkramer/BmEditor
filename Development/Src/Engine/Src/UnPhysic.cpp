@@ -396,7 +396,7 @@ void APawn::performPhysics(FLOAT DeltaSeconds)
 {
 	// Skip regular perform physics when doing Root Motion, we want to do it right after the animation has been extracted, to prevent having a frame of lag.
 	// GIsGame check to match check in UnSkeletalComponent.cpp. Editor can allow root motion updates with deltatime <= 0.
-	if( Mesh != NULL && Mesh->RootMotionMode == RMM_Accel && !Mesh->bProcessingRootMotion && !bForceRegularVelocity && GIsGame )
+	if( Mesh != NULL && Mesh->RootMotionMode == RMM_Accel && !bForceRegularVelocity && GIsGame )
 	{
 		return;
 	}

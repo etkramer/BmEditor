@@ -35,17 +35,6 @@ enum EHostMigrationProgress
     op(HostMigration_MigratingAsClient) \
     op(HostMigration_HostReadyToTravel) \
     op(HostMigration_Failed) 
-enum EVisibilityAggressiveness
-{
-    VIS_LeastAggressive     =0,
-    VIS_ModeratelyAggressive=1,
-    VIS_MostAggressive      =2,
-    VIS_Max                 =3,
-};
-#define FOREACH_ENUM_EVISIBILITYAGGRESSIVENESS(op) \
-    op(VIS_LeastAggressive) \
-    op(VIS_ModeratelyAggressive) \
-    op(VIS_MostAggressive) 
 enum EConsoleType
 {
     CONSOLE_Any             =0,
@@ -76,6 +65,17 @@ enum ENetMode
     op(NM_DedicatedServer) \
     op(NM_ListenServer) \
     op(NM_Client) 
+enum EVisibilityAggressiveness
+{
+    VIS_LeastAggressive     =0,
+    VIS_ModeratelyAggressive=1,
+    VIS_MostAggressive      =2,
+    VIS_Max                 =3,
+};
+#define FOREACH_ENUM_EVISIBILITYAGGRESSIVENESS(op) \
+    op(VIS_LeastAggressive) \
+    op(VIS_ModeratelyAggressive) \
+    op(VIS_MostAggressive) 
 enum ETransitionType
 {
     TT_None                 =0,
@@ -127,6 +127,25 @@ enum EFullyLoadPackageType
 #include "UnObjBas.h"
 #undef ENABLE_DECLARECLASS_MACRO
 
+struct FWorldFractureSettings
+{
+    FLOAT ChanceOfPhysicsChunkOverride;
+    BITFIELD bEnableChanceOfPhysicsChunkOverride:1;
+    BITFIELD bLimitExplosionChunkSize:1;
+    FLOAT MaxExplosionChunkSize;
+    BITFIELD bLimitDamageChunkSize:1;
+    FLOAT MaxDamageChunkSize;
+    INT MaxNumFacturedChunksToSpawnInAFrame;
+    FLOAT FractureExplosionVelScale;
+
+    /** Constructors */
+    FWorldFractureSettings() {}
+    FWorldFractureSettings(EEventParm)
+    {
+        appMemzero(this, sizeof(FWorldFractureSettings));
+    }
+};
+
 struct FNetViewer
 {
     class APlayerController* InViewer;
@@ -159,6 +178,7 @@ struct FPhysXSimulationProperties
     BITFIELD bUseHardware:1;
     BITFIELD bFixedTimeStep:1;
     FLOAT TimeStep;
+    FLOAT MaxTimeStep;
     INT MaxSubSteps;
 
     /** Constructors */
@@ -230,25 +250,6 @@ struct FPhysXVerticalProperties
     }
 };
 
-struct FWorldFractureSettings
-{
-    FLOAT ChanceOfPhysicsChunkOverride;
-    BITFIELD bEnableChanceOfPhysicsChunkOverride:1;
-    BITFIELD bLimitExplosionChunkSize:1;
-    FLOAT MaxExplosionChunkSize;
-    BITFIELD bLimitDamageChunkSize:1;
-    FLOAT MaxDamageChunkSize;
-    INT MaxNumFacturedChunksToSpawnInAFrame;
-    FLOAT FractureExplosionVelScale;
-
-    /** Constructors */
-    FWorldFractureSettings() {}
-    FWorldFractureSettings(EEventParm)
-    {
-        appMemzero(this, sizeof(FWorldFractureSettings));
-    }
-};
-
 struct FScreenMessageString
 {
     QWORD Key;
@@ -288,7 +289,6 @@ struct FLightmassWorldInfoSettings
     FLOAT MaxOcclusionDistance;
     BITFIELD bVisualizeMaterialDiffuse:1;
     BITFIELD bVisualizeAmbientOcclusion:1;
-    BITFIELD bCompressShadowmap:1;
     SCRIPT_ALIGN;
 
     /** Constructors */
@@ -375,8 +375,6 @@ public:
     struct FPostProcessSettings DefaultPostProcessSettings;
     class UPostProcessChain* WorldPostProcessChain;
     BITFIELD bPersistPostProcessToNextLevel:1;
-    BITFIELD bFogEnabled:1;
-    BITFIELD bBumpOffsetEnabled:1;
     BITFIELD bMapNeedsLightingFullyRebuilt:1;
     BITFIELD bMapHasDLEsOutsideOfImportanceVolume:1;
     BITFIELD bMapHasMultipleDominantLightsAffectingOnePrimitive:1;
@@ -385,7 +383,6 @@ public:
     BITFIELD bBegunPlay:1;
     BITFIELD bPlayersOnly:1;
     BITFIELD bPlayersOnlyPending:1;
-    BITFIELD bSuspendAI:1;
     BITFIELD bDropDetail:1;
     BITFIELD bAggressiveLOD:1;
     BITFIELD bStartup:1;
@@ -397,9 +394,8 @@ public:
     BITFIELD bNoPathWarnings:1;
     BITFIELD bHighPriorityLoading:1;
     BITFIELD bHighPriorityLoadingLocal:1;
-    BITFIELD bUseProcBuildingRulesetOverride:1;
+    BITFIELD DebugMenuWantsPause:1;
     BITFIELD bSupportDoubleBufferedPhysics:1;
-    BITFIELD bPhysicsIgnoreDeltaTime:1;
 private:
     BITFIELD bEnableChanceOfPhysicsChunkOverride:1;
     BITFIELD bLimitExplosionChunkSize:1;
@@ -410,21 +406,15 @@ public:
     BITFIELD bAllowLightEnvSphericalHarmonicLights:1;
     BITFIELD bAllowModulateBetterShadows:1;
     BITFIELD bIncreaseFogNearPrecision:1;
-    BITFIELD bAllowTemporalAA:1;
     BITFIELD bUseGlobalIllumination:1;
     BITFIELD bForceNoPrecomputedLighting:1;
     BITFIELD bSimpleLightmapsStoredInLinearSpace:1;
     BITFIELD bHaveActiveCrowd:1;
+    BITFIELD bMapAudioMode:1;
     BITFIELD bAllowHostMigration:1;
     FLOAT SquintModeKernelSize;
     class APostProcessVolume* HighestPriorityPostProcessVolume;
-    struct FReverbSettings DefaultReverbSettings;
-    FInteriorSettings DefaultAmbientZoneSettings;
-    FLOAT FogStart;
-    FLOAT FogEnd;
-    FColor FogColor;
-    FLOAT BumpEnd;
-    class AReverbVolume* HighestPriorityReverbVolume;
+    class APostProcessVolume* ForcedActivePostProcessVolume;
     TArrayNoInit<class AMassiveLODOverrideVolume*> MassiveLODOverrideVolumes;
     TArrayNoInit<class APortalVolume*> PortalVolumes;
     TArrayNoInit<class AEnvironmentVolume*> EnvironmentVolumes;
@@ -441,9 +431,10 @@ public:
     FLOAT DeltaSeconds;
     FLOAT PauseDelay;
     FLOAT RealTimeToUnPause;
+    FLOAT SubtitleTimeSeconds;
     class APlayerReplicationInfo* Pauser;
     FStringNoInit VisibleGroups_DEPRECATED;
-    FStringNoInit VisibleLayers;
+    FStringNoInit SelectedGroups;
     class UTexture2D* DefaultTexture;
     class UTexture2D* WireframeTexture;
     class UTexture2D* WhiteSquareTexture;
@@ -481,14 +472,13 @@ public:
     TArrayNoInit<FName> PreparingLevelNames;
     FName CommittedPersistentLevelName;
     class UObjectReferencer* PersistentMapForcedObjects;
-    class UAudioComponent* MusicComp;
-    struct FMusicTrackStruct CurrentMusicTrack;
-    struct FMusicTrackStruct ReplicatedMusicTrack;
     FStringNoInit Title;
-    FStringNoInit Author;
 protected:
     class UMapInfo* MyMapInfo;
 public:
+    TArrayNoInit<class UObject*> ParticleAttractorComponents;
+    FStringNoInit SetFlagsInPIE;
+    FName PlayerCharacterName;
     FStringNoInit EmitterPoolClassPath;
     class AEmitterPool* MyEmitterPool;
     FStringNoInit DecalManagerClassPath;
@@ -497,7 +487,6 @@ public:
     class AFractureManager* MyFractureManager;
     FStringNoInit ParticleEventManagerClassPath;
     class AParticleEventManager* MyParticleEventManager;
-    class UProcBuildingRuleset* ProcBuildingRulesetOverride;
     FLOAT MaxPhysicsDeltaTime;
     INT MaxPhysicsSubsteps;
     struct FPhysXSceneProperties PhysicsProperties;
@@ -528,11 +517,11 @@ public:
     TMap<INT, FScreenMessageString> ScreenMessages;
     TArrayNoInit<struct FScreenMessageString> PriorityScreenMessages;
     INT MaxTrianglesPerLeaf;
-    class UDEPRECATED_LightmassLevelSettings* LMLevelSettings_DEPRECATED;
+    class UObject* InteractionManager;
+    FVector PlayerLocation;
     struct FLightmassWorldInfoSettings LightmassSettings;
     TMap< UClass*, FNavMeshPathConstraintCacheDatum > NavMeshPathConstraintCache;
     TMap< UClass*, FNavMeshPathGoalEvaluatorCacheDatum > NavMeshPathGoalEvaluatorCache;
-    class ACrowdPopulationManagerBase* PopulationManager;
     struct FHostMigrationState PeerHostMigration;
     FLOAT HostMigrationTimeout;
     //## END PROPS WorldInfo

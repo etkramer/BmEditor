@@ -237,21 +237,21 @@ AActor* UEditorEngine::AddActor(UClass* Class, const FVector& Location, UBOOL bS
 		Actor->Group.ToString().ParseIntoArray( &NewLayers, TEXT(","), 0 );
 
 		TArray<FString> VisibleLayers;
-		GWorld->GetWorldInfo()->VisibleLayers.ParseIntoArray( &VisibleLayers, TEXT(","), 0 );
+		GWorld->GetWorldInfo()->VisibleGroups_DEPRECATED.ParseIntoArray( &VisibleLayers, TEXT(","), 0 );
 
 		for( INT x = 0 ; x < NewLayers.Num() ; ++x )
 		{
 			VisibleLayers.AddUniqueItem( NewLayers(x) );
 		}
 
-		GWorld->GetWorldInfo()->VisibleLayers = TEXT("");
+		GWorld->GetWorldInfo()->VisibleGroups_DEPRECATED = TEXT("");
 		for( INT x = 0 ; x < VisibleLayers.Num() ; ++x )
 		{
-			if( GWorld->GetWorldInfo()->VisibleLayers.Len() > 0 )
+			if( GWorld->GetWorldInfo()->VisibleGroups_DEPRECATED.Len() > 0 )
 			{
-				GWorld->GetWorldInfo()->VisibleLayers += TEXT(",");
+				GWorld->GetWorldInfo()->VisibleGroups_DEPRECATED += TEXT(",");
 			}
-			GWorld->GetWorldInfo()->VisibleLayers += VisibleLayers(x);
+			GWorld->GetWorldInfo()->VisibleGroups_DEPRECATED += VisibleLayers(x);
 		}
 
 		GCallbackEvent->Send( CALLBACK_LayerChange );

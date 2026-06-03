@@ -435,7 +435,7 @@ void FLevelUtils::SetLevelVisibility(ULevelStreaming* StreamingLevel, ULevel* Le
 
 			// Iterate over the level's actors, making a list of their layers and unhiding the layers.
 			TArray<FString> VisibleLayers;
-			GWorld->GetWorldInfo()->VisibleLayers.ParseIntoArray( &VisibleLayers, TEXT(","), 0 );
+			GWorld->GetWorldInfo()->VisibleGroups_DEPRECATED.ParseIntoArray( &VisibleLayers, TEXT(","), 0 );
 
 			TArray<FString> NewLayers;
 			TTransArray<AActor*>& Actors = Level->Actors;
@@ -482,14 +482,14 @@ void FLevelUtils::SetLevelVisibility(ULevelStreaming* StreamingLevel, ULevel* Le
 				if ( bVisibleLayersNeedUpdate )
 				{
 					// Copy the visible layers list back over to worldinfo.
-					GWorld->GetWorldInfo()->VisibleLayers = TEXT("");
+					GWorld->GetWorldInfo()->VisibleGroups_DEPRECATED = TEXT("");
 					for( INT x = 0 ; x < VisibleLayers.Num() ; ++x )
 					{
-						if( GWorld->GetWorldInfo()->VisibleLayers.Len() > 0 )
+						if( GWorld->GetWorldInfo()->VisibleGroups_DEPRECATED.Len() > 0 )
 						{
-							GWorld->GetWorldInfo()->VisibleLayers += TEXT(",");
+							GWorld->GetWorldInfo()->VisibleGroups_DEPRECATED += TEXT(",");
 						}
-						GWorld->GetWorldInfo()->VisibleLayers += VisibleLayers(x);
+						GWorld->GetWorldInfo()->VisibleGroups_DEPRECATED += VisibleLayers(x);
 					}
 				}
 			}

@@ -960,56 +960,7 @@ UBOOL SoftBodyLineCheck(
 					 const FVector& Extent,
 					 DWORD TraceFlags)
 {
-	UBOOL Retval = TRUE;
-
-#if WITH_NOVODEX && !NX_DISABLE_SOFTBODY
-
-	check(SkelComp);
-	check(SkelComp->SoftBodySim);
-
-	UBOOL bIsZeroExtent = Extent.IsZero();
-
-	Result.Item = INDEX_NONE;
-	Result.Time = 1.0f;
-	Result.BoneName = NAME_None;
-	Result.Component = NULL;
-	Result.Material = NULL;
-	Result.PhysMaterial = NULL;
-
-	NxSoftBody* SoftBody = (NxSoftBody *)SkelComp->SoftBodySim;
-
-	if(bIsZeroExtent)
-	{
-		/* Simple raycast. */
-
-		NxRay nWorldRay;
-		NxVec3 nHit;
-		NxU32 nVertexId;
-
-		//What about Start==End??
-		nWorldRay.orig = U2NPosition(Start);
-		nWorldRay.dir = U2NPosition(End) - nWorldRay.orig;
-
-		if(SoftBody->raycast(nWorldRay, nHit, nVertexId))
-		{
-			NxReal nMag = (nHit - nWorldRay.orig).magnitude();
-			NxReal nDirMag = nWorldRay.dir.magnitude();
-
-			if(nMag <= nDirMag)
-			{
-				Result.Location = N2UPosition(nHit);
-				Result.Normal = (Start - End).SafeNormal(); // TODO: Use better normal...
-				Result.Time     = nMag / nDirMag;
-				Result.Component= SkelComp;
-				Result.Actor    = SkelComp->GetOwner();
-				Retval          = FALSE;
-			}
-		}
-	}
-
-#endif //WITH_NOVODEX && !NX_DISABLE_CLOTH
-
-	return Retval;
+	return TRUE;
 }
 
 DWORD FindNovodexSceneStat(NxScene* NovodexScene, const TCHAR* StatNxName, UBOOL bMaxValue)

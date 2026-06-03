@@ -3429,7 +3429,7 @@ void APawn::PreviewBeginAnimControl(UInterpGroup* InInterpGroup)
 	// Toggle on cinematic weighting for the skeletal mesh component while previewing
 	for ( INT LODIdx = 0; LODIdx < Mesh->LODInfo.Num(); ++LODIdx )
 	{
-		if ( Mesh->LODInfo(LODIdx).InstanceWeightUsage == IWU_FullSwap )
+		if ( FALSE )
 		{
 			Mesh->ToggleInstanceVertexWeights( TRUE, LODIdx );
 		}
@@ -3475,7 +3475,7 @@ void APawn::PreviewFinishAnimControl(UInterpGroup* InInterpGroup)
 	// Toggle off cinematic weighting for the skeletal mesh component while previewing
 	for ( INT LODIdx = 0; LODIdx < Mesh->LODInfo.Num(); ++LODIdx )
 	{
-		if ( Mesh->LODInfo(LODIdx).InstanceWeightUsage == IWU_FullSwap )
+		if ( FALSE )
 		{
 			Mesh->ToggleInstanceVertexWeights( FALSE, LODIdx );
 		}

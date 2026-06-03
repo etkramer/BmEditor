@@ -587,35 +587,30 @@ void WxAnimSetViewer::ToggleMeshWeights(UBOOL bEnable)
 		bPreviewInstanceWeights = bEnable;
 		for (INT LODIdx=0;LODIdx<PreviewSkelComp->LODInfo.Num();LODIdx++)
 		{
-			  const FSkelMeshComponentLODInfo& MeshLODInfo = PreviewSkelComp->LODInfo(LODIdx);
-			  
 			  if( bPreviewInstanceWeights )
 			  {
 				  // enable usage of instanced weights
 				  PreviewSkelComp->ToggleInstanceVertexWeights(TRUE, LODIdx);
-				  if (MeshLODInfo.InstanceWeightUsage == IWU_PartialSwap)
+				  // use all ref skeleton bones so that all vertices use the instanced weights
+				  TArray<FBonePair> BonePairs;
+				  BonePairs.Empty(PreviewSkelComp->SkeletalMesh->RefSkeleton.Num());
+				  BonePairs.Add(PreviewSkelComp->SkeletalMesh->RefSkeleton.Num());
+				  for (INT i = 0; i < PreviewSkelComp->SkeletalMesh->RefSkeleton.Num(); i++)
 				  {
-					  // use all ref skeleton bones so that all vertices use the instanced weights
-					  TArray<FBonePair> BonePairs;
-					  BonePairs.Empty(PreviewSkelComp->SkeletalMesh->RefSkeleton.Num());
-					  BonePairs.Add(PreviewSkelComp->SkeletalMesh->RefSkeleton.Num());
-					  for (INT i = 0; i < PreviewSkelComp->SkeletalMesh->RefSkeleton.Num(); i++)
+					  FBonePair& BonePair = BonePairs(i);
+					  BonePair.Bones[0] = PreviewSkelComp->SkeletalMesh->RefSkeleton(i).Name;
+					  INT ParentIdx = PreviewSkelComp->SkeletalMesh->RefSkeleton(i).ParentIndex;
+					  if (ParentIdx != INDEX_NONE)
 					  {
-						  FBonePair& BonePair = BonePairs(i);
-						  BonePair.Bones[0] = PreviewSkelComp->SkeletalMesh->RefSkeleton(i).Name;
-						  INT ParentIdx = PreviewSkelComp->SkeletalMesh->RefSkeleton(i).ParentIndex;
-						  if (ParentIdx != INDEX_NONE)
-						  {
-							  BonePair.Bones[1] = PreviewSkelComp->SkeletalMesh->RefSkeleton(ParentIdx).Name;
-						  }
-						  else
-						  {
-							  BonePair.Bones[1] = NAME_None;
-						  }
+						  BonePair.Bones[1] = PreviewSkelComp->SkeletalMesh->RefSkeleton(ParentIdx).Name;
 					  }
-
-					  PreviewSkelComp->UpdateInstanceVertexWeightBones(BonePairs);
+					  else
+					  {
+						  BonePair.Bones[1] = NAME_None;
+					  }
 				  }
+
+				  PreviewSkelComp->UpdateInstanceVertexWeightBones(BonePairs);
 			  }
 			  else
 			  {
@@ -2193,10 +2188,6 @@ void WxAnimSetViewer::OnSoftBodyGenerate( wxCommandEvent& In )
 		BuildSoftBodyMapping(*PreviewSkelComp->SkeletalMesh);	
 #endif	//#if WITH_NOVODEX
 		PreviewSkelComp->InitSoftBodySimBuffers();
-		if(PreviewSkelComp->bEnableSoftBodySimulation)
-		{
-			PreviewSkelComp->InitSoftBodySim(RBPhysScene, TRUE);
-		}
 	}
 }
 
@@ -2205,13 +2196,11 @@ void WxAnimSetViewer::OnSoftBodyToggleSim( wxCommandEvent& In )
 	if(In.IsChecked())
 	{
 		PreviewSkelComp->InitSoftBodySim(RBPhysScene, TRUE);
-		PreviewSkelComp->bEnableSoftBodySimulation = TRUE;
 		// TODO: Is there a reason to simulate the "Raw" mesh as well?
 	}
 	else
 	{
 		PreviewSkelComp->TermSoftBodySim(NULL);
-		PreviewSkelComp->bEnableSoftBodySimulation = FALSE;
 		// Reset mesh to position based on original tetra-mesh.
 		PreviewSkelComp->InitSoftBodySimBuffers();
 	}

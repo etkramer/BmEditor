@@ -21,7 +21,6 @@ defaultproperties
 	bUsedWithStaticLighting=TRUE
 	bUsedWithSkeletalMesh=TRUE
 	bUsedWithMorphTargets=TRUE
-	bUsedWithDecals=TRUE
 	bUsedWithFluidSurfaces=TRUE
 	bUsedWithFracturedMeshes=TRUE
 }

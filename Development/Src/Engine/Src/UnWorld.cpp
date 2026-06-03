@@ -6052,65 +6052,6 @@ void AWorldInfo::SetMapInfo(UMapInfo* NewMapInfo)
 
 void AWorldInfo::UpdateMusicTrack(FMusicTrackStruct NewMusicTrack)
 {
-	if (MusicComp != NULL)
-	{
-		// If attempting to play same track, don't.
-		if (NewMusicTrack.TheSoundCue == CurrentMusicTrack.TheSoundCue)
-		{
-			return;
-		}
-		else
-		{
-			// otherwise fade out the current track
-			MusicComp->FadeOut(CurrentMusicTrack.FadeOutTime,CurrentMusicTrack.FadeOutVolumeLevel);
-			MusicComp = NULL;
-		}
-	}
-#if MOBILE
-	else // (MusicComp == NULL)
-	{
-		if (!CurrentMusicTrack.MP3Filename.IsEmpty())
-		{
-			// If attempting to play same mp3 file, don't.
-			if (NewMusicTrack.MP3Filename == CurrentMusicTrack.MP3Filename)
-			{
-				return;
-			}
-			else
-			{
-				GEngine->Exec(TEXT("mobile StopSong"));
-			}
-		}
-	}
-
-	// .MP3 file has priority over a wave...
-	if (!NewMusicTrack.MP3Filename.IsEmpty())
-	{
-		GEngine->Exec(*FString::Printf(TEXT("mobile PlaySong %s"), *NewMusicTrack.MP3Filename));
-	} 
-	else
-#endif
-	{
-		// create a new audio component to play music
-		MusicComp = UAudioDevice::CreateComponent( NewMusicTrack.TheSoundCue, GWorld->Scene, NULL, FALSE );
-		if (MusicComp != NULL)
-		{
-			// update the new component with the correct settings
-			MusicComp->bAutoDestroy = TRUE;
-			MusicComp->bShouldRemainActiveIfDropped = TRUE;
-			MusicComp->bIsMusic = TRUE;
-			MusicComp->bAutoPlay = NewMusicTrack.bAutoPlay;
-			MusicComp->bIgnoreForFlushing = NewMusicTrack.bPersistentAcrossLevels;
-
-			// and finally fade in the new track
-			MusicComp->FadeIn( NewMusicTrack.FadeInTime, NewMusicTrack.FadeInVolumeLevel );
-		}
-	}
-
-	// set the properties for future fades as well as replication to clients
-	CurrentMusicTrack = NewMusicTrack;
-	ReplicatedMusicTrack = NewMusicTrack;
-	bNetDirty = TRUE;
 }
 
 

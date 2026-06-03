@@ -369,9 +369,9 @@ simulated function DisplayDebug(HUD HUD, out float out_YL, out float out_YPos)
 	out_YPos += out_YL;
 	Canvas.SetPos(4,out_YPos);
 
-	if ( WorldInfo.PopulationManager != None )
+	if ( PopulationManager != None )
 	{
-		WorldInfo.PopulationManager.DisplayDebug(HUD, out_YL, out_YPos);
+		PopulationManager.DisplayDebug(HUD, out_YL, out_YPos);
 	}
 }
 

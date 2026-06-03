@@ -577,26 +577,15 @@ UProcBuildingRuleset* AProcBuilding::GetRuleset()
 {
 	UProcBuildingRuleset* ProcRuleset = NULL;
 
-	// here we are going to check to see if this Level has decided to override the ProcBuildingRuleset.
-	// Overriding is useful for doing perf testing / load testing / being able to overcome memory issues in other tools until they are fixed
-	// withOUT compromising the RuleSet creation process and the application of the rulesets in the level 
-	if( ( GWorld != NULL ) && ( GWorld->GetWorldInfo() != NULL ) && ( GWorld->GetWorldInfo()->bUseProcBuildingRulesetOverride == TRUE ) )
+	ProcRuleset = Ruleset;
+	if(!ProcRuleset)
 	{
-		ProcRuleset = GWorld->GetWorldInfo()->ProcBuildingRulesetOverride;
-	}
-	else
-	{
-		ProcRuleset = Ruleset;
-		if(!ProcRuleset)
+		AProcBuilding* BaseBuilding = GetBaseMostBuilding();
+		if(BaseBuilding)
 		{
-			AProcBuilding* BaseBuilding = GetBaseMostBuilding();
-			if(BaseBuilding)
-			{
-				ProcRuleset = BaseBuilding->Ruleset;
-			}
+			ProcRuleset = BaseBuilding->Ruleset;
 		}
 	}
-
 
 	return ProcRuleset;
 }

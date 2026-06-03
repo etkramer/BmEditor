@@ -2792,27 +2792,6 @@ void AWorldInfo::Serialize(FArchive& Ar)
 		bUseGlobalIllumination = FALSE;
 	}
 
-	if (Ar.Ver() < VER_INTEGRATED_LIGHTMASS)
-	{
-		// Copy the deprecated LightmassLevelSettings if they are present.
-		if (LMLevelSettings_DEPRECATED != NULL)
-		{
-			LightmassSettings.NumIndirectLightingBounces = LMLevelSettings_DEPRECATED->NumIndirectLightingBounces;
-			LightmassSettings.EnvironmentColor = LMLevelSettings_DEPRECATED->EnvironmentColor;
-			LightmassSettings.EnvironmentIntensity = LMLevelSettings_DEPRECATED->EnvironmentIntensity;
-			LightmassSettings.EmissiveBoost = LMLevelSettings_DEPRECATED->EmissiveBoost;
-			LightmassSettings.DiffuseBoost = LMLevelSettings_DEPRECATED->DiffuseBoost;
-			LightmassSettings.SpecularBoost = LMLevelSettings_DEPRECATED->SpecularBoost;
-			LightmassSettings.bUseAmbientOcclusion = LMLevelSettings_DEPRECATED->bUseAmbientOcclusion;
-			LightmassSettings.bVisualizeAmbientOcclusion = LMLevelSettings_DEPRECATED->bVisualizeAmbientOcclusion;
-			LightmassSettings.DirectIlluminationOcclusionFraction = LMLevelSettings_DEPRECATED->DirectIlluminationOcclusionFraction;
-			LightmassSettings.IndirectIlluminationOcclusionFraction = LMLevelSettings_DEPRECATED->IndirectIlluminationOcclusionFraction;
-			LightmassSettings.OcclusionExponent = LMLevelSettings_DEPRECATED->OcclusionExponent;
-			LightmassSettings.FullyOccludedSamplesFraction = LMLevelSettings_DEPRECATED->FullyOccludedSamplesFraction;
-			LightmassSettings.MaxOcclusionDistance = LMLevelSettings_DEPRECATED->MaxOcclusionDistance;
-		}
-	}
-
 	// add references to path constraints/goal evals in the pool
 	if( Ar.IsObjectReferenceCollector() )
 	{
@@ -2920,15 +2899,9 @@ void AWorldInfo::PostLoad()
 	}
 #endif
 
-	if( GUsingMobileRHI )
-	{
-		RHISetMobileFogParams(bFogEnabled, FogStart, FogEnd, FogColor);
-		RHISetMobileBumpOffsetParams(bBumpOffsetEnabled, BumpEnd);
-	}
-
 	if (GetLinker() && (GetLinker()->Ver() < VER_RENAMED_GROUPS_TO_LAYERS))
 	{
-		VisibleLayers = VisibleGroups_DEPRECATED;
+		SelectedGroups = VisibleGroups_DEPRECATED;
 	}
 }
 
@@ -3323,7 +3296,7 @@ UBOOL AWorldInfo::GetAllowTemporalAA() const
 		CurrentWorldInfo = StreamingLevels(0)->LoadedLevel->GetWorldInfo();
 	}
 
-	return CurrentWorldInfo->bAllowTemporalAA;
+	return FALSE;
 }
 
 FLinearColor AWorldInfo::GetEnvironmentColor() const
@@ -3355,7 +3328,7 @@ INT AWorldInfo::GetAudioSettings( const FVector& ViewLocation, FReverbSettings* 
 	// Find the highest priority volume encompassing the current view location. This is made easier by the linked
 	// list being sorted by priority. @todo: it remains to be seen whether we should trade off sorting for constant
 	// time insertion/ removal time via e.g. TLinkedList.
-	AReverbVolume* Volume = HighestPriorityReverbVolume;
+	AReverbVolume* Volume = NULL;
 	while( Volume )
 	{
 		// Volume encompasses, break out of loop.
@@ -3399,12 +3372,12 @@ INT AWorldInfo::GetAudioSettings( const FVector& ViewLocation, FReverbSettings* 
 
 		if( OutReverbSettings )
 		{
-			*OutReverbSettings = CurrentWorldInfo->DefaultReverbSettings;
+			*OutReverbSettings = FReverbSettings(EC_EventParm);
 		}
 
 		if( OutInteriorSettings )
 		{
-			*OutInteriorSettings = CurrentWorldInfo->DefaultAmbientZoneSettings;
+			*OutInteriorSettings = FInteriorSettings(EC_EventParm);
 		}
 	}
 

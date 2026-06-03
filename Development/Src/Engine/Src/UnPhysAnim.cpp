@@ -396,7 +396,7 @@ void USkeletalMeshComponent::UpdateRBJointMotors()
 
 			// If we found this bone, and a visible bone that is not the root, and its joint is motorised in some way..
 			if( (BoneIndex != INDEX_NONE) && (BoneIndex != 0) &&
-				(BoneVisibilityStates(BoneIndex) == BVS_Visible) &&
+				(BoneVisibility(BoneIndex) == BVS_Visible) &&
 				(CI->bSwingPositionDrive || CI->bTwistPositionDrive) )
 			{
 				check(BoneIndex < LocalAtoms.Num());

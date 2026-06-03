@@ -3765,7 +3765,6 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 			LoadClass->GetName() == "SeqAct_Interp" ||
 			LoadClass->GetName() == "NavigationMeshBase" ||
 
-            LoadClass->GetName() == "LightMapTexture2D" ||
 			LoadClass->GetName() == "TextureCube" ||
 			LoadClass->GetName() == "TextureRenderTarget2D" ||
             LoadClass->GetName() == "FaceFxAnimSet"

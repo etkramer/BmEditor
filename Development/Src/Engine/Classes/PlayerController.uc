@@ -3515,7 +3515,7 @@ function ClientUpdatePosition()
 	local bool		bRealPreciseDestination;
 	local bool		bRealForceMaxAccel;
 	local bool		bRealRootMotionFromInterpCurve;
-	local ERootMotionMode RealRootMotionMode;
+	local SkeletalMeshComponent.ERootMotionMode RealRootMotionMode;
 `if(`notdefined(FINAL_RELEASE))
 	local Vector	OldLoc;
 `endif

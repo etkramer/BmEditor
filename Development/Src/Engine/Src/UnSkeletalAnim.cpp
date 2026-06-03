@@ -4869,7 +4869,7 @@ void UAnimNotify_Trails::HandleNotify(class UAnimNodeSequence* InNodeSeq, ETrail
 				if (bShowInEditor == TRUE)
 				{
 					SavedLocalToWorld = InNodeSeq->SkelComponent->LocalToWorld;
-					FTranslationMatrix TransMat(InNodeSeq->SkelComponent->LocalToWorld.TransformNormal(InNodeSeq->SkelComponent->RootBoneTranslation));
+					FTranslationMatrix TransMat(FVector(0.f));
 					InNodeSeq->SkelComponent->LocalToWorld *= TransMat;
 				}
 

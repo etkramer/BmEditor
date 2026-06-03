@@ -2544,21 +2544,13 @@ void TickRBPhysScene(FRBPhysScene* Scene, FLOAT DeltaTime)
 	check(Info);
 	FPhysXSceneProperties & SceneProperties = Info->PhysicsProperties;
 
-	FLOAT UseDelta;
-	if(Info->bPhysicsIgnoreDeltaTime)
-	{
-		UseDelta = 0.033f * Info->TimeDilation;
-	}
-	else
-	{
-		/** 
-		* clamp down... if this happens we are simming physics slower than real-time, so be careful with it.
-		* it can improve framerate dramatically (really, it is the same as scaling all velocities down and
-		 * enlarging all timesteps) but at the same time, it will screw with networking (client and server will
-		* diverge a lot more.)
-		*/
-		UseDelta = ::Min(DeltaTime, Info->MaxPhysicsDeltaTime);
-	}
+	/**
+	* clamp down... if this happens we are simming physics slower than real-time, so be careful with it.
+	* it can improve framerate dramatically (really, it is the same as scaling all velocities down and
+	 * enlarging all timesteps) but at the same time, it will screw with networking (client and server will
+	* diverge a lot more.)
+	*/
+	FLOAT UseDelta = ::Min(DeltaTime, Info->MaxPhysicsDeltaTime);
 
 	FLOAT MaxSubstep = SceneProperties.PrimaryScene.TimeStep;
 	INT MaxSubsteps = ::Min(SceneProperties.PrimaryScene.MaxSubSteps, Info->MaxPhysicsSubsteps);
@@ -3440,5 +3432,3 @@ void ListAwakeRigidBodies()
 	debugf(TEXT("TOTAL: %d awake bodies."), BodyCount);
 #endif // WITH_NOVODEX
 }
-
-

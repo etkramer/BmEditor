@@ -29,7 +29,7 @@ var float AccelDotThreshold;	// threshold for deciding this is an "important" mo
 var bool			bRootMotionFromInterpCurve;
 var float			RootMotionInterpCurrentTime;
 var Vector			RootMotionInterpCurveLastValue;
-var ERootMotionMode	RootMotionMode;
+var SkeletalMeshComponent.ERootMotionMode	RootMotionMode;
 
 function Clear()
 {

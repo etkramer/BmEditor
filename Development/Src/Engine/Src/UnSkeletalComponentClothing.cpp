@@ -33,7 +33,7 @@ static void SetGroupsMask(USkeletalMeshComponent* SkelComp, ::NxParameterized::I
 	if ( np )
 	{
 		NxGroupsMask nClothingMask = CreateGroupsMask(SkelComp->ApexClothingRBChannel, &SkelComp->ApexClothingRBCollideWithChannels);
-		NxGroupsMask nClothingCollisionMask = CreateGroupsMask(SkelComp->ApexClothingCollisionRBChannel, NULL);
+		NxGroupsMask nClothingCollisionMask = CreateGroupsMask(SkelComp->ApexClothingRBChannel, NULL);
 
 		NxParameterized::setParamU32(*np,"clothDescTemplate.collisionGroup", SkelComp->ApexClothingRBChannel);
 		NxParameterized::setParamU32(*np,"clothDescTemplate.groupsMask.bits0", nClothingMask.bits0 );
@@ -41,7 +41,7 @@ static void SetGroupsMask(USkeletalMeshComponent* SkelComp, ::NxParameterized::I
 		NxParameterized::setParamU32(*np,"clothDescTemplate.groupsMask.bits2", nClothingMask.bits2 );
 		NxParameterized::setParamU32(*np,"clothDescTemplate.groupsMask.bits3", nClothingMask.bits3 );
 
-		NxParameterized::setParamU32(*np,"shapeDescTemplate.collisionGroup", SkelComp->ApexClothingCollisionRBChannel);
+		NxParameterized::setParamU32(*np,"shapeDescTemplate.collisionGroup", SkelComp->ApexClothingRBChannel);
 		NxParameterized::setParamU32(*np,"shapeDescTemplate.groupsMask.bits0", nClothingCollisionMask.bits0 );
 		NxParameterized::setParamU32(*np,"shapeDescTemplate.groupsMask.bits1", nClothingCollisionMask.bits1 );
 		NxParameterized::setParamU32(*np,"shapeDescTemplate.groupsMask.bits2", nClothingCollisionMask.bits2 );
@@ -61,16 +61,7 @@ void USkeletalMeshComponent::TickApexClothing(FLOAT DeltaTime)
 		{
 			// Get wind in world space
 			FVector WorldSpaceWind;
-			if(bLocalSpaceWind)
-			{
-				FMatrix LocalToWorldNoScale = LocalToWorld;
-				LocalToWorldNoScale.RemoveScaling();
-				WorldSpaceWind = LocalToWorldNoScale.TransformNormal(WindVelocity);
-			}
-			else
-			{
-				WorldSpaceWind = WindVelocity;
-			}
+			WorldSpaceWind = WindVelocity;
 
 
 			physx::PxF32 WindVector[3];

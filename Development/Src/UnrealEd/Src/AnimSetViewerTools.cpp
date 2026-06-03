@@ -418,7 +418,6 @@ void WxAnimSetViewer::SetSelectedSkelMesh(USkeletalMesh* InSkelMesh, UBOOL bClea
 	// Turn off soft-body sim when we change mesh. Reinitialize data buffers for previewing if we already have generated tetras.
 	ToolBar->ToggleTool(IDM_ANIMSET_SOFTBODYTOGGLESIM, FALSE);
 	PreviewSkelComp->TermSoftBodySim(NULL);
-	PreviewSkelComp->bEnableSoftBodySimulation = FALSE;
 	if(InSkelMesh->SoftBodyTetraVertsUnscaled.Num() > 0)
 	{
 		FlushRenderingCommands();
@@ -2788,7 +2787,7 @@ void WxAnimSetViewer::TickViewer(FLOAT DeltaSeconds)
 	// update the instanced influence weights if needed
 	for (INT LODIdx=0; LODIdx<PreviewSkelComp->LODInfo.Num(); LODIdx++)
 	{
-		if( PreviewSkelComp->LODInfo(LODIdx).bNeedsInstanceWeightUpdate )
+		if( PreviewSkelComp->bNeedsInstanceWeightUpdate )
 		{
 			PreviewSkelComp->UpdateInstanceVertexWeights(LODIdx);
 		}
@@ -2807,7 +2806,7 @@ void WxAnimSetViewer::TickViewer(FLOAT DeltaSeconds)
 	// update the instanced influence weights if needed
 	for (INT LODIdx=0; LODIdx<PreviewSkelCompRaw->LODInfo.Num(); LODIdx++)
 	{
-		if( PreviewSkelCompRaw->LODInfo(LODIdx).bNeedsInstanceWeightUpdate )
+		if( PreviewSkelCompRaw->bNeedsInstanceWeightUpdate )
 		{
 			PreviewSkelCompRaw->UpdateInstanceVertexWeights(LODIdx);
 		}
@@ -4583,15 +4582,7 @@ void WxAnimSetViewer::OnFillSkeletonTree(wxCommandEvent &In)
 			if (SelectedSkelMesh->LODModels.IsValidIndex(PreviewSkelComp->PredictedLODLevel))
 			{
 				const FStaticLODModel& LODModel = SelectedSkelMesh->LODModels(PreviewSkelComp->PredictedLODLevel);
-				const FSkelMeshComponentLODInfo& LODInfo = PreviewSkelComp->LODInfo(PreviewSkelComp->PredictedLODLevel);
-				if (bPreviewInstanceWeights && LODInfo.InstanceWeightUsage == IWU_FullSwap && LODModel.VertexInfluences.Num() > 0)
-				{
-					RequiredBones = LODModel.VertexInfluences(0).RequiredBones;
-				}
-				else
-				{
-					RequiredBones = LODModel.RequiredBones;
-				}
+				RequiredBones = LODModel.RequiredBones;
 			}
 		}
 

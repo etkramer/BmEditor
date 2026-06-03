@@ -326,7 +326,7 @@ void WxLayerBrowser::Update()
 
 		// Assemble the set of visible layers.
 		TArray<FString> LayerArray;
-		GWorld->GetWorldInfo()->VisibleLayers.ParseIntoArray( &LayerArray, TEXT(","), FALSE );
+		GWorld->GetWorldInfo()->VisibleGroups_DEPRECATED.ParseIntoArray( &LayerArray, TEXT(","), FALSE );
 
 		// Assemble a list of selected layer names.
 		TArray<FString> SelectedLayerNames;
@@ -452,7 +452,7 @@ void WxLayerBrowser::UpdateActorVisibility()
 		}
 	}
 
-	GWorld->GetWorldInfo()->VisibleLayers = VisibleLayersList;
+	GWorld->GetWorldInfo()->VisibleGroups_DEPRECATED = VisibleLayersList;
 
 	// Update components for actors whose hidden status changed.
 	for ( INT ActorIndex = 0 ; ActorIndex < ActorsNeedingComponentUpdate.Num() ; ++ActorIndex )
@@ -694,11 +694,11 @@ void WxLayerBrowser::OnNewLayer( wxCommandEvent& In )
 	WxDlgLayer dlg;
 	if( dlg.ShowModal( TRUE, DefaultName ) == wxID_OK )
 	{
-		if( GWorld->GetWorldInfo()->VisibleLayers.Len() )
+		if( GWorld->GetWorldInfo()->VisibleGroups_DEPRECATED.Len() )
 		{
-			GWorld->GetWorldInfo()->VisibleLayers += TEXT(",");
+			GWorld->GetWorldInfo()->VisibleGroups_DEPRECATED += TEXT(",");
 		}
-		GWorld->GetWorldInfo()->VisibleLayers += dlg.GetObjectName();
+		GWorld->GetWorldInfo()->VisibleGroups_DEPRECATED += dlg.GetObjectName();
 
 		const FScopedTransaction Transaction( *LocalizeUnrealEd(TEXT("AddSelectedActorsLayer")) );
 
@@ -804,11 +804,11 @@ void WxLayerBrowser::OnRename( wxCommandEvent& In )
 					}
 
 					// Mark the new layer as visible.
-					if( GWorld->GetWorldInfo()->VisibleLayers.Len() )
+					if( GWorld->GetWorldInfo()->VisibleGroups_DEPRECATED.Len() )
 					{
-						GWorld->GetWorldInfo()->VisibleLayers += TEXT(",");
+						GWorld->GetWorldInfo()->VisibleGroups_DEPRECATED += TEXT(",");
 					}
-					GWorld->GetWorldInfo()->VisibleLayers += dlg.GetObjectName();
+					GWorld->GetWorldInfo()->VisibleGroups_DEPRECATED += dlg.GetObjectName();
 
 					// update all views's hidden layers if they had this one
 					for (INT ViewIndex = 0; ViewIndex < GUnrealEd->ViewportClients.Num(); ViewIndex++)

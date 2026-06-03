@@ -3109,26 +3109,6 @@ void USkeletalMeshComponent::AddImpulse(FVector Impulse, FVector Position, FName
 	}
 #  endif // !NX_DISABLE_CLOTH
 
-#  if !NX_DISABLE_SOFTBODY
-	if(SoftBodySim && bEnableSoftBodySimulation)
-	{
-		NxSoftBody* SoftBody = (NxSoftBody *)SoftBodySim;
-
-		NxRay nWorldRay;
-		NxVec3 nHit;
-		NxU32 nVertexId;
-
-		FVector ImpulseDir = Impulse.SafeNormal();
-		nWorldRay.orig = U2NPosition(Position - (10.f*ImpulseDir));
-		nWorldRay.dir = U2NVectorCopy(ImpulseDir);
-
-		// TODO: Avoid extra ray cast just to find closest vert
-		if(SoftBody->raycast(nWorldRay, nHit, nVertexId))
-		{
-			SoftBody->addForceAtVertex(nImpulse * SoftBodyImpulseScale, nVertexId, ForceMode);
-		}
-	}
-#  endif // !NX_DISABLE_SOFTBODY
 #endif // WITH_NOVODEX
 }
 
@@ -3347,13 +3327,6 @@ void USkeletalMeshComponent::InitComponentRBPhys(UBOOL bFixed)
 		{
 			InitClothMetal();
 		}
-	}
-
-	// Init SoftBody if desired
-	if(bEnableSoftBodySimulation)
-	{
-		FRBPhysScene* UseScene = GWorld->RBPhysScene;
-		InitSoftBodySim(UseScene);
 	}
 
 	// Iterate over attached components, calling InitComponentRBPhys on each.
@@ -4197,22 +4170,6 @@ void USkeletalMeshComponent::UpdateClothBounds()
 
 #endif
 
-//TODO: Move this to UpdateSoftBodyBounds() or rename
-#if WITH_NOVODEX && !NX_DISABLE_SOFTBODY
-
-	if(SoftBodySim != NULL)
-	{
-		NxSoftBody* nSoftBody = (NxSoftBody *)SoftBodySim;
-
-		NxBounds3 nSoftBodyBounds;
-		nSoftBody->getWorldBounds(nSoftBodyBounds);
-
-		FBox SoftBodyBox = FBox(N2UPosition(nSoftBodyBounds.min), N2UPosition(nSoftBodyBounds.max) );
-
-		Bounds = Bounds + FBoxSphereBounds(SoftBodyBox);
-	}
-#endif //WITH_NOVODEX && !NX_DISABLE_SOFTBODY
-
 }
 
 /** Attach/detach verts from physics body that this components actor is attached to. */
@@ -4384,7 +4341,7 @@ void USkeletalMeshComponent::execSetClothFrozen( FFrame& Stack, RESULT_DECL )
 void USkeletalMeshComponent::SaveAnimSets()
 {
 	// if it does have cached value, restore to default first
-	if ( bValidTemporarySavedAnimSets==TRUE )
+	if ( TemporarySavedAnimSets.Num() > 0 )
 	{
 		RestoreSavedAnimSets();
 	}
@@ -4395,7 +4352,6 @@ void USkeletalMeshComponent::SaveAnimSets()
 		TemporarySavedAnimSets = AnimSets;
 	}
 
-	bValidTemporarySavedAnimSets = TRUE;
 }
 
 
@@ -4406,7 +4362,7 @@ void USkeletalMeshComponent::SaveAnimSets()
  */
 void USkeletalMeshComponent::RestoreSavedAnimSets()
 {
-	if (bValidTemporarySavedAnimSets == TRUE)
+	if (TemporarySavedAnimSets.Num() > 0)
 	{
 		AnimSets.Empty();
 		if( TemporarySavedAnimSets.Num() > 0 )
@@ -4414,7 +4370,6 @@ void USkeletalMeshComponent::RestoreSavedAnimSets()
 			AnimSets = TemporarySavedAnimSets;
 			TemporarySavedAnimSets.Empty();
 		}
-		bValidTemporarySavedAnimSets = FALSE;
 	}
 }
 
@@ -4453,7 +4408,7 @@ void USkeletalMeshComponent::HideBone( INT BoneIndex, EPhysBodyOp PhysBodyOption
 	if ( BoneIndex != INDEX_NONE )
 	{
 		LocalAtoms( BoneIndex ).SetScale(0.0f);
-		BoneVisibilityStates( BoneIndex ) = BVS_ExplicitlyHidden;
+		BoneVisibility( BoneIndex ) = BVS_ExplicitlyHidden;
 		RebuildVisibilityArray();
 		bRequiredBonesUpToDate = FALSE;
 
@@ -4484,10 +4439,10 @@ void USkeletalMeshComponent::UnHideBone( INT BoneIndex )
 	{
 		LocalAtoms( BoneIndex ).SetScale(1.0f);
 
-		//@TODO: If unhiding the child of a still hidden bone (coming in, BoneVisibilityStates(RefSkel(BoneIndex).ParentIndex) != BVS_Visible),
+		//@TODO: If unhiding the child of a still hidden bone (coming in, BoneVisibility(RefSkel(BoneIndex).ParentIndex) != BVS_Visible),
 		// should we be re-enabling collision bodies?
 		// Setting visible to true here is OK in either case as it will be reset to BVS_HiddenByParent in RecalcRequiredBones later if needed.
-		BoneVisibilityStates( BoneIndex ) = BVS_Visible;
+		BoneVisibility( BoneIndex ) = BVS_Visible;
 		RebuildVisibilityArray();
 		bRequiredBonesUpToDate = FALSE;
 
@@ -4510,7 +4465,7 @@ UBOOL USkeletalMeshComponent::IsBoneHidden( INT BoneIndex )
 {
 	if ( BoneIndex != INDEX_NONE )
 	{
-		return BoneVisibilityStates( BoneIndex ) != BVS_Visible;
+		return BoneVisibility( BoneIndex ) != BVS_Visible;
 	}
 	return FALSE;
 }
@@ -6455,4 +6410,3 @@ AKActorFromStatic* AKActorFromStatic::MakeDynamic(UStaticMeshComponent* MovableM
 
 	return MyKActor;
 }
-

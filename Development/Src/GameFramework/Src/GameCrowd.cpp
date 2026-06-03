@@ -32,6 +32,11 @@ IMPLEMENT_CLASS(AGameCrowdPopulationManager);
 IMPLEMENT_CLASS(AGameCrowdSpawnRelativeActor);
 IMPLEMENT_CLASS(AGameCrowdInfoVolume);
 
+static ACrowdPopulationManagerBase* GetWorldPopulationManager(AWorldInfo* WorldInfo)
+{
+	return (WorldInfo != NULL && WorldInfo->Game != NULL) ? WorldInfo->Game->PopulationManager : NULL;
+}
+
 // Crowd stats
 DECLARE_STATS_GROUP(TEXT("Crowd"), STATGROUP_Crowd);
 
@@ -548,7 +553,7 @@ void AGameCrowdAgent::UpdateProximityInfo()
 	}
 	Mark.Pop();
 
-	AGameCrowdPopulationManager* PopMgr = Cast<AGameCrowdPopulationManager>(WorldInfo->PopulationManager);
+	AGameCrowdPopulationManager* PopMgr = Cast<AGameCrowdPopulationManager>(GetWorldPopulationManager(WorldInfo));
 	if( PopMgr != NULL )
 	{
 		PopMgr->GetAlwaysRelevantDynamics( this );
@@ -1126,7 +1131,7 @@ void UGameCrowdAgentBehavior::Tick(FLOAT DeltaTime)
 	AWorldInfo* Info = GWorld->GetWorldInfo();
 	if( Info != NULL )
 	{
-		AGameCrowdPopulationManager* PopMgr = Cast<AGameCrowdPopulationManager>(Info->PopulationManager);
+		AGameCrowdPopulationManager* PopMgr = Cast<AGameCrowdPopulationManager>(GetWorldPopulationManager(Info));
 		if( PopMgr != NULL && PopMgr->bPauseCrowd )
 		{
 			return;
@@ -1729,7 +1734,7 @@ UBOOL AGameCrowdAgent::ShouldPerformCrowdSimulation(FLOAT DeltaTime)
 	ForceUpdateTime = ::Max(LastRenderTime, ForceUpdateTime);
 	if( NotVisibleLifeSpan > 0.f && WorldInfo->TimeSeconds - ForceUpdateTime > NotVisibleLifeSpan )
 	{
-		AGameCrowdPopulationManager* PopMgr = Cast<AGameCrowdPopulationManager>(WorldInfo->PopulationManager);
+		AGameCrowdPopulationManager* PopMgr = Cast<AGameCrowdPopulationManager>(GetWorldPopulationManager(WorldInfo));
 		if( PopMgr != NULL )
 		{
 			// don't destroy if still in line of sight and not too far away
@@ -2085,7 +2090,7 @@ void USeqAct_GameCrowdPopulationManagerToggle::Activated()
 	AWorldInfo* Info = GWorld->GetWorldInfo();
 	if( Info != NULL )
 	{
-		ACrowdPopulationManagerBase* PM = Info->PopulationManager;
+		ACrowdPopulationManagerBase* PM = GetWorldPopulationManager(Info);
 		if( PM != NULL )
 		{
 			Targets.Empty();
@@ -2340,7 +2345,7 @@ void AGameCrowdAgent::CheckSeePlayer()
 	// check if can see local player
 	if( bWantsSeePlayerNotification && (WorldInfo->TimeSeconds - LastRenderTime < 0.1f) )
 	{
-		AGameCrowdPopulationManager* PopMgr = Cast<AGameCrowdPopulationManager>(WorldInfo->PopulationManager);
+		AGameCrowdPopulationManager* PopMgr = Cast<AGameCrowdPopulationManager>(GetWorldPopulationManager(WorldInfo));
 		if( PopMgr != NULL && PopMgr->GetPlayerInfo() )
 		{
 			for( INT PlayerIdx = 0; PlayerIdx < PopMgr->PlayerInfo.Num(); ++PlayerIdx )   

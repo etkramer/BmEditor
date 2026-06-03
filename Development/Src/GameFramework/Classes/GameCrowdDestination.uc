@@ -169,7 +169,7 @@ simulated function PostBeginPlay()
 	}
 
 	// Add self to population manager list
-	PopMgr = GameCrowdPopulationManager(WorldInfo.PopulationManager);
+	PopMgr = GameCrowdPopulationManager(WorldInfo.Game.PopulationManager);
 	if ( PopMgr != None )
 	{
 		PopMgr.AddSpawnPoint(self);

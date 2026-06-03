@@ -567,7 +567,7 @@ void UAnimNodeSequence::GetAnimationPose(UAnimSequence* InAnimSeq, INT& InAnimLi
 	check(AnimLinkup->BoneToTrackTable.Num() == NumBones);
 
 	// bAnimRotationOnly settings.
-	const UBOOL bAnimRotationOnly = (SkelComponent->AnimRotationOnly == EARO_AnimSet) ? AnimSet->bAnimRotationOnly : (SkelComponent->AnimRotationOnly == EARO_ForceEnabled ? TRUE : FALSE); 
+	const UBOOL bAnimRotationOnly = AnimSet->bAnimRotationOnly;
 	
 	// Are we doing root motion for this node?
 	const UBOOL bDoRootTranslation	= (RootBoneOption[0] != RBA_Default) || (RootBoneOption[1] != RBA_Default) || (RootBoneOption[2] != RBA_Default);

@@ -15,6 +15,27 @@ class WorldInfo extends ZoneInfo
 	dependson(PostProcessEffect)
 	dependson(MusicTrackDataStructures);
 
+enum EVisibilityAggressiveness
+{
+	VIS_LeastAggressive,
+	VIS_ModeratelyAggressive,
+	VIS_MostAggressive,
+	VIS_Max
+};
+
+/** Struct used for passing back results from GetWorldFractureSettings */
+struct native WorldFractureSettings
+{
+	var	float	ChanceOfPhysicsChunkOverride;
+	var	bool	bEnableChanceOfPhysicsChunkOverride;
+	var bool	bLimitExplosionChunkSize;
+	var float	MaxExplosionChunkSize;
+	var bool	bLimitDamageChunkSize;
+	var float	MaxDamageChunkSize;
+	var int		MaxNumFacturedChunksToSpawnInAFrame;
+	var float	FractureExplosionVelScale;
+};
+
 /** Default post process settings used by post processing volumes.									*/
 var(WorldInfo)	config				PostProcessSettings		DefaultPostProcessSettings;
 
@@ -23,40 +44,6 @@ var(WorldInfo)						PostProcessChain		WorldPostProcessChain;
 
 /** Whether or not post process effects should persist when this level is unloaded					*/
 var(WorldInfo) config				bool					bPersistPostProcessToNextLevel;
-
-/** Squint mode kernel size (same as DOF). */
-var(WorldInfo) config				float					SquintModeKernelSize;
-
-/** Linked list of post processing volumes, sorted in descending order of priority.					*/
-var	const noimport transient		PostProcessVolume		HighestPriorityPostProcessVolume;
-
-/** Default reverb settings used by reverb volumes.													*/
-var(WorldInfo)	config				ReverbSettings			DefaultReverbSettings;
-
-/** Default interior settings used by reverb volumes.												*/
-var(WorldInfo)	config				InteriorSettings		DefaultAmbientZoneSettings;
-
-var(Mobile) bool  bFogEnabled;
-var(Mobile) float FogStart;
-var(Mobile) float FogEnd;
-var(Mobile) color FogColor;
-
-var(Mobile) bool  bBumpOffsetEnabled;
-var(Mobile) float BumpEnd;
-
-/** Linked list of reverb volumes, sorted in descending order of priority.							*/
-var	const noimport transient		ReverbVolume			HighestPriorityReverbVolume;
-
-/** Array of AMassiveLODOverrideVolume's in the world. */
-var	const noimport transient		array<MassiveLODOverrideVolume>	MassiveLODOverrideVolumes;
-
-/** A array of portal volumes */
-var	const noimport transient		array<PortalVolume>		PortalVolumes;
-/** An array of environment volumes */
-var	const noimport transient		array<EnvironmentVolume>    EnvironmentVolumes;
-
-/** Level collection. ULevels are referenced by FName (Package name) to avoid serialized references. Also contains offsets in world units */
-var(WorldInfo) const editconst editinline array<LevelStreaming> StreamingLevels;
 
 /**
  * This is a bool on the level which is set when a light that needs to have lighting rebuilt
@@ -73,8 +60,6 @@ var 					bool 					bMapHasDLEsOutsideOfImportanceVolume;
 
 /** Set to true when one or primitives are affected by multiple dominant lights. */
 var                     bool                    bMapHasMultipleDominantLightsAffectingOnePrimitive;
-/** Time in appSeconds unbuilt time was last encountered. 0 means not yet.							*/
-var	transient			double					LastTimeUnbuiltLightingWasEncountered;
 
 /**
  * This is a bool on the level which is set when the AI detects that paths are either not set up correctly
@@ -85,26 +70,9 @@ var						bool					bMapHasPathingErrors;
 /** Whether it was requested that the engine bring up a loading screen and block on async loading. */
 var						bool					bRequestedBlockOnAsyncLoading;
 
-var(Editor)	editoronly			BookMark				BookMarks[10];			// Level bookmarks
-var(Editor)	editoronly	KismetBookMark			KismetBookMarks[10];	// Kismet bookmarks
-var(Editor)	editoronly editinline	array<ClipPadEntry>		ClipPadEntries;			// Clip pad entries
-var						float					TimeDilation;			// Normally 1 - scales real time passage.
-var						float					DemoPlayTimeDilation;		// additional TimeDilation applied only during demo playback
-var	transient			float					TimeSeconds;			// Time in seconds since level began play, but IS paused when the game is paused, and IS dilated/clamped.
-var	transient			float					RealTimeSeconds;		// Time in seconds since level began play, but is NOT paused when the game is paused, and is NOT dilated/clamped.
-var transient           float                   AudioTimeSeconds;		// Time in seconds since level began play, but IS paused when the game is paused, and is NOT dilated/clamped.
-var	transient const		float					DeltaSeconds;			// Frame delta time in seconds adjusted by e.g. time dilation.
-var transient			float					PauseDelay;				// time at which to start pause
-var transient			float					RealTimeToUnPause;		// If non-zero, when RealTimeSeconds reaches this, unpause the game.
-
-var						PlayerReplicationInfo	Pauser;					// If paused, name of person pausing the game.
-var	editoronly deprecated string				VisibleGroups;			// List of the group names which were checked when the level was last saved
-var	editoronly			string					VisibleLayers;			// List of the layer names which were checked when the level was last saved
-
 var						bool					bBegunPlay;				// Whether gameplay has begun.
 var						bool					bPlayersOnly;			// Only update players.
 var						bool					bPlayersOnlyPending;	// Only update players.  Next frame will set bPlayersOnly
-var                     bool                    bSuspendAI;             // Hook for game-specific suspension of AI processing
 var transient			bool					bDropDetail;			// frame rate is below DesiredFrameRate, so drop high detail actors
 var transient			bool					bAggressiveLOD;			// frame rate is well below DesiredFrameRate, so make LOD more aggressive
 var						bool					bStartup;				// Starting gameplay.
@@ -120,6 +88,71 @@ var	transient const		bool					bIsMenuLevel;
  * currently set when you are running a console build (implicitly or explicitly via ?param on the commandline)
  */
 var						transient bool			bUseConsoleInput;
+
+/** if true, do not grant player with default inventory (presumably, the LD's will be setting it manually) */
+var()					bool					bNoDefaultInventoryForPlayer;
+
+/** If true, don't add "no paths from" warnings to map error list in editor.  Useful for maps that don't need AI support, but still have a few NavigationPoint actors in them. */
+var() bool bNoPathWarnings;
+
+/** when this flag is set, more time is allocated to background loading (replicated) */
+var bool bHighPriorityLoading;
+/** copy of bHighPriorityLoading that is not replicated, for clientside-only loading operations */
+var bool bHighPriorityLoadingLocal;
+var bool DebugMenuWantsPause;
+var(PhysicsAdvanced)	bool								bSupportDoubleBufferedPhysics;
+var(Fracture)	private{private} config bool	bEnableChanceOfPhysicsChunkOverride;
+var(Fracture)	private{private} config bool		bLimitExplosionChunkSize;
+var(Fracture)	private{private} config bool		bLimitDamageChunkSize;
+var	(PrecomputedVisibility)		bool	bPrecomputeVisibility;
+var	(PrecomputedVisibility)		bool	bPlaceCellsOnSurfaces;
+var	(LightEnvironment)			bool	bAllowLightEnvSphericalHarmonicLights;
+var	(Rendering)					bool	bAllowModulateBetterShadows;
+var	(Rendering)					bool	bIncreaseFogNearPrecision;
+var(Lightmass) editoronly bool bUseGlobalIllumination;
+var(Lightmass) bool bForceNoPrecomputedLighting;
+var(Lightmass) bool		bSimpleLightmapsStoredInLinearSpace;
+var bool bHaveActiveCrowd;
+var bool bMapAudioMode;
+var config bool bAllowHostMigration;
+
+/** Squint mode kernel size (same as DOF). */
+var(WorldInfo) config				float					SquintModeKernelSize;
+
+/** Linked list of post processing volumes, sorted in descending order of priority.					*/
+var	const noimport transient		PostProcessVolume		HighestPriorityPostProcessVolume;
+var	transient					PostProcessVolume		ForcedActivePostProcessVolume;
+
+/** Array of AMassiveLODOverrideVolume's in the world. */
+var	const noimport transient		array<MassiveLODOverrideVolume>	MassiveLODOverrideVolumes;
+
+/** A array of portal volumes */
+var	const noimport transient		array<PortalVolume>		PortalVolumes;
+/** An array of environment volumes */
+var	const noimport transient		array<EnvironmentVolume>    EnvironmentVolumes;
+
+/** Level collection. ULevels are referenced by FName (Package name) to avoid serialized references. Also contains offsets in world units */
+var(WorldInfo) const editconst editinline array<LevelStreaming> StreamingLevels;
+
+/** Time in appSeconds unbuilt time was last encountered. 0 means not yet.							*/
+var	transient			double					LastTimeUnbuiltLightingWasEncountered;
+
+var(Editor)	editoronly			BookMark				BookMarks[10];			// Level bookmarks
+var(Editor)	editoronly	KismetBookMark			KismetBookMarks[10];	// Kismet bookmarks
+var(Editor)	editoronly editinline	array<ClipPadEntry>		ClipPadEntries;			// Clip pad entries
+var						float					TimeDilation;			// Normally 1 - scales real time passage.
+var						float					DemoPlayTimeDilation;		// additional TimeDilation applied only during demo playback
+var	transient			float					TimeSeconds;			// Time in seconds since level began play, but IS paused when the game is paused, and IS dilated/clamped.
+var	transient			float					RealTimeSeconds;		// Time in seconds since level began play, but is NOT paused when the game is paused, and is NOT dilated/clamped.
+var transient           float                   AudioTimeSeconds;		// Time in seconds since level began play, but IS paused when the game is paused, and is NOT dilated/clamped.
+var	transient const		float					DeltaSeconds;			// Frame delta time in seconds adjusted by e.g. time dilation.
+var transient			float					PauseDelay;				// time at which to start pause
+var transient			float					RealTimeToUnPause;		// If non-zero, when RealTimeSeconds reaches this, unpause the game.
+var transient			float					SubtitleTimeSeconds;
+
+var						PlayerReplicationInfo	Pauser;					// If paused, name of person pausing the game.
+var	editoronly deprecated string				VisibleGroups;			// List of the group names which were checked when the level was last saved
+var transient			string					SelectedGroups;
 
 var						Texture2D				DefaultTexture;
 var						Texture2D				WireframeTexture;
@@ -142,6 +175,18 @@ var enum ENetMode
 	NM_ListenServer,      // Listen server.
 	NM_Client             // Client only, no local server.
 } NetMode;
+
+/** The type of travel to perform next when doing a server travel */
+var ETravelType NextTravelType;
+
+/**
+ * Determines how aggressive precomputed visibility should be.
+ * More aggressive settings cull more objects but also cause more visibility errors like popping.
+ */
+var (PrecomputedVisibility)		WorldInfo.EVisibilityAggressiveness VisibilityAggressiveness;
+
+/** The lighting quality the level was last built with */
+var() editconst ELightingBuildQuality LevelLightingQuality;
 
 var						string					ComputerName;			// Machine's name according to the OS.
 var						string					EngineVersion;			// Engine version.
@@ -182,17 +227,12 @@ var const array<NetViewer> ReplicationViewers;
 
 var						string					NextURL;
 var						float					NextSwitchCountdown;
-/** The type of travel to perform next when doing a server travel */
-var ETravelType NextTravelType;
 
 /** Maximum size of textures for packed light and shadow maps */
 var()					int						PackedLightAndShadowMapTextureSize;
 
 /** Default color scale for the level */
 var()					vector					DefaultColorScale;
-
-/** if true, do not grant player with default inventory (presumably, the LD's will be setting it manually) */
-var()					bool					bNoDefaultInventoryForPlayer;
 
 /**
  * This is the list of GameTypes which this map can support.  This is used for SeekFree loading
@@ -216,29 +256,14 @@ var const transient name CommittedPersistentLevelName;
 
 var objectreferencer PersistentMapForcedObjects;
 
-
-/** Audio component used for playing music tracks via SeqAct_PlayMusicTrack */
-var transient AudioComponent MusicComp;
-/** Param information for the currently playing MusicComp */
-var transient MusicTrackStruct CurrentMusicTrack;
-/** Version of a new music track request replicated to clients */
-var transient repnotify MusicTrackStruct ReplicatedMusicTrack;
-
-/** If true, don't add "no paths from" warnings to map error list in editor.  Useful for maps that don't need AI support, but still have a few NavigationPoint actors in them. */
-var() bool bNoPathWarnings;
-
 /** title of the map displayed in the UI */
 var() localized string Title;
 
-var() string Author;
-
-/** when this flag is set, more time is allocated to background loading (replicated) */
-var bool bHighPriorityLoading;
-/** copy of bHighPriorityLoading that is not replicated, for clientside-only loading operations */
-var bool bHighPriorityLoadingLocal;
-
 /** game specific map information - access through GetMapInfo()/SetMapInfo() */
 var() protected{protected} instanced MapInfo MyMapInfo;
+var editoronly export transient array<object> ParticleAttractorComponents;
+var(Rocksteady) string SetFlagsInPIE;
+var(Rocksteady) editoronly name PlayerCharacterName;
 
 /** particle emitter pool for gameplay effects that are spawned independent of their owning Actor */
 var globalconfig string EmitterPoolClassPath;
@@ -255,14 +280,6 @@ var transient FractureManager MyFractureManager;
 /** Particle event manager **/
 var globalconfig string ParticleEventManagerClassPath;
 var transient ParticleEventManager MyParticleEventManager;
-
-/**
- * Overriding is useful for doing perf testing / load testing / being able to overcome memory issues in other tools until they are fixed
- * withOUT compromising the RuleSet creation process and the application of the rulesets in the level 
- */
-var(ProcBuildings) bool bUseProcBuildingRulesetOverride;
-var(ProcBuildings) editoronly ProcBuildingRuleset ProcBuildingRulesetOverride;
-
 
 /** For specifying which compartments should run on a given frame */
 struct native CompartmentRunList
@@ -305,6 +322,8 @@ struct native PhysXSimulationProperties
 	/** The fixed or maximum substep size, depending on the value of bFixedTimeStep. */
 	var() float	TimeStep;
 
+	var() float MaxTimeStep;
+
 	/** The maximum number of substeps allowed per frame. */
 	var() int		MaxSubSteps;
 
@@ -312,8 +331,9 @@ struct native PhysXSimulationProperties
 	{
 		bUseHardware=false
 		bFixedTimeStep=false
-		TimeStep=0.02
-		MaxSubSteps=5
+		TimeStep=0.1
+		MaxTimeStep=0.05
+		MaxSubSteps=2
 	}
 };
 
@@ -346,17 +366,11 @@ struct native PhysXSceneProperties
 
 /** Timings for primary and compartments. */
 
-/** Double buffered physics compartments enabled */
-var(PhysicsAdvanced)	bool								bSupportDoubleBufferedPhysics;
-
 /** The maximum frame time allowed for physics calculations */
 var(PhysicsAdvanced)	float								MaxPhysicsDeltaTime;
 
 /** The maximum number of substeps allowed in any physics scene/partition. */
 var				config int						MaxPhysicsSubsteps;
-
-/** If TRUE, physics simulation will ignore time elapsed between frames, and use (0.033 * TimeDilation) */
-var(Physics)    bool                            bPhysicsIgnoreDeltaTime;
 
 /** Timing parameters for the scene, primary and compartments. */
 var(PhysicsAdvanced)	editinline PhysXSceneProperties	PhysicsProperties;
@@ -465,33 +479,13 @@ enum EConsoleType
 	CONSOLE_Android, 
 };
 
-/** Struct used for passing back results from GetWorldFractureSettings */
-struct native WorldFractureSettings
-{
-	var	float	ChanceOfPhysicsChunkOverride;
-	var	bool	bEnableChanceOfPhysicsChunkOverride;
-	var bool	bLimitExplosionChunkSize;
-	var float	MaxExplosionChunkSize;
-	var bool	bLimitDamageChunkSize;
-	var float	MaxDamageChunkSize;
-	var int		MaxNumFacturedChunksToSpawnInAFrame;
-	var float	FractureExplosionVelScale;
-};
-
 // DO NOT READ THESE FRACTURE VALUES DIRECTLY - USE GetWorldFractureSettings FUNCTION TO HANDLE STREAMING CORRECTLY
 
 /** Allows global override of the ChanceOfPhysicsChunk setting. */
 var(Fracture)	private{private} config float	ChanceOfPhysicsChunkOverride;
 
-/** If TRUE, uses ChanceOfPhysicsChunkOverride instead of that set in the FracturedStaticMesh. */
-var(Fracture)	private{private} config bool	bEnableChanceOfPhysicsChunkOverride;
-
-/**	If TRUE, limit the max dimension of the bounding box of a fracture chunk due to explosion to MaxExplosionChunkSize */
-var(Fracture)	private{private} config bool		bLimitExplosionChunkSize;
 /** Max dimension of the bounding box of a fracture chunk due to explosion. */
 var(Fracture)	private{private} config float	MaxExplosionChunkSize;
-/**	If TRUE, limit the max dimension of the bounding box of a fracture chunk due to weapon damage to bLimitDamageChunkSize */
-var(Fracture)	private{private} config bool		bLimitDamageChunkSize;
 /** Max dimension of the bounding box of a fracture chunk due to weapon damage. */
 var(Fracture)	private{private} config float	MaxDamageChunkSize;
 /** Scaling for chunk thrown out during explosion on a fractured mesh */
@@ -506,37 +500,10 @@ var transient int NumFacturedChunksSpawnedThisFrame;
 var				config float	FracturedMeshWeaponDamage;
 
 /** 
- * Whether to place visibility cells inside Precomputed Visibility Volumes and along camera tracks in this level. 
- * Precomputing visibility reduces rendering thread time at the cost of some runtime memory and somewhat increased lighting build times.
- */
-var	(PrecomputedVisibility)		bool	bPrecomputeVisibility;
-
-/** 
- * Whether to place visibility cells on shadow casting surfaces only, or everywhere inside Precomputed Visibility Volumes. 
- * Placing cells everywhere in the volumes is useful for games where the camera is not restrained to an area around the ground,
- * But generates a lot more cells than just placing on surfaces, so build times and memory usage will increase.
- */
-var	(PrecomputedVisibility)		bool	bPlaceCellsOnSurfaces;
-
-/** 
  * World space size of precomputed visibility cells in x and y.
  * Smaller sizes produce more effective occlusion culling at the cost of increased runtime memory usage and lighting build times.
  */
 var	(PrecomputedVisibility)		int		VisibilityCellSize;
-
-enum EVisibilityAggressiveness
-{
-	VIS_LeastAggressive,
-	VIS_ModeratelyAggressive,
-	VIS_MostAggressive,
-	VIS_Max
-};
-
-/** 
- * Determines how aggressive precomputed visibility should be.  
- * More aggressive settings cull more objects but also cause more visibility errors like popping.
- */
-var (PrecomputedVisibility)		EVisibilityAggressiveness VisibilityAggressiveness;
 
 /** Brightness applied to the indirect lighting of character light environments that are lit by any dominant light. */
 var	(LightEnvironment)			float	CharacterLitIndirectBrightness <UIMin=0.1 | UIMax=1.0 | ClampMin=0.0 | ClampMax=5.0>;
@@ -555,18 +522,6 @@ var	(LightEnvironment)			float	CharacterShadowedIndirectContrastFactor <UIMin=1.
  * Note that this setting only affects light environments completely in shadow from all dominant lights.
  */
 var	(LightEnvironment)			float	CharacterLightingContrastFactor <UIMin=1.0 | UIMax=2.0 | ClampMin=0.5 | ClampMax=5.0>;
-
-/** Whether to allow spherical harmonic lights on light environments. If FALSE, a cheaper skylight will be used instead. */
-var	(LightEnvironment)			bool	bAllowLightEnvSphericalHarmonicLights;
-
-/** Whether to allow modulate-better shadows.  If FALSE, all modulate-better shadows will be rendered as cheaper modulated shadows. */
-var	(Rendering)					bool	bAllowModulateBetterShadows;
-
-/** Whether to increase precision close to the camera at the cost of distant precision */
-var	(Rendering)					bool	bIncreaseFogNearPrecision;
-
-/** Whether to allow temporal AA. */
-var (Rendering) globalconfig	bool	bAllowTemporalAA;
 
 /** 
  * Panoramic environment texture for image reflections. 
@@ -603,21 +558,10 @@ var transient native Map_Mirror ScreenMessages{TMap<INT, FScreenMessageString>};
 /** A collection of messages to display on-screen. */
 var transient native array<ScreenMessageString>	PriorityScreenMessages;
 
-/** Whether this level should be using fully-featured global illumination. If not, it will use old-style direct lightmaps. */
-var(Lightmass) editoronly bool bUseGlobalIllumination;
-
-/** 
- * Whether to force lightmaps and other precomputed lighting to not be created even when the engine thinks they are needed.
- * This is useful for improving iteration in levels with fully dynamic lighting and shadowing.
- * Note that any lighting and shadowing interactions that are usually precomputed will be lost if this is enabled.
- */
-var(Lightmass) bool bForceNoPrecomputedLighting;
-
 /** The number of triangles per leaf of the kdop tree in lightmass*/
 var editoronly int MaxTrianglesPerLeaf <FixedIncrement=4|ClampMin=4|Multiple=4>;
-
-/** The Lightmass-related settings for this level */
-var deprecated editoronly instanced LightmassLevelSettings LMLevelSettings;
+var editoronly export object InteractionManager;
+var vector PlayerLocation;
 
 struct native LightmassWorldInfoSettings
 {
@@ -676,9 +620,6 @@ struct native LightmassWorldInfoSettings
 	var(Debug)		bool		bVisualizeMaterialDiffuse;
 	/** If TRUE, override normal direct and indirect lighting with just the AO term. */
 	var(Debug)		bool		bVisualizeAmbientOcclusion;
-	/** If TRUE, compress shadowmap with DXT1. */
-	var(General)	bool		bCompressShadowmap;
-
 	// Default diffuse boost to a high value since diffuse textures are often authored centering around a value of .1 or so
 	// Change this to default closer to 1 if your game's diffuse textures average to closer to .5
 	structdefaultproperties
@@ -700,14 +641,10 @@ struct native LightmassWorldInfoSettings
 		MaxOcclusionDistance=200.0
 		bVisualizeMaterialDiffuse=false
 		bVisualizeAmbientOcclusion=false
-		bCompressShadowmap=false
 	}
 };
 
 var(Lightmass) LightmassWorldInfoSettings LightmassSettings <ScriptOrder=true>;
-
-/** Enables keeping 'simple' light maps in linear space for enhanced performance on mobile platforms */
-var(Lightmass) bool		bSimpleLightmapsStoredInLinearSpace;
 
 /**
  *	Path constraint path goal evaluator pools
@@ -732,15 +669,6 @@ struct native NavMeshPathGoalEvaluatorCacheDatum
 	var NavMeshPathGoalEvaluator List[MAX_INSTANCES_PER_CLASS];
 };
 var native map{UClass*, FNavMeshPathGoalEvaluatorCacheDatum} NavMeshPathGoalEvaluatorCache;
-
-/** Set if any CrowdAgents are currently spawned in this world - needs to be set when agent is spawned */
-var bool bHaveActiveCrowd;
-
-/** Population manager being used by this level */
-var CrowdPopulationManagerBase PopulationManager;
-
-/** The lighting quality the level was last built with */
-var() editconst ELightingBuildQuality LevelLightingQuality;
 
 /** Steps in host migration progression */
 enum EHostMigrationProgress
@@ -774,8 +702,6 @@ struct native HostMigrationState
 };
 /** Info relevant to migrating a client peer to new host */
 var const transient HostMigrationState PeerHostMigration;
-/** Config if TRUE then host migration is allowed to occur */
-var config bool bAllowHostMigration;
 /** Started as soon as a client peer disconnects.  If migration does succeed within this time then fall back to server disconnect failure */
 var config float HostMigrationTimeout;
 
@@ -934,10 +860,6 @@ native function NavMeshPathGoalEvaluator GetNavMeshPathGoalEvaluatorFromCache(cl
 
 simulated event ReplicatedEvent(Name VarName)
 {
-	if (VarName == 'ReplicatedMusicTrack')
-	{
-		UpdateMusicTrack(ReplicatedMusicTrack);
-	}
 	Super.ReplicatedEvent(VarName);
 }
 
@@ -1156,7 +1078,7 @@ function Reset()
 replication
 {
 	if( bNetDirty && Role==ROLE_Authority )
-		Pauser, TimeDilation, WorldGravityZ, bHighPriorityLoading, ReplicatedMusicTrack;
+		Pauser, TimeDilation, WorldGravityZ, bHighPriorityLoading;
 }
 
 /** returns all NavigationPoints in the NavigationPointList that are of the specified class or a subclass
@@ -1380,7 +1302,6 @@ defaultproperties
 	BSPVertex=Texture2D'EditorResources.BSPVertex'
 	bWorldGeometry=true
 	VisibleGroups="None"
-	VisibleLayers="None"
 	MoveRepSize=+42.0
 	bBlockActors=true
 	StallZ=+1000000.0
@@ -1421,16 +1342,6 @@ defaultproperties
 	NextTravelType=TRAVEL_Relative
 
 	bMovable=FALSE
-
-	// mobile fog settings
-	bFogEnabled = false;
-	FogStart = 400.0;
-	FogEnd = 4000.0;
-	FogColor = (R=128,G=128,B=255,A=192)
-
-	// mobile bump offset settings
-	bBumpOffsetEnabled = true;
-	BumpEnd = 1000.0;
 
 	// Set level lighting quality to invalid for new maps with no built lighting or old maps where
 	// quaility cant be determined.  The cooker will not warn when the quality is invalid

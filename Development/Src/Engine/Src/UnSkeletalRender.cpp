@@ -130,11 +130,11 @@ void FSkeletalMeshObject::InitLODInfos(const USkeletalMeshComponent* SkelCompone
 			const FSkelMeshComponentLODInfo &Info = SkelComponent->LODInfo(Idx);
 
 			MeshLODInfo.HiddenMaterials = Info.HiddenMaterials;
-			MeshLODInfo.InstanceWeightIdx = Info.InstanceWeightIdx;
-			MeshLODInfo.InstanceWeightUsage = (EInstanceWeightUsage)Info.InstanceWeightUsage;
+			MeshLODInfo.InstanceWeightIdx = 0;
+			MeshLODInfo.InstanceWeightUsage = IWU_PartialSwap;
 
 			// force toggle instance weight usage before skeletal mesh gets reinitialized
-			MeshLODInfo.bUseInstancedVertexInfluences = Info.bAlwaysUseInstanceWeights && !GSystemSettings.bDisableSkeletalInstanceWeights;
+			MeshLODInfo.bUseInstancedVertexInfluences = SkelComponent->bAlwaysUseInstanceWeights && !GSystemSettings.bDisableSkeletalInstanceWeights;
 		}		
 	}
 }

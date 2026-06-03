@@ -429,7 +429,6 @@ exec function PlayersOnly()
 
 exec function SuspendAI()
 {
-	WorldInfo.bSuspendAI = !WorldInfo.bSuspendAI;
 }
 
 /** Util for fracturing meshes within an area of the player. */

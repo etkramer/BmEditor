@@ -2268,7 +2268,7 @@ void WxAnimTreeEditor::TickPreview(FLOAT DeltaSeconds)
 		// update the instanced influence weights if needed
 		for (INT LODIdx=0; LODIdx<PreviewSkelComp->LODInfo.Num(); LODIdx++)
 		{
-			if( PreviewSkelComp->LODInfo(LODIdx).bNeedsInstanceWeightUpdate )
+			if( PreviewSkelComp->bNeedsInstanceWeightUpdate )
 			{
 				PreviewSkelComp->UpdateInstanceVertexWeights(LODIdx);
 			}
@@ -2789,6 +2789,5 @@ void WxAnimTreeEditor::OnAddNewEntryPreviewSocket( wxCommandEvent& In )
 	// Copy current selection to new entry
 	AnimTree->PreviewSocketList(AnimTree->PreviewSocketList.Num() - 1) = AnimTree->PreviewSocketList(AnimTree->PreviewSocketIndex);
 }
-
 
 

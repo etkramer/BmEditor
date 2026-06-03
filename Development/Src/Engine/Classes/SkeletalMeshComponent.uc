@@ -5,12 +5,16 @@ class SkeletalMeshComponent extends MeshComponent
 	native(SkeletalMesh)
 	noexport
 	dependson(AnimNode)
+	dependson(RSkeletalMeshComponent_Export)
 	hidecategories(Object)
 	config(Engine)
 	editinlinenew;
 
 /** The skeletal mesh used by this component. */
 var()	SkeletalMesh			SkeletalMesh;
+
+var(Rendering) const array<MaterialInterface> XRayMaterials;
+var(Rendering) const array<MaterialInterface> ThermalMaterials;
 
 /** The SkeletalMeshComponent that this one is possibly attached to. */
 var		SkeletalMeshComponent	AttachedToSkelComponent;
@@ -50,10 +54,14 @@ var()	const PhysicsAsset										PhysicsAsset;
  */
 var		const transient editinline export PhysicsAssetInstance	PhysicsAssetInstance;
 
+var editoronly const export transient object FlapsAssetInstance;
+
 /**
  * Contains a pointer to the active APEX clothing instance.
  */
 var const native transient pointer ApexClothing;
+
+var editoronly const export transient array<NxForceFieldComponent> ForceFieldComponents;
 
 /** 
  *  Enum to define how to scale max distance
@@ -71,6 +79,11 @@ enum EMaxDistanceScaleMode
  *	Influence of rigid body physics on the mesh's pose (0.0 == use only animation, 1.0 == use only physics)
  */
 var()	interp float			PhysicsWeight;
+
+var float MaxNearlyStillSpeed;
+var() float SecondaryPhysicsWeight;
+var() RSkeletalMeshComponent_Export.ESkeletalMeshComponentBoundsType BoundsType;
+var BoxSphereBounds FixedBounds;
 
 /** Used to scale speed of all animations on this skeletal mesh. */
 var()	float					GlobalAnimRateScale;
@@ -105,6 +118,9 @@ var native const transient Array<Byte> ComposeOrderedRequiredBones;
  *	skeleton within the same Actor.
  */
 var()	const SkeletalMeshComponent	ParentAnimComponent;
+
+var RSkeletalMeshComponent_Export.EParentAnimComponentMode ParentAnimComponentMode;
+var const byte MotionBlurBoneIndex;
 
 /**
  *	Mapping between bone indices in this component and the parent one. Each element is the index of the bone in the ParentAnimComponent.
@@ -173,6 +189,7 @@ var duplicatetransient const array<Attachment> Attachments;
 
 var	transient const array<byte>	SkelControlIndex;
 var	transient const array<byte> PostPhysSkelControlIndex;
+var transient RSkeletalMeshComponent_Export.StretchInstances Stretches;
 
 /** If 0, auto-select LOD level. if >0, force to (ForcedLodModel-1). */
 var() int		ForcedLodModel;
@@ -183,9 +200,6 @@ var() int		ForcedLodModel;
 var() int		MinLodModel;
 var	int			PredictedLODLevel;
 var	int			OldPredictedLODLevel; // LOD level from previous frame, so we can detect changes in LOD to recalc required bones
-
-/** If MaxDistanceFactor goes below this value (and it is non 0), start playing animations at a low frame rate */
-var() float     AnimationLODDistanceFactor;
 
 /**	High (best) DistanceFactor that was desired for rendering this SkeletalMesh last frame. Represents how big this mesh was in screen space   */
 var const float		MaxDistanceFactor;
@@ -202,6 +216,7 @@ var() bool		bNoSkeletonUpdate;
 
 /** Draw the skeleton hierarchy for this skel mesh. */
 var int			bDisplayBones;
+var int			bDisplayRFlaps;
 
 /** Bool that enables debug drawing of the skeleton before it is passed to the physics. Useful for debugging animation-driven physics. */
 var int			bShowPrePhysBones;
@@ -261,9 +276,6 @@ var	const bool bNotUpdatingKinematicDueToDistance;
 
 /** force root motion to be discarded, no matter what the AnimNodeSequence(s) are set to do */
 var() bool bForceDiscardRootMotion;
-/** Call RootMotionProcessed notification on Owner */
-var() bool bNotifyRootMotionProcessed;
-
 /**
  * if TRUE, notify owning actor of root motion mode changes.
  * This calls the Actor.RootMotionModeChanged() event.
@@ -280,11 +292,12 @@ var bool bRootMotionModeChangeNotify;
  */
 var bool bRootMotionExtractedNotify;
 
-/** Flag set when processing root motion. */
-var transient bool bProcessingRootMotion;
-
 /** If true, FaceFX will not automatically create material instances. */
 var() bool bDisableFaceFXMaterialInstanceCreation;
+var bool bEnableFaceFX;
+var transient bool FaceFXRegistersDirty;
+var transient bool FaceFXEmbeddedAnimSamplesDirty;
+var bool bUseParentAnimComponentBounds;
 
 /** If true, AnimTree has been initialised. */
 var const transient bool bAnimTreeInitialised;
@@ -297,6 +310,7 @@ var private transient bool	bForceMeshObjectUpdate;
  *	@see SetHasPhysicsAssetInstance
  */
 var() const bool bHasPhysicsAssetInstance;
+var() const bool bAllowRFlapsAssetInstance;
 
 /** If we are running physics, should we update bFixed bones based on the animation bone positions. */
 var() bool	bUpdateKinematicBonesFromAnimation;
@@ -358,8 +372,26 @@ var bool	bEnableLineCheckWithBounds;
 /** Whether or not we can highlight selected sections - this should really only be done in the editor */
 var transient bool bCanHighlightSelectedSections;
 
+var bool bUseAggressiveLODScale;
+var bool bAutomaticEmbeddedFaceFXAnims;
+
 /** If bEnableLineCheckWithBounds is TRUE, scale the bounds by this value before doing line check. */
 var	vector	LineCheckBoundsScale;
+
+var transient bool bAllowPermanentFixOnSleep;
+var transient bool bHasBeenPermanentlyFixed;
+var transient bool bHasEverBeenPermanentlyFixed;
+var transient bool bDisableRagdollCalmingMeasures;
+var transient bool bDebugDisableRagdollCalmingMeasures;
+var bool bDisableCollisionWhenPermanentlyFixed;
+var transient bool bForceJointProjection;
+var transient bool bForceUseRagdollPhysicsTranslation;
+var bool bAllowAngularDampingRamping;
+var transient float CurrDampingRampupTime;
+var float DampingRampupMinTime;
+var float DampingRampupMaxTime;
+var float PermanentFixRampupTime;
+var float AggressiveLODMultiplier;
 
 // CLOTH bools
 
@@ -414,8 +446,7 @@ var const transient bool bNeedsInstanceWeightUpdate;
 var const transient bool bAlwaysUseInstanceWeights;
 /** TRUE if it needs to rebuild the required bones array for multi pass compose */
 var const transient bool    bUpdateComposeSkeletonPasses;
-/** Flag to remember if cache saved is valid or not to make sure Save/Restore always happens with a pair **/
-var native transient const bool             bValidTemporarySavedAnimSets;
+var bool bUseParentAnimComponentLODLevel;
 
 /** Usage cases for toggling vertex weights */
 enum EInstanceWeightUsage
@@ -434,19 +465,44 @@ struct BonePair
 {
 	var name Bones[2];
 };
-var native transient const array<BonePair> InstanceVertexWeightBones;
-
 /** LOD specific setup for the skeletal mesh component */
 struct SkelMeshComponentLODInfo
 {
 	/** Material corresponds to section. To show/hide each section, use this **/
 	var const array<bool> HiddenMaterials;
-	var const bool bNeedsInstanceWeightUpdate;
-	var const bool bAlwaysUseInstanceWeights;
-	/** Whether the instance weights are used for a partial/full swap */
-	var const transient EInstanceWeightUsage InstanceWeightUsage;
-	/** Current index into the skeletal mesh VertexInfluences for the current LOD */
-	var const transient int InstanceWeightIdx;
+};
+
+enum EDepthBiasCalculationType
+{
+	DEPTHBIASCALCULATIONTYPE_Constant,
+	DEPTHBIASCALCULATIONTYPE_DirectionVariable,
+};
+
+enum EDepthBiasApplicationType
+{
+	DEPTHBIASAPPLICATIONTYPE_World,
+	DEPTHBIASAPPLICATIONTYPE_Screen,
+	DEPTHBIASAPPLICATIONTYPE_WorldCustomTestPoint,
+};
+
+struct DepthBiasData
+{
+	var() float DepthBias;
+	var(Calculation) EDepthBiasCalculationType DepthBiasCalculationType;
+	var(Calculation) vector DepthBiasVaryingDirection;
+	var(Calculation) float InterpStartAngle;
+	var(Calculation) float InterpEndAngle;
+	var(Calculation) float AlternateDepthBias;
+	var(Application) EDepthBiasApplicationType DepthBiasApplicationType;
+	var(Application) vector DepthBiasCustomTestPoint;
+	var(Application) float DepthBiasMinDistanceFromCameraPlaneOverride;
+	var(Application) float MinDepthBiasMultiplier;
+
+	structdefaultproperties
+	{
+		DepthBiasMinDistanceFromCameraPlaneOverride=-1.0
+		MinDepthBiasMultiplier=0.5
+	}
 };
 var const transient array<SkelMeshComponentLODInfo> LODInfo;
 
@@ -483,9 +539,11 @@ var(Cloth)	float			ClothBlendMinDistanceFactor;
 var(Cloth)	float			ClothBlendMaxDistanceFactor;
 
 /** Distance from the owner in relative frame (max == pos XYZ, min == neg XYZ) */
-var(Cloth)	Vector			MinPosDampRange, MaxPosDampRange;
+var(Cloth)	Vector			MinPosDampRange;
+var(Cloth)	Vector			MaxPosDampRange;
 /** Dampening scale applied to cloth particle velocity when approaching boundaries of *PosDampRange */
-var(Cloth)	Vector			MinPosDampScale, MaxPosDampScale;
+var(Cloth)	Vector			MinPosDampScale;
+var(Cloth)	Vector			MaxPosDampScale;
 
 var const native transient pointer	ClothSim;
 var const native transient int		SceneIndex;
@@ -543,14 +601,11 @@ var(ApexClothing) const ERBCollisionChannel		ApexClothingRBChannel;
 /** Types of objects that this clothing will collide with. */
 var(ApexClothing)	const RBCollisionChannelContainer	ApexClothingRBCollideWithChannels;
 
-/** Enum indicating what channel the apex clothing collision shapes should be placed in */
-var(ApexClothing) const ERBCollisionChannel		ApexClothingCollisionRBChannel;
-
 /** If true, the clothing actor will stop simulating when it is not rendered */
 var(ApexClothing) bool								bAutoFreezeApexClothingWhenNotRendered;
 
-/** If TRUE, WindVelocity is applied in the local space of the component, rather than world space. */
-var(ApexClothing) bool                  bLocalSpaceWind;
+var(ApexClothing) bool bApexClothingBaseVelClamp;
+var(ApexClothing) vector ApexClothingBaseVelClampRange;
 
 /** The Wind Velocity applied to Apex Clothing */
 var(ApexClothing) interp vector			WindVelocity;
@@ -561,64 +616,12 @@ var(ApexClothing) interp float			WindVelocityBlendTime;
 /** Don't attempt to initialize clothing when component is attached */
 var const transient bool							bSkipInitClothing;
 
-/** Pointer to the simulated NxSoftBody object. */
-var const native transient pointer					SoftBodySim;
-
-/** Index of the Novodex scene the soft-body resides in. */
-var const native transient int						SoftBodySceneIndex;
-
-/** Whether soft-body simulation should currently be used on this SkeletalMeshComponent. */
-var(Softbody) const bool							bEnableSoftBodySimulation;
-
-/** Buffer of the updated tetrahedron-vertex positions. */
-var const array<vector>								SoftBodyTetraPosData;
-
-/** Buffer of the updated tetrahedron-indices. */
-var const array<int>								SoftBodyTetraIndexData;
-
-/** Number of tetrahedron vertices of the soft-body mesh. */
-var int												NumSoftBodyTetraVerts;
-
-/** Number of tetrahedron indices of the soft-body mesh (equal to four times the number of tetrahedra). */
-var int												NumSoftBodyTetraIndices;
-
-/** Amount to scale impulses applied to soft body simulation. */
-var(SoftBody)	float								SoftBodyImpulseScale;
-
-/** If true, the soft-body is 'frozen' and no simulation is taking place for it, though it will keep its shape. */
-var(SoftBody)	const bool							bSoftBodyFrozen;
-
-/** If true, the soft-body will automatically have bSoftBodyFrozen set when it is not rendered, and have it turned off when it is seen. */
-var(SoftBody)	bool								bAutoFreezeSoftBodyWhenNotRendered;
-
-/** If true, the soft-body will be awake when a level is started, otherwise it will be instantly put to sleep. */
-var(SoftBody)	bool								bSoftBodyAwakeOnStartup;
-
-/** If TRUE, soft body uses compartment in physics scene (usually with fixed timstep for better behaviour) */
-var(SoftBody)	const bool							bSoftBodyUseCompartment;
-
-/** Enum indicating what type of object this soft-body should be considered for rigid body collision. */
-var(SoftBody)	const ERBCollisionChannel			SoftBodyRBChannel;
-
-/** Types of objects that this soft-body will collide with. */
-var(SoftBody)	const RBCollisionChannelContainer	SoftBodyRBCollideWithChannels;
-
-/** Pointer to the Novodex plane-actor used when previewing the soft-body in the AnimSet Editor. */
-var const native transient pointer					SoftBodyASVPlane;
-
-
 var	material	LimitMaterial;
 
 /** Root Motion extracted from animation. */
 var	transient	BoneAtom	RootMotionDelta;
 /** Root Motion velocity for this frame, set from RootMotionDelta. */
 var			transient	Vector		RootMotionVelocity;
-
-/**
- * Offset of the root bone from the reference pose.
- * Used to offset bounding box.
- */
-var const transient Vector	RootBoneTranslation;
 
 /** Scale applied in physics when RootMotionMode == RMM_Accel */
 var vector RootMotionAccelScale;
@@ -629,6 +632,7 @@ enum ERootMotionMode
 	RMM_Velocity,	// extract magnitude from root motion, and limit max Actor velocity with it.
 	RMM_Ignore,		// do nothing
 	RMM_Accel,		// extract velocity from root motion and use it to derive acceleration of the Actor
+	RMM_SetVelocity,
 	RMM_Relative,	// if bHardAttach is used, then affect relative location instead of location.
 };
 var() ERootMotionMode		RootMotionMode;
@@ -650,19 +654,6 @@ enum ERootMotionRotationMode
 	RMRM_RotateActor,
 };
 var() ERootMotionRotationMode RootMotionRotationMode;
-
-enum EAnimRotationOnly
-{
-	/** Use settings defined in each AnimSet (default) */
-	EARO_AnimSet,
-	/** Force AnimRotationOnly enabled on all AnimSets, but for this SkeletalMesh only */
-	EARO_ForceEnabled,
-	/** Force AnimRotationOnly disabled on all AnimSets, but for this SkeletalMesh only */
-	EARO_ForceDisabled
-};
-
-/** SkeletalMeshComponent settings for AnimRotationOnly */
-var() EAnimRotationOnly AnimRotationOnly;
 
 enum EFaceFXBlendMode
 {
@@ -700,17 +691,42 @@ enum EBoneVisibilityStatus
 /** The FaceFX actor instance associated with the skeletal mesh component. */
 var transient native pointer FaceFXActorInstance;
 
-/**
- *	The audio component that we are using to play audio for a facial animation.
- *	Assigned in PlayFaceFXAnim and cleared in StopFaceFXAnim.
- */
-var AudioComponent	CachedFaceFXAudioComp;
-
-/** Array of bone visibilities (containing one of the values in EBoneVisibilityStatus for each bone).  A bone is only visible if it is *exactly* 1 (BVS_Visible) */
-var	transient const array<byte>	BoneVisibilityStates;
+var transient float FaceFxAnimStartTime;
+var transient array<RSkeletalMeshComponent_Export.FaceFXRegisterTransition> FaceFXRegisterTransitions;
+var transient array<RSkeletalMeshComponent_Export.FaceFXRegisterState> FaceFXRegisterStates;
+var transient array<RSkeletalMeshComponent_Export.FaceFXEmbeddedAnimSample> FaceFXEmbeddedAnimSamples;
+var transient array<BoneAtom> FaceFXBoneAtoms;
+var object CachedFaceFXDialogueEvent;
+var transient object DrivenMaterialParameterInstance;
+var const transient array<byte> BoneVisibility;
 
 /** Cache of LocalToWorld BoneAtom. */
 var	transient const boneatom	LocalToWorldBoneAtom;
+
+var bool bDontPlaySoundWhenPlayingFaceFx;
+var float NextSubtitlePriority;
+var() DepthBiasData CurrDepthBiasData;
+var bool bDisableColourWrites;
+var transient bool bNeedsProxyUpdate;
+var const bool bUseComposeSkeletonLite;
+var() const bool bEnableTwistBoneFixers;
+var() const bool bEnableClavicleFixer;
+var() const bool bEnableBreathingFixer;
+var() const bool bEnableDrivenMaterialParameters;
+var() bool bAllowRagdollContainmentChecks;
+var transient bool bStuckAsARagdoll;
+var transient int StuckBodyPartIndex;
+var transient Double StuckStartTime;
+var transient float CurrRagdollTime;
+var transient float ContainmentTestDelay;
+var() float MaxRagdollLiveTime;
+var() float MinRagdollStuckTime;
+var float MinNearlyStillBodiesProportionForNearlyStillRagdoll;
+var transient array<int> BoneToBody;
+var transient array<int> BodyToBone;
+var transient RSkeletalMeshComponent_Export.TwistBoneFixers TwistBoneFixers;
+var transient RSkeletalMeshComponent_Export.ClavicleFixer ClavicleFixer;
+var transient RSkeletalMeshComponent_Export.BreathingFixer BreathingFixer;
 
 /** Editor only. Used for visualizing drawing order in Animset Viewer. If < 1.0,
   * only the specified fraction of triangles will be rendered
@@ -1441,7 +1457,7 @@ simulated function SkelMeshCompOnParticleSystemFinished( ParticleSystemComponent
 /** Break a constraint off a Gore mesh. */
 simulated final function BreakConstraint(Vector Impulse, Vector HitLocation, Name InBoneName, optional bool bVelChange)
 {
-	local int					ConstraintIndex, LODIdx;
+	local int					ConstraintIndex;
 	local RB_ConstraintInstance	Constraint;
 	local RB_ConstraintSetup	ConstraintSetup;
 	local RB_BodyInstance		Body;
@@ -1459,15 +1475,6 @@ simulated final function BreakConstraint(Vector Impulse, Vector HitLocation, Nam
 	if( Constraint.bTerminated )
 	{
 		return;
-	}
-
-	// you can enable/disable the instanced weights by calling
-	for (LODIdx=0; LODIdx<LODInfo.length;LODIdx++)
-	{
-		if (LODInfo[LODIdx].InstanceWeightUsage == IWU_PartialSwap)
-		{
-		   ToggleInstanceVertexWeights( TRUE, LODIdx );
-		}
 	}
 
 	AddInstanceVertexWeightBoneParented( InBoneName );
@@ -1503,8 +1510,6 @@ defaultproperties
 	RootMotionRotationMode=RMRM_Ignore
 	FaceFXBlendMode=FXBM_Additive
 
-	AnimRotationOnly=EARO_AnimSet
-
 	WireframeColor=(R=221,G=221,B=28,A=255)
 	bTransformFromAnimParent=1
 	// by default, update kinematic when the mesh is far in the distnace as things falling out of the world and are hard to track down
@@ -1537,14 +1542,8 @@ defaultproperties
 	MinDistanceForClothReset=256.f
 
 	ApexClothingRBChannel=RBCC_Clothing
-	ApexClothingCollisionRBChannel=RBCC_ClothingCollision
 	ApexClothingRBCollideWithChannels=(Default=TRUE,BlockingVolume=TRUE,GameplayPhysics=TRUE,EffectPhysics=TRUE,ClothingCollision=TRUE)
 	bAutoFreezeApexClothingWhenNotRendered=TRUE
-	
-	bSoftBodyAwakeOnStartup=FALSE
-	SoftBodyRBChannel=RBCC_SoftBody
-	SoftBodyImpulseScale=1.0
-	bSoftBodyUseCompartment=TRUE
 
     bCacheAnimSequenceNodes=TRUE
 

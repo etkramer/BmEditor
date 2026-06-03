@@ -750,7 +750,7 @@ void ULevel::PostLoad()
 		}
 	}
 
-#if BATMAN
+#if BATMAN && 0
 	// Expand AStaticLightCollectionActors on load
 	if (GIsEditor)
 	{

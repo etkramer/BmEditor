@@ -255,7 +255,7 @@ void UUnrealEdEngine::edactPasteSelected(UBOOL bDuplicate, UBOOL bOffsetLocation
 
 	// Save off visible layers.
 	TArray<FString> VisibleLayerArray;
-	GWorld->GetWorldInfo()->VisibleLayers.ParseIntoArray( &VisibleLayerArray, TEXT(","), 0 );
+	GWorld->GetWorldInfo()->VisibleGroups_DEPRECATED.ParseIntoArray( &VisibleLayerArray, TEXT(","), 0 );
 
 	// Transact the current selection set.
 	USelection* SelectedActors = GetSelectedActors();
@@ -320,7 +320,7 @@ void UUnrealEdEngine::edactPasteSelected(UBOOL bDuplicate, UBOOL bOffsetLocation
 		}
 		NewVisibleLayers += VisibleLayerArray(LayerIndex);
 	}
-	GWorld->GetWorldInfo()->VisibleLayers = NewVisibleLayers;
+	GWorld->GetWorldInfo()->VisibleGroups_DEPRECATED = NewVisibleLayers;
 	GCallbackEvent->Send( CALLBACK_RefreshEditor_LayerBrowser );
 
 	// Note the selection change.  This will also redraw level viewports and update the pivot.

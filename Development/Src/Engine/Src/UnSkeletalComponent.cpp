@@ -62,6 +62,34 @@
 
 IMPLEMENT_CLASS(USkeletalMeshComponent);
 
+static TMap<USkeletalMeshComponent*, TArray<FBonePair> > GInstanceVertexWeightBones;
+static TMap<USkeletalMeshComponent*, UAudioComponent*> GFaceFXAudioComponents;
+
+static TArray<FBonePair>& GetInstanceVertexWeightBones(USkeletalMeshComponent* Component)
+{
+	TArray<FBonePair>* Value = GInstanceVertexWeightBones.Find(Component);
+	if( Value )
+	{
+		return *Value;
+	}
+	return GInstanceVertexWeightBones.Set(Component, TArray<FBonePair>());
+}
+
+static const TArray<FBonePair>* FindInstanceVertexWeightBones(const USkeletalMeshComponent* Component)
+{
+	return GInstanceVertexWeightBones.Find(const_cast<USkeletalMeshComponent*>(Component));
+}
+
+static UAudioComponent*& GetCachedFaceFXAudioComp(USkeletalMeshComponent* Component)
+{
+	UAudioComponent** Value = GFaceFXAudioComponents.Find(Component);
+	if( Value )
+	{
+		return *Value;
+	}
+	return GFaceFXAudioComponents.Set(Component, (UAudioComponent*)NULL);
+}
+
 // LOOKING_FOR_PERF_ISSUES
 extern UBOOL GShouldLogOutAFrameOfSkelCompTick;
 #define PERF_SHOW_SKELETAL_MESH_COMPONENT_TICK_TIME	!(FINAL_RELEASE)
@@ -300,7 +328,8 @@ void USkeletalMeshComponent::Attach()
 	// re-update instance vertex influences after re-attaching
 	for (INT LODIdx=0; LODIdx<LODInfo.Num(); LODIdx++)
 	{								
-		if( InstanceVertexWeightBones.Num() > 0 || LODInfo(LODIdx).bAlwaysUseInstanceWeights )
+		const TArray<FBonePair>* InstanceVertexWeightBones = FindInstanceVertexWeightBones(this);
+		if( (InstanceVertexWeightBones && InstanceVertexWeightBones->Num() > 0) || bAlwaysUseInstanceWeights )
 		{
 			UpdateInstanceVertexWeights(LODIdx);
 		}	
@@ -869,7 +898,6 @@ void USkeletalMeshComponent::PostEditChangeProperty(FPropertyChangedEvent& Prope
 		{
 			// You can't call SaveAnimSets - that will modify memory being modified via this call stack causing memory corruption
 			TemporarySavedAnimSets = AnimSets;
-			bValidTemporarySavedAnimSets = TRUE;
 		}
 		else
 		{
@@ -896,6 +924,9 @@ void USkeletalMeshComponent::FinishDestroy()
 	}
 #endif // WITH_FACEFX
 
+	GFaceFXAudioComponents.Remove(this);
+	GInstanceVertexWeightBones.Remove(this);
+
 	// make sure cloth is always cleaned up before we destroy the arrays that the cloth sim
 	// has pointers into
 	if (ClothSim)
@@ -904,11 +935,6 @@ void USkeletalMeshComponent::FinishDestroy()
 	}
 
 	// clean up the 
-	if (SoftBodySim)
-	{
-		TermSoftBodySim(NULL);
-	}
-
 	// Call parent implementation
 	Super::FinishDestroy();
 }
@@ -1179,10 +1205,9 @@ void USkeletalMeshComponent::InitLODInfos()
 			{
 				const INT VertInfIdx = 0;
 				const FSkeletalMeshVertexInfluences& VertexInfluences = LODModel.VertexInfluences(VertInfIdx);
-				MeshLODInfo.InstanceWeightUsage = VertexInfluences.Usage;
-				MeshLODInfo.InstanceWeightIdx = VertInfIdx;
-			}
+			(void)VertexInfluences;
 		}
+	}
 	}	
 }
 
@@ -1257,23 +1282,6 @@ void USkeletalMeshComponent::Tick(FLOAT DeltaTime)
 		}
 	}
 
-	if(SoftBodySim)
-	{
-		if(bAutoFreezeSoftBodyWhenNotRendered)
-		{
-			// If we have not been rendered for a while, and are not yet frozen, do it now
-			if(!bRecentlyRendered && !bSoftBodyFrozen)
-			{
-				SetSoftBodyFrozen(TRUE);
-			}
-			// If we have been rendered recently, and are still frozen, unfreeze.
-			else if(bRecentlyRendered && bSoftBodyFrozen)
-			{
-				SetSoftBodyFrozen(FALSE);
-			}
-		}
-	}
-
 	// Save this off before we call BeginDeferredUpdateTransform.
 	const UBOOL bNeedsUpdateTransform = NeedsUpdateTransform();
 
@@ -1326,7 +1334,7 @@ void USkeletalMeshComponent::Tick(FLOAT DeltaTime)
 	// update the instanced influence weights if needed
 	for (INT LODIdx=0; LODIdx<LODInfo.Num(); LODIdx++)
 	{
-		if( LODInfo(LODIdx).bNeedsInstanceWeightUpdate )
+		if( bNeedsInstanceWeightUpdate )
 		{
 			UpdateInstanceVertexWeights(LODIdx);
 		}
@@ -2222,7 +2230,7 @@ void USkeletalMeshComponent::ApplyControllersForBoneIndex(INT BoneIndex, UBOOL b
 
 						// Calculate desired bone scaling for this bone - scaled by the ControlStrength.
 						FLOAT BoneScale;
-						if(BoneVisibilityStates(BoneIndex) == BVS_Visible)
+						if(BoneVisibility(BoneIndex) == BVS_Visible)
 						{
 							BoneScale = Lerp(1.f, Control->GetBoneScale(BoneIndex, this), ControlAlpha);
 						}
@@ -2242,7 +2250,7 @@ void USkeletalMeshComponent::ApplyControllersForBoneIndex(INT BoneIndex, UBOOL b
 						for(INT AffectedIdx=0; AffectedIdx<AffectedBones.Num(); AffectedIdx++)
 						{
 							const INT AffectedBoneIndex	= AffectedBones(AffectedIdx);
-							if(BoneVisibilityStates(AffectedBoneIndex) != BVS_Visible)
+							if(BoneVisibility(AffectedBoneIndex) != BVS_Visible)
 							{
 								LocalAtoms(AffectedBoneIndex).SetScale(ScalarZero);
 								SpaceBases(AffectedBoneIndex).SetScale(ScalarZero);
@@ -2311,7 +2319,7 @@ void USkeletalMeshComponent::ComposeSkeleton()
 
 	check( SkeletalMesh->RefSkeleton.Num() == LocalAtoms.Num() );
 	check( SkeletalMesh->RefSkeleton.Num() == SpaceBases.Num() );
-	check( SkeletalMesh->RefSkeleton.Num() == BoneVisibilityStates.Num() );
+	check( SkeletalMesh->RefSkeleton.Num() == BoneVisibility.Num() );
 
 	const UAnimTree* Tree = Cast<UAnimTree>(Animations);
 
@@ -2347,7 +2355,7 @@ void USkeletalMeshComponent::ComposeSkeleton()
 		BoneProcessed(BoneIndex) = 1;
 
 		// See if we want to scale this bone to zero
-		if( BoneVisibilityStates(BoneIndex) != BVS_Visible )
+		if( BoneVisibility(BoneIndex) != BVS_Visible )
 		{
 			LocalAtoms(BoneIndex).SetScale(ScalarZero);
 		}
@@ -2427,9 +2435,9 @@ void USkeletalMeshComponent::ComposeSkeleton()
 
 	{
 		// for invisible bones, I'll still need to update the transform, so that rendering can use it for skinning
-		for (INT BoneIndex=0; BoneIndex<BoneVisibilityStates.Num(); ++BoneIndex)
+		for (INT BoneIndex=0; BoneIndex<BoneVisibility.Num(); ++BoneIndex)
 		{
-			if (BoneVisibilityStates(BoneIndex)!=BVS_Visible)
+			if (BoneVisibility(BoneIndex)!=BVS_Visible)
 			{
 				if (BoneIndex != 0 )
 				{
@@ -2549,6 +2557,8 @@ void USkeletalMeshComponent::UpdateActiveMorphs()
 void USkeletalMeshComponent::UpdateFaceFX( TArray<FBoneAtom>& LocalTransforms, UBOOL bTickFaceFX )
 {
 #if WITH_FACEFX
+	UAudioComponent*& CachedFaceFXAudioComp = GetCachedFaceFXAudioComp(this);
+
 	// Note: SkeletalMesh and SkeletalMesh->FaceFXAsset cannot be NULL when 
 	// this is called.
 	if( FaceFXActorInstance )
@@ -2847,6 +2857,8 @@ void USkeletalMeshComponent::UpdateFaceFX( TArray<FBoneAtom>& LocalTransforms, U
 UBOOL USkeletalMeshComponent::PlayFaceFXAnim(UFaceFXAnimSet* FaceFXAnimSetRef, const FString& AnimName, const FString& GroupName,class USoundCue* SoundCueToPlay)
 {
 #if WITH_FACEFX
+	UAudioComponent*& CachedFaceFXAudioComp = GetCachedFaceFXAudioComp(this);
+
 	//debugf(TEXT("PlayFaceFXAnim on: %s, AnimSet: %s, GroupName: %s, AnimName: %s SoundCueToPlay: %s"), *Owner->GetName(), *FaceFXAnimSetRef->GetFullName(), *GroupName, *AnimName, *SoundCueToPlay->GetFullName() );
 	SCOPE_CYCLE_COUNTER(STAT_FaceFX_PlayAnim);
 
@@ -2975,6 +2987,8 @@ UBOOL USkeletalMeshComponent::PlayFaceFXAnim(UFaceFXAnimSet* FaceFXAnimSetRef, c
 void USkeletalMeshComponent::StopFaceFXAnim( void )
 {
 #if WITH_FACEFX
+	UAudioComponent*& CachedFaceFXAudioComp = GetCachedFaceFXAudioComp(this);
+
 	if( FaceFXActorInstance )
 	{
 		//debugf(TEXT("StopFaceFXAnim on: %s AnimName: %s"), *Owner->GetName(), FaceFXActorInstance->GetAnimPlayer().GetCurrentAnimName().GetAsCstr());
@@ -3162,31 +3176,31 @@ static void MergeInByteArray(TArray<BYTE>& BaseArray, TArray<BYTE>& InsertArray)
 
 void USkeletalMeshComponent::RebuildVisibilityArray()
 {
-	// If the BoneVisibilityStates array has a 0 for a parent bone, all children bones are meant to be hidden as well
+	// If the BoneVisibility array has a 0 for a parent bone, all children bones are meant to be hidden as well
 	// (as the concatenated matrix will have scale 0).  This code propagates explicitly hidden parents to children.
 
-	// On the first read of any cell of BoneVisibilityStates, BVS_HiddenByParent and BVS_Visible are treated as visible.
+	// On the first read of any cell of BoneVisibility, BVS_HiddenByParent and BVS_Visible are treated as visible.
 	// If it starts out visible, the value written back will be BVS_Visible if the parent is visible; otherwise BVS_HiddenByParent.
 	// If it starts out hidden, the BVS_ExplicitlyHidden value stays in place
 
 	// The following code relies on a complete hierarchy sorted from parent to children
-	check(BoneVisibilityStates.Num() == SkeletalMesh->RefSkeleton.Num());
-	for (INT BoneId=0; BoneId < BoneVisibilityStates.Num(); ++BoneId)
+	check(BoneVisibility.Num() == SkeletalMesh->RefSkeleton.Num());
+	for (INT BoneId=0; BoneId < BoneVisibility.Num(); ++BoneId)
 	{
-		BYTE VisState = BoneVisibilityStates(BoneId);
+		BYTE VisState = BoneVisibility(BoneId);
 
 		// if not exclusively hidden, consider if parent is hidden
 		if (VisState != BVS_ExplicitlyHidden)
 		{
-			// Check direct parent (only need to do one deep, since we have already processed the parent and written to BoneVisibilityStates previously)
+			// Check direct parent (only need to do one deep, since we have already processed the parent and written to BoneVisibility previously)
 			const INT ParentIndex = SkeletalMesh->RefSkeleton(BoneId).ParentIndex;
-			if ((ParentIndex == 0) || (BoneVisibilityStates(ParentIndex) == BVS_Visible))
+			if ((ParentIndex == 0) || (BoneVisibility(ParentIndex) == BVS_Visible))
 			{
-				BoneVisibilityStates(BoneId) = BVS_Visible;
+				BoneVisibility(BoneId) = BVS_Visible;
 			}
 			else
 			{
-				BoneVisibilityStates(BoneId) = BVS_HiddenByParent;
+				BoneVisibility(BoneId) = BVS_HiddenByParent;
 			}
 		}
 	}
@@ -3199,19 +3213,7 @@ void USkeletalMeshComponent::RecalcRequiredBones(INT LODIndex)
 	FStaticLODModel& LODModel = SkeletalMesh->LODModels(LODIndex);
 	if (LODInfo.IsValidIndex(LODIndex))
 	{
-		const FSkelMeshComponentLODInfo& MeshCompLODInfo = LODInfo(LODIndex);
-
-		// The LODModel.RequiredBones array only includes bones that are desired for that LOD level.
-		// They are also in strictly increasing order, which also infers parents-before-children.
-		if (MeshCompLODInfo.bAlwaysUseInstanceWeights && MeshCompLODInfo.InstanceWeightUsage == IWU_FullSwap)
-		{
-			check(MeshCompLODInfo.InstanceWeightIdx < LODModel.VertexInfluences.Num());
-			RequiredBones = LODModel.VertexInfluences(MeshCompLODInfo.InstanceWeightIdx).RequiredBones;
-		}
-		else
-		{
-			RequiredBones = LODModel.RequiredBones;
-		}
+		RequiredBones = LODModel.RequiredBones;
 	}
 	else
 	{
@@ -3282,7 +3284,7 @@ void USkeletalMeshComponent::RecalcRequiredBones(INT LODIndex)
 
 	// Purge invisible bones and their children
 	{
-		check(BoneVisibilityStates.Num() == SkeletalMesh->RefSkeleton.Num());
+		check(BoneVisibility.Num() == SkeletalMesh->RefSkeleton.Num());
 
 		INT VisibleBoneWriteIndex = 0;
 		for (INT i = 0; i < RequiredBones.Num(); ++i)
@@ -3290,7 +3292,7 @@ void USkeletalMeshComponent::RecalcRequiredBones(INT LODIndex)
 			BYTE CurBoneIndex = RequiredBones(i);
 
 			// Current bone visible?
-			if (BoneVisibilityStates(CurBoneIndex) == BVS_Visible)
+			if (BoneVisibility(CurBoneIndex) == BVS_Visible)
 			{
 				RequiredBones(VisibleBoneWriteIndex++) = CurBoneIndex;
 			}
@@ -3623,9 +3625,7 @@ void USkeletalMeshComponent::ProcessRootMotion( FLOAT DeltaTime, FBoneAtom& Extr
 				}
 
 				check(DeltaTime > 0.f);
-				bProcessingRootMotion = TRUE;
 				Owner->performPhysics(DeltaTime);
-				bProcessingRootMotion = FALSE;
 				// Physics can kill owner :(
 				if( !Owner || Owner->bDeleteMe )
 				{
@@ -3668,11 +3668,6 @@ void USkeletalMeshComponent::ProcessRootMotion( FLOAT DeltaTime, FBoneAtom& Extr
 			PawnOwner->bPrevBypassSimulatedClientPhysics = PawnOwner->ShouldBypassSimulatedClientPhysics();
 		}
 
-		// Notify Owner, if requested, that we have processed Root Motion.
-		if( bNotifyRootMotionProcessed && Owner )
-		{
-			Owner->eventRootMotionProcessed(this);
-		}
 	}
 
 #if 0 // DEBUG root Rotation
@@ -3737,15 +3732,15 @@ void USkeletalMeshComponent::UpdateSkelPose( FLOAT DeltaTime, UBOOL bTickFaceFX 
 			LocalAtoms.Add( SkeletalMesh->RefSkeleton.Num() );
 		}
 
-		if( BoneVisibilityStates.Num() != SkeletalMesh->RefSkeleton.Num())
+		if( BoneVisibility.Num() != SkeletalMesh->RefSkeleton.Num())
 		{
-			BoneVisibilityStates.Empty( SkeletalMesh->RefSkeleton.Num() );
+			BoneVisibility.Empty( SkeletalMesh->RefSkeleton.Num() );
 			if( SkeletalMesh->RefSkeleton.Num() )
 			{
-				BoneVisibilityStates.Add( SkeletalMesh->RefSkeleton.Num() );
+				BoneVisibility.Add( SkeletalMesh->RefSkeleton.Num() );
 				for (INT BoneIndex = 0; BoneIndex < SkeletalMesh->RefSkeleton.Num(); BoneIndex++)
 				{
-					BoneVisibilityStates( BoneIndex ) = BVS_Visible;
+					BoneVisibility( BoneIndex ) = BVS_Visible;
 				}
 			}
 		}
@@ -3805,7 +3800,7 @@ void USkeletalMeshComponent::UpdateSkelPose( FLOAT DeltaTime, UBOOL bTickFaceFX 
 	// TickTag is updated every tick, that's what gives the cycle.
 	// SkelMeshRUID is runtime generated per SkeletalMesh, that's what gives the start offset and spread, 
 	// so not all meshes are updated on the same frame.
-	if( (!bRecentlyRendered || MaxDistanceFactor < AnimationLODDistanceFactor)
+	if( !bRecentlyRendered
 		&& LowUpdateFrameRate > 0 && ((TickTag + (INT)SkeletalMesh->SkelMeshRUID) % LowUpdateFrameRate > 0) )
 	{
 		// Make sure our cached data is up to date.
@@ -3945,9 +3940,6 @@ void USkeletalMeshComponent::UpdateSkelPose( FLOAT DeltaTime, UBOOL bTickFaceFX 
 		LocalAtoms(0).SetIdentity();
 	}
 
-	// Remember the root bone's translation so we can move the bounds.
-	RootBoneTranslation = LocalAtoms(0).GetTranslation() - SkeletalMesh->RefSkeleton(0).BonePos.Position;
-
 	// Update the ActiveMorphs array.
 	if( GIsEditor || bRecentlyRendered || bUpdateSkelWhenNotRendered )
 	{
@@ -4043,7 +4035,7 @@ void USkeletalMeshComponent::UpdateSkelPose( FLOAT DeltaTime, UBOOL bTickFaceFX 
 
 	// Cache results, if it's going to be used.
 	if( LowUpdateFrameRate > 0 && 
-		(!bRecentlyRendered || MaxDistanceFactor < AnimationLODDistanceFactor) )
+		!bRecentlyRendered )
 	{
 		CachedLocalAtoms = LocalAtoms;
 		CachedSpaceBases = SpaceBases;
@@ -4155,8 +4147,6 @@ void USkeletalMeshComponent::UpdateBounds()
 	{
 		FBoxSphereBounds RootAdjustedBounds = SkeletalMesh->Bounds;
 
-		// Adjust bounds by root bone translation
-		RootAdjustedBounds.Origin += RootBoneTranslation;
 		Bounds = RootAdjustedBounds.TransformBy(LocalToWorld);
 	}
 	else
@@ -6673,10 +6663,9 @@ void USkeletalMeshComponent::UpdateInstanceVertexWeights(INT LODIdx)
 {
 	if( MeshObject && LODInfo.IsValidIndex(LODIdx) )
 	{
-		FSkelMeshComponentLODInfo& MeshLODInfo = LODInfo(LODIdx);
+		TArray<FBonePair>& InstanceVertexWeightBones = GetInstanceVertexWeightBones(this);
 
-		if( InstanceVertexWeightBones.Num()	> 0 && 
-			MeshLODInfo.InstanceWeightUsage == IWU_PartialSwap)
+		if( InstanceVertexWeightBones.Num()	> 0 )
 		{
 			TArray<FBoneIndexPair> BoneIndexPairs;
 			BoneIndexPairs.Add(InstanceVertexWeightBones.Num());
@@ -6699,12 +6688,11 @@ void USkeletalMeshComponent::UpdateInstanceVertexWeights(INT LODIdx)
 		{
 			// Toggle instance weight usage on the mesh object
 			// This will reinitialize the vertex factories
-			const UBOOL bEnabled = MeshLODInfo.bAlwaysUseInstanceWeights;
-			MeshObject->ToggleVertexInfluences(bEnabled,LODIdx);
+			MeshObject->ToggleVertexInfluences(bAlwaysUseInstanceWeights,LODIdx);
 		}
 		
 		// mark as updated
-		MeshLODInfo.bNeedsInstanceWeightUpdate = FALSE;
+		bNeedsInstanceWeightUpdate = FALSE;
 	}
 }
 
@@ -6733,16 +6721,13 @@ void USkeletalMeshComponent::AddInstanceVertexWeightBoneParented(FName BoneName,
 	if( FoundIdx == INDEX_NONE )
 	{		
 		// add if not found
+		TArray<FBonePair>& InstanceVertexWeightBones = GetInstanceVertexWeightBones(this);
 		InstanceVertexWeightBones.AddItem(BonePair);
 
 		for (INT LODIdx = 0; LODIdx<LODInfo.Num(); LODIdx++)
 		{
-			FSkelMeshComponentLODInfo& MeshLODInfo = LODInfo(LODIdx);
-			if (MeshLODInfo.InstanceWeightUsage == IWU_PartialSwap)
-			{
-				// mark for update
-				MeshLODInfo.bNeedsInstanceWeightUpdate = TRUE;
-			}
+			// mark for update
+			bNeedsInstanceWeightUpdate = TRUE;
 		}
 	}
 }
@@ -6776,16 +6761,13 @@ void USkeletalMeshComponent::RemoveInstanceVertexWeightBoneParented(FName BoneNa
 	if( FoundIdx != INDEX_NONE )
 	{
 		// remove if found
+		TArray<FBonePair>& InstanceVertexWeightBones = GetInstanceVertexWeightBones(this);
 		InstanceVertexWeightBones.Remove(FoundIdx);
 
 		for (INT LODIdx = 0; LODIdx<LODInfo.Num(); LODIdx++)
 		{
-			FSkelMeshComponentLODInfo& MeshLODInfo = LODInfo(LODIdx);
-			if (MeshLODInfo.InstanceWeightUsage == IWU_PartialSwap)
-			{
-				// mark for update
-				MeshLODInfo.bNeedsInstanceWeightUpdate = TRUE;
-			}
+			// mark for update
+			bNeedsInstanceWeightUpdate = TRUE;
 		}
 	}
 }
@@ -6809,12 +6791,16 @@ IMPLEMENT_FUNCTION(USkeletalMeshComponent,INDEX_NONE,execRemoveInstanceVertexWei
 INT USkeletalMeshComponent::FindInstanceVertexweightBonePair(const FBonePair& BonePair) const
 {
 	INT Result = INDEX_NONE;
-	for( INT Idx=0; Idx < InstanceVertexWeightBones.Num(); Idx++ )
+	const TArray<FBonePair>* InstanceVertexWeightBones = FindInstanceVertexWeightBones(this);
+	if( InstanceVertexWeightBones )
 	{
-		if( BonePair.IsMatch(InstanceVertexWeightBones(Idx)) )
+		for( INT Idx=0; Idx < InstanceVertexWeightBones->Num(); Idx++ )
 		{
-			Result=Idx;
-			break;
+			if( BonePair.IsMatch((*InstanceVertexWeightBones)(Idx)) )
+			{
+				Result=Idx;
+				break;
+			}
 		}
 	}
 	return Result;
@@ -6839,6 +6825,7 @@ IMPLEMENT_FUNCTION(USkeletalMeshComponent,INDEX_NONE,execFindInstanceVertexweigh
  */
 void USkeletalMeshComponent::UpdateInstanceVertexWeightBones( const TArray<FBonePair>& BonePairs )
 {
+	TArray<FBonePair>& InstanceVertexWeightBones = GetInstanceVertexWeightBones(this);
 	// check to see if matches current bone array and only update if it doesn't
 	if( BonePairs != InstanceVertexWeightBones )
 	{
@@ -6847,12 +6834,8 @@ void USkeletalMeshComponent::UpdateInstanceVertexWeightBones( const TArray<FBone
 
 		for (INT LODIdx = 0; LODIdx<LODInfo.Num(); LODIdx++)
 		{
-			FSkelMeshComponentLODInfo& MeshLODInfo = LODInfo(LODIdx);
-			if (MeshLODInfo.InstanceWeightUsage == IWU_PartialSwap)
-			{
-				// mark for update
-				MeshLODInfo.bNeedsInstanceWeightUpdate = TRUE;
-			}
+			// mark for update
+			bNeedsInstanceWeightUpdate = TRUE;
 		}
 	}
 }
@@ -6877,23 +6860,17 @@ void USkeletalMeshComponent::ToggleInstanceVertexWeights( UBOOL bEnabled, INT LO
 {
 	if (LODInfo.IsValidIndex(LODIdx))
 	{
-		FSkelMeshComponentLODInfo& MeshLODInfo = LODInfo(LODIdx);
-		if (MeshLODInfo.bAlwaysUseInstanceWeights != bEnabled)
+		if (bAlwaysUseInstanceWeights != bEnabled)
 		{
 			// mark for update
-			MeshLODInfo.bNeedsInstanceWeightUpdate = TRUE;	
+			bNeedsInstanceWeightUpdate = TRUE;
 
-			// If we are doing full swaps, the required bones need updating
-			if (MeshLODInfo.InstanceWeightUsage == IWU_FullSwap)
-			{
-				bRequiredBonesUpToDate = FALSE;
-			}
-
-			MeshLODInfo.bAlwaysUseInstanceWeights = bEnabled;
+			bAlwaysUseInstanceWeights = bEnabled;
 
 			// if disabled then clear out the cached bones
 			if( !bEnabled )
 			{
+				TArray<FBonePair>& InstanceVertexWeightBones = GetInstanceVertexWeightBones(this);
 				InstanceVertexWeightBones.Empty();
 			}
 		}
