@@ -103,6 +103,7 @@ var editoronly int EditorLODSetting;
  *	be a duplicate of the high.
  */
 var			bool									bRegenerateLODDuplicate;
+var			bool									bEnableParticleDistanceCulling;
 
 /** Structure containing per-LOD settings that pertain to the entire UParticleSystem. */
 struct native ParticleSystemLOD
@@ -205,6 +206,9 @@ var(Occlusion)	Box										CustomOcclusionBounds;
 
 /** For mobile only, whether to use point sprite rendering to speed up particle rendering */
 var(Mobile) bool										bUseMobilePointSprites;
+var(Mobile) bool										bLoadIfPhysXLevel0;
+var(Mobile) bool										bLoadIfPhysXLevel1;
+var(Mobile) bool										bLoadIfPhysXLevel2;
  
 /**
  *	Temporary array for tracking 'solo' emitter mode.
@@ -215,6 +219,7 @@ struct native LODSoloTrack
 	var transient array<byte>	SoloEnableSetting;
 };
 var transient array<LODSoloTrack>	SoloTracking;
+var ParticleSystem PhysxParticleSystemRef;
 
 //
 /** Return the currently set LOD method											*/

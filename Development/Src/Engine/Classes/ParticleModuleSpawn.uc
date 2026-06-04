@@ -19,6 +19,10 @@ var(Burst)						EParticleBurstMethod	ParticleBurstMethod;
 /** The array of burst entries. */
 var(Burst)	export noclear		array<ParticleBurst>	BurstList;
 
+var(Burst)						object					BurstSoundEvent;
+var(Spawn)						object					SpawnSoundEvent;
+var(Spawn)						bool					SpawnSoundLoops;
+
 cpptext
 {
 	virtual void	PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent);

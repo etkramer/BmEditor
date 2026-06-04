@@ -4021,49 +4021,11 @@ UPostProcessChain* UEngine::GetWorldPostProcessChain()
 	{
 		// If a post process chain has not been found, GWorld is null or WorldInfo doesnt have one set up.
 		// Load the default engine post process chain used for the game and main editor view if its not already loaded
-#if BATMAN
-		// TODO: Replace with a PostProcess.upk (DefaultPostProcessName in DefaultEngine.ini)
-		static UPostProcessChain* GRockDefaultChain = NULL;
-		if( GRockDefaultChain == NULL )
-		{
-			GRockDefaultChain = ConstructObject<UPostProcessChain>(UPostProcessChain::StaticClass(), GetTransientPackage(), TEXT("RockDefaultPostProcess"));
-			GRockDefaultChain->AddToRoot();
-
-			URockAtmos* Atmos = ConstructObject<URockAtmos>(URockAtmos::StaticClass(), GRockDefaultChain);
-			Atmos->EffectName = FName(TEXT("Atmospherics"));
-			Atmos->bUseWorldSettings = TRUE;
-			Atmos->NodePosY = 96;
-			Atmos->NodePosX = 511;
-			Atmos->DrawWidth = 82;
-			Atmos->DrawHeight = 47;
-			Atmos->OutDrawY = 130;
-			Atmos->InDrawY = 130;
-			Atmos->SceneDPG = SDPG_PostProcess;
-
-			URockOn* On = ConstructObject<URockOn>(URockOn::StaticClass(), GRockDefaultChain);
-			On->EffectName = FName(TEXT("UberEffect"));
-			On->bUseWorldSettings = TRUE;
-			On->NodePosY = 1016;
-			On->NodePosX = 3397;
-			On->DrawWidth = 64;
-			On->DrawHeight = 47;
-			On->OutDrawY = 1050;
-			On->InDrawY = 1050;
-			On->MotionBlurAmount = 2.0f;
-			On->SceneImageGrainScale = 0.4f;
-			On->SceneDPG = SDPG_PostProcess;
-
-			GRockDefaultChain->Effects.AddItem(Atmos);
-			GRockDefaultChain->Effects.AddItem(On);
-		}
-		PostProcessChain = GRockDefaultChain;
-#else
 		if( DefaultPostProcess == NULL && DefaultPostProcessName.Len() )
 		{
 			DefaultPostProcess = LoadObject<UPostProcessChain>(NULL,*DefaultPostProcessName,NULL,LOAD_None,NULL);
 		}
 		PostProcessChain = DefaultPostProcess;
-#endif
 	}
 
 	return PostProcessChain;

@@ -5988,6 +5988,7 @@ public:
     class UDynamicLightEnvironmentComponent* LightEnvironment;
     BITFIELD bDestroyOnSystemFinish:1;
     BITFIELD bPostUpdateTickGroup:1;
+    BITFIELD bSkipFirstTick:1;
     BITFIELD bCurrentlyActive:1;
     SCRIPT_ALIGN;
     //## END PROPS Emitter
@@ -12658,6 +12659,11 @@ public:
     //## BEGIN PROPS SceneCaptureReflectComponent
     class UTextureRenderTarget2D* TextureTarget;
     FLOAT ScaleFOV;
+    FLOAT FarClip;
+    BITFIELD bOnlyShowReflectionObjects:1;
+    BITFIELD bIsViewReflect:1;
+    BITFIELD bEnableCapeDepthBiasHack:1;
+    SCRIPT_ALIGN;
     //## END PROPS SceneCaptureReflectComponent
 
     DECLARE_CLASS(USceneCaptureReflectComponent,USceneCaptureComponent,0,Engine)
@@ -21942,7 +21948,7 @@ VERIFY_CLASS_OFFSET_NODIE(USceneCapturePortalComponent,SceneCapturePortalCompone
 VERIFY_CLASS_OFFSET_NODIE(USceneCapturePortalComponent,SceneCapturePortalComponent,ViewDestination)
 VERIFY_CLASS_SIZE_NODIE(USceneCapturePortalComponent)
 VERIFY_CLASS_OFFSET_NODIE(USceneCaptureReflectComponent,SceneCaptureReflectComponent,TextureTarget)
-VERIFY_CLASS_OFFSET_NODIE(USceneCaptureReflectComponent,SceneCaptureReflectComponent,ScaleFOV)
+VERIFY_CLASS_OFFSET_NODIE(USceneCaptureReflectComponent,SceneCaptureReflectComponent,FarClip)
 VERIFY_CLASS_SIZE_NODIE(USceneCaptureReflectComponent)
 VERIFY_CLASS_OFFSET_NODIE(UWindDirectionalSourceComponent,WindDirectionalSourceComponent,SceneProxy)
 VERIFY_CLASS_OFFSET_NODIE(UWindDirectionalSourceComponent,WindDirectionalSourceComponent,Speed)

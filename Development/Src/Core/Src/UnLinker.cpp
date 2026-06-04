@@ -3759,19 +3759,15 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 
 			LoadClass->GetName() == "Pylon" ||
 			LoadClass->GetName() == "SceneCaptureReflectActor" ||
-			LoadClass->GetName() == "SceneCapture2DActor" ||
 			LoadClass->GetName() == "FractureMaterial" ||
 			LoadClass->GetName() == "ApexClothingAsset" ||
 
-			LoadClass->GetName() == "Emitter" ||
 			LoadClass->GetName() == "InterpData" ||
-			LoadClass->GetName() == "ParticleSystem" ||
 			LoadClass->GetName() == "PhysicalMaterial" ||
 
 			LoadClass->GetName() == "SeqAct_Interp" ||
 			LoadClass->GetName() == "NavigationMeshBase" ||
 
-			LoadClass->GetName() == "TextureRenderTarget2D" ||
             LoadClass->GetName() == "FaceFxAnimSet"
             ))
         {

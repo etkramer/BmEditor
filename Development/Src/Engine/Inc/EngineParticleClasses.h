@@ -690,6 +690,7 @@ public:
     BITFIELD bLit_DEPRECATED:1;
     BITFIELD bOrientZAxisTowardCamera:1;
     BITFIELD bRegenerateLODDuplicate:1;
+    BITFIELD bEnableParticleDistanceCulling:1;
     BITFIELD bUseFixedRelativeBoundingBox:1;
     BITFIELD bShouldResetPeakCounts:1;
     BITFIELD bHasPhysics:1;
@@ -698,6 +699,9 @@ public:
     BITFIELD bSkipSpawnCountCheck:1;
     BITFIELD bUseDelayRange:1;
     BITFIELD bUseMobilePointSprites:1;
+    BITFIELD bLoadIfPhysXLevel0:1;
+    BITFIELD bLoadIfPhysXLevel1:1;
+    BITFIELD bLoadIfPhysXLevel2:1;
     class UInterpCurveEdSetup* CurveEdSetup;
     FLOAT LODDistanceCheckTime;
     TArrayNoInit<FLOAT> LODDistances;
@@ -718,6 +722,7 @@ public:
     FLOAT MacroUVRadius;
     FBox CustomOcclusionBounds;
     TArrayNoInit<struct FLODSoloTrack> SoloTracking;
+    class UParticleSystem* PhysxParticleSystemRef;
     //## END PROPS ParticleSystem
 
     virtual BYTE GetCurrentLODMethod();
@@ -5133,6 +5138,10 @@ public:
     struct FRawDistributionFloat RateScale;
     BYTE ParticleBurstMethod;
     TArrayNoInit<struct FParticleBurst> BurstList;
+    class UObject* BurstSoundEvent;
+    class UObject* SpawnSoundEvent;
+    BITFIELD SpawnSoundLoops:1;
+    SCRIPT_ALIGN;
     //## END PROPS ParticleModuleSpawn
 
     DECLARE_CLASS(UParticleModuleSpawn,UParticleModuleSpawnBase,0,Engine)
@@ -6797,7 +6806,7 @@ VERIFY_CLASS_OFFSET_NODIE(UParticleModuleSizeScaleByTime,ParticleModuleSizeScale
 VERIFY_CLASS_SIZE_NODIE(UParticleModuleSizeScaleByTime)
 VERIFY_CLASS_SIZE_NODIE(UParticleModuleSpawnBase)
 VERIFY_CLASS_OFFSET_NODIE(UParticleModuleSpawn,ParticleModuleSpawn,Rate)
-VERIFY_CLASS_OFFSET_NODIE(UParticleModuleSpawn,ParticleModuleSpawn,BurstList)
+VERIFY_CLASS_OFFSET_NODIE(UParticleModuleSpawn,ParticleModuleSpawn,SpawnSoundEvent)
 VERIFY_CLASS_SIZE_NODIE(UParticleModuleSpawn)
 VERIFY_CLASS_OFFSET_NODIE(UParticleModuleSpawnPerUnit,ParticleModuleSpawnPerUnit,UnitScalar)
 VERIFY_CLASS_OFFSET_NODIE(UParticleModuleSpawnPerUnit,ParticleModuleSpawnPerUnit,MovementTolerance)
@@ -6891,7 +6900,7 @@ VERIFY_CLASS_OFFSET_NODIE(UParticleModuleVelocityOverLifetime,ParticleModuleVelo
 VERIFY_CLASS_SIZE_NODIE(UParticleModuleVelocityOverLifetime)
 VERIFY_CLASS_SIZE_NODIE(UParticleModuleEventSendToGame)
 VERIFY_CLASS_OFFSET_NODIE(UParticleSystem,ParticleSystem,SystemUpdateMode)
-VERIFY_CLASS_OFFSET_NODIE(UParticleSystem,ParticleSystem,SoloTracking)
+VERIFY_CLASS_OFFSET_NODIE(UParticleSystem,ParticleSystem,PhysxParticleSystemRef)
 VERIFY_CLASS_SIZE_NODIE(UParticleSystem)
 VERIFY_CLASS_OFFSET_NODIE(UParticleSystemReplay,ParticleSystemReplay,ClipIDNumber)
 VERIFY_CLASS_OFFSET_NODIE(UParticleSystemReplay,ParticleSystemReplay,Frames)

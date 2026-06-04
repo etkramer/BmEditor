@@ -11,6 +11,7 @@ var()	editconst const DynamicLightEnvironmentComponent LightEnvironment;
 var						bool					bDestroyOnSystemFinish;
 
 var()					bool					bPostUpdateTickGroup;
+var						bool					bSkipFirstTick;
 
 /** used to update status of toggleable level placed emitters on clients */
 var repnotify bool bCurrentlyActive;

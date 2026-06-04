@@ -4239,6 +4239,20 @@ void UStaticMeshComponent::Serialize(FArchive& Ar)
 	}
 
 	// Serialize out the vert. position version number
+#if BATMAN
+	if( Ar.IsBmCooked(TRUE) )
+	{
+		if ( Ar.Ver() >= VER_PRESERVE_SMC_VERT_COLORS )
+		{
+			Ar << VertexPositionVersionNumber;
+		}
+		else
+		{
+			VertexPositionVersionNumber = 0;
+		}
+	}
+	else
+#endif
 	if( Ar.Ver() < VER_DEPRECATE_DOUBLY_SERIALISED_SMC )
 	{
 		if ( Ar.Ver() >= VER_PRESERVE_SMC_VERT_COLORS  )
