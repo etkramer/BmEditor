@@ -2,7 +2,7 @@
  * Base class for all Kismet related objects.
  * Copyright 1998-2011 Epic Games, Inc. All Rights Reserved.
  */
-class SequenceObject extends Object
+class SequenceObject extends StateObject
 	native(Sequence)
 	abstract
 	hidecategories(Object)

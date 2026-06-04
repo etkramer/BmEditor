@@ -46,7 +46,6 @@ IMPLEMENT_CLASS(UActorComponent);
 IMPLEMENT_CLASS(UAudioComponent);
 
 IMPLEMENT_CLASS(UWindDirectionalSourceComponent);
-IMPLEMENT_CLASS(AWindDirectionalSource);
 IMPLEMENT_CLASS(AWindPointSource);
 IMPLEMENT_CLASS(UWindPointSourceComponent);
 

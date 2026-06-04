@@ -674,6 +674,11 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 						UProperty* OffsetProp = NULL;
 						for (UProperty* P = PropertyLink; P; P = P->PropertyLinkNext)
 						{
+							if (SerializedClass && SerializedClass->GetName() == "WindDirectionalSource")
+							{
+								warnf(TEXT("BM2 WindDirectionalSource[%d]: %s"), P->Offset, *P->GetName());
+							}
+
 							// BM: cooked tags for fixed-array elements carry the per-element
 							// offset (BaseOffset + Index * ElementSize), so accept any tag
 							// offset that lands inside this property's footprint.

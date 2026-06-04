@@ -91,7 +91,7 @@ struct SequenceObject_eventIsValidLevelSequenceObject_Parms
     {
     }
 };
-class USequenceObject : public UObject
+class USequenceObject : public UStateObject
 {
 public:
     //## BEGIN PROPS SequenceObject
@@ -148,7 +148,7 @@ public:
         ProcessEvent(FindFunctionChecked(ENGINE_IsValidLevelSequenceObject),&Parms);
         return Parms.ReturnValue;
     }
-    DECLARE_ABSTRACT_CLASS(USequenceObject,UObject,0,Engine)
+    DECLARE_ABSTRACT_CLASS(USequenceObject,UStateObject,0,Engine)
 public:
 #if WITH_EDITOR
 	virtual void CheckForErrors() {};

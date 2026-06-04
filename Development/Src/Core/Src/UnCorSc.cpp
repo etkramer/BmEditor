@@ -5239,10 +5239,10 @@ IMPLEMENT_FUNCTION( UObject, 258, execClassIsChildOf );
 // State and label functions //
 ///////////////////////////////
 
-void UObject::execGotoState( FFrame& Stack, RESULT_DECL )
+void UStateObject::execGotoState( FFrame& Stack, RESULT_DECL )
 {
 	FStateFrame* StateFrame = GetStateFrame();
-	FName CurrentStateName = (StateFrame && StateFrame->StateNode!=Class) ? StateFrame->StateNode->GetFName() : FName(NAME_None);
+	FName CurrentStateName = (StateFrame && StateFrame->StateNode!=GetClass()) ? StateFrame->StateNode->GetFName() : FName(NAME_None);
 	P_GET_NAME_OPTX( S, CurrentStateName );
 	P_GET_NAME_OPTX( L, NAME_None );
 	P_GET_UBOOL_OPTX( bForceEvents, FALSE );
@@ -5278,8 +5278,6 @@ void UObject::execGotoState( FFrame& Stack, RESULT_DECL )
 		// Safely preempted by another GotoState.
 	}
 }
-IMPLEMENT_FUNCTION( UObject, 113, execGotoState );
-
 void UObject::PushState(FName NewState, FName NewLabel)
 {
 	FStateFrame* StateFrame = GetStateFrame();
@@ -5343,7 +5341,7 @@ void UObject::PushState(FName NewState, FName NewLabel)
 
 }
 
-void UObject::execPushState(FFrame &Stack, RESULT_DECL)
+void UStateObject::execPushState(FFrame &Stack, RESULT_DECL)
 {
 	P_GET_NAME(newState);
 	P_GET_NAME_OPTX(newLabel, NAME_None);
@@ -5351,8 +5349,6 @@ void UObject::execPushState(FFrame &Stack, RESULT_DECL)
 
 	PushState(newState, newLabel);
 }
-
-IMPLEMENT_FUNCTION(UObject, -1, execPushState);
 
 void UObject::PopState(FFrame& Stack, UBOOL bPopAll)
 {
@@ -5413,7 +5409,7 @@ void UObject::PopState(FFrame& Stack, UBOOL bPopAll)
 	}
 }
 
-void UObject::execPopState(FFrame &Stack, RESULT_DECL)
+void UStateObject::execPopState(FFrame &Stack, RESULT_DECL)
 {
 	P_GET_UBOOL_OPTX(bPopAll,0);
 	P_FINISH;
@@ -5421,9 +5417,7 @@ void UObject::execPopState(FFrame &Stack, RESULT_DECL)
 	PopState(Stack, bPopAll);
 }
 
-IMPLEMENT_FUNCTION(UObject, -1, execPopState);
-
-void UObject::execDumpStateStack(FFrame &Stack,RESULT_DECL)
+void UStateObject::execDumpStateStack(FFrame &Stack,RESULT_DECL)
 {
 	P_FINISH;
 	FStateFrame* StateFrame = GetStateFrame();
@@ -5439,9 +5433,7 @@ void UObject::execDumpStateStack(FFrame &Stack,RESULT_DECL)
 		}
 	}
 }
-IMPLEMENT_FUNCTION(UObject,-1,execDumpStateStack);
-
-void UObject::execEnable( FFrame& Stack, RESULT_DECL )
+void UStateObject::execEnable( FFrame& Stack, RESULT_DECL )
 {
 	P_GET_NAME(N);
 	FStateFrame* StateFrame = GetStateFrame();
@@ -5456,9 +5448,7 @@ void UObject::execEnable( FFrame& Stack, RESULT_DECL )
 	}
 	P_FINISH;
 }
-IMPLEMENT_FUNCTION( UObject, 117, execEnable );
-
-void UObject::execDisable( FFrame& Stack, RESULT_DECL )
+void UStateObject::execDisable( FFrame& Stack, RESULT_DECL )
 {
 	P_GET_NAME(N);
 	P_FINISH;
@@ -5473,8 +5463,6 @@ void UObject::execDisable( FFrame& Stack, RESULT_DECL )
 		Stack.Logf( TEXT("Disable: '%s' is not a probe function"), *N.ToString() );
 	}
 }
-IMPLEMENT_FUNCTION( UObject, 118, execDisable );
-
 void UObject::execSaveConfig( FFrame& Stack, RESULT_DECL )
 {
 	P_FINISH;
@@ -5562,16 +5550,14 @@ void UObject::execFindObject( FFrame& Stack, RESULT_DECL )
 }
 IMPLEMENT_FUNCTION( UObject, INDEX_NONE, execFindObject );
 
-void UObject::execIsInState( FFrame& Stack, RESULT_DECL )
+void UStateObject::execIsInState( FFrame& Stack, RESULT_DECL )
 {
 	P_GET_NAME(StateName);
 	P_GET_UBOOL_OPTX(bTestStateStack,FALSE);
 	P_FINISH;
 	*(DWORD*)Result = IsInState(StateName,bTestStateStack);
 }
-IMPLEMENT_FUNCTION( UObject, 281, execIsInState );
-
-void UObject::execIsChildState( FFrame& Stack, RESULT_DECL )
+void UStateObject::execIsChildState( FFrame& Stack, RESULT_DECL )
 {
 	P_GET_NAME(TestStateName);
 	P_GET_NAME(TestParentStateName);
@@ -5590,15 +5576,11 @@ void UObject::execIsChildState( FFrame& Stack, RESULT_DECL )
 	}
 	*(UBOOL*)Result = 0;
 }
-IMPLEMENT_FUNCTION( UObject, -1, execIsChildState );
-
-void UObject::execGetStateName( FFrame& Stack, RESULT_DECL )
+void UStateObject::execGetStateName( FFrame& Stack, RESULT_DECL )
 {
 	P_FINISH;
 	*(FName*)Result = GetStateName();
 }
-IMPLEMENT_FUNCTION( UObject, 284, execGetStateName );
-
 /**
 * Helper function to inspect the name of the current script state of this object.
 * Note that this only returns the top entry in the state stack.

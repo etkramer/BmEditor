@@ -1353,12 +1353,12 @@ event SetProgressMessage(EProgressMessageType MessageType, string Message, optio
 				WI.NetMode == NM_Client &&
 				WI.BeginHostMigration())
 			{
-				`Log(`location @ "MessageType="$MessageType @ "Message="$Message @ ": host migration started.. "$WI.PeerHostMigration.HostMigrationProgress,,'DevNet');
+				`Log("MessageType="$MessageType @ "Message="$Message @ ": host migration started.. "$WI.PeerHostMigration.HostMigrationProgress,,'DevNet');
 			}
 			//@FIXME: bIgnoreNetworkMessages needs to die
 			else if (!Outer.GamePlayers[0].Actor.bIgnoreNetworkMessages)
 			{
-				`Log(`location @ "MessageType="$MessageType @ "Message="$Message @ ": host migration not enabled.. handling connection error.",,'DevNet');
+				`Log("MessageType="$MessageType @ "Message="$Message @ ": host migration not enabled.. handling connection error.",,'DevNet');
 
 				NotifyConnectionError(MessageType, Message, Title);
 			}
@@ -1402,7 +1402,7 @@ function NotifyConnectionError(EProgressMessageType MessageType, optional string
 	local WorldInfo WI;
 
 	WI = class'Engine'.static.GetCurrentWorldInfo();
-	`log(`location @ `showvar(Title) @ `showvar(Message) @ `showenum(ENetMode,WI.NetMode,NetMode) @ `showvar(WI.GetURLMap(),Map) ,,'DevNet');
+	`log(`showvar(Title) @ `showvar(Message) @ `showenum(ENetMode,WI.NetMode,NetMode) @ `showvar(WI.GetURLMap(),Map) ,,'DevNet');
 	if (WI.NetMode != NM_Standalone)
 	{
 		if ( WI.Game != None )

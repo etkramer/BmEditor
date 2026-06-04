@@ -1982,6 +1982,7 @@ void FObjectInstancingGraph::RetrieveComponents( UObject* SearchOuter, TArray<UC
 }
 
 IMPLEMENT_CLASS(UComponent);
+IMPLEMENT_CLASS(UStateObject);
 IMPLEMENT_CLASS(USubsystem);
 IMPLEMENT_CLASS(UInterface);
 

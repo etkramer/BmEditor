@@ -72,7 +72,7 @@ struct KSphylElem
 };
 
 /** One convex hull, used for simplified collision. */
-struct KConvexElem
+struct immutablewhencooked KConvexElem
 {
 	/** Array of indices that make up the convex hull. */
 	var	array<vector>			VertexData;
@@ -99,7 +99,7 @@ struct KConvexElem
 	var() bool					bNoRBCollision;
 };
 
-struct KAggregateGeom
+struct immutablewhencooked KAggregateGeom
 {
 	var() editfixedsize array<KSphereElem>			SphereElems;
 	var() editfixedsize array<KBoxElem>				BoxElems;

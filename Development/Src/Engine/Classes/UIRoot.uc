@@ -3,7 +3,7 @@
  *
  * Copyright 1998-2011 Epic Games, Inc. All Rights Reserved.
  */
-class UIRoot extends Object
+class UIRoot extends StateObject
 	native(UserInterface)
 	HideCategories(Object,UIRoot)
 	DependsOn(SequenceOp,WorldInfo)

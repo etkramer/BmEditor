@@ -9,14 +9,15 @@ class Volume extends Brush
 	native
 	nativereplication;
 
-/** this actor gets touch() and untouch notifications as the volume is entered or left. */
-var Actor AssociatedActor;
-
 /** Should pawns be forced to walk when inside this volume? */
 var() bool bForcePawnWalk;
 
 /** Should process all actors within this volume */
 var() bool bProcessAllActors;
+
+var() bool bOnlyCollideWithPlayer;
+var() bool bNoWallPlant;
+var() PhysicalMaterial PhysicalMaterialOverrideForCollisionComponent;
 
 cpptext
 {
@@ -41,16 +42,6 @@ cpptext
 native noexport function bool Encompasses(Actor Other); // returns true if center of actor is within volume
 native noexport function bool EncompassesPoint( Vector Loc );
 
-event PostBeginPlay()
-{
-	Super.PostBeginPlay();
-
-	if ( AssociatedActor != None )
-	{
-		GotoState('AssociatedTouch');
-	}
-}
-
 /**
  * list important Volume variables on canvas.  HUD will call DisplayDebug() on the current ViewTarget when
  * the ShowDebug exec is used
@@ -62,31 +53,6 @@ event PostBeginPlay()
 simulated function DisplayDebug(HUD HUD, out float out_YL, out float out_YPos)
 {
 	super.DisplayDebug(HUD, out_YL, out_YPos);
-
-	HUD.Canvas.DrawText("AssociatedActor "$AssociatedActor, false);
-	out_YPos += out_YL;
-	HUD.Canvas.SetPos(4, out_YPos);
-}
-
-State AssociatedTouch
-{
-	event Touch( Actor Other, PrimitiveComponent OtherComp, vector HitLocation, vector HitNormal )
-	{
-		AssociatedActor.Touch(Other, OtherComp, HitLocation, HitNormal);
-	}
-
-	event untouch( Actor Other )
-	{
-		AssociatedActor.untouch(Other);
-	}
-
-	event BeginState(Name PreviousStateName)
-	{
-		local Actor A;
-
-		ForEach TouchingActors(class'Actor', A)
-			Touch(A, None, A.Location, Vect(0,0,1) );
-	}
 }
 
 /**	Handling Toggle event from Kismet. */

@@ -572,7 +572,7 @@ struct FRawInputKeyEventData
 #define UCONST_DEFAULT_SIZE_Y 768
 #define UCONST_DEFAULT_SIZE_X 1024
 
-class UUIRoot : public UObject
+class UUIRoot : public UStateObject
 {
 public:
     //## BEGIN PROPS UIRoot
@@ -599,7 +599,7 @@ public:
         P_FINISH;
         *(UBOOL*)Result=this->GetDataStoreFieldValue(InDataStoreMarkup,OutFieldValue,OwnerPlayer);
     }
-    DECLARE_ABSTRACT_CLASS(UUIRoot,UObject,0,Engine)
+    DECLARE_ABSTRACT_CLASS(UUIRoot,UStateObject,0,Engine)
 	/**
 	 * Returns the friendly name for the specified input event from the EInputEvent enum.
 	 *

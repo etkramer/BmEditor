@@ -48,19 +48,6 @@ enum ETravelType
     op(TRAVEL_Absolute) \
     op(TRAVEL_Partial) \
     op(TRAVEL_Relative) 
-enum ENetRole
-{
-    ROLE_None               =0,
-    ROLE_SimulatedProxy     =1,
-    ROLE_AutonomousProxy    =2,
-    ROLE_Authority          =3,
-    ROLE_MAX                =4,
-};
-#define FOREACH_ENUM_ENETROLE(op) \
-    op(ROLE_None) \
-    op(ROLE_SimulatedProxy) \
-    op(ROLE_AutonomousProxy) \
-    op(ROLE_Authority) 
 enum EActorMetricsType
 {
     METRICS_VERTS           =0,
@@ -153,6 +140,19 @@ enum EPhysics
     op(PHYS_Ceiling) \
     op(PHYS_Unused) \
     op(PHYS_Custom) 
+enum ENetRole
+{
+    ROLE_None               =0,
+    ROLE_SimulatedProxy     =1,
+    ROLE_AutonomousProxy    =2,
+    ROLE_Authority          =3,
+    ROLE_MAX                =4,
+};
+#define FOREACH_ENUM_ENETROLE(op) \
+    op(ROLE_None) \
+    op(ROLE_SimulatedProxy) \
+    op(ROLE_AutonomousProxy) \
+    op(ROLE_Authority) 
 enum ECsgOper
 {
     CSG_Active              =0,
@@ -1495,6 +1495,35 @@ struct FTimerData
 	
 };
 
+struct FBlockingVolumeTypesContainer
+{
+    BITFIELD AllActors:1;
+    BITFIELD Player:1;
+    BITFIELD Enemies:1;
+    BITFIELD Friendlies:1;
+    BITFIELD Physics:1;
+    BITFIELD Batarang:1;
+    BITFIELD BatClaw:1;
+    BITFIELD LineLauncher:1;
+    BITFIELD GrappleGun:1;
+    BITFIELD Camera:1;
+    BITFIELD WeaponsOrLOS:1;
+    BITFIELD MagneticObjects:1;
+    BITFIELD ClimbOnly:1;
+    BITFIELD IgnoreWallPounces:1;
+    BITFIELD FreezeGrenades:1;
+    BITFIELD SmokeBomb:1;
+    BITFIELD REC:1;
+    SCRIPT_ALIGN;
+
+    /** Constructors */
+    FBlockingVolumeTypesContainer() {}
+    FBlockingVolumeTypesContainer(EEventParm)
+    {
+        appMemzero(this, sizeof(FBlockingVolumeTypesContainer));
+    }
+};
+
 struct FTraceHitInfo
 {
     class UMaterial* Material;
@@ -1503,6 +1532,7 @@ struct FTraceHitInfo
     INT LevelIndex;
     FName BoneName;
     class UPrimitiveComponent* HitComponent;
+    FVector2D PhysMaterialUV;
 
     /** Constructors */
     FTraceHitInfo()
@@ -1574,32 +1604,28 @@ struct FAnimSlotDesc
     }
 };
 
-struct FBlockingVolumeTypesContainer
+struct FPhysContactModificationData
 {
-    BITFIELD AllActors:1;
-    BITFIELD Player:1;
-    BITFIELD Enemies:1;
-    BITFIELD Friendlies:1;
-    BITFIELD Physics:1;
-    BITFIELD Batarang:1;
-    BITFIELD BatClaw:1;
-    BITFIELD LineLauncher:1;
-    BITFIELD GrappleGun:1;
-    BITFIELD Camera:1;
-    BITFIELD WeaponsOrLOS:1;
-    BITFIELD MagneticObjects:1;
-    BITFIELD ClimbOnly:1;
-    BITFIELD IgnoreWallPounces:1;
-    BITFIELD FreezeGrenades:1;
-    BITFIELD SmokeBomb:1;
-    BITFIELD REC:1;
-    SCRIPT_ALIGN;
+    INT ChangeFlags;
+    FPointer PhysShape0;
+    FPointer PhysShape1;
+    class AActor* Actor0;
+    class AActor* Actor1;
+    INT PhysFeatureIndex0;
+    INT physFeatureIndex1;
+    FPointer PhysData;
 
     /** Constructors */
-    FBlockingVolumeTypesContainer() {}
-    FBlockingVolumeTypesContainer(EEventParm)
+    FPhysContactModificationData()
+    : ChangeFlags(0)
+    , Actor0(NULL)
+    , Actor1(NULL)
+    , PhysFeatureIndex0(0)
+    , physFeatureIndex1(0)
+    {}
+    FPhysContactModificationData(EEventParm)
     {
-        appMemzero(this, sizeof(FBlockingVolumeTypesContainer));
+        appMemzero(this, sizeof(FPhysContactModificationData));
     }
 };
 
@@ -1635,6 +1661,23 @@ struct FPhysEffectInfo
     FPhysEffectInfo(EEventParm)
     {
         appMemzero(this, sizeof(FPhysEffectInfo));
+    }
+};
+
+struct FThought
+{
+    FStringNoInit Text;
+    BYTE Red;
+    BYTE Green;
+    BYTE Blue;
+    BYTE Alpha;
+    SCRIPT_ALIGN;
+
+    /** Constructors */
+    FThought() {}
+    FThought(EEventParm)
+    {
+        appMemzero(this, sizeof(FThought));
     }
 };
 
@@ -2358,7 +2401,7 @@ struct Actor_eventReplicatedEvent_Parms
     {
     }
 };
-class AActor : public UObject
+class AActor : public UStateObject
 {
 public:
     //## BEGIN PROPS Actor
@@ -2381,13 +2424,17 @@ public:
     class AActor* Owner;
     class AActor* Base;
     TArrayNoInit<struct FTimerData> Timers;
+private:
     BITFIELD bStatic:1;
+public:
     BITFIELD bHidden:1;
     BITFIELD bNoDelete:1;
     BITFIELD bDeleteMe:1;
     BITFIELD bTicked:1;
     BITFIELD bOnlyOwnerSee:1;
+private:
     BITFIELD bTickIsDisabled:1;
+public:
     BITFIELD bStasis:1;
     BITFIELD bWorldGeometry:1;
     BITFIELD bIgnoreRigidBodyPawns:1;
@@ -2501,7 +2548,6 @@ public:
     class APawn* Instigator;
     class AWorldInfo* WorldInfo;
     FLOAT LifeSpan;
-    FLOAT CreationTime;
     struct FBlockingVolumeTypesContainer CanTraceActorBlockedTypes;
     FLOAT LastRenderTime;
     FName Tag;
@@ -3813,7 +3859,7 @@ public:
         Parms.VarName=VarName;
         ProcessEvent(FindFunctionChecked(ENGINE_ReplicatedEvent),&Parms);
     }
-    DECLARE_ABSTRACT_CLASS(AActor,UObject,0|CLASS_NativeReplication,Engine)
+    DECLARE_ABSTRACT_CLASS(AActor,UStateObject,0|CLASS_NativeReplication,Engine)
 	// Used to adjust box used for collision in overlap checks which are performed at a location other than the actor's current location.
 	static FVector OverlapAdjust;
 
@@ -4079,13 +4125,13 @@ public:
 
 	/**
 	 * Check if this actor is the owner when doing relevancy checks for actors marked bOnlyRelevantToOwner
-	 * 
+	 *
 	 * @param ReplicatedActor - the actor we're doing a relevancy test on
-	 * 
+	 *
 	 * @param ActorOwner - the owner of ReplicatedActor
-	 * 
+	 *
 	 * @param ConnectionActor - the controller of the connection that we're doing relevancy checks for
-	 * 
+	 *
 	 * @return TRUE if this actor should be considered the owner
 	 */
 	virtual UBOOL IsRelevancyOwnerFor(AActor* ReplicatedActor, AActor* ActorOwner, AActor* ConnectionActor);
@@ -4584,10 +4630,11 @@ class AVolume : public ABrush
 {
 public:
     //## BEGIN PROPS Volume
-    class AActor* AssociatedActor;
     BITFIELD bForcePawnWalk:1;
     BITFIELD bProcessAllActors:1;
-    SCRIPT_ALIGN;
+    BITFIELD bOnlyCollideWithPlayer:1;
+    BITFIELD bNoWallPlant:1;
+    class UPhysicalMaterial* PhysicalMaterialOverrideForCollisionComponent;
     //## END PROPS Volume
 
     DECLARE_FUNCTION(execEncompasses);
@@ -11182,17 +11229,6 @@ public:
 	////// EditorLinkSelectionInterface
 	virtual void LinkSelection(USelection* SelectedActors);
 
-};
-
-class AWindDirectionalSource : public AInfo
-{
-public:
-    //## BEGIN PROPS WindDirectionalSource
-    class UWindDirectionalSourceComponent* Component;
-    //## END PROPS WindDirectionalSource
-
-    DECLARE_CLASS(AWindDirectionalSource,AInfo,0,Engine)
-    NO_DEFAULT_CONSTRUCTOR(AWindDirectionalSource)
 };
 
 class AWindPointSource : public AInfo
@@ -20452,7 +20488,6 @@ AUTOGENERATE_FUNCTION(UUIManager,-1,execGetUIManager);
 	APotentialClimbWatcher::StaticClass(); \
 	ARoute::StaticClass(); \
 	GNativeLookupFuncs.Set(FName("Route"), GEngineARouteNatives); \
-	AWindDirectionalSource::StaticClass(); \
 	AWindPointSource::StaticClass(); \
 	AZoneInfo::StaticClass(); \
 	AInventory::StaticClass(); \
@@ -21589,7 +21624,7 @@ VERIFY_CLASS_OFFSET_NODIE(ABrush,Brush,CsgOper)
 VERIFY_CLASS_OFFSET_NODIE(ABrush,Brush,SavedSelections)
 VERIFY_CLASS_SIZE_NODIE(ABrush)
 VERIFY_CLASS_SIZE_NODIE(ABrushShape)
-VERIFY_CLASS_OFFSET_NODIE(AVolume,Volume,AssociatedActor)
+VERIFY_CLASS_OFFSET_NODIE(AVolume,Volume,PhysicalMaterialOverrideForCollisionComponent)
 VERIFY_CLASS_SIZE_NODIE(AVolume)
 VERIFY_CLASS_SIZE_NODIE(ABlockingVolume)
 VERIFY_CLASS_SIZE_NODIE(ADynamicBlockingVolume)
@@ -21666,8 +21701,6 @@ VERIFY_CLASS_SIZE_NODIE(APotentialClimbWatcher)
 VERIFY_CLASS_OFFSET_NODIE(ARoute,Route,RouteType)
 VERIFY_CLASS_OFFSET_NODIE(ARoute,Route,RouteIndexOffset)
 VERIFY_CLASS_SIZE_NODIE(ARoute)
-VERIFY_CLASS_OFFSET_NODIE(AWindDirectionalSource,WindDirectionalSource,Component)
-VERIFY_CLASS_SIZE_NODIE(AWindDirectionalSource)
 VERIFY_CLASS_OFFSET_NODIE(AWindPointSource,WindPointSource,Component)
 VERIFY_CLASS_SIZE_NODIE(AWindPointSource)
 VERIFY_CLASS_OFFSET_NODIE(AZoneInfo,ZoneInfo,KillZ)

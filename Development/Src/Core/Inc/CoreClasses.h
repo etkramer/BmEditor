@@ -445,6 +445,96 @@ public:
     NO_DEFAULT_CONSTRUCTOR(IInterface)
 };
 
+struct StateObject_eventContinuedState_Parms
+{
+    StateObject_eventContinuedState_Parms(EEventParm)
+    {
+    }
+};
+struct StateObject_eventPausedState_Parms
+{
+    StateObject_eventPausedState_Parms(EEventParm)
+    {
+    }
+};
+struct StateObject_eventPoppedState_Parms
+{
+    StateObject_eventPoppedState_Parms(EEventParm)
+    {
+    }
+};
+struct StateObject_eventPushedState_Parms
+{
+    StateObject_eventPushedState_Parms(EEventParm)
+    {
+    }
+};
+struct StateObject_eventEndState_Parms
+{
+    FName NextStateName;
+    StateObject_eventEndState_Parms(EEventParm)
+    {
+    }
+};
+struct StateObject_eventBeginState_Parms
+{
+    FName PreviousStateName;
+    StateObject_eventBeginState_Parms(EEventParm)
+    {
+    }
+};
+class UStateObject : public UObject
+{
+public:
+    //## BEGIN PROPS StateObject
+    FPointer StateFrame;
+    //## END PROPS StateObject
+
+    DECLARE_FUNCTION(execGotoState);
+    DECLARE_FUNCTION(execIsInState);
+    DECLARE_FUNCTION(execIsChildState);
+    DECLARE_FUNCTION(execGetStateName);
+    DECLARE_FUNCTION(execPushState);
+    DECLARE_FUNCTION(execPopState);
+    DECLARE_FUNCTION(execDumpStateStack);
+    DECLARE_FUNCTION(execEnable);
+    DECLARE_FUNCTION(execDisable);
+    void eventContinuedState()
+    {
+        ProcessEvent(FindFunctionChecked(CORE_ContinuedState),NULL);
+    }
+    void eventPausedState()
+    {
+        ProcessEvent(FindFunctionChecked(CORE_PausedState),NULL);
+    }
+    void eventPoppedState()
+    {
+        ProcessEvent(FindFunctionChecked(CORE_PoppedState),NULL);
+    }
+    void eventPushedState()
+    {
+        ProcessEvent(FindFunctionChecked(CORE_PushedState),NULL);
+    }
+    void eventEndState(FName NextStateName)
+    {
+        StateObject_eventEndState_Parms Parms(EC_EventParm);
+        if(IsProbing(NAME_EndState)) {
+        Parms.NextStateName=NextStateName;
+        ProcessEvent(FindFunctionChecked(CORE_EndState),&Parms);
+        }
+    }
+    void eventBeginState(FName PreviousStateName)
+    {
+        StateObject_eventBeginState_Parms Parms(EC_EventParm);
+        if(IsProbing(NAME_BeginState)) {
+        Parms.PreviousStateName=PreviousStateName;
+        ProcessEvent(FindFunctionChecked(CORE_BeginState),&Parms);
+        }
+    }
+    DECLARE_ABSTRACT_CLASS(UStateObject,UObject,0,Core)
+    NO_DEFAULT_CONSTRUCTOR(UStateObject)
+};
+
 class USubsystem : public UObject, public FExec
 {
 public:
@@ -471,6 +561,15 @@ public:
 
 AUTOGENERATE_FUNCTION(UDistributionFloat,-1,execGetFloatValue);
 AUTOGENERATE_FUNCTION(UDistributionVector,-1,execGetVectorValue);
+AUTOGENERATE_FUNCTION(UStateObject,118,execDisable);
+AUTOGENERATE_FUNCTION(UStateObject,117,execEnable);
+AUTOGENERATE_FUNCTION(UStateObject,-1,execDumpStateStack);
+AUTOGENERATE_FUNCTION(UStateObject,-1,execPopState);
+AUTOGENERATE_FUNCTION(UStateObject,-1,execPushState);
+AUTOGENERATE_FUNCTION(UStateObject,284,execGetStateName);
+AUTOGENERATE_FUNCTION(UStateObject,-1,execIsChildState);
+AUTOGENERATE_FUNCTION(UStateObject,281,execIsInState);
+AUTOGENERATE_FUNCTION(UStateObject,113,execGotoState);
 
 #ifndef NAMES_ONLY
 #undef AUTOGENERATE_FUNCTION
@@ -525,6 +624,8 @@ AUTOGENERATE_FUNCTION(UDistributionVector,-1,execGetVectorValue);
 	UObjectSerializer::StaticClass(); \
 	UPackage::StaticClass(); \
 	UPackageMap::StaticClass(); \
+	UStateObject::StaticClass(); \
+	GNativeLookupFuncs.Set(FName("StateObject"), GCoreUStateObjectNatives); \
 	USubsystem::StaticClass(); \
 	USystem::StaticClass(); \
 	UTextBuffer::StaticClass(); \
@@ -552,15 +653,6 @@ FNativeFunctionLookup GCoreUObjectNatives[] =
 	MAP_NATIVE(UObject, execFindObject)
 	MAP_NATIVE(UObject, execDynamicLoadObject)
 	MAP_NATIVE(UObject, execGetEnum)
-	MAP_NATIVE(UObject, execDisable)
-	MAP_NATIVE(UObject, execEnable)
-	MAP_NATIVE(UObject, execDumpStateStack)
-	MAP_NATIVE(UObject, execPopState)
-	MAP_NATIVE(UObject, execPushState)
-	MAP_NATIVE(UObject, execGetStateName)
-	MAP_NATIVE(UObject, execIsChildState)
-	MAP_NATIVE(UObject, execIsInState)
-	MAP_NATIVE(UObject, execGotoState)
 	MAP_NATIVE(UObject, execIsUTracing)
 	MAP_NATIVE(UObject, execSetUTracing)
 	MAP_NATIVE(UObject, execGetFuncName)
@@ -796,6 +888,20 @@ FNativeFunctionLookup GCoreUDistributionVectorNatives[] =
 	{NULL, NULL}
 };
 
+FNativeFunctionLookup GCoreUStateObjectNatives[] = 
+{ 
+	MAP_NATIVE(UStateObject, execDisable)
+	MAP_NATIVE(UStateObject, execEnable)
+	MAP_NATIVE(UStateObject, execDumpStateStack)
+	MAP_NATIVE(UStateObject, execPopState)
+	MAP_NATIVE(UStateObject, execPushState)
+	MAP_NATIVE(UStateObject, execGetStateName)
+	MAP_NATIVE(UStateObject, execIsChildState)
+	MAP_NATIVE(UStateObject, execIsInState)
+	MAP_NATIVE(UStateObject, execGotoState)
+	{NULL, NULL}
+};
+
 #endif // NATIVES_ONLY
 #endif // STATIC_LINKING_MOJO
 
@@ -826,6 +932,8 @@ VERIFY_CLASS_OFFSET_NODIE(UFactory,Factory,AutoPriority)
 VERIFY_CLASS_OFFSET_NODIE(UFactory,Factory,ValidGameNames)
 VERIFY_CLASS_SIZE_NODIE(UFactory)
 VERIFY_CLASS_SIZE_NODIE(UInterface)
+VERIFY_CLASS_OFFSET_NODIE(UStateObject,StateObject,StateFrame)
+VERIFY_CLASS_SIZE_NODIE(UStateObject)
 VERIFY_CLASS_SIZE_NODIE(USubsystem)
 #endif // VERIFY_CLASS_SIZES
 #endif // !ENUMS_ONLY

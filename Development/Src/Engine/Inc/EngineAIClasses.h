@@ -939,7 +939,7 @@ struct AICommandBase_eventGetUtility_Parms
     {
     }
 };
-class UAICommandBase : public UObject
+class UAICommandBase : public UStateObject
 {
 public:
     //## BEGIN PROPS AICommandBase
@@ -953,7 +953,7 @@ public:
         ProcessEvent(FindFunctionChecked(ENGINE_GetUtility),&Parms);
         return Parms.ReturnValue;
     }
-    DECLARE_ABSTRACT_CLASS(UAICommandBase,UObject,0,Engine)
+    DECLARE_ABSTRACT_CLASS(UAICommandBase,UStateObject,0,Engine)
     DECLARE_WITHIN(AAIController)
     NO_DEFAULT_CONSTRUCTOR(UAICommandBase)
 };
