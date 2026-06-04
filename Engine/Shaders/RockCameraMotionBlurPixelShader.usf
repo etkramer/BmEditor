@@ -1,0 +1,31 @@
+/*=============================================================================
+	RockCameraMotionBlurPixelShader.usf: Camera velocities only
+=============================================================================*/ 
+//@Rock - JoelS:
+//The purpose of all this is to move camera space velocities into the velocity
+//accumulation pass. This has the benefit of:
+// - tying it to the velocity buffer size
+// - more closely unifying dynamic and static object velocities
+// - removing some double up of computations with dynamic vs static velocities
+
+#include "PostProcessCommon.usf" // also includes Common.usf
+#include "MotionBlurCommon.usf"
+
+void Main(
+	float4 ScreenPosition : TEXCOORD0,
+	out float4 OutColor : COLOR0
+	)
+{
+ 
+//Setup initial colour, depth, and blur buffers:
+	float Depth = CalcSceneDepth( ScreenPosition.zw );
+
+	float4	PrevScreenPosition	= MulMatrix( PrevViewProjMatrix, float4( ScreenPosition.xy * Depth, Depth, 1 ) );
+	PrevScreenPosition.xy		/= PrevScreenPosition.w;
+
+	//Scale static velocity from projection space to texel space and clamp to +/- MAX_VELOCITY pixels.
+	float2	StaticVelocity		= (ScreenPosition.xy - PrevScreenPosition.xy) * float2(1.f,-1.f); // * float2(4.f,-4.f);//
+
+	// RETURN_COLOR not needed unless writing to SceneColor;
+	OutColor = float4(StaticVelocity.xy * 0.5f + 0.5f, 0, 1);
+}

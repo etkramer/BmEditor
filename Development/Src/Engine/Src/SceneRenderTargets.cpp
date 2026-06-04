@@ -512,6 +512,17 @@ void FSceneRenderTargets::FinishRenderingFilter(FSceneRenderTargetIndex FilterCo
 	RHICopyToResolveTarget(GetFilterColorSurface(FilterColorIndex), FALSE, FResolveParams(FResolveRect(),CubeFace_PosX,GetFilterColorTexture(FilterColorIndex)));
 }
 
+void FSceneRenderTargets::BeginRenderingHalfSizeDownsample()
+{
+	RHISetRenderTarget(GetHalfResPostProcessSurface(), FSurfaceRHIRef());
+	RHISetViewport(0,0,0.0f,GetBufferSizeX() / 2,GetBufferSizeY() / 2,1.0f);
+}
+
+void FSceneRenderTargets::FinishRenderingHalfSizeDownsample()
+{
+	RHICopyToResolveTarget(GetHalfResPostProcessSurface(), FALSE, FResolveParams(FResolveRect(),CubeFace_PosX,GetHalfResPostProcessTexture()));
+}
+
 
 void FSceneRenderTargets::BeginRenderingLUTBlend()
 {

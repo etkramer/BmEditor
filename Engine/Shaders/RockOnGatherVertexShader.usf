@@ -1,0 +1,80 @@
+/*=============================================================================
+	RockOnGatherVertexShader.usf: vertex shader for gathering the combined depth of field and bloom samples for blurring.
+=============================================================================*/
+ 
+half4 dUVOffsets;
+
+/** The entry point. */
+void Main(
+	in half4 InPosition : POSITION,
+	in half2 InUV : TEXCOORD0,
+#if XBOX
+	out half2 OutUV : TEXCOORD0,
+#else
+	out half4 OffsetUV1 : TEXCOORD0,
+	out half4 OffsetUV2 : TEXCOORD1,
+#endif
+	out half4 OutPosition : POSITION
+	)
+{
+	OutPosition = InPosition;
+
+#if XBOX
+	OutUV.xy = InUV.xy; //offsets are done in the tfetch2D inside the assembly chunk on x360
+#else
+
+	half2 InvSrcSizeXY = dUVOffsets.xy;
+	half2 OffsetXY = dUVOffsets.zw;
+
+	//OffsetUV1.xy = InUV.xy + half2(-0.66f,-0.66f) * InvSrcSizeXY + OffsetXY;
+	//OffsetUV1.zw = InUV.xy + half2( 1.66f,-0.66f) * InvSrcSizeXY + OffsetXY;
+	//OffsetUV2.xy = InUV.xy + half2(-0.66f, 1.66f) * InvSrcSizeXY + OffsetXY;
+	//OffsetUV2.zw = InUV.xy + half2( 1.66f, 1.66f) * InvSrcSizeXY + OffsetXY;
+
+	//OffsetUV1.xy = InUV.xy + half2(-0.5h,-0.5h) * InvSrcSizeXY + OffsetXY;
+	//OffsetUV1.zw = InUV.xy + half2( 1.5h,-0.5h) * InvSrcSizeXY + OffsetXY;
+	//OffsetUV2.xy = InUV.xy + half2(-0.5h, 1.5h) * InvSrcSizeXY + OffsetXY;
+	//OffsetUV2.zw = InUV.xy + half2( 1.5h, 1.5h) * InvSrcSizeXY + OffsetXY;
+
+	//Start in the upper left corner of a 4x4 texel area and bilinearly sample:
+	// 1 1 2 2
+	// 1 1 2 2
+	// 3 3 4 4
+	// 3 3 4 4
+	OffsetUV1.xy = InUV.xy + half2( 0.5h,-0.5h) * InvSrcSizeXY + OffsetXY;
+	OffsetUV1.zw = InUV.xy + half2( 2.5h,-0.5h) * InvSrcSizeXY + OffsetXY;
+	OffsetUV2.xy = InUV.xy + half2( 0.5h,-2.5h) * InvSrcSizeXY + OffsetXY;
+	OffsetUV2.zw = InUV.xy + half2( 2.5h,-2.5h) * InvSrcSizeXY + OffsetXY;
+
+	//OffsetUV1.xy = InUV.xy; 
+	//OffsetUV1.zw = InUV.xy; 
+	//OffsetUV2.xy = InUV.xy; 
+	//OffsetUV2.zw = InUV.xy;
+#endif
+}
+ 
+
+
+
+/** The entry point. */
+void MainHalfDownsample( 
+						in half4 InPosition : POSITION,
+						in half2 InUV : TEXCOORD0,
+
+						out half2 OutUV : TEXCOORD0,
+						out half4 OutPosition : POSITION
+						)
+{
+	OutPosition = InPosition;
+
+#if XBOX
+	OutUV.xy = InUV.xy; //offsets are done in the tfetch2D inside the assembly chunk on x360
+#else
+
+	half2 InvSrcSizeXY = dUVOffsets.xy;
+	half2 OffsetXY = dUVOffsets.zw;
+
+	OutUV.xy = InUV.xy + half2( -0.5h,-0.5h) * InvSrcSizeXY + OffsetXY;
+#endif
+}
+  

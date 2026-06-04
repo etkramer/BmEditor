@@ -1,0 +1,181 @@
+/*=============================================================================
+	RockOnGatherPixelShader.usf: Pixel shader for gathering the combined depth of field and bloom samples for blurring.
+=============================================================================*/
+
+//@Rock - JoelS: Changes to make the gather more streamlined.
+// - all platforms are as close as possible
+// - don't combine bloom and depth of field. We combine DOF and motion blur later in the RockOn post process instead
+// - write out flat blurred colour into .rgb (not pre-weighted to bloom/dof)
+// - write out DOF weight into the alpha, flat 0-1 range.
+
+#include "Common.usf"
+#include "DepthOfFieldCommon.usf"
+
+half4 BufferTexelSizeXY;
+
+half CalcUnfocusedPercent2(half SceneDepth)
+{
+	// Blur amount based on ratio of distance to focus plane to the focus radius
+	// it is clamped to [-1,1]. Note that FocusDistance can be negative if it 
+	// falls behind the near plane.
+	half RelativeDistance = SceneDepth - FocusDistance;
+	half DistanceSign = sign(RelativeDistance);
+
+	//@Rock - JoelS: Fixed epic bug where DOF could never get to the min/max amount:
+	half MaxUnfocusedPercent = (RelativeDistance < 0) ? MinMaxBlurClamp.x: MinMaxBlurClamp.y;
+
+// NVCHANGE_RS_BEGIN : Bug fix DoF (for DX11 and PS3), pow cannot take a negative base
+	RelativeDistance = abs(RelativeDistance * InverseFocusRadius);
+// NVCHANGE_RS_END : Bug fix DoF (for DX11 and PS3), pow cannot take a negative base
+
+	return saturate(min(MaxUnfocusedPercent, pow(RelativeDistance, PackedParameters.z))) * DistanceSign * 0.5 + 0.5;
+
+	
+
+	//float depth = SceneDepth; // = distance of pixel
+	//float fDist = FocusDistance; // = point which we want to focus on
+	//float fLength = 70.0; // = field of view
+	//float fStop = 1.4; // = aperture of lens. usually 1.4 to 22
+	//float result = depth*fLength / (depth-fLength);
+	//result -= fDist*fLength / (fDist-fLength);
+	//result *= (fDist-fLength) / (fDist*fStop);
+	//return saturate(abs(result));
+}
+
+#if XBOX
+	half4 takeGatherSample(in half2 UVbasis, in half fOffsetX, in half fOffsetY )
+	{
+		half4 FetchColor;
+		half4 FetchDepth;
+		asm
+		{
+			tfetch2D FetchColor, UVbasis, SceneColorTexture, OffsetX=fOffsetX, OffsetY=fOffsetY
+			tfetch2D FetchDepth, UVbasis, SceneDepthTexture, OffsetX=fOffsetX, OffsetY=fOffsetY
+		};
+
+		return half4(FetchColor.rgb, FetchDepth.r);
+	}
+#else
+	half4 takeGatherSample(in half2 UVbasis)
+	{
+		half4 result = CalcSceneColorAndDepth(UVbasis.xy);
+		return result;
+	}
+
+	half4 takeGatherSampleDepthMin(in half2 UVbasis)
+	{
+		half4 result = CalcSceneColorAndDepth(UVbasis.xy);
+		//Minify the depth to solve the DOF bleeding issue
+		result.a = min(result.a, CalcSceneDepth(UVbasis.xy + BufferTexelSizeXY.xy * float2( 2, 2)));
+		result.a = min(result.a, CalcSceneDepth(UVbasis.xy + BufferTexelSizeXY.xy * float2( 2,-2)));
+		result.a = min(result.a, CalcSceneDepth(UVbasis.xy + BufferTexelSizeXY.xy * float2(-2, 2)));
+		result.a = min(result.a, CalcSceneDepth(UVbasis.xy + BufferTexelSizeXY.xy * float2(-2,-2)));
+		return result;
+	}
+#endif
+
+
+
+
+
+//------------------------------------------------------
+// 2 pass downsample
+//------------------------------------------------------
+// NRS - JonG - Half-size downsampling
+void MainHalfDownsample(
+							in half2 UV : TEXCOORD0,
+							out half4 OutColor : COLOR0 )
+{
+	half4 AvgSceneColorAndDepth;
+
+	#if XBOX
+		//accumulate 4 color and depth samples
+		AvgSceneColorAndDepth  = takeGatherSample(UV.xy,0.0,0.0 );
+	#else
+		//accumulate 4 color and depth samples
+		AvgSceneColorAndDepth  = takeGatherSample(UV.xy); //takeGatherSampleDepthMin(UV.xy);//
+	#endif
+
+	OutColor = AvgSceneColorAndDepth;
+
+ 	#if PS3
+ 		OutColor = isnan(OutColor) ? half4(0,0,0,0) : OutColor;
+ 	#endif
+}
+
+// NRS - JonG - Half-size downsampling sourcing from the half-size buffer and then perform DOF focus maths
+// before storing in target
+void MainDownSampleByHalfAndDOF( 
+							in half2 UV : TEXCOORD0,
+							out half4 OutColor : COLOR0 )
+{
+	half4 AvgSceneColorAndDepth  = tex2D(SceneColorTexture,UV.xy );
+		//Minify the depth to solve the DOF bleeding issue
+		float expansion = 2.5;
+		//AvgSceneColorAndDepth.a = min(AvgSceneColorAndDepth.a, tex2D(SceneColorTexture,UV.xy + BufferTexelSizeXY.xy * float2( 1, 1)*expansion).a);
+		//AvgSceneColorAndDepth.a = min(AvgSceneColorAndDepth.a, tex2D(SceneColorTexture,UV.xy + BufferTexelSizeXY.xy * float2( 1,-1)*expansion).a);
+		//AvgSceneColorAndDepth.a = min(AvgSceneColorAndDepth.a, tex2D(SceneColorTexture,UV.xy + BufferTexelSizeXY.xy * float2(-1, 1)*expansion).a);
+		//AvgSceneColorAndDepth.a = min(AvgSceneColorAndDepth.a, tex2D(SceneColorTexture,UV.xy + BufferTexelSizeXY.xy * float2(-1,-1)*expansion).a);
+		AvgSceneColorAndDepth.a = min(AvgSceneColorAndDepth.a, tex2D(SceneColorTexture,UV.xy + BufferTexelSizeXY.xy * float2( 1, 0)*expansion).a);
+		//AvgSceneColorAndDepth.a = min(AvgSceneColorAndDepth.a, tex2D(SceneColorTexture,UV.xy + BufferTexelSizeXY.xy * float2(-1, 0)*expansion).a);
+		AvgSceneColorAndDepth.a = min(AvgSceneColorAndDepth.a, tex2D(SceneColorTexture,UV.xy + BufferTexelSizeXY.xy * float2( 0, 1)*expansion).a);
+		//AvgSceneColorAndDepth.a = min(AvgSceneColorAndDepth.a, tex2D(SceneColorTexture,UV.xy + BufferTexelSizeXY.xy * float2( 0,-1)*expansion).a);
+
+	#if XBOX
+		AvgSceneColorAndDepth.a = 1.h / (AvgSceneColorAndDepth.a * MinZ_MaxZRatio.z - MinZ_MaxZRatio.w);
+	#endif
+
+	//scale output down to fit in the [0-1] range of the fixed point filter buffer
+	OutColor = half4(AvgSceneColorAndDepth.rgb / 4.0f, CalcUnfocusedPercent2(AvgSceneColorAndDepth.a) / 4 ); //Changed from MAX_SCENE_COLOR to avoid half cast
+
+ 	#if PS3
+ 		OutColor = isnan(OutColor) ? half4(0,0,0,0) : OutColor;
+ 	#endif
+}
+
+
+
+
+
+
+
+//------------------------------------------------------
+// 1 pass variant (slower):
+//------------------------------------------------------
+void MainDOFAndBloom(
+					#if XBOX
+						in half2 UV : TEXCOORD0,
+					#else
+						in half4 OffsetUV1 : TEXCOORD0,
+						in half4 OffsetUV2 : TEXCOORD1,
+					#endif
+						out half4 OutColor : COLOR0 )
+{
+	half4 AvgSceneColorAndDepth;
+
+	#if XBOX
+		//accumulate 4 color and depth samples
+		AvgSceneColorAndDepth  = takeGatherSample(UV.xy,-1.0,-1.0 );
+		AvgSceneColorAndDepth += takeGatherSample(UV.xy,1.0,-1.0 );
+		AvgSceneColorAndDepth += takeGatherSample(UV.xy,-1.0,1.0 );
+		AvgSceneColorAndDepth += takeGatherSample(UV.xy,1.0,1.0 );
+	#else
+		//accumulate 4 color and depth samples
+		AvgSceneColorAndDepth  = takeGatherSample(OffsetUV1.xy);
+		AvgSceneColorAndDepth += takeGatherSample(OffsetUV1.zw);
+		AvgSceneColorAndDepth += takeGatherSample(OffsetUV2.xy);
+		AvgSceneColorAndDepth += takeGatherSample(OffsetUV2.zw);
+	#endif
+
+	AvgSceneColorAndDepth *= 0.25h;
+	#if XBOX
+		AvgSceneColorAndDepth.a = 1.h / (AvgSceneColorAndDepth.a * MinZ_MaxZRatio.z - MinZ_MaxZRatio.w);
+	#endif
+
+	//scale output down to fit in the [0-1] range of the fixed point filter buffer
+	OutColor = half4(AvgSceneColorAndDepth.rgb, CalcUnfocusedPercent2(AvgSceneColorAndDepth.a) ) / 4.0h; //Changed from MAX_SCENE_COLOR to avoid half cast
+
+	#if PS3
+		OutColor = isnan(OutColor) ? half4(0,0,0,0) : OutColor;
+	#endif
+}

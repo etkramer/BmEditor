@@ -3759,6 +3759,9 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 
 			LoadClass->GetName() == "Pylon" ||
 			LoadClass->GetName() == "SceneCaptureReflectActor" ||
+			LoadClass->GetName() == "SceneCapture2DActor" ||
+			LoadClass->GetName() == "FractureMaterial" ||
+			LoadClass->GetName() == "ApexClothingAsset" ||
 
 			LoadClass->GetName() == "Emitter" ||
 			LoadClass->GetName() == "InterpData" ||
@@ -3768,7 +3771,6 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 			LoadClass->GetName() == "SeqAct_Interp" ||
 			LoadClass->GetName() == "NavigationMeshBase" ||
 
-			// LoadClass->GetName() == "TextureCube" ||
 			LoadClass->GetName() == "TextureRenderTarget2D" ||
             LoadClass->GetName() == "FaceFxAnimSet"
             ))

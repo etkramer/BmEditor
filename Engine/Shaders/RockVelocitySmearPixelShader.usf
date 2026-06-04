@@ -1,0 +1,120 @@
+/*=============================================================================
+	RockVelocitySmearPixelShader.usf: Smear the accumulated velocities
+=============================================================================*/ 
+//@Rock - JoelS:
+//Fix up the harsh solid silhouette on motion blur with one of a few different flavours...
+ 
+ 
+#include "PostProcessCommon.usf" // also includes Common.usf
+#include "MotionBlurCommon.usf"
+
+sampler2D StoredVelocity;
+half2 BufferTexelSizeXY;
+float4 UVMinMax;
+
+	static const half2 SmearOffsets2D[12] = 
+	{
+		half2( 0.5f,	 1.5f) * BufferTexelSizeXY.xy,
+		half2( 1.5f,	-0.5f) * BufferTexelSizeXY.xy,
+		half2(-0.5f,	-1.5f) * BufferTexelSizeXY.xy,	
+		half2(-1.5f,	 0.5f) * BufferTexelSizeXY.xy,
+		half2(-1.5f,	 2.5f) * BufferTexelSizeXY.xy,	
+		half2( 2.5f,	 1.5f) * BufferTexelSizeXY.xy,
+		half2( 1.5f,	-2.5f) * BufferTexelSizeXY.xy,
+		half2(-2.5f,	-1.5f) * BufferTexelSizeXY.xy,
+		half2(-3.5f,	 0.5f) * BufferTexelSizeXY.xy,
+		half2( 0.5f,	 3.5f) * BufferTexelSizeXY.xy,
+		half2( 3.5f,	-0.5f) * BufferTexelSizeXY.xy,
+		half2(-0.5f,	-3.5f) * BufferTexelSizeXY.xy,
+	};
+
+	static const half SmearOffsets[8] = {-7.5,-5.5,-3.5,-1.5,1.5,3.5,5.5,7.5};
+
+void Main(
+	half4 ScreenPosition : TEXCOORD0,
+	out half4 OutColor : COLOR0
+	)
+{
+
+	half2 UV = ScreenPosition.zw;
+
+// Sample in the direction of the center vector
+//--------------------------------------------------------------------------------------------
+	//half3 smearAccum = tex2D( StoredVelocity, UV.xy ).rgb;
+	//half2 smearVector = smearAccum.xy * 2 - 1;
+	//smearVector *= BufferTexelSizeXY.xy;
+
+	//smearAccum *= 0.5; //first sample is half as weighted as the rest
+	//smearAccum += tex2D( StoredVelocity, UV.xy + smearVector * SmearOffsets[0]).rgb;
+	//smearAccum += tex2D( StoredVelocity, UV.xy + smearVector * SmearOffsets[1]).rgb;
+	//smearAccum += tex2D( StoredVelocity, UV.xy + smearVector * SmearOffsets[2]).rgb;
+	//smearAccum += tex2D( StoredVelocity, UV.xy + smearVector * SmearOffsets[3]).rgb;
+	//smearAccum += tex2D( StoredVelocity, UV.xy + smearVector * SmearOffsets[4]).rgb;
+	//smearAccum += tex2D( StoredVelocity, UV.xy + smearVector * SmearOffsets[5]).rgb;
+	//smearAccum += tex2D( StoredVelocity, UV.xy + smearVector * SmearOffsets[6]).rgb;
+	//smearAccum += tex2D( StoredVelocity, UV.xy + smearVector * SmearOffsets[7]).rgb;
+
+	//smearAccum /= 8.5f;
+
+// Circular vector weighted (smooth falloff, weighted to the velocity strength per tap)
+//--------------------------------------------------------------------------------------------
+	//#define SMEAR_SAMPLES 12
+
+	//half3 smearAccum = tex2D( StoredVelocity, UV.xy ).rgb;
+	//half smearWeight = 1;
+
+	//for( int i=0; i < SMEAR_SAMPLES; i++)
+	//{
+	//	half2 sampleUV = UV.xy + SmearOffsets2D[i];
+	//	sampleUV		= clamp(sampleUV, UVMinMax.xy, UVMinMax.zw);
+	//	
+	//	half3 sample = tex2D( StoredVelocity, sampleUV.xy ).rgb;
+	//	half sampleWeight = length(sample.xy * 2 - 1);
+
+	//	smearAccum += sample.rgb * sampleWeight;
+	//	smearWeight += sampleWeight;
+	//}
+
+	//smearAccum = smearAccum.xyz / smearWeight;
+
+// Circular average
+//--------------------------------------------------------------------------------------------
+	#define SMEAR_SAMPLES 12
+
+	half3 smearAccum = tex2D( StoredVelocity, clamp(UV.xy, UVMinMax.xy, UVMinMax.zw) ).rgb;
+
+	for( int i=0; i < SMEAR_SAMPLES; i++)
+	{
+		half2 sampleUV	= UV.xy + SmearOffsets2D[i];
+		sampleUV		= clamp(sampleUV, UVMinMax.xy, UVMinMax.zw);
+		smearAccum		+= tex2D( StoredVelocity, sampleUV.xy ).rgb;
+	}
+
+	smearAccum = smearAccum.xyz / (SMEAR_SAMPLES+1.h);
+
+// Circular dilate loop
+//--------------------------------------------------------------------------------------------
+	//#define SMEAR_SAMPLES 12
+
+	//half3 smearAccum = tex2D( StoredVelocity, UV.xy ).rgb;
+	//half smearWeight = length(smearAccum.xyz * 2 - 1);
+
+	//for( int i=0; i < SMEAR_SAMPLES; i++)
+	//{
+	//	half2 sampleUV = UV.xy + SmearOffsets2D[i];
+	//	sampleUV		= clamp(sampleUV, UVMinMax.xy, UVMinMax.zw);
+	//	
+	//	half3 sample = tex2D( StoredVelocity, sampleUV.xy ).rgb;
+	//	half sampleWeight = length(sample.xy * 2 - 1);
+
+	//	smearAccum = sampleWeight > smearWeight ? sample.rgb : smearAccum.rgb;
+	//	smearWeight = sampleWeight;
+	//}
+
+
+
+
+
+	// RETURN_COLOR not needed unless writing to SceneColor;
+	OutColor = half4(smearAccum, 1);
+}

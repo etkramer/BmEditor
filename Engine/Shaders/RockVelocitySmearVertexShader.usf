@@ -1,0 +1,19 @@
+/*=============================================================================
+	RockVelocitySmearVertexShader.usf:
+=============================================================================*/
+#include "Common.usf"
+
+void Main(
+	float4 InPosition				: POSITION,
+	float2 UV						: TEXCOORD0,
+
+	out float4 OutScreenPosition	: TEXCOORD0,
+	out float4 OutPosition			: POSITION
+	)
+{
+	OutPosition = InPosition;
+ 
+	// texture coord from vb
+	OutScreenPosition.xy = InPosition;
+	OutScreenPosition.zw = UV.xy; //InPosition * ScreenPositionScaleBias.xy + ScreenPositionScaleBias.wz;
+}

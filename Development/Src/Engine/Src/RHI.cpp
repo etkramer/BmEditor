@@ -19,7 +19,11 @@ UBOOL GSupportsFetch4 = FALSE;
 UBOOL GSupportsFPFiltering = TRUE;
 UBOOL GSupportsRenderTargetFormat_PF_G8 = TRUE;
 UBOOL GSupportsQuads = FALSE;
+#if BATMAN
+UBOOL GUsesInvertedZ = TRUE;
+#else
 UBOOL GUsesInvertedZ = FALSE;
+#endif
 FLOAT GPixelCenterOffset = 0.5f;
 INT GMaxPerObjectShadowDepthBufferSizeX = 2048;
 INT GMaxPerObjectShadowDepthBufferSizeY = 2048;

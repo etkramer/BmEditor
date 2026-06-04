@@ -1,0 +1,298 @@
+/*=============================================================================
+	RockOnBlendPixelShader.usf: Our custom post process suite
+=============================================================================*/ 
+
+//@Rock - JoelS: Completely rejiggered this pass.
+//- new atmospherics pass
+//		|- Atmospherics contribute 2 depth layers and 2 height layers
+//		|- Atmospherics can modulate a 3D scrolling noise through the height layers
+
+
+#include "Common.usf"
+#include "RockAtmosCommon.usf"
+
+//disable atmospheric noise on ps3:
+//#if PS3 && ALLOW_AtmosNoise
+//	#undef ALLOW_AtmosNoise
+//#endif
+
+sampler2D AtmosphericNoiseTexture;		// Atmospheric noise texture
+float4 AtmosNoiseWind;					// xyz=user settable force, w=noise scale
+half2 BufferTexelSizeXY;				// texel size of the front buffer
+
+
+////-----------------------------------------------
+//// Fog functions: 2D to 3D tex lookup (1 sample)
+////-----------------------------------------------
+////@Rock - JoelS: Emulates a 3D texture lookup, to get around UE3's lack of volume texture support.
+//
+//float tex2DxyzToUV(in sampler2D texSampler, in float3 WorldPos)
+//{
+//#define NumSlices 64						// The number of texture slices in the .x coordinate
+//#define NumSlicesStep 0.015625h				// 1 / NumSlices
+//#define InverseStep	0.96875h				// 1 - NumSlicesStep * 2
+//#define SquareNumSlicesStep	0.000244140625h	// 1 / (NumSlices * NumSlices)
+//
+//	float index		= WorldPos.z;
+//	float2 UV		= WorldPos.xy;
+//
+//// Massage .x into the right aspect ratio, NumSlices:1
+//	UV.x			= UV.x / NumSlices;
+//
+//// Take the fractional remainder from index and uv.x:
+//// uv.x = Wrap the .x in for each tile
+//// index = Compute .z filtering gradient
+//	float2 takeFrac	= frac(float2(UV.x,index) * NumSlices);
+//	UV.x			= takeFrac.x / NumSlices;
+//// fixup the border
+//	UV.x			= UV.x * InverseStep + SquareNumSlicesStep;
+//// Find what the .z index is
+//	float xoffset_Floor	= floor(index * NumSlices) / NumSlices;
+//// Move the current tile by the .z index offset
+//	UV.x			+= xoffset_Floor;
+//
+//	float3 final		= tex2D( texSampler, UV.xy );
+//	final			= lerp(final.x, final.y, takeFrac.y);
+//
+//	return final.x;
+//}
+
+
+//-----------------------------------------------
+// Fog functions: 2D to 3D tex lookup (2 samples)
+//-----------------------------------------------
+half3 tex2DxyzToUV2(in sampler2D texSampler, in float3 WorldPos1, in float3 WorldPos2)
+{
+	//half3 noise	= 0;
+	//noise += sin(WorldPos1.xyz+WorldPos2.yzx*0.556h);
+	//noise -= cos(WorldPos2.xyz+WorldPos1.zxy*0.649h);
+
+	//return dot(noise,noise);
+
+
+half3 coord1 = WorldPos1.xyz;//+WorldPos2.yzx*0.3556h;
+half3 coord2 = WorldPos2.xyz;//+WorldPos1.zxy*0.3649h;
+
+	half3 noise;
+	//noise.xy		= tex2D(texSampler, coord1.xy).xy;
+	//noise.z			= tex2D(texSampler, noise.xy+coord1.zz).x;
+
+	//noise.xy		+= tex2D(texSampler, coord2.xy).xy;
+	//noise.z			+= tex2D(texSampler, tex2D(texSampler, coord2.xy).xy+coord2.zz).x;
+
+	noise.xy		= tex2D(texSampler, coord1.xy).xy;
+	noise.z			= tex2D(texSampler, coord1.zz).x;
+
+	noise.xy		-= tex2D(texSampler, coord2.xy).xy;
+	noise.z			-= tex2D(texSampler, coord2.zz).x;
+
+	return noise;
+
+
+
+
+//	half3 noise	= 0;
+//	half3 coord1 = WorldPos1.xyz;//+WorldPos2.yzx*0.556h;
+//	half3 coord2 = WorldPos2.xyz;//+WorldPos1.zxy*0.649h;
+//
+//	//noise.xy	= tex2D(texSampler, coord1.xy).xy*2-1;
+//	//noise.z		= tex2D(texSampler, coord1.zz).x*2-1;
+//
+//
+//	noise.xy = tex2D(texSampler, coord1.xy).xy;
+//	noise.z	= tex2D(texSampler, coord1.zz*4 + noise.xy).z;
+//
+////	noise.xy	-= cos(WorldPos2.xyz+WorldPos1.zxy*0.649h);
+//
+//	//noise.xyz	= sin(coord1.xyz);
+//	return noise.z;//dot(noise,noise); 
+
+
+
+
+
+
+	//const float3 RandTable[] = {
+	//float3(0.231,0.952,0.580),
+	//float3(0.793,0.167,0.687),
+	//float3(0.098,0.166,0.169),
+	//float3(0.199,0.786,0.994),
+	//float3(0.499,0.197,0.054),
+	//float3(0.058,0.196,0.672),
+	//float3(0.231,0.952,0.196),
+	//float3(0.181,0.548,0.695),
+	//};
+
+//int3 noiseIndex = (fmod((WorldPos1.xyz),8));
+//
+//float3 noiseResult;
+//noiseResult.x = RandTable[noiseIndex.x].x;
+//noiseResult.y = RandTable[noiseIndex.y].y;
+//noiseResult.z = RandTable[noiseIndex.z].z;
+
+//return dot(noiseResult,1);
+
+
+}
+
+
+//@Rock - JoelS: Emulates a 3D texture lookup, to get around UE3's lack of volume texture support.
+// 2 sample variant for optimisation
+//float tex2DxyzToUV2(in sampler2D texSampler, in float3 WorldPos1, in float3 WorldPos2)
+//{
+//#define NumSlices 64						// The number of texture slices in the .x coordinate
+//#define NumSlicesStep 0.015625h				// 1 / NumSlices
+//#define InverseStep	0.96875h				// 1 - NumSlicesStep * 2
+//#define SquareNumSlicesStep	0.000244140625h	// 1 / (NumSlices * NumSlices)
+//
+//	float2 index		= float2(WorldPos1.z,WorldPos2.z) * NumSlices;
+//	float4 UV		= float4(WorldPos1.xy,WorldPos2.xy);
+//
+//// Take the fractional remainder from index.xy and uv.xz:
+//// uv.xz = Wrap the .xz in for each tile
+//// index = Compute .z filtering gradient for both samples
+//	float4 takeFrac	= frac(float4(UV.xz,index.xy));
+//	UV.xz			= takeFrac.xy * NumSlicesStep;
+//// fixup the border
+//	UV.xz			= UV.xz * InverseStep + SquareNumSlicesStep;
+//// Find what the .z index is
+//	float2 xoffset_Floor	= floor(index.xy) * NumSlicesStep;
+//// Move the current tile by the .z index offset
+//	UV.xz			+= xoffset_Floor.xy;
+//// Take the two samples:
+//	float4 sample;
+//	sample.xy		= tex2D( texSampler, UV.xy ).xy; //sample 1
+//	sample.zw		= tex2D( texSampler, UV.zw ).xy; //sample 2
+//// filter between the encoded sub-samples using the .z gradient for both samples
+//	float2 final		= sample.xz + takeFrac.zw * (sample.yw - sample.xz);
+//	return final.x + final.y;
+//}
+
+
+
+//================================================================================================================================
+// Pixel Shader
+//================================================================================================================================
+void Main(	in half4 ScreenPosition : TEXCOORD0,
+			in half3 ScreenVector : TEXCOORD1,
+			out half4 OutColor : COLOR0	)
+{
+	float depth = CalcSceneDepth( ScreenPosition.zw );
+
+//---------------------------------------------
+// ATMOSPHERICS:
+//---------------------------------------------
+	half4 addFogCol			= 0.h;
+
+//@ROCK - JoelS: Replacing old fog with a new density based approx.
+//todo: figure out how far it can be broken down into half's
+#if ALLOW_AtmosH1 || ALLOW_AtmosH2 || ALLOW_AtmosD1 || ALLOW_AtmosD2
+
+//Get world position from reprojected depth buffer:
+	float3 WorldPos				= ScreenVector.xyz * depth;
+
+//Camera to world .xyz difference, and length in .w
+	float4 CamToWorldPos;
+	CamToWorldPos.xyz			= WorldPos.xyz; 
+	CamToWorldPos.w				= length(CamToWorldPos.xyz);
+	
+	WorldPos					+= CameraPos.xyz;
+
+
+//Volume noise contribution:
+//------------------------------------------------------------------------------------------------------
+#if(ALLOW_AtmosNoise)
+
+	#define maxNoiseDistance 6000.h
+	#define maxNoiseDistanceHalf 3000.h
+
+	#define texsteps 6
+	#define texstepsOneOver 0.166666666666666666666h		// 1 / (texsteps)
+	#define texstepsOneOverHalf 0.083333333333333333333h	// 1 / (texsteps)
+
+
+//-----------------------------
+	float4 FogUVDistort = AtmosNoiseWind.xyzw; //eg, float4(TimeVector.xxx * AtmosNoiseWind.xyz, 0.00025h);
+//start at the clamped world position...
+	float3 startPos		= min(maxNoiseDistance,CamToWorldPos.w) * normalize(-CamToWorldPos.xyz);
+	float3 FogUV 		= (startPos.xyz - CameraPos.xyz) * FogUVDistort.w;
+	half noiseZ			= 1.h + tex2D(AtmosphericNoiseTexture, FogUV.zz * 0.25h).z;
+	FogUV 				= FogUV * noiseZ + FogUVDistort.xyz;
+
+//step out from the world pos towards the camera
+	float3 RayStep 		= startPos * FogUVDistort.w * texstepsOneOverHalf;
+
+	half2 slicesSum		= 0.h;
+	UNROLL for(int i = 0; i < texsteps; i++)
+	{
+		slicesSum			+= tex2D(AtmosphericNoiseTexture, FogUV.xy).xy;
+		FogUV 				-= RayStep;
+	}
+
+	half distExtents	= saturate(maxNoiseDistanceHalf / CamToWorldPos.w);
+	slicesSum			= dot(slicesSum,texstepsOneOverHalf);
+	slicesSum			= lerp(1, slicesSum, AtmosH1H2_Alpha.z * distExtents);
+
+	AtmosGradSizeHeightIntegral_xH1yH1zH2wH2.yw		*= slicesSum.x;
+	//AtmosH1_Colour.rgb *= slicesSum.x;
+	//AtmosH2_Colour.rgb *= slicesSum.x;
+
+//
+//	#define texsteps 12
+//	#define loopsteps 6									// 2 samples at a time
+//	#define texstepsOneOver 0.0833333333333333333h		// 1 / (texsteps)
+//
+////Method: Two sample, world to cam distance clamped instead of xyz
+////Turned out quite good!
+////-----------------------------
+//	float4 FogUVDistort = AtmosNoiseWind.xyzw; //eg, float4(TimeVector.xxx * AtmosNoiseWind.xyz, 0.00025h);
+////start at the clamped world position...
+//	float3 startPos		= min(3000.h,CamToWorldPos.w) * normalize(-CamToWorldPos.xyz);
+//	float3 FogUV1 		= (startPos - CameraPos.xyz) * FogUVDistort.w + FogUVDistort.xyz;
+////step out from the world pos towards the camera
+//	float3 RayStep 		= startPos * FogUVDistort.w * texstepsOneOver;
+////FogUV2 is one step ahead of FogUV1
+//	float3 FogUV2 		= FogUV1.xyz - RayStep.xyz;
+//
+//	half slicesSum		= 0.h;
+//
+//	UNROLL for(int i = 0; i < loopsteps; i++)
+//	{
+//		slicesSum 			+= tex2DxyzToUV2(AtmosphericNoiseTexture, FogUV1.xyz, FogUV2.xyz);
+//		FogUV1 				-= RayStep;
+//		FogUV2 				-= RayStep;
+//	}
+//	//slicesSum			= lerp(1, slicesSum, AtmosH1H2_Alpha.z);
+//	slicesSum			= 1 + AtmosH1H2_Alpha.z * (slicesSum - 1);
+#endif //ALLOW_AtmosNoise
+
+#if ALLOW_AtmosH1 && ALLOW_AtmosH2
+	addFogCol += ComputeRockAtmosFogH1H2(CamToWorldPos);
+#else
+	#if ALLOW_AtmosH1
+		addFogCol += ComputeRockAtmosFogH1(CamToWorldPos);
+	#endif
+
+	#if ALLOW_AtmosH2
+		addFogCol += ComputeRockAtmosFogH2(CamToWorldPos);
+	#endif
+#endif
+
+#if ALLOW_AtmosD1 && ALLOW_AtmosD2
+	addFogCol += ComputeRockAtmosFogD1D2(CamToWorldPos);
+#else
+	#if ALLOW_AtmosD1
+		addFogCol += ComputeRockAtmosFogD1(CamToWorldPos);
+	#endif
+
+	#if ALLOW_AtmosD2
+		addFogCol += ComputeRockAtmosFogD2(CamToWorldPos);
+	#endif
+#endif
+	// Global gradient
+	addFogCol.rgba *= lerp(1, AtmosGlobal_Gradient_Colour.rgba, saturate(dot(normalize(WorldPos.xyz), AtmosGlobal_Gradient_Direction.xyz)) );
+
+#endif //ALLOW_AtmosH1 || ALLOW_AtmosH2 || ALLOW_AtmosD1 || ALLOW_AtmosD2
+
+	OutColor = RETURN_COLOR( half4(addFogCol.rgb, saturate(addFogCol.a)) );
+}

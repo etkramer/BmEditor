@@ -1,0 +1,32 @@
+/*=============================================================================
+	RockOnVertexShader.usf:
+=============================================================================*/
+   
+half4 SceneCoordinateScaleBias;
+
+#if USE_IMAGEGRAIN
+	half4 FilmGrainScaleOffset;
+#endif //USE_IMAGEGRAIN
+
+void Main(		float4 InPosition				: POSITION,
+				float2 InScreenUV				: TEXCOORD0,
+
+				out half4 OutScreenPosition		: TEXCOORD0,
+
+				#if USE_IMAGEGRAIN
+					out half4 OutFilterBufferUV	: TEXCOORD1,
+				#else
+					out half2 OutFilterBufferUV	: TEXCOORD1,
+				#endif //USE_IMAGEGRAIN
+
+				out float4 OutPosition			: POSITION		)
+{
+	OutPosition = InPosition;								// Target position
+	float2 SceneUV = InPosition.xy / InPosition.w * SceneCoordinateScaleBias.xy + SceneCoordinateScaleBias.wz;
+	OutScreenPosition.xyzw = half4(InPosition.xy,SceneUV.xy);		// Background position and UV
+
+	OutFilterBufferUV.xy = InScreenUV.xy;
+#if USE_IMAGEGRAIN
+	OutFilterBufferUV.zw = SceneUV.xy * FilmGrainScaleOffset.xy + FilmGrainScaleOffset.zw;
+#endif //USE_IMAGEGRAIN
+}

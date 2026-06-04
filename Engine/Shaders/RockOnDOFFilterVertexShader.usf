@@ -1,0 +1,14 @@
+/*=============================================================================
+@Rock - JoelS: iterative blur vertex shader
+=============================================================================*/
+ 
+#include "Common.usf"
+
+void MainDOF(	float4 InPosition		: POSITION,
+				half2 InUV				: TEXCOORD0,
+				out half2 OutUV			: TEXCOORD0,
+				out float4 OutPosition	: POSITION )
+{
+	OutUV.xy = InUV.xy;
+	OutPosition = InPosition;
+}

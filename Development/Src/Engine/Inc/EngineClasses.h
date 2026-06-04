@@ -19065,6 +19065,76 @@ public:
 	}
 };
 
+class URockAtmos : public UDOFBloomMotionBlurEffect
+{
+public:
+    //## BEGIN PROPS RockAtmos
+    FColor AtmosD1_Colour_PP;
+    FLOAT AtmosD1_Density_PP;
+    FLOAT AtmosD1_DistanceStart_PP;
+    FLOAT AtmosD1_DistanceEnd_PP;
+    FColor AtmosD2_Colour_PP;
+    FLOAT AtmosD2_Density_PP;
+    FLOAT AtmosD2_DistanceStart_PP;
+    FLOAT AtmosD2_DistanceEnd_PP;
+    FColor AtmosH1_Colour_PP;
+    FLOAT AtmosH1_Density_PP;
+    FLOAT AtmosH1_GradientSize_PP;
+    FLOAT AtmosH1_GradientPosition_PP;
+    FColor AtmosH2_Colour_PP;
+    FLOAT AtmosH2_Density_PP;
+    FLOAT AtmosH2_GradientSize_PP;
+    FLOAT AtmosH2_GradientPosition_PP;
+    FVector AtmosNoiseWind_PP;
+    FColor AtmosGlobal_Gradient_Colour_PP;
+    FVector AtmosGlobal_Gradient_Direction_PP;
+    FLOAT AtmosGlobal_Gradient_Density_PP;
+    FVector AtmosNoiseOffset_PP;
+    FLOAT AtmosNoiseFade_PP;
+    //## END PROPS RockAtmos
+
+    DECLARE_CLASS(URockAtmos,UDOFBloomMotionBlurEffect,0,Engine)
+	// UPostProcessEffect interface
+	virtual class FPostProcessSceneProxy* CreateSceneProxy(const FPostProcessSettings* WorldSettings);
+
+	// UObject interface
+	virtual void PostLoad();
+};
+
+class URockOn : public UDOFBloomMotionBlurEffect
+{
+public:
+    //## BEGIN PROPS RockOn
+    FVector SceneShadows;
+    FVector SceneHighLights;
+    FVector SceneMidTones;
+    FLOAT SceneDesaturation;
+    FVector SceneColorize;
+    FLOAT MotionBlurSoftEdgeKernelSize;
+    BITFIELD bEnableImageGrain:1;
+    FLOAT SceneImageGrainScale;
+    struct FLUTBlender PreviousLUTBlender;
+    //## END PROPS RockOn
+
+    DECLARE_CLASS(URockOn,UDOFBloomMotionBlurEffect,0,Engine)
+	// UPostProcessEffect interface
+	virtual class FPostProcessSceneProxy* CreateSceneProxy(const FPostProcessSettings* WorldSettings);
+
+	// UObject interface
+	virtual void PostLoad();
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent);
+
+	virtual UBOOL IncludesUberpostprocess() const
+	{
+		return TRUE;
+	}
+
+	virtual void OnPostProcessWarning(FString& OutWarning) const
+	{
+		// RockOn is the intended uber post process; no warning.
+	}
+};
+
 class UUberPostProcessEffect : public UDOFBloomMotionBlurEffect
 {
 public:
@@ -19194,6 +19264,40 @@ public:
 	{
 		OutWarning = TEXT("Warning: MotionBlur should no longer be used, use Uberpostprocess instead.");
 	}
+};
+
+class URockAO : public UPostProcessEffect
+{
+public:
+    //## BEGIN PROPS RockAO
+    FLOAT RSContrast;
+    FLOAT RSRadiusMax;
+    FLOAT RSRadiusMin;
+    FLOAT RSRadiusScale;
+    FLOAT RSDepthTestRadius;
+    FLOAT RSEdgeThreshold;
+    FLinearColor OcclusionColor;
+    FLOAT OcclusionPower;
+    FLOAT OcclusionScale;
+    FLOAT OcclusionBias;
+    FLOAT MinOcclusion;
+    FLOAT OcclusionRadius;
+    FLOAT OcclusionAttenuation;
+    FLOAT OcclusionFadeoutMinDistance;
+    FLOAT OcclusionFadeoutMaxDistance;
+    FLOAT HaloDistanceThreshold;
+    FLOAT HaloDistanceScale;
+    FLOAT HaloOcclusion;
+    FLOAT EdgeDistanceThreshold;
+    FLOAT EdgeDistanceScale;
+    FLOAT FilterDistanceScale;
+    INT FilterSize;
+    //## END PROPS RockAO
+
+    DECLARE_CLASS(URockAO,UPostProcessEffect,0,Engine)
+	// UPostProcessEffect interface
+	virtual class FPostProcessSceneProxy* CreateSceneProxy(const FPostProcessSettings* WorldSettings);
+	virtual UBOOL IsShown(const FSceneView* View) const;
 };
 
 class UPrimitiveComponentFactory : public UObject
@@ -20598,10 +20702,13 @@ AUTOGENERATE_FUNCTION(UUIManager,-1,execGetUIManager);
 	UDOFEffect::StaticClass(); \
 	UDOFAndBloomEffect::StaticClass(); \
 	UDOFBloomMotionBlurEffect::StaticClass(); \
+	URockAtmos::StaticClass(); \
+	URockOn::StaticClass(); \
 	UUberPostProcessEffect::StaticClass(); \
 	UDwTriovizImplEffect::StaticClass(); \
 	UMaterialEffect::StaticClass(); \
 	UMotionBlurEffect::StaticClass(); \
+	URockAO::StaticClass(); \
 	UPrimitiveComponentFactory::StaticClass(); \
 	UMeshComponentFactory::StaticClass(); \
 	UStaticMeshComponentFactory::StaticClass(); \
@@ -22075,6 +22182,12 @@ VERIFY_CLASS_SIZE_NODIE(UDOFAndBloomEffect)
 VERIFY_CLASS_OFFSET_NODIE(UDOFBloomMotionBlurEffect,DOFBloomMotionBlurEffect,MaxVelocity)
 VERIFY_CLASS_OFFSET_NODIE(UDOFBloomMotionBlurEffect,DOFBloomMotionBlurEffect,CameraTranslationThreshold)
 VERIFY_CLASS_SIZE_NODIE(UDOFBloomMotionBlurEffect)
+VERIFY_CLASS_OFFSET_NODIE(URockAtmos,RockAtmos,AtmosD1_Colour_PP)
+VERIFY_CLASS_OFFSET_NODIE(URockAtmos,RockAtmos,AtmosNoiseFade_PP)
+VERIFY_CLASS_SIZE_NODIE(URockAtmos)
+VERIFY_CLASS_OFFSET_NODIE(URockOn,RockOn,SceneShadows)
+VERIFY_CLASS_OFFSET_NODIE(URockOn,RockOn,PreviousLUTBlender)
+VERIFY_CLASS_SIZE_NODIE(URockOn)
 VERIFY_CLASS_OFFSET_NODIE(UUberPostProcessEffect,UberPostProcessEffect,SceneShadows)
 VERIFY_CLASS_OFFSET_NODIE(UUberPostProcessEffect,UberPostProcessEffect,SceneHDRTonemapperScale_DEPRECATED)
 VERIFY_CLASS_SIZE_NODIE(UUberPostProcessEffect)
@@ -22083,6 +22196,9 @@ VERIFY_CLASS_SIZE_NODIE(UMaterialEffect)
 VERIFY_CLASS_OFFSET_NODIE(UMotionBlurEffect,MotionBlurEffect,MaxVelocity)
 VERIFY_CLASS_OFFSET_NODIE(UMotionBlurEffect,MotionBlurEffect,CameraTranslationThreshold)
 VERIFY_CLASS_SIZE_NODIE(UMotionBlurEffect)
+VERIFY_CLASS_OFFSET_NODIE(URockAO,RockAO,RSContrast)
+VERIFY_CLASS_OFFSET_NODIE(URockAO,RockAO,FilterSize)
+VERIFY_CLASS_SIZE_NODIE(URockAO)
 VERIFY_CLASS_SIZE_NODIE(UPrimitiveComponentFactory)
 VERIFY_CLASS_OFFSET_NODIE(UMeshComponentFactory,MeshComponentFactory,Materials)
 VERIFY_CLASS_SIZE_NODIE(UMeshComponentFactory)

@@ -1,0 +1,883 @@
+/*=============================================================================
+	RockOnBlendPixelShader.usf: Our custom post process suite
+=============================================================================*/ 
+
+//@Rock - JoelS: Completely rejiggered this pass.
+//- new bloom
+//		|- Bloom is seperated from DOF
+//		|- Bloom options. Eg, taking an approximation of kelvin temperature colour values mapped to its range.
+//		|- pow() optimisation on the relevent bloom method. Limits the minimal pow range to being squared.
+//- new DOF
+//		|- Introduced small DOF blur for better quality. These are shared by motion blur samples.
+//		|- DOF doesn't ghost on partially focused areas.
+//		|- DOF respects HDR values.
+//- new motion blur
+//		|- Motion blur has been massively simplified to use just the velocity buffer pass.
+//		|- Camera based velocity is pre-accumulated in the velocity buffer.
+//		|- Motion blur mostly respects HDR values, giving more obvious light streaks.
+//
+//================================================================================================================================
+//Includes
+//================================================================================================================================
+#include "PostProcessCommon.usf" // also includes Common.usf
+#include "DepthOfFieldCommon.usf"
+
+//Local defines:
+#define LOCAL_ABERRATION			0
+#define LOCAL_CHEAPABERRATION		0
+#define LOCAL_COLOUREDIMAGEGRAIN	0
+#define LOCAL_JITTERED_SAMPLES		0
+
+
+//Use high quality DOF
+#ifndef USE_IMAGEGRAIN
+	#define USE_IMAGEGRAIN 0
+#endif
+
+#ifndef USE_HIGHQUALITYDOF
+	#define USE_HIGHQUALITYDOF 0
+#endif
+
+#ifndef MOTION_BLUR
+	#define MOTION_BLUR 0
+#endif
+
+#if MOTION_BLUR
+	#include "MotionBlurCommon.usf"
+#endif //MOTION_BLUR
+
+//================================================================================================================================
+//Globals
+//================================================================================================================================
+
+sampler2D BlurredImage;
+sampler2D LightShaftBuffer;
+
+// rgb: BloomTint * BloomScale, a: BloomScreenBlendThreshold
+// rgb is premultiplied with the pow() optimisiation multiply
+half4 BloomTintAndScreenBlendThreshold;
+
+#if USE_IMAGEGRAIN
+	sampler2D PostProcessNoiseTexture;	// Film grain noise texture sampler:
+	half4 FilmGrain;
+#endif //USE_IMAGEGRAIN
+
+half2 BufferTexelSizeXY;				// texel size of the front buffer
+
+//Sample numbers for motion blur and dof
+#if PC_D3D
+	#define BlurSampleNum 9
+	#define MoBlurMaxDist 0.2h
+#else
+	#define BlurSampleNum 5
+	#define MoBlurMaxDist 0.2h
+#endif
+
+
+#if USE_HIGHQUALITYDOF
+//Poisson disc
+	//#define HQDOFSAMPLES 12
+	//static const half2 HQDOFKernel[12] = 
+	//{
+	//	half2(-0.326212f,	-0.405810f),	half2(-0.840144f,	-0.073580f) ,
+	//	half2(-0.695914f,	 0.457137f),	half2(-0.203345f,	 0.620716f) ,
+	//	half2( 0.962340f,	-0.194983f),	half2( 0.473434f,	-0.480026f) ,
+	//	half2( 0.519456f,	 0.767022f),	half2( 0.185461f,	-0.893124f) ,
+	//	half2( 0.507431f,	 0.064425f),	half2( 0.896420f,	 0.412458f) ,
+	//	half2(-0.321940f,	-0.932615f),	half2(-0.791559f,	-0.597710f) 
+	//};
+
+//Bilinear diamond
+	//#define HQDOFSAMPLES 12
+	//static const half2 HQDOFKernel[12] = 
+	//{
+	//	half2( 0.5f,	 1.5f) * BufferTexelSizeXY.xy,
+	//	half2( 1.5f,	-0.5f) * BufferTexelSizeXY.xy,
+	//	half2(-0.5f,	-1.5f) * BufferTexelSizeXY.xy,	
+	//	half2(-1.5f,	 0.5f) * BufferTexelSizeXY.xy,
+	//	half2(-1.5f,	 2.5f) * BufferTexelSizeXY.xy,	
+	//	half2( 2.5f,	 1.5f) * BufferTexelSizeXY.xy,
+	//	half2( 1.5f,	-2.5f) * BufferTexelSizeXY.xy,
+	//	half2(-2.5f,	-1.5f) * BufferTexelSizeXY.xy,
+	//	half2(-3.5f,	 0.5f) * BufferTexelSizeXY.xy,
+	//	half2( 0.5f,	 3.5f) * BufferTexelSizeXY.xy,
+	//	half2( 3.5f,	-0.5f) * BufferTexelSizeXY.xy,
+	//	half2(-0.5f,	-3.5f) * BufferTexelSizeXY.xy,
+	//};
+
+//6 points
+	//#define HQDOFSAMPLES 18
+	//static const half2 HQDOFKernel[18] = 
+	//{
+	//	half2( 0.0f,	 1.0f) * BufferTexelSizeXY.xy,
+	//	half2( 0.0f,	 2.0f) * BufferTexelSizeXY.xy,
+	//	half2( 1.0f,	 0.5f) * BufferTexelSizeXY.xy,	
+	//	half2( 1.0f,	 1.5f) * BufferTexelSizeXY.xy,
+	//	half2( 2.0f,	 0.0f) * BufferTexelSizeXY.xy,	
+	//	half2( 2.0f,	 1.0f) * BufferTexelSizeXY.xy,
+
+	//	half2( 1.0f,	-0.5f) * BufferTexelSizeXY.xy,
+	//	half2( 2.0f,	-1.0f) * BufferTexelSizeXY.xy,
+	//	half2( 0.0f,	-1.0f) * BufferTexelSizeXY.xy,
+	//	half2( 1.0f,	-1.5f) * BufferTexelSizeXY.xy,
+	//	half2(-1.0f,	-1.5f) * BufferTexelSizeXY.xy,
+	//	half2( 0.0f,	-2.0f) * BufferTexelSizeXY.xy,
+
+	//	half2(-1.0f,	-0.5f) * BufferTexelSizeXY.xy,
+	//	half2(-2.0f,	-1.0f) * BufferTexelSizeXY.xy,
+	//	half2(-1.0f,	 0.5f) * BufferTexelSizeXY.xy,
+	//	half2(-2.0f,	 0.0f) * BufferTexelSizeXY.xy,
+	//	half2(-1.0f,	 1.5f) * BufferTexelSizeXY.xy,
+	//	half2(-2.0f,	 1.0f) * BufferTexelSizeXY.xy,
+	//};
+
+//Circular Bilinear
+	#define HQDOFSAMPLES 16
+	static const half2 HQDOFKernel[16] = 
+	{
+		//upper right
+		half2( 0.5f,	 0.5f) * BufferTexelSizeXY.xy,
+		half2( 2.5f,	 0.5f) * BufferTexelSizeXY.xy,
+		half2( 0.5f,	 2.5f) * BufferTexelSizeXY.xy,
+		half2( 2.0f,	 2.0f) * BufferTexelSizeXY.xy,
+
+		//upper left
+		half2( -0.5f,	 0.5f) * BufferTexelSizeXY.xy,
+		half2( -2.5f,	 0.5f) * BufferTexelSizeXY.xy,
+		half2( -0.5f,	 2.5f) * BufferTexelSizeXY.xy,
+		half2( -2.0f,	 2.0f) * BufferTexelSizeXY.xy,
+
+		//lower right
+		half2( 0.5f,	 -0.5f) * BufferTexelSizeXY.xy,
+		half2( 2.5f,	 -0.5f) * BufferTexelSizeXY.xy,
+		half2( 0.5f,	 -2.5f) * BufferTexelSizeXY.xy,
+		half2( 2.0f,	 -2.0f) * BufferTexelSizeXY.xy,
+
+		//lower left
+		half2( -0.5f,	 -0.5f) * BufferTexelSizeXY.xy,
+		half2( -2.5f,	 -0.5f) * BufferTexelSizeXY.xy,
+		half2( -0.5f,	 -2.5f) * BufferTexelSizeXY.xy,
+		half2( -2.0f,	 -2.0f) * BufferTexelSizeXY.xy,
+	};
+
+#endif //USE_HIGHQUALITYDOF
+
+//@Rock - JoelS: Motion blur and DOF parameters moved here:
+		static const half4 DOFOffset1 = BufferTexelSizeXY.xyxy * half4(  1.5,  0.5,  0.5, -1.5);
+#if PC_D3D
+		static const half4 DOFOffset2 = BufferTexelSizeXY.xyxy * half4(  1.5,  2.5,  2.5, -1.5);
+#endif
+
+#if MOTION_BLUR
+		static const half4 MBOffset1 = MoBlurMaxDist * 0.5 * half4(  -1,   1,  -2,   2) / BlurSampleNum;
+	#if PC_D3D
+		static const half4 MBOffset2 = MoBlurMaxDist * 0.5 * half4(  -3,   3,  -4,   4) / BlurSampleNum;
+	#endif
+#endif //MOTION_BLUR
+
+//#if MOTION_BLUR
+//		static const half4 MBOffset1 = MoBlurMaxDist * 0.5 * half4(  -1,   -2,  -3,   -4) / BlurSampleNum;
+//	#if PC_D3D
+//		static const half4 MBOffset2 = MoBlurMaxDist * 0.5 * half4(  -5,   -6,  -7,   -8) / BlurSampleNum;
+//	#endif
+//#endif //MOTION_BLUR
+
+
+//================================================================================================================================
+//Functions
+//================================================================================================================================
+
+//-----------------------------------------------
+// Motion blur: custom motion blur vector values
+//-----------------------------------------------
+#if MOTION_BLUR
+	half2 CalcMoBlurVector( half2 UV )
+	{
+		half3 DynamicVelocity	= tex2D( VelocityBuffer, UV.xy ).rgb;
+		DynamicVelocity.xy		= DynamicVelocity.xy * 0.5h - 0.25h; //Velocity is stored as a divisor of 1/4
+
+		return DynamicVelocity.xy;
+	}
+#endif //MOTION_BLUR
+
+//-----------------------------------------------
+// Custom tone mapping operators
+//-----------------------------------------------
+half3 CalcToneMapping( in half3 colIn )
+{
+//Select type of tone mapping:
+	#define Gamma_Original			1
+	#define Gamma_Reinhard			0
+	#define Gamma_FilmicTonemapping	0
+	#define Gamma_KodakTonemapping	0
+
+	half3 finalOut;
+
+//Regular Gamma:
+	#if Gamma_Original
+		finalOut = pow(colIn.rgb, 1.h / 2.2h);
+	#endif
+
+//Reinhard tone mapping:
+	#if Gamma_Reinhard
+		finalOut = pow(colIn.rgb / (colIn.rgb + 1.h), 1.h / 2.2h);
+	#endif
+
+//Kodak tone mapping:
+	#if Gamma_KodakTonemapping
+		finalOut = max(0, colIn - 0.004h);
+		finalOut = (finalOut * (6.2h * finalOut + 0.5h)) / (finalOut * (6.2h * finalOut + 1.7h) + 0.06h);
+	#endif 
+
+//Filmic tone mapping:
+	#if Gamma_FilmicTonemapping
+
+		//Consts:
+		#define ShoulderStrength	0.22h
+		#define LinStrength			0.30h
+		#define LinAngle			0.10h
+		#define ToeStrength			0.20h
+		#define ToeNumerator		0.01h
+		#define ToeDenom			0.30h
+		//Helpers:
+		#define ToeAngle			0.033333333333333333333333333333333h	// ToeNumerator/ToeDenom
+		#define ToeSTmulNUM			0.002h									// ToeStrength * ToeNumerator
+		#define ToeSTmulDEN			0.06h									// ToeStrength * ToeDenom
+		#define LinAmulLinS			0.03h									//LinAngle * LinStrength
+		#define LinearWhite			2.8h									// Original = 11.2h
+
+		half4 basis			= half4(colIn.rgb, LinearWhite);
+		half4 colInShoulder = ShoulderStrength * basis;
+		half4 toneMapping	 = basis * ( colInShoulder + LinAmulLinS ) + ToeSTmulNUM;
+		toneMapping			/= basis * ( colInShoulder + LinStrength ) + ToeSTmulDEN;
+		toneMapping			-= ToeAngle;
+
+		finalOut = pow( toneMapping.rgb / toneMapping.a, 1.h / 2.2h );
+	#endif
+
+	return finalOut;
+}
+
+//---------------------------------------------
+//Colour look up table:
+//---------------------------------------------
+#if XBOX
+	sampler3D ColorGradingLUT;
+	//  @param InLDRColor in gamma space, has to be in 0..1 range
+	half3 ColorLookupTable(half3 InLDRColor)
+	{
+		return tex3D(ColorGradingLUT, InLDRColor * 15.h / 16.h + 0.5h / 16.h);
+	}
+#else // XBOX
+
+#define steps 16.h
+#define oneoversteps 0.0625h
+	sampler2D ColorGradingLUT;
+	//  @param InLDRColor in gamma space, has to be in 0..1 range
+	half3 ColorLookupTable(half3 InLDRColor)
+	{
+		// requires a volume texture 16x16x16 unwrapped in a 2d texture 256x16
+		// can be optimized by using a volume texture
+		half2 Offset = half2(0.5h / 256.h, 0.5h / steps);
+		half Scale = 15.h / steps; 
+
+		// Also consider blur value in the blur buffer written by translucency
+		half IntB = floor(InLDRColor.b * 14.9999h) / steps;
+		half FracB = InLDRColor.b * 15.h - IntB * steps;
+
+		half U = IntB + InLDRColor.r * Scale / steps;
+		half V = InLDRColor.g * Scale;
+
+		half3 RG0 = tex2D(ColorGradingLUT, saturate(Offset + half2(U, V))).rgb;
+		half3 RG1 = tex2D(ColorGradingLUT, saturate(Offset + half2(U + oneoversteps, V))).rgb;
+
+		return lerp(RG0, RG1, FracB);
+	}
+#endif // XBOX
+
+////---------------------------------------------
+//// Bloom function:
+////---------------------------------------------
+//half3 computeBloom(in half3 colSharp, in half3 colBlur)
+//{
+//	//Select type of bloom blend:
+//	//---------------------------
+//	#define Bloom_Temperature_3PointFull			0
+//	#define Bloom_Temperature_3PointMid				0
+//	#define Bloom_Temperature_2Point4xRange			0
+//	#define Bloom_Simple_AdditiveSubtractThreshold	0
+//	#define Bloom_Simple_MaxSubtractThreshold		0
+//	#define Bloom_Simple_AdditivePowThreshold		1
+//	//---------------------------
+//	//#define Bloom_Extra_RGBSharpen
+//
+//	half3 BloomResult;
+//
+//#if LOCAL_CHEAPABERRATION
+//	colSharp.r = (colSharp.r * 0.75f + colBlur.r * 0.25f);
+//#endif
+//
+////Convert to 1000k to 40,000k range, 3 point gradient
+////---------------------------------------------------
+//	#if Bloom_Temperature_3PointFull
+//		half3 BloomBase		= max( 0, colBlur.rgb - 0.25h) * BloomTintAndScreenBlendThreshold.rgb;
+//		half bloomLum		= dot( BloomBase.rgb, half3( 0.30h, 0.59h, 0.11h ) );
+//
+//		//1000k to 6700k
+//		half bloomKelvin	= (min(6700.h, 1000.h + bloomLum * 40000.h) - 1000.h) / (6700.h - 1000.h);
+//		BloomResult			= lerp(		half3(1.0000h, 0.0337h, 0.0000h ),
+//										half3(0.9696h, 0.9336h, 1.0000h),
+//										bloomKelvin);
+//		//6700k to 40000k	
+//		bloomKelvin			= (max(6700.h, 1000.h + bloomLum * 40000.h) - 6700.h) / (40000.h - 6700.h);
+//		BloomResult			*= lerp(	half3(0.9696h, 0.9336h, 1.0000h),
+//										half3(0.3277h, 0.5022h, 1.0000h),
+//										bloomKelvin);
+//		//mix
+//		BloomResult			= colSharp + BloomResult.rgb * BloomBase.rgb;
+//	#endif //Bloom_Temperature_3PointFull
+//
+////midpoint, 3 point gradient
+////--------------------------
+//	#if Bloom_Temperature_3PointMid
+//		half3 BloomBase		= max( 0, colBlur.rgb - 0.25h) * BloomTintAndScreenBlendThreshold.rgb;
+//		half bloomLum		= dot( BloomBase.rgb, half3( 0.30h, 0.59h, 0.11h ) );
+//
+//		//1000k to 6700k
+//		half bloomKelvin	= saturate(bloomLum * 4);
+//		BloomResult			= lerp(		half3(1.0000h, 0.0337h, 0.0000h),
+//										half3(0.9696h, 0.9336h, 1.0000h),
+//										bloomKelvin);
+//	  
+//		//6700k to 40000k	
+//		bloomKelvin			= saturate(0.75 + bloomLum * 0.25);
+//		BloomResult			*= lerp(	half3(0.9696h, 0.9336h, 1.0000h),
+//										half3(0.3277h, 0.5022h, 1.0000h),
+//										bloomKelvin);
+//		//mix
+//		BloomResult			= colSharp + BloomResult.rgb * BloomBase.rgb;
+//	#endif //Bloom_Temperature3PointMid
+//
+////4x range, 2 point gradient
+////------------------------------
+//	#if Bloom_Temperature_2Point4xRange
+//		half3 BloomBase		= max( 0, colBlur.rgb - 0.25h) * BloomTintAndScreenBlendThreshold.rgb;
+//
+//		BloomResult			= lerp(		half3(1.0000h, 0.7372h, 0.6078h ),
+//										half3(0.6078h, 0.7372h, 1.0000h),
+//										BloomBase.rgb);
+//		//mix
+//		BloomResult			= colSharp + BloomResult.rgb * BloomBase.rgb;
+//	#endif //Bloom_Temperature_2Point4xRange
+// 
+////Simple: Additive blended, subtractive threshold
+////-------------------------------------------
+//	#if Bloom_Simple_AdditiveSubtractThreshold
+//		BloomResult = colSharp + max( 0.h, (colBlur.rgb - BloomTintAndScreenBlendThreshold.a) * BloomTintAndScreenBlendThreshold.rgb);
+//	#endif //Bloom_Simple_maxSubtractThreshold
+//
+////Simple: Max blended, subtractive threshold
+////-------------------------------------------
+//	#if Bloom_Simple_MaxSubtractThreshold
+//		BloomResult = max( colSharp, (colBlur.rgb - BloomTintAndScreenBlendThreshold.a) * BloomTintAndScreenBlendThreshold.rgb);
+//		//Or pre-gamma corrected:
+//		//BloomResult = max(colSharp,(pow(colBlur.rgb, GammaInverse ) - BloomTintAndScreenBlendThreshold.a) * BloomTintAndScreenBlendThreshold.rgb);
+//	#endif //Bloom_Simple_maxSubtractThreshold
+//
+////Simple: Additively blended, pow threshold
+////-------------------------------------------
+//	#if Bloom_Simple_AdditivePowThreshold
+//		half3 BloomContribution = colBlur.rgb * BloomTintAndScreenBlendThreshold.rgb;
+// 
+//		//Using pow() intrinsic:
+//		//BloomResult = colSharp + pow(BloomContribution,BloomTintAndScreenBlendThreshold.a);
+//
+//		//Using cheapPow function which is wrapped by an abs
+//		//BloomResult = colSharp + computeCheapPow(BloomContribution,BloomThreshold.xy);
+//
+//		//Cheap pow custom (clamped at 0):
+//		//BloomThreshold.x multiplication rolled into BloomTintAndScreenBlendThreshold.rgb above
+//		half3 powt	= max(0, BloomContribution + BloomTintAndScreenBlendThreshold.a );
+//		powt		= powt * powt;
+//		BloomResult = colSharp + powt;
+//	#endif //Bloom_Simple_AdditivePowThreshold
+//
+////Extra: Sharpen!
+////-------------------------------------------
+//	#if Bloom_Extra_RGBSharpen
+//		BloomResult = lerp(colBlur.rgb, BloomResult.rgb, half3(1.5h,1.3h,1.1h));
+//	#endif //Bloom_Extra_RGBSharpen
+//
+//	return BloomResult;
+//}
+
+//---------------------------------------------
+// Sample aberrated colour, and depth
+//---------------------------------------------
+half4 CalcSceneColorAndDepthOptionalAberration( in half2 UV )
+{
+	half4 FocusedSceneColorAndDepth = CalcSceneColorAndDepth( UV );
+//Aberration:
+#if LOCAL_ABERRATION
+	//Size in screen space pixels:
+	#define AberrationSize 1
+	#define AberrationDoubleSize 2
+
+	FocusedSceneColorAndDepth.r = CalcFullSceneColor( UV * (1.h - BufferTexelSizeXY.xy * AberrationDoubleSize) + BufferTexelSizeXY.xy * AberrationSize).r;
+
+#endif //LOCAL_ABERRATION
+
+	return FocusedSceneColorAndDepth;
+}
+
+//---------------------------------------------
+// Return the DOF mask with near/far sign:
+//---------------------------------------------
+half CalcSignedUnfocusedPercent(half SceneDepth)
+{
+	// Blur amount based on ratio of distance to focus plane to the focus radius
+	// it is clamped to [-1,1]. Note that FocusDistance can be negative if it 
+	// falls behind the near plane.
+	half RelativeDistance = SceneDepth - FocusDistance;
+	half DistanceSign = sign(RelativeDistance);
+
+	//@Rock - JoelS: Fixed epic bug where DOF could never get to the min/max amount:
+	half MaxUnfocusedPercent = (RelativeDistance < 0) ? MinMaxBlurClamp.x: MinMaxBlurClamp.y;
+
+	return min(MaxUnfocusedPercent, pow(RelativeDistance * InverseFocusRadius, PackedParameters.z)) * DistanceSign;
+
+	//float depth = SceneDepth; // = distance of pixel
+	//float fDist = FocusDistance; // = point which we want to focus on
+	//float fLength = 70.0; // = field of view
+	//float fStop = 1.4; // = aperture of lens. usually 1.4 to 22
+	//float result = depth*fLength / (depth-fLength);
+	//result -= fDist*fLength / (fDist-fLength);
+	//result *= (fDist-fLength) / (fDist*fStop);
+	//return result;
+}
+
+//================================================================================================================================
+// Pixel Shader
+//================================================================================================================================
+void Main(	in half4 ScreenPosition : TEXCOORD0,
+
+			#if USE_IMAGEGRAIN
+				in half4 FilterBufferUV : TEXCOORD1,
+			#else
+				in half2 FilterBufferUV : TEXCOORD1,
+			#endif //USE_IMAGEGRAIN
+			out half4 OutColor : COLOR0	)
+{
+//Setup initial colour, depth, and blur buffers:
+	half2 UV = ScreenPosition.zw;
+//Optional aberration:
+	half4 FocusedSceneColorAndDepth = CalcSceneColorAndDepthOptionalAberration( UV.xy );
+	//offset these UV's to match up the DOF anti-dither pass which collected 2x2 taps at 1/4 res: 
+	half4 blurredSceneColorAndDepth = tex2D(BlurredImage,FilterBufferUV.xy + float2(2,-2)*BufferTexelSizeXY.xy).rgba;
+	blurredSceneColorAndDepth *= 4.0h; //Changed from MAX_SCENE_COLOR to avoid float cast
+
+//---------------------------------------------
+// CREATE GRAIN:
+//---------------------------------------------
+#if USE_IMAGEGRAIN
+	half3 imageGrain;
+	#if LOCAL_COLOUREDIMAGEGRAIN
+		imageGrain = dot(tex2D(PostProcessNoiseTexture, FilterBufferUV.zw).rgb, FilmGrain.xyz) + 0.5h;
+	#else //LOCAL_COLOUREDIMAGEGRAIN
+		imageGrain = tex2D(PostProcessNoiseTexture, FilterBufferUV.zw).rgb + 0.5h;
+	#endif //LOCAL_COLOUREDIMAGEGRAIN
+#endif // USE_IMAGEGRAIN
+
+//---------------------------------------------
+// MOTION BLUR & DEPTH OF FIELD:
+//---------------------------------------------
+
+// High quality (Cinematic and point effect)
+//---------------------------------------------
+#if USE_HIGHQUALITYDOF && PC_D3D
+	// reference DOF (no motionblur, very inefficient but simple and best quality bokeh, not for production use, good to verify approximations and the possible look)
+	half3 DOFResult;
+	{
+		// Radius can be tweaked to get bigger bokeh (slower) 1->3x3, 2-> 5x5, 3->7x7, 4->9x9
+		// can be optimized by passing a clamped int
+		const int DOFKernelSize = 6;
+		const int PixelRadius = clamp(DOFKernelSize.x, 1, 14);
+
+		// slight offset to avoid too regular disk shape
+		const half2 PixelOffset = half2(0.25h, 0.25h); 
+		// bias value tweaked to align with offset
+		const half Bias = 0.37f;
+
+		half CenterCircleRadius = CalcUnfocusedPercent(FocusedSceneColorAndDepth.a) * (PixelRadius + 1.h - Bias * 2.h) + Bias;
+
+		half4 Accum = half4(0,0,0,0.00001h);
+		LOOP for(int y = -PixelRadius; y <= PixelRadius; ++y)
+		{
+			LOOP for(int x = -PixelRadius; x <= PixelRadius; ++x)
+			{
+				const half2 PixelRel = half2(x,y) + PixelOffset; 
+
+				half4 LocalSceneColorAndDepth = CalcSceneColorAndDepthOptionalAberration(UV.xy + MinMaxBlurClamp.zw * half2(x, y) );
+
+				half CircleRadius = CalcUnfocusedPercent(LocalSceneColorAndDepth.a) * (PixelRadius + 1.h - Bias * 2.h) + Bias;
+
+				// to avoid leaking into a sharper center pixel from behind (more correct but often not visible)/
+				// in some cases it can looks better without
+				if(CenterCircleRadius < CircleRadius && LocalSceneColorAndDepth.a > FocusedSceneColorAndDepth.a)
+				{
+					CircleRadius = CenterCircleRadius;
+				}
+
+				// soft comparison -> AA bokeh shape
+				half LocalWeight = saturate( - (length(PixelRel) - CircleRadius));
+
+				// bigger bokeh shapes become more transparent
+				LocalWeight /= CircleRadius*CircleRadius;
+
+				Accum += half4(LocalSceneColorAndDepth.rgb,1.h) * LocalWeight;
+			}
+		}
+		// normalize
+		DOFResult = Accum.rgb / Accum.w;
+	}
+
+	half3 FrontBuffer = DOFResult;
+
+
+// High quality optimised (Cinematic and point effect)
+//---------------------------------------------
+	////const int PixelRadius = 4;
+	////const int PixelDiameter = 9;
+
+	//half CenterCircleRadius = CalcSignedUnfocusedPercent(FocusedSceneColorAndDepth.a); //CalcUnfocusedPercent(FocusedSceneColorAndDepth.a); //
+	//half4 Accum = half4(FocusedSceneColorAndDepth.rgb/4, 0.25f);
+
+	//LOOP for(int i = 0; i < HQDOFSAMPLES; i++)
+	//{
+	//	half2 SampleUV = UV.xy + HQDOFKernel[i].xy;
+
+	//	half4 LocalSceneColorAndDepth = CalcSceneColorAndDepthOptionalAberration(SampleUV.xy);
+	//	half LocalCircleRadius = CalcSignedUnfocusedPercent(LocalSceneColorAndDepth.a); //CalcUnfocusedPercent(LocalSceneColorAndDepth.a); //
+	//	//half localNearFarPlane = sign(LocalCircleRadius);
+
+	//	half tester = CenterCircleRadius;
+
+	//	//tester = (CenterCircleRadius < LocalCircleRadius) // && (LocalSceneColorAndDepth.a < FocusedSceneColorAndDepth.a)
+	//	//? CenterCircleRadius 
+	//	//: LocalCircleRadius;
+
+	//	//tester = lerp(LocalCircleRadius, CenterCircleRadius,saturate(length(CenterCircleRadius-LocalCircleRadius)));
+
+	//	if((CenterCircleRadius > LocalCircleRadius) )
+	//	{
+	//		tester = LocalCircleRadius;
+	//	}
+
+	//	tester = saturate(abs(tester));
+
+	//	Accum += half4(LocalSceneColorAndDepth.rgb, 1) * tester*tester*tester*tester*tester;
+	//}
+
+	//// normalize
+	//half3 FrontBuffer = Accum.rgb / Accum.w;
+
+	//half3 DOFResult;
+	//{
+	//	// Radius can be tweaked to get bigger bokeh (slower) 1->3x3, 2-> 5x5, 3->7x7, 4->9x9
+	//	// can be optimized by passing a clamped int
+	//	const float PixelRadius = 2.5;
+
+	//	// slight offset to avoid too regular disk shape
+	//	const half2 PixelOffset = 0; //half2(0.25h, 0.25h) * 0.5; 
+	//	// bias value tweaked to align with offset
+	//	const half Bias = 0.37f*0.1;
+
+	//	half CenterCircleRadius = CalcUnfocusedPercent(FocusedSceneColorAndDepth.a) * (PixelRadius + 1.h - Bias * 2.h) + Bias;
+
+	//	half4 Accum = half4(0,0,0,0.00001h);
+	//	LOOP for(int i=0; i < HQDOFSAMPLES; ++i)
+	//	{
+	//			const half2 PixelRel = HQDOFKernel[i].xy + PixelOffset; 
+
+	//			half4 LocalSceneColorAndDepth = CalcSceneColorAndDepthOptionalAberration(UV.xy + HQDOFKernel[i].xy );
+
+	//			half CircleRadius = CalcUnfocusedPercent(LocalSceneColorAndDepth.a) * (PixelRadius + 1.h - Bias * 2.h) + Bias;
+
+	//			// to avoid leaking into a sharper center pixel from behind (more correct but often not visible)/
+	//			// in some cases it can looks better without
+	//			if(CenterCircleRadius < CircleRadius && LocalSceneColorAndDepth.a > FocusedSceneColorAndDepth.a)
+	//			{
+	//				CircleRadius = CenterCircleRadius;
+	//			}
+
+	//			// soft comparison -> AA bokeh shape
+	//			half LocalWeight = saturate( -(length(PixelRel) - CircleRadius));
+
+	//			// bigger bokeh shapes become more transparent
+	//			LocalWeight *= CircleRadius*CircleRadius;
+
+	//			Accum += half4(LocalSceneColorAndDepth.rgb,1.h) * LocalWeight;
+	//	}
+	//	// normalize
+	//	DOFResult = Accum.rgb / Accum.w;
+	//}
+
+	//half3 FrontBuffer = DOFResult;
+
+#else //USE_HIGHQUALITYDOF
+
+// Low quality (In-game)
+//---------------------------------------------
+	#if MOTION_BLUR
+		half2 MoBlur_Vector = CalcMoBlurVector(UV.xy);
+	#endif //MOTION_BLUR
+
+	half3 FrontBuffer	= FocusedSceneColorAndDepth.rgb;
+
+	////Resolve focus point in front of blurred background:
+	//half highresDOFmask = CalcSignedUnfocusedPercent(FocusedSceneColorAndDepth.a);
+	//half absHighresDOFmask = saturate(abs(highresDOFmask));
+	//half LowresDOFmask = blurredSceneColorAndDepth.a * 2 - 1;
+	//half absLowresDOFmask = saturate(abs(LowresDOFmask));
+	//half finalDOFMask = saturate( saturate(highresDOFmask) + saturate(-LowresDOFmask) );
+	//blurredSceneColorAndDepth.a = finalDOFMask;
+
+	//Resolve focus point in front of blurred background 2:
+	//half highresDOFmask = CalcSignedUnfocusedPercent(FocusedSceneColorAndDepth.a);
+	//half absHighresDOFmask = saturate(abs(highresDOFmask));
+	//half finalDOFMask = highresDOFmask >=0 ? absHighresDOFmask : blurredSceneColorAndDepth.a;
+	//blurredSceneColorAndDepth.a = saturate(finalDOFMask);
+
+	half highresDOFmask = CalcUnfocusedPercent(FocusedSceneColorAndDepth.a);
+	//half absHighresDOFmask = saturate(abs(highresDOFmask));
+	half finalDOFMask = max(highresDOFmask*2.0, blurredSceneColorAndDepth.a);//saturate( -((blurredSceneColorAndDepth.a * 2 - 1) ) ) ); //abs(blurredSceneColorAndDepth.a*2-1);//
+	blurredSceneColorAndDepth.a = saturate(finalDOFMask);
+
+//	half4 SampleOffset1	= DOFOffset1.xyzw * blurredSceneColorAndDepth.a;
+//	half4 SampleOffset2	= -DOFOffset1.xyzw * blurredSceneColorAndDepth.a;
+//
+//	#if MOTION_BLUR
+//		SampleOffset1	+= MBOffset1.xxyy * MoBlur_Vector.xyxy;
+//		SampleOffset2	+= MBOffset1.zzww * MoBlur_Vector.xyxy;
+//	#endif //MOTION_BLUR
+//
+//	//Apply jittered sampling:
+//	#if LOCAL_JITTERED_SAMPLES
+//		SampleOffset1	*= imageGrain.xy;
+//	#endif //LOCAL_JITTERED_SAMPLES
+//
+//	//Sample the colour buffer with optional aberration:
+//	FrontBuffer			+= CalcSceneColorAndDepthOptionalAberration( UV.xy + SampleOffset1.xy ).rgb;
+//	FrontBuffer			+= CalcSceneColorAndDepthOptionalAberration( UV.xy + SampleOffset1.zw ).rgb;
+//	FrontBuffer			+= CalcSceneColorAndDepthOptionalAberration( UV.xy + SampleOffset2.xy ).rgb;
+//	FrontBuffer			+= CalcSceneColorAndDepthOptionalAberration( UV.xy + SampleOffset2.zw ).rgb;
+//	
+//#if PC_D3D
+//	//Sample the second set for pc, colour buffer with optional aberration:
+//
+//	SampleOffset1		= DOFOffset2.xyzw * blurredSceneColorAndDepth.a;
+//	SampleOffset2		= -DOFOffset2.xyzw * blurredSceneColorAndDepth.a;
+//
+//	#if MOTION_BLUR
+//		SampleOffset1	+= MBOffset2.xxyy * MoBlur_Vector.xyxy;
+//		SampleOffset2	+= MBOffset2.zzww * MoBlur_Vector.xyxy;
+//	#endif //MOTION_BLUR
+//
+//	//Apply jittered sampling:
+//	#if LOCAL_JITTERED_SAMPLES
+//		SampleOffset2	*= imageGrain.xy;
+//	#endif //LOCAL_JITTERED_SAMPLES
+//
+//	//Sample the colour buffer with optional aberration:
+//	FrontBuffer			+= CalcSceneColorAndDepthOptionalAberration( UV.xy + SampleOffset1.xy ).rgb;
+//	FrontBuffer			+= CalcSceneColorAndDepthOptionalAberration( UV.xy + SampleOffset1.zw ).rgb;
+//	FrontBuffer			+= CalcSceneColorAndDepthOptionalAberration( UV.xy + SampleOffset2.xy ).rgb;
+//	FrontBuffer			+= CalcSceneColorAndDepthOptionalAberration( UV.xy + SampleOffset2.zw ).rgb;
+//#endif
+//
+//	FrontBuffer			/= BlurSampleNum;
+	FrontBuffer			= lerp(FrontBuffer, blurredSceneColorAndDepth.rgb, blurredSceneColorAndDepth.a);// * blurredSceneColorAndDepth.a * blurredSceneColorAndDepth.a);
+
+#endif //USE_HIGHQUALITYDOF
+
+
+//---------------------------------------------
+// AA tests:
+//---------------------------------------------
+//
+//
+////depth:
+//	//half3 sampleUp		= CalcSceneDepth( UV.xy + half2( 0.0f, BufferTexelSizeXY.y ) );    
+//	//half3 sampleDown	= CalcSceneDepth( UV.xy - half2( 0.0f, BufferTexelSizeXY.y ) );    
+//	//half3 sampleRight	= CalcSceneDepth( UV.xy + half2( BufferTexelSizeXY.x, 0.0f ) );    
+//	//half3 sampleLeft	= CalcSceneDepth( UV.xy - half2( BufferTexelSizeXY.x, 0.0f ) );    
+//
+//	//half2 vec = clamp(-1,1,half2( distance( sampleDown, sampleUp ), distance( sampleLeft, sampleRight ) ) / 300);
+//
+////col 3:
+//	//half3 sampleUp		= CalcFullSceneColor( UV.xy + half2( 0.0f, BufferTexelSizeXY.y ) );    
+//	//half3 sampleDown	= CalcFullSceneColor( UV.xy - half2( 0.0f, BufferTexelSizeXY.y ) );    
+//	//half3 sampleRight	= CalcFullSceneColor( UV.xy + half2( BufferTexelSizeXY.x, 0.0f ) );    
+//	//half3 sampleLeft	= CalcFullSceneColor( UV.xy - half2( BufferTexelSizeXY.x, 0.0f ) );    
+//
+//	//half2 vec = saturate(half2( distance( sampleDown, sampleUp ), distance( sampleLeft, sampleRight ) )*1);
+//
+////col lum:
+//	//half sampleUp		= dot(CalcFullSceneColor( UV.xy + half2( 0.0f, BufferTexelSizeXY.y ) ).rgb,0.33333333h);
+//	//half sampleDown		= dot(CalcFullSceneColor( UV.xy - half2( 0.0f, BufferTexelSizeXY.y ) ).rgb,0.33333333h);
+//	//half sampleRight	= dot(CalcFullSceneColor( UV.xy + half2( BufferTexelSizeXY.x, 0.0f ) ).rgb,0.33333333h);
+//	//half sampleLeft		= dot(CalcFullSceneColor( UV.xy - half2( BufferTexelSizeXY.x, 0.0f ) ).rgb,0.33333333h);
+//
+//	//half2 vec = saturate(half2( ( sampleUp - sampleDown ), ( sampleRight - sampleLeft ) ));
+//
+////col max lum:
+//	//half3 sampleUp		= (CalcFullSceneColor( UV.xy + half2( 0.0f, BufferTexelSizeXY.y ) ).rgb);
+//	//half3 sampleDown	= (CalcFullSceneColor( UV.xy - half2( 0.0f, BufferTexelSizeXY.y ) ).rgb);
+//	//half3 sampleRight	= (CalcFullSceneColor( UV.xy + half2( BufferTexelSizeXY.x, 0.0f ) ).rgb);
+//	//half3 sampleLeft	= (CalcFullSceneColor( UV.xy - half2( BufferTexelSizeXY.x, 0.0f ) ).rgb);
+//
+//	//half3 distX = saturate(abs( sampleDown - sampleUp ));
+//	//half3 distY = saturate(abs( sampleLeft - sampleRight ));
+//
+//	//half2 vec = saturate(half2( max(distX.r,max(distX.g,distX.b)), max(distY.r,max(distY.g,distY.b)) ) * 1);
+//
+////col signeddist:
+//	half3 sampleUp		= (CalcFullSceneColor( UV.xy + half2( 0.0f, BufferTexelSizeXY.y ) ).rgb);
+//	//sampleUp = max(sampleUp.x,max(sampleUp.y,sampleUp.z));
+//
+//	half3 sampleDown	= (CalcFullSceneColor( UV.xy - half2( 0.0f, BufferTexelSizeXY.y ) ).rgb);
+//	//sampleDown = max(sampleDown.x,max(sampleDown.y,sampleDown.z));
+//
+//	half3 sampleRight	= (CalcFullSceneColor( UV.xy + half2( BufferTexelSizeXY.x, 0.0f ) ).rgb);
+//	//sampleRight = max(sampleRight.x,max(sampleRight.y,sampleRight.z));
+//
+//	half3 sampleLeft	= (CalcFullSceneColor( UV.xy - half2( BufferTexelSizeXY.x, 0.0f ) ).rgb);
+//	//sampleLeft = max(sampleLeft.x,max(sampleLeft.y,sampleLeft.z));
+//	
+//	//half2 vec = (half2( sampleLeft.x - sampleRight.x, sampleUp.x - sampleDown.x ));
+//
+//	half2 vec = half2( dot( sampleRight - sampleLeft, 0.333333333f ), dot( sampleDown - sampleUp, 0.333333333f ) );
+//
+//
+//	//vec = 1-exp(vec);
+//	//vec = 1+log(vec);
+//	vec = sqrt(vec);
+//
+////Sample - radial half steps
+//	//half4 sample1	= CalcSceneColorAndDepthOptionalAberration( UV.xy + vec * BufferTexelSizeXY * half2(1.5h,0.5h) );    
+//	//half4 sample2	= CalcSceneColorAndDepthOptionalAberration( UV.xy + vec * BufferTexelSizeXY * half2(0.5h,-1.5h) );    
+//	//half4 sample3	= CalcSceneColorAndDepthOptionalAberration( UV.xy - vec * BufferTexelSizeXY * half2(1.5h,0.5h) );    
+//	//half4 sample4	= CalcSceneColorAndDepthOptionalAberration( UV.xy - vec * BufferTexelSizeXY * half2(0.5h,-1.5h) );    
+//
+////Sample - radial half steps
+//	//half4 sample1	= CalcSceneColorAndDepthOptionalAberration( UV.xy + vec * BufferTexelSizeXY * half2(1.5h,0.5h) );    
+//	//half4 sample2	= CalcSceneColorAndDepthOptionalAberration( UV.xy + vec * BufferTexelSizeXY * half2(0.5h,-1.5h) );    
+//	//half4 sample3	= CalcSceneColorAndDepthOptionalAberration( UV.xy - vec * BufferTexelSizeXY * half2(1.5h,0.5h) );    
+//	//half4 sample4	= CalcSceneColorAndDepthOptionalAberration( UV.xy - vec * BufferTexelSizeXY * half2(0.5h,-1.5h) );   
+//
+////sample - full quad corners
+//	//half4 sample1	= CalcSceneColorAndDepthOptionalAberration( UV.xy + vec * BufferTexelSizeXY * 1.5h );    
+//	//half4 sample2	= CalcSceneColorAndDepthOptionalAberration( UV.xy + vec * BufferTexelSizeXY * 3.5h );    
+//	//half4 sample3	= CalcSceneColorAndDepthOptionalAberration( UV.xy - vec * BufferTexelSizeXY * 1.5h );    
+//	//half4 sample4	= CalcSceneColorAndDepthOptionalAberration( UV.xy - vec * BufferTexelSizeXY * 3.5h );    
+//
+////sample - full quad corners 2
+//	half4 sample1	= CalcSceneColorAndDepthOptionalAberration( UV.xy - vec.yx * BufferTexelSizeXY * 1.5h );    
+//	half4 sample2	= CalcSceneColorAndDepthOptionalAberration( UV.xy - vec.yx * BufferTexelSizeXY * 3.5h );    
+//	half4 sample3	= CalcSceneColorAndDepthOptionalAberration( UV.xy - vec.yx * BufferTexelSizeXY * 5.5h );    
+//	half4 sample4	= CalcSceneColorAndDepthOptionalAberration( UV.xy - vec.yx * BufferTexelSizeXY * 7.5h );   
+//
+////sample - half quad corners
+//	//half4 sample1	= CalcSceneColorAndDepthOptionalAberration( UV.xy + vec * BufferTexelSizeXY * 0.5h );    
+//	//half4 sample2	= CalcSceneColorAndDepthOptionalAberration( UV.xy + vec * BufferTexelSizeXY * 1.5h );    
+//	//half4 sample3	= CalcSceneColorAndDepthOptionalAberration( UV.xy - vec * BufferTexelSizeXY * 0.5h );    
+//	//half4 sample4	= CalcSceneColorAndDepthOptionalAberration( UV.xy - vec * BufferTexelSizeXY * 1.5h );   
+//
+//	//FrontBuffer = ( sample1 + sample2 + sample3 + sample4 ) / 4;
+//	//FrontBuffer = ( FocusedSceneColorAndDepth.rgb + sample1 + sample2 + sample3 + sample4 ) / 5;
+//	FrontBuffer = ( FocusedSceneColorAndDepth.rgb * 0.25h 
+//		+ sample1 * 0.25h 
+//		+ sample2 * 0.125h
+//		+ sample3 * 0.25h 
+//		+ sample4 * 0.125h );
+//
+//	//FrontBuffer = half3(vec.xy,0);
+
+
+////FXAA
+//    #define FxaaTexLod0(t, p) tex2Dlod(t, float4(p, 0.0, 0.0))
+//    #define FxaaTexOff(t, p, o, r) tex2Dlod(t, float4(p + (o * r), 0, 0))
+//
+//    #define FXAA_REDUCE_MIN   (1.0/128.0)	//(1.0/256.0)
+//    #define FXAA_REDUCE_MUL   (1.0/8.0)		//(1.0/8.0)
+//    #define FXAA_SPAN_MAX     8.0			//4.0			
+//	#define FXAA_SUBPIX_SHIFT (1.0/4.0)	//-0.25
+//	
+//    float4 posPos;
+//	posPos.xy = (ScreenPosition.zw);
+//    posPos.zw = posPos.xy - (BufferTexelSizeXY.xy * (0.5 + FXAA_SUBPIX_SHIFT));
+//
+//    float3 rgbNW = FxaaTexLod0(SceneColorTexture, posPos.zw).xyz;
+//    float3 rgbNE = FxaaTexOff(SceneColorTexture, posPos.zw, float2(1,0), BufferTexelSizeXY.xy).xyz;
+//    float3 rgbSW = FxaaTexOff(SceneColorTexture, posPos.zw, float2(0,1), BufferTexelSizeXY.xy).xyz;
+//    float3 rgbSE = FxaaTexOff(SceneColorTexture, posPos.zw, float2(1,1), BufferTexelSizeXY.xy).xyz;
+//    float3 rgbM  = FxaaTexLod0(SceneColorTexture, posPos.xy).xyz;
+////Get luminance
+//    float3 luma = float3(0.299, 0.587, 0.114);
+//    float lumaNW = dot(rgbNW, luma);
+//    float lumaNE = dot(rgbNE, luma);
+//    float lumaSW = dot(rgbSW, luma);
+//    float lumaSE = dot(rgbSE, luma);
+//    float lumaM  = dot(rgbM,  luma);
+//    float lumaMin = min(lumaM, min(min(lumaNW, lumaNE), min(lumaSW, lumaSE)));
+//    float lumaMax = max(lumaM, max(max(lumaNW, lumaNE), max(lumaSW, lumaSE)));
+////Take directional vector
+//    float2 dir; 
+//    dir.x = -((lumaNW + lumaNE) - (lumaSW + lumaSE));
+//    dir.y =  ((lumaNW + lumaSW) - (lumaNE + lumaSE));
+//    float dirReduce = max(
+//        (lumaNW + lumaNE + lumaSW + lumaSE) * (0.25 * FXAA_REDUCE_MUL),
+//        FXAA_REDUCE_MIN);
+//    float rcpDirMin = 1.0/(min(abs(dir.x), abs(dir.y)) + dirReduce);
+//    dir = min(float2( FXAA_SPAN_MAX,  FXAA_SPAN_MAX), 
+//          max(float2(-FXAA_SPAN_MAX, -FXAA_SPAN_MAX), 
+//          dir * rcpDirMin)) * BufferTexelSizeXY.xy;
+////Sample in weighted directions
+//    float3 rgbA = 0.5 * (
+//        FxaaTexLod0(SceneColorTexture, posPos.xy + dir * (1.0/3.0 - 0.5)).xyz +
+//        FxaaTexLod0(SceneColorTexture, posPos.xy + dir * (2.0/3.0 - 0.5)).xyz);
+//    float3 rgbB = rgbA * 0.5 + 0.25 * (
+//        FxaaTexLod0(SceneColorTexture, posPos.xy + dir * (0.0/3.0 - 0.5)).xyz +
+//        FxaaTexLod0(SceneColorTexture, posPos.xy + dir * (3.0/3.0 - 0.5)).xyz);
+//    float lumaB = dot(rgbB, luma);
+//	FrontBuffer = ((lumaB < lumaMin) || (lumaB > lumaMax)) ? rgbA : rgbB;
+
+//---------------------------------------------
+// BLOOM:
+//---------------------------------------------
+	//FrontBuffer			= computeBloom(FrontBuffer.rgb, blurredSceneColorAndDepth.rgb);
+	FrontBuffer				+= tex2D(LightShaftBuffer,FilterBufferUV.xy).rgb;
+
+	//FrontBuffer			= blurredSceneColorAndDepth.a;
+//---------------------------------------------
+// APPLY GRAIN:
+//---------------------------------------------
+#if USE_IMAGEGRAIN
+	FrontBuffer = lerp(FrontBuffer.rgb, FrontBuffer.rgb * imageGrain.rgb, FilmGrain.w);
+#endif // USE_IMAGEGRAIN
+
+//---------------------------------------------
+// COLOUR GRADING, TONE MAPPING, AND GAMMA:
+//---------------------------------------------
+	FrontBuffer = pow(max(0,FrontBuffer), 1.h / 2.2h);
+	FrontBuffer = ColorLookupTable(saturate( FrontBuffer));
+	
+	// NVCHANGE_BEGIN_RS: Add FXAA
+	#if PC_D3D
+		half luma = dot(FrontBuffer.rgb, float3(0.299, 0.587, 0.114)); // compute luma
+		OutColor = RETURN_COLOR( half4(FrontBuffer, luma) );
+	#else
+		OutColor = RETURN_COLOR( half4(FrontBuffer, 0.h) );
+	#endif
+	// NVCHANGE_END_RS: Add FXAA
+}

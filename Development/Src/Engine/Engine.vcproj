@@ -1452,6 +1452,18 @@
 					>
 				</File>
 				<File
+					RelativePath=".\Src\RockAOEffect.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Src\RockAtmosEffect.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Src\RockOnEffect.cpp"
+					>
+				</File>
+				<File
 					RelativePath=".\Src\TranslucentRendering.h"
 					>
 				</File>

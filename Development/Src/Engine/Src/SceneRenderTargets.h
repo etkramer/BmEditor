@@ -220,6 +220,9 @@ public:
 	void BeginRenderingFilter(FSceneRenderTargetIndex FilterColorIndex);
 	void FinishRenderingFilter(FSceneRenderTargetIndex FilterColorIndex);
 
+	void BeginRenderingHalfSizeDownsample();
+	void FinishRenderingHalfSizeDownsample();
+
 	void BeginRenderingLUTBlend();
 	void FinishRenderingLUTBlend();
 

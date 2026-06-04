@@ -1,0 +1,33 @@
+/*=============================================================================
+@Rock - JoelS: iterative blur vertex shader
+=============================================================================*/
+
+#include "Common.usf"
+
+half2 SampleKernel;
+
+void MainBloom(	float4 InPosition		: POSITION,
+				half2 UV				: TEXCOORD0,
+				out half4 UVTopLR		: TEXCOORD0,
+				out half4 UVBottomLR	: TEXCOORD1,
+				out half2 UVMid			: TEXCOORD2,
+				out float4 OutPosition	: POSITION )
+{
+	// Output UV's for the top left into .xy and top right into .zw
+	UVTopLR.xyzw		= UV.xyxy;
+	UVTopLR.x			-= SampleKernel.x;
+	UVTopLR.y			+= SampleKernel.y;
+	UVTopLR.z			+= SampleKernel.x;
+	UVTopLR.w			+= SampleKernel.y;
+
+	// Output UV's for the bottom left into .xy and bottom right into .zw
+	UVBottomLR.xyzw		= UV.xyxy;
+	UVBottomLR.x		-= SampleKernel.x;
+	UVBottomLR.y		-= SampleKernel.y;
+	UVBottomLR.z		+= SampleKernel.x;
+	UVBottomLR.w		-= SampleKernel.y;
+
+	UVMid.xy = UV.xy;
+
+	OutPosition = InPosition;
+}

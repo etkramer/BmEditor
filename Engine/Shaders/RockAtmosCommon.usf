@@ -1,0 +1,140 @@
+
+//Density values for:
+//X = D1: Density, premultiplied by the colour alpha
+//Y = D2: Density, premultiplied by the colour alpha
+//Z = H1: Density
+//W = H2: Density
+half4 AtmosDensity_xD1yD2zH1wH2;
+
+//Start and end gradients for:
+//X = D1: Start
+//Y = D1: 1 / ( AtmosD1_DistanceEnd - AtmosD1_DistanceStart)
+//Z = D2: Start
+//W = D2: 1 / ( AtmosD2_DistanceEnd - AtmosD2_DistanceStart)
+half4 AtmosStartEnd_xD1yD1zD2wD2;
+
+//Gradient size, and precomputed part of the height integral for:
+//X = H1: Gradient size
+//Y = H1: Height integral
+//Z = H2: Gradient size
+//W = H2: Height integral
+float4 AtmosGradSizeHeightIntegral_xH1yH1zH2wH2;
+
+half4 AtmosD1_Colour;					// D1: Colour 
+half4 AtmosD2_Colour;					// D2: Colour 
+half3 AtmosH1H2_Alpha;					// H1 and H2 Alpha components in xy, z = noise fade
+half4 AtmosH1_Colour;					// H1: Colour 
+half4 AtmosH2_Colour;					// H2: Colour 
+half4 AtmosGlobal_Gradient_Colour;		// Global gradient colour
+half3 AtmosGlobal_Gradient_Direction;	// Global gradient direction
+
+float4	CameraPos;						// world space camera position
+
+//================================================================================================================================
+//Functions
+//================================================================================================================================
+
+//----------------------------------------
+// Fog functions: Solve height fog
+//----------------------------------------
+//@Rock - JoelS: Solves the fog integral for a global exponential height volume.
+float RS_SolveHeightFog(float HeightIntegralOffload, float GradSize, float WorldToCamPosZ, float depthDist)
+{
+	float Height_World			= (WorldToCamPosZ * GradSize);
+	
+	//Ensure the exp operation won't NaN. exp(50) is about as close to FLT_MAX as we can safely go
+	Height_World				= sign(Height_World) * min( abs(Height_World), 50);
+	Height_World				= ( (exp(-Height_World) - 1) / Height_World ) * depthDist * HeightIntegralOffload;
+
+	//Ensure the exp operation won't NaN. exp(50) is about as close to FLT_MAX as we can safely go
+	Height_World				= sign(Height_World) * min( abs(Height_World), 50);
+
+	return (1 - exp( Height_World ));
+}
+
+float2 RS_SolveHeightFog2(float2 HeightIntegralOffload, float2 GradSize, float WorldToCamPosZ, float depthDist)
+{
+	float2 Height_World			= (WorldToCamPosZ * GradSize.xy);
+	
+	//Ensure the exp operation won't NaN. exp(50) is about as close to FLT_MAX as we can safely go
+	Height_World				= sign(Height_World) * min( abs(Height_World), 50);
+	Height_World				= ( (exp(-Height_World) - 1) / Height_World ) * depthDist * HeightIntegralOffload.xy;
+
+	//Ensure the exp operation won't NaN. exp(50) is about as close to FLT_MAX as we can safely go
+	Height_World				= sign(Height_World) * min( abs(Height_World), 50);
+
+	return (1 - exp( Height_World ));
+}
+
+
+
+
+
+
+half4 ComputeRockAtmosFogH1(float4 CamToWorldPos)
+{
+	half atmosHeightDensity	= RS_SolveHeightFog(AtmosGradSizeHeightIntegral_xH1yH1zH2wH2.y, AtmosGradSizeHeightIntegral_xH1yH1zH2wH2.x, CamToWorldPos.z, CamToWorldPos.w );
+	atmosHeightDensity			*= AtmosH1H2_Alpha.x;
+	return AtmosH1_Colour.rgba * atmosHeightDensity;
+}
+
+half4 ComputeRockAtmosFogH2(float4 CamToWorldPos)
+{
+	half atmosHeightDensity	= RS_SolveHeightFog(AtmosGradSizeHeightIntegral_xH1yH1zH2wH2.w, AtmosGradSizeHeightIntegral_xH1yH1zH2wH2.z, CamToWorldPos.z, CamToWorldPos.w);
+	atmosHeightDensity			*= AtmosH1H2_Alpha.y;
+	return AtmosH2_Colour.rgba * atmosHeightDensity;
+}
+
+half4 ComputeRockAtmosFogH1H2(float4 CamToWorldPos)
+{
+	half2 atmosHeightDensity	= RS_SolveHeightFog2(AtmosGradSizeHeightIntegral_xH1yH1zH2wH2.yw, AtmosGradSizeHeightIntegral_xH1yH1zH2wH2.xz, CamToWorldPos.z, CamToWorldPos.w );
+	atmosHeightDensity.xy		*= AtmosH1H2_Alpha.xy;
+	return AtmosH1_Colour.rgba * atmosHeightDensity.x + AtmosH2_Colour.rgba * atmosHeightDensity.y;
+}
+
+half4 ComputeRockAtmosFogD1(float4 CamToWorldPos)
+{
+	half atmosDepthDensity		= saturate( (CamToWorldPos.w - AtmosStartEnd_xD1yD1zD2wD2.x) * AtmosStartEnd_xD1yD1zD2wD2.y ) * AtmosDensity_xD1yD2zH1wH2.x;
+	return AtmosD1_Colour.rgba * atmosDepthDensity;
+}
+
+half4 ComputeRockAtmosFogD2(float4 CamToWorldPos)
+{
+	half atmosDepthDensity		= saturate( (CamToWorldPos.w - AtmosStartEnd_xD1yD1zD2wD2.z) * AtmosStartEnd_xD1yD1zD2wD2.w) * AtmosDensity_xD1yD2zH1wH2.y;
+	return AtmosD2_Colour.rgba * atmosDepthDensity;
+}
+
+half4 ComputeRockAtmosFogD1D2(float4 CamToWorldPos)
+{
+	half2 atmosDepthDensity	= saturate( (CamToWorldPos.ww - AtmosStartEnd_xD1yD1zD2wD2.xz) * AtmosStartEnd_xD1yD1zD2wD2.yw ) * AtmosDensity_xD1yD2zH1wH2.xy;
+	return AtmosD1_Colour.rgba * atmosDepthDensity.x + AtmosD2_Colour.rgba * atmosDepthDensity.y;
+}
+
+half4 ComputeRockAtmosFog(float3 WorldPosition)
+{
+//---------------------------------------------
+// ATMOSPHERICS:
+//---------------------------------------------
+	half4 addFogCol				= 0.h;
+
+	float4 CamToWorldPos;
+	CamToWorldPos.xyz			= WorldPosition.xyz; 
+	CamToWorldPos.w				= length(CamToWorldPos.xyz);
+
+	//addFogCol += ComputeRockAtmosFogH1(CamToWorldPos);
+	//addFogCol += ComputeRockAtmosFogH2(CamToWorldPos);
+	//addFogCol += ComputeRockAtmosFogD1(CamToWorldPos);
+	//addFogCol += ComputeRockAtmosFogD2(CamToWorldPos);
+
+	//Use vectorised forms:
+	addFogCol += ComputeRockAtmosFogH1H2(CamToWorldPos);
+	addFogCol += ComputeRockAtmosFogD1D2(CamToWorldPos);
+
+	// Global gradient
+	addFogCol.rgba *= lerp(1, AtmosGlobal_Gradient_Colour.rgba, saturate(dot(normalize(CamToWorldPos.xyz), AtmosGlobal_Gradient_Direction.xyz)) );
+
+	//premultiply the alpha
+	addFogCol.rbg *= saturate(addFogCol.a);
+
+	return half4( addFogCol.xyz, 1.0f - saturate(addFogCol.a) );
+}

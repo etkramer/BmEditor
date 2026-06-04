@@ -1,0 +1,243 @@
+/*=============================================================================
+	@Rock - JoelS: iterative blur pixel shader
+=============================================================================*/
+
+#include "Common.usf"
+
+#ifndef ISFINALBLOOMPASS
+	#define ISFINALBLOOMPASS 0
+#endif
+
+#ifndef ISINITIALBLOOMPASS
+	#define ISINITIALBLOOMPASS 0
+#endif
+
+sampler2D FilterTexture;
+sampler2D LightShaftsTexture;
+
+// minv, minv, maxu,maxv
+float4 SampleMaskRect;
+
+half4 BloomTintAndScreenBlendThreshold;
+
+half3 SampleMask;
+//// UV.y and UV.wz are the input UV coordinates
+//float ComputeMask(float2 UV)
+//{
+//	// actual masking costs performance and might be not really needed
+//	// (only required with spitscreen or not using full screen resolution)
+//	// can be a shader combination but when measured it wasn't faster
+//	// also the implementation can be changed to
+//	//    float4 Mask = saturate(UV.xyxy*MulConst+AddConst);
+//	//    return Mask2.x * Mask2.y * Mask2.y * Mask2.w;
+//	// which is softer and might be even faster
+//	float2 Mask = (UV > SampleMaskRect.xy) * (UV < SampleMaskRect.zw);
+//
+//	return Mask.x * Mask.y;
+//}
+
+//---------------------------------------------
+// Bloom function:
+//---------------------------------------------
+#if ISINITIALBLOOMPASS
+
+half3 computeBloom(in half3 colSharp, in half3 colBlur)
+{
+	//Select type of bloom blend:
+	//---------------------------
+	#define Bloom_Temperature_3PointFull			0
+	#define Bloom_Temperature_3PointMid				0
+	#define Bloom_Temperature_2Point4xRange			0
+	#define Bloom_Simple_AdditiveSubtractThreshold	0
+	#define Bloom_Simple_MaxSubtractThreshold		0
+	#define Bloom_Simple_AdditivePowThreshold		1
+	//---------------------------
+	//#define Bloom_Extra_RGBSharpen
+
+	half3 BloomResult;
+
+#if LOCAL_CHEAPABERRATION
+	colSharp.r = (colSharp.r * 0.75f + colBlur.r * 0.25f);
+#endif
+
+//Convert to 1000k to 40,000k range, 3 point gradient
+//---------------------------------------------------
+	#if Bloom_Temperature_3PointFull
+		half3 BloomBase		= max( 0, colBlur.rgb - 0.25h) * BloomTintAndScreenBlendThreshold.rgb;
+		half bloomLum		= dot( BloomBase.rgb, half3( 0.30h, 0.59h, 0.11h ) );
+
+		//1000k to 6700k
+		half bloomKelvin	= (min(6700.h, 1000.h + bloomLum * 40000.h) - 1000.h) / (6700.h - 1000.h);
+		BloomResult			= lerp(		half3(1.0000h, 0.0337h, 0.0000h ),
+										half3(0.9696h, 0.9336h, 1.0000h),
+										bloomKelvin);
+		//6700k to 40000k	
+		bloomKelvin			= (max(6700.h, 1000.h + bloomLum * 40000.h) - 6700.h) / (40000.h - 6700.h);
+		BloomResult			*= lerp(	half3(0.9696h, 0.9336h, 1.0000h),
+										half3(0.3277h, 0.5022h, 1.0000h),
+										bloomKelvin);
+		//mix
+		BloomResult			= colSharp + BloomResult.rgb * BloomBase.rgb;
+	#endif //Bloom_Temperature_3PointFull
+
+//midpoint, 3 point gradient
+//--------------------------
+	#if Bloom_Temperature_3PointMid
+		half3 BloomBase		= max( 0, colBlur.rgb - 0.25h) * BloomTintAndScreenBlendThreshold.rgb;
+		half bloomLum		= dot( BloomBase.rgb, half3( 0.30h, 0.59h, 0.11h ) );
+
+		//1000k to 6700k
+		half bloomKelvin	= saturate(bloomLum * 4);
+		BloomResult			= lerp(		half3(1.0000h, 0.0337h, 0.0000h),
+										half3(0.9696h, 0.9336h, 1.0000h),
+										bloomKelvin);
+	  
+		//6700k to 40000k	
+		bloomKelvin			= saturate(0.75 + bloomLum * 0.25);
+		BloomResult			*= lerp(	half3(0.9696h, 0.9336h, 1.0000h),
+										half3(0.3277h, 0.5022h, 1.0000h),
+										bloomKelvin);
+		//mix
+		BloomResult			= colSharp + BloomResult.rgb * BloomBase.rgb;
+	#endif //Bloom_Temperature3PointMid
+
+//4x range, 2 point gradient
+//------------------------------
+	#if Bloom_Temperature_2Point4xRange
+		half3 BloomBase		= max( 0, colBlur.rgb - 0.25h) * BloomTintAndScreenBlendThreshold.rgb;
+
+		BloomResult			= lerp(		half3(1.0000h, 0.7372h, 0.6078h ),
+										half3(0.6078h, 0.7372h, 1.0000h),
+										BloomBase.rgb);
+		//mix
+		BloomResult			= colSharp + BloomResult.rgb * BloomBase.rgb;
+	#endif //Bloom_Temperature_2Point4xRange
+ 
+//Simple: Additive blended, subtractive threshold
+//-------------------------------------------
+	#if Bloom_Simple_AdditiveSubtractThreshold
+		BloomResult = colSharp + max( 0.h, (colBlur.rgb - BloomTintAndScreenBlendThreshold.a) * BloomTintAndScreenBlendThreshold.rgb);
+	#endif //Bloom_Simple_maxSubtractThreshold
+
+//Simple: Max blended, subtractive threshold
+//-------------------------------------------
+	#if Bloom_Simple_MaxSubtractThreshold
+		BloomResult = max( colSharp, (colBlur.rgb - BloomTintAndScreenBlendThreshold.a) * BloomTintAndScreenBlendThreshold.rgb);
+		//Or pre-gamma corrected:
+		//BloomResult = max(colSharp,(pow(colBlur.rgb, GammaInverse ) - BloomTintAndScreenBlendThreshold.a) * BloomTintAndScreenBlendThreshold.rgb);
+	#endif //Bloom_Simple_maxSubtractThreshold
+
+//Simple: Additively blended, pow threshold
+//-------------------------------------------
+	#if Bloom_Simple_AdditivePowThreshold
+		half3 BloomContribution = min(colBlur.rgb * BloomTintAndScreenBlendThreshold.rgb,8.f);
+ 
+		//Using pow() intrinsic:
+		//BloomResult = colSharp + pow(BloomContribution,BloomTintAndScreenBlendThreshold.a);
+
+		//Using cheapPow function which is wrapped by an abs
+		//BloomResult = colSharp + computeCheapPow(BloomContribution,BloomThreshold.xy);
+
+		//Cheap pow custom (clamped at 0):
+		//BloomThreshold.x multiplication rolled into BloomTintAndScreenBlendThreshold.rgb above
+		half3 powt	= max(0, BloomContribution + BloomTintAndScreenBlendThreshold.a );
+		powt		= min(powt * powt,8.f);
+		BloomResult = colSharp + powt;
+	#endif //Bloom_Simple_AdditivePowThreshold
+
+//Extra: Sharpen!
+//-------------------------------------------
+	#if Bloom_Extra_RGBSharpen
+		BloomResult = lerp(colBlur.rgb, BloomResult.rgb, half3(1.5h,1.3h,1.1h));
+	#endif //Bloom_Extra_RGBSharpen
+
+	return BloomResult;
+}
+
+#endif
+
+void MainBloom(	half4 UVTopLR			: TEXCOORD0,
+				half4 UVBottomLR		: TEXCOORD1,
+				half2 UVMid				: TEXCOORD2,
+				out half4 OutColor		: COLOR0 )
+{
+	half4 Sum;
+	Sum  = tex2D(FilterTexture, UVTopLR.xy);//clamp(0,SampleMask.xy,UVTopLR.xy));
+	Sum += tex2D(FilterTexture, UVTopLR.zw);//clamp(0,SampleMask.xy,UVTopLR.zw));
+	Sum += tex2D(FilterTexture, UVBottomLR.xy);//clamp(0,SampleMask.xy,UVBottomLR.xy));
+	Sum += tex2D(FilterTexture, UVBottomLR.zw);//clamp(0,SampleMask.xy,UVBottomLR.zw));
+	Sum += tex2D(FilterTexture, UVMid.xy);//clamp(0,1,UVMid.xy)); //Extra sample - smoother blur for less passes 
+
+	Sum /= 5.h;
+
+#if ISINITIALBLOOMPASS
+	Sum.rgb = computeBloom(0,Sum.rgb * 4.0h);
+#endif
+
+#if ISFINALBLOOMPASS
+	
+	////@Rock - Lens effects:
+	//#define LENS_SAMPLES	6				//Amount of samples
+	//#define LENS_DIVISOR	0.166666666f	// 1.f / LENS_SAMPLES;
+	//half3 LensSum = 0;
+
+	////const static half UVArray[] = 
+	////{
+	////	0.3,
+	////	0.4,
+	////	0.45,
+	////	0.55,
+	////	0.6,
+	////	0.7
+	////};
+
+	////const static half UVArray[] = 
+	////{
+	////	0.27,
+	////	0.29,
+	////	0.32,
+	////	0.68,
+	////	0.71,
+	////	0.73
+	////};
+
+	//const static half UVArray[] = 
+	//{
+	//	0.37,
+	//	0.39,
+	//	0.45,
+	//	0.68,
+	//	0.81,
+	//	0.99
+	//};
+
+	//const static half3 ColArray[] = 
+	//{
+	//	half3(69, 76, 77)/255,
+	//	half3(113, 119, 143)/255,
+	//	half3(171, 164, 137)/255,
+	//	half3(88, 122, 126)/255,
+	//	half3(194, 179, 83)/255,
+	//	half3(143, 124, 76)/255,
+	//};
+
+	//	half vignette =  1-length(UVMid.xy - 0.5);
+
+	//for(int LensStep = 0; LensStep < LENS_SAMPLES; LensStep++)
+	//{
+	//	half2 SampleUV = lerp(UVMid.xy, 1 - UVMid.xy, UVArray[LensStep]);
+	//	//LensSum.rgb = max(LensSum.rgb, tex2D(FilterTexture, SampleUV.xy).rgb * ColArray[LensStep].rgb);
+	//	LensSum.rgb += tex2D(FilterTexture, SampleUV.xy).rgb * ColArray[LensStep].rgb;
+	//}
+
+	//Sum.rgb += pow(vignette,4)*LensSum / LENS_SAMPLES;
+
+
+	//Tone map the bloom to a 0...1 range and add the lightshafts
+	//Sum.rgb = computeBloom(0,Sum.rgb * 4.0h);
+	Sum.rgb += tex2D(LightShaftsTexture, UVMid.xy).rgb;
+#endif
+
+	// RETURN_COLOR not needed unless writing to SceneColor;
+	OutColor = Sum;
+}

@@ -1,0 +1,148 @@
+/*=============================================================================
+	@Rock - JoelS: iterative blur pixel shader
+=============================================================================*/
+ 
+#include "Common.usf"
+
+sampler2D FilterTexture;
+sampler2D VelocityTexture;
+
+half4 DOFOffset[NUM_SAMPLES];
+half4 MoBlurOffset[4];
+half2 MoBlurDOFWeight; //X=moblur on/off, Y=DOF on/off 
+
+
+	half2 CalcMoBlurVector( half2 UV )
+	{
+		half2 DynamicVelocity	= tex2D( VelocityTexture, UV.xy ).rg;
+		DynamicVelocity.xy		= DynamicVelocity.xy * 2.h - 1.h; //Velocity is stored as a divisor of 1/4
+
+		return DynamicVelocity.xy;
+	}
+
+
+void MainDOF(	half2 UV				: TEXCOORD0,
+				out half4 OutColor		: COLOR0 )
+{
+
+//===================================================================================================================================
+//SELECTIVE SAMPLING - multipass with Moblur in the anti-dither
+//===================================================================================================================================
+#if NUM_SAMPLES==17
+	const half MaxSize = 4.0h;
+
+	half DOFDivisor = 0;
+	half4 TotalSum = 0;
+
+	LOOP for(int i = 0; i < NUM_SAMPLES; i++)
+	{
+		half2 TapUV	= UV.xy + DOFOffset[i].xy;
+		half4 sampleTap = tex2D(FilterTexture, TapUV.xy);
+
+		half sampleDOFmask = sampleTap.a * 8.h - 1.h;
+		half CircleRadius = abs(sampleDOFmask+0.05h) * MaxSize; //need to add a small offset to avoid 0=full dof
+		CircleRadius *= CircleRadius;
+		half LocalWeight = max(saturate( -(DOFOffset[i].z - CircleRadius)), 0.0001h);
+
+		TotalSum += half4(sampleTap.rgb,sampleTap.a) * LocalWeight;
+		DOFDivisor += LocalWeight;
+	}
+
+	TotalSum.rgba	/= DOFDivisor;
+	//TotalSum.a		= saturate(-TotalSum.a);
+
+	OutColor = TotalSum;
+
+//#else
+////Anti-dither pass.
+////Also share the 4 samples with motion blur...
+//	half2 MotionBlurVector = CalcMoBlurVector(UV.xy) * MoBlurDOFWeight.x;
+//	half MoBlurMask = saturate(length(MotionBlurVector));
+//
+//	half4 TotalSum = 0;
+//
+//	LOOP for(int i = 0; i < NUM_SAMPLES; i++)
+//	{
+//		half2 TapUV	= UV.xy + lerp(DOFOffset[i].xy, MoBlurOffset[i].xy * MotionBlurVector.xy, MoBlurMask);
+//		half4 sampleTap = tex2D(FilterTexture, TapUV.xy);
+//		TotalSum += sampleTap.rgba;
+//	}
+//
+//	OutColor = TotalSum / (half)NUM_SAMPLES;
+//	OutColor.a = OutColor.a * MoBlurDOFWeight.y + MoBlurMask;
+//#endif
+
+#else
+//Anti-dither pass.
+//Also share the 4 samples with motion blur...
+	const half MaxSize = 2.0h;
+
+	half2 MotionBlurVector = CalcMoBlurVector(UV.xy) * MoBlurDOFWeight.x;
+	half MoBlurMask = saturate(length(MotionBlurVector));
+
+	half4 TotalSum = 0;
+	half DOFDivisor = 0;
+
+	LOOP for(int i = 0; i < NUM_SAMPLES; i++)
+	{
+		half2 TapUV	= UV.xy + float2(DOFOffset[1].x,DOFOffset[2].y)*0.5 + lerp(DOFOffset[i].xy, MoBlurOffset[i].xy * MotionBlurVector.xy, MoBlurMask);
+		half4 sampleTap = tex2D(FilterTexture, TapUV.xy);
+
+		half sampleDOFmask = sampleTap.a * 8.h - 1.h;
+		half CircleRadius = abs(sampleDOFmask+0.05h) * MaxSize; //need to add a small offset to avoid 0=full dof
+		CircleRadius *= CircleRadius;
+		half LocalWeight = max( max(saturate( -(DOFOffset[i].z - CircleRadius)), 0.0001h), MoBlurMask );
+
+		TotalSum += half4(sampleTap.rgb,sampleDOFmask) * LocalWeight;
+		DOFDivisor += LocalWeight;
+	}
+	TotalSum.rgba	/= DOFDivisor;
+	TotalSum.a		= saturate(-TotalSum.a);
+	OutColor.rgba	= TotalSum.rgba;
+	OutColor.a		= OutColor.a * MoBlurDOFWeight.y + MoBlurMask;
+#endif
+
+//===================================================================================================================================
+//SELECTIVE SAMPLING - multipass with Moblur in the dof gather
+//===================================================================================================================================
+//#if NUM_SAMPLES==17
+//	const half MaxSize = 4.0h;
+//
+//	half DOFDivisor = 0;
+//	half4 TotalSum = 0;
+//
+//	half2 MotionBlurVector = CalcMoBlurVector(UV.xy) * MoBlurWeight;
+//	half MoBlurMask = saturate(length(MotionBlurVector));
+//
+//	LOOP for(int i = 0; i < NUM_SAMPLES; i++)
+//	{
+//		half2 TapUV	= UV.xy + lerp(DOFOffset[i].xy, MoBlurOffset[i].xy * MotionBlurVector.xy, MoBlurMask);
+//		half4 sampleTap = tex2D(FilterTexture, TapUV.xy);
+//
+//		half sampleDOFmask = sampleTap.a * 8.h - 1.h;
+//		half CircleRadius = abs(sampleDOFmask+0.05h) * MaxSize; //need to add a small offset to avoid 0=full dof
+//		half LocalWeight = saturate( max(saturate( -(DOFOffset[i].z - CircleRadius)), 0.0001h + MoBlurMask));
+//
+//		TotalSum += half4(sampleTap.rgb,sampleDOFmask) * LocalWeight;
+//		DOFDivisor += LocalWeight;
+//	}
+//
+//	TotalSum.rgba	/= DOFDivisor;
+//	TotalSum.a		= saturate( saturate(-TotalSum.a) + MoBlurMask);
+//
+//	OutColor = TotalSum;
+//
+//#else
+//
+//	half4 TotalSum = 0;
+//
+//	LOOP for(int i = 0; i < NUM_SAMPLES; i++)
+//	{
+//		half2 TapUV		= UV.xy + DOFOffset[i].xy;
+//		half4 sampleTap	= tex2D(FilterTexture, TapUV.xy);
+//		TotalSum		+= sampleTap.rgba;
+//	}
+//	OutColor = TotalSum / (half)NUM_SAMPLES;
+//
+//#endif
+}
