@@ -68,4 +68,37 @@ ELightComponentType UAmbientPlus3DirectionalLightComponent::GetLightType() const
 	return LightType_AmbientPlus3Directional;
 }
 
+UBOOL FAmbientPlus3DirectionalLightSceneInfo::DrawTranslucentMesh(
+	const FSceneView& View,
+	const FMeshElement& Mesh,
+	UBOOL bBackFace,
+	UBOOL bPreFog,
+	UBOOL bUseTranslucencyLightAttenuation,
+	const FPrimitiveSceneInfo* PrimitiveSceneInfo,
+	const FProjectedShadowInfo* TranslucentPreShadowInfo,
+	FHitProxyId HitProxyId
+	) const
+{
+	const FLOAT MaxLight =
+		Max(
+			Max(LightColours[0].GetMax(), LightColours[1].GetMax()),
+			Max(LightColours[2].GetMax(), Ambient.GetMax()));
+
+	if (MaxLight > 0.0f)
+	{
+		return DrawLitDynamicMesh<FAmbientPlus3DirectionalLightPolicy>(
+			View,
+			this,
+			Mesh,
+			bBackFace,
+			bPreFog,
+			TRUE,
+			bUseTranslucencyLightAttenuation,
+			PrimitiveSceneInfo,
+			TranslucentPreShadowInfo,
+			HitProxyId);
+	}
+	return FALSE;
+}
+
 #endif // BATMAN

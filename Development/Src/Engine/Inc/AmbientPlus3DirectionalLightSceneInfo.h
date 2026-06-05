@@ -14,11 +14,7 @@
 
 class FAmbientPlus3DirectionalLightSceneInfo;
 
-// Stand-in lighting policy referenced by TLightSceneDPGInfo. Retail BM2 carries a
-// TLightSceneDPGInfo<FAmbientPlus3DirectionalLightPolicy> DPGInfos[SDPG_MAX_SceneRender]
-// member on the proxy. We don't currently dispatch a standalone AP3D light pass, so the
-// draw lists stay empty - but FLightSceneInfo::Detach iterates them, so the array still
-// has to exist.
+// Lighting policy used by BM2's standalone AP3D light pass.
 class FAmbientPlus3DirectionalLightPolicy
 {
 public:
@@ -27,19 +23,23 @@ public:
 	class VertexParametersType
 	{
 	public:
-		void Bind(const FShaderParameterMap& ParameterMap) {}
+		FShaderParameter APlus3DLightVertexInfoParameter;
+
+		void Bind(const FShaderParameterMap& ParameterMap);
 		template<typename ShaderRHIParamRef>
-		void SetLight(ShaderRHIParamRef Shader, const SceneInfoType* Light, const FSceneView* View) const {}
-		void Serialize(FArchive& Ar) {}
+		void SetLight(ShaderRHIParamRef Shader, const SceneInfoType* Light, const FSceneView* View) const;
+		void Serialize(FArchive& Ar);
 	};
 
 	class PixelParametersType
 	{
 	public:
-		void Bind(const FShaderParameterMap& ParameterMap) {}
-		void SetLight(FShader* PixelShader, const SceneInfoType* Light, const FSceneView* View) const {}
+		FShaderParameter APlus3DLightPixelInfoParameter;
+
+		void Bind(const FShaderParameterMap& ParameterMap);
+		void SetLight(FShader* PixelShader, const SceneInfoType* Light, const FSceneView* View) const;
 		void SetLightMesh(FShader* PixelShader, const FPrimitiveSceneInfo* PrimitiveSceneInfo, const SceneInfoType* Light, UBOOL bApplyLightFunctionDisabledBrightness) const {}
-		void Serialize(FArchive& Ar) {}
+		void Serialize(FArchive& Ar);
 	};
 
 	static UBOOL ShouldCacheStaticLightingShaders() { return FALSE; }
@@ -82,7 +82,7 @@ public:
 		const FPrimitiveSceneInfo* PrimitiveSceneInfo,
 		const class FProjectedShadowInfo* TranslucentPreShadowInfo,
 		FHitProxyId HitProxyId
-		) const { return FALSE; }
+		) const;
 	virtual class FShadowProjectionPixelShaderInterface* GetModShadowProjPixelShader(UBOOL bRenderingBeforeLight) const { return NULL; }
 	virtual class FBranchingPCFProjectionPixelShaderInterface* GetBranchingPCFModProjPixelShader(UBOOL bRenderingBeforeLight) const { return NULL; }
 	virtual FGlobalBoundShaderState* GetModShadowProjBoundShaderState(UBOOL bRenderingBeforeLight) const { return NULL; }
@@ -94,6 +94,60 @@ private:
 
 	TLightSceneDPGInfo<FAmbientPlus3DirectionalLightPolicy> DPGInfos[SDPG_MAX_SceneRender];
 };
+
+inline void FAmbientPlus3DirectionalLightPolicy::VertexParametersType::Bind(const FShaderParameterMap& ParameterMap)
+{
+	APlus3DLightVertexInfoParameter.Bind(ParameterMap, TEXT("APlus3DLightVertexInfo"), TRUE);
+}
+
+template<typename ShaderRHIParamRef>
+inline void FAmbientPlus3DirectionalLightPolicy::VertexParametersType::SetLight(ShaderRHIParamRef Shader, const SceneInfoType* Light, const FSceneView* View) const
+{
+	check(Light);
+
+	FVector4 Dirs[3];
+	for (INT i = 0; i < 3; i++)
+	{
+		Dirs[i] = FVector4(Light->LightDirections[i], 0.0f);
+	}
+	SetVertexShaderValues<FVector4>(
+		Shader,
+		APlus3DLightVertexInfoParameter,
+		Dirs,
+		3);
+}
+
+inline void FAmbientPlus3DirectionalLightPolicy::VertexParametersType::Serialize(FArchive& Ar)
+{
+	Ar << APlus3DLightVertexInfoParameter;
+}
+
+inline void FAmbientPlus3DirectionalLightPolicy::PixelParametersType::Bind(const FShaderParameterMap& ParameterMap)
+{
+	APlus3DLightPixelInfoParameter.Bind(ParameterMap, TEXT("APlus3DLightPixelInfo"), TRUE);
+}
+
+inline void FAmbientPlus3DirectionalLightPolicy::PixelParametersType::SetLight(FShader* PixelShader, const SceneInfoType* Light, const FSceneView* View) const
+{
+	check(Light);
+
+	FVector4 ColorsAndAmbient[4];
+	for (INT i = 0; i < 3; i++)
+	{
+		ColorsAndAmbient[i] = FVector4(Light->LightColours[i], 0.0f);
+	}
+	ColorsAndAmbient[3] = FVector4(Light->Ambient, 0.0f);
+	SetPixelShaderValues<FVector4>(
+		PixelShader->GetPixelShader(),
+		APlus3DLightPixelInfoParameter,
+		ColorsAndAmbient,
+		4);
+}
+
+inline void FAmbientPlus3DirectionalLightPolicy::PixelParametersType::Serialize(FArchive& Ar)
+{
+	Ar << APlus3DLightPixelInfoParameter;
+}
 
 #endif // BATMAN
 

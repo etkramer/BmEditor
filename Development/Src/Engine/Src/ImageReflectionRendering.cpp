@@ -8,13 +8,6 @@
 #include "ImageUtils.h"
 #include "SceneFilterRendering.h"
 #include "ScreenRendering.h"
-#include "BokehDOF.h"
-
-UBOOL GRenderDynamicReflectionShadowing = TRUE;
-UBOOL GBlurDynamicReflectionShadowing = TRUE;
-
-/** Note - image reflection shader recompile is required to propagate changes to this. */
-UBOOL GDownsampleStaticReflectionShadowing = TRUE;
 
 IMPLEMENT_CLASS(AImageReflection);
 IMPLEMENT_CLASS(AImageReflectionSceneCapture);
@@ -471,421 +464,12 @@ FImageReflectionSceneInfo::FImageReflectionSceneInfo(const UActorComponent* InCo
 	}
 }
 
-/*-----------------------------------------------------------------------------
-	FReflectionMaskVertexShader
------------------------------------------------------------------------------*/
-
-/** Vertex shader used to render meshes into a planar reflection for shadowing. */
-class FReflectionMaskVertexShader : public FShader
-{
-	DECLARE_SHADER_TYPE(FReflectionMaskVertexShader,MeshMaterial);
-public:
-	static UBOOL ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
-	{
-		// Only compile for the default material, since we're only handling opaque materials
-		return Material->IsSpecialEngineMaterial() && Platform == SP_PCD3D_SM5;
-	}
-
-	FReflectionMaskVertexShader(const ShaderMetaType::CompiledShaderInitializerType& Initializer) :
-		FShader(Initializer),
-		VertexFactoryParameters(Initializer.VertexFactoryType, Initializer.ParameterMap)
-	{
-		MirrorPlaneParameter.Bind(Initializer.ParameterMap, TEXT("MirrorPlane"), TRUE);
-	}
-
-	FReflectionMaskVertexShader() {}
-
-	virtual UBOOL Serialize(FArchive& Ar)
-	{
-		UBOOL bShaderHasOutdatedParameters = FShader::Serialize(Ar);
-		bShaderHasOutdatedParameters |= Ar << VertexFactoryParameters;
-		Ar << MirrorPlaneParameter;
-		return bShaderHasOutdatedParameters;
-	}
-
-	void SetParameters(const FVertexFactory* VertexFactory, const FMaterialRenderProxy* MaterialRenderProxy, const FViewInfo& View, const FPlane& InMirrorPlane)
-	{
-		VertexFactoryParameters.Set(this, VertexFactory, View);
-
-		SetShaderValue(GetVertexShader(), MirrorPlaneParameter, InMirrorPlane);
-	}
-
-	void SetMesh(const FMeshElement& Mesh, const FSceneView& View)
-	{
-		VertexFactoryParameters.SetMesh(this, Mesh, View);
-	}
-
-private:
-
-	FVertexFactoryVSParameterRef VertexFactoryParameters;
-	FShaderParameter MirrorPlaneParameter;
-};
-
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FReflectionMaskVertexShader,TEXT("ImageReflectionMeshShader"),TEXT("ReflectionMaskVertexMain"),SF_Vertex,0,0);
-
-/*-----------------------------------------------------------------------------
-	FReflectionMaskPixelShader
------------------------------------------------------------------------------*/
-
-/** Pixel shader used to render meshes into a planar reflection for shadowing. */
-class FReflectionMaskPixelShader : public FShader
-{
-	DECLARE_SHADER_TYPE(FReflectionMaskPixelShader,MeshMaterial);
-public:
-	static UBOOL ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
-	{
-		// Only compile for the default material, since we're only handling opaque materials
-		return Material->IsSpecialEngineMaterial() && Platform == SP_PCD3D_SM5;
-	}
-
-	FReflectionMaskPixelShader() {}
-
-	FReflectionMaskPixelShader(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
-		: FShader(Initializer)
-	{
-		DeferredParameters.Bind(Initializer.ParameterMap);
-		InvResolutionXParameter.Bind(Initializer.ParameterMap, TEXT("InvResolutionX"), TRUE);
-		MirrorPlaneParameter.Bind(Initializer.ParameterMap, TEXT("MirrorPlane"), TRUE);
-		ReflectedCameraPositionParameter.Bind(Initializer.ParameterMap, TEXT("ReflectedCameraPosition"), TRUE);
-	}
-
-	void SetParameters(const FViewInfo& View, const FPlane& InMirrorPlane, const FVector& InReflectedCameraPosition)
-	{
-		DeferredParameters.Set(View, this);
-		SetShaderValue(GetPixelShader(), InvResolutionXParameter, 2.0f / View.RenderTargetSizeX);
-		SetShaderValue(GetPixelShader(), MirrorPlaneParameter, InMirrorPlane);
-		SetShaderValue(GetPixelShader(), ReflectedCameraPositionParameter, InReflectedCameraPosition);
-	}
-
-	virtual UBOOL Serialize(FArchive& Ar)
-	{
-		UBOOL bShaderHasOutdatedParameters = FShader::Serialize(Ar);
-		Ar << DeferredParameters;
-		Ar << InvResolutionXParameter;
-		Ar << MirrorPlaneParameter;
-		Ar << ReflectedCameraPositionParameter;
-		return bShaderHasOutdatedParameters;
-	}
-
-private:
-	FDeferredPixelShaderParameters DeferredParameters;
-	FShaderParameter InvResolutionXParameter;
-	FShaderParameter MirrorPlaneParameter;
-	FShaderParameter ReflectedCameraPositionParameter;
-};
-
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FReflectionMaskPixelShader,TEXT("ImageReflectionMeshShader"),TEXT("ReflectionMaskPixelMain"),SF_Pixel,0,0);
-
-/** Drawing policy for rendering dynamic meshes into a planar reflection, used for shadowing image reflections. */
-class FReflectionMaskDrawingPolicy : public FMeshDrawingPolicy
-{
-public:
-
-	FReflectionMaskDrawingPolicy(
-		const FVertexFactory* InVertexFactory,
-		const FMaterialRenderProxy* InMaterialRenderProxy,
-		const FPlane& MirrorPlane,
-		const FVector& ReflectedCameraPosition,
-		const FPlane& TranslatedMirrorPlane
-		);
-
-	// FMeshDrawingPolicy interface.
-	UBOOL Matches(const FReflectionMaskDrawingPolicy& Other) const
-	{
-		return FMeshDrawingPolicy::Matches(Other) 
-			&& VertexShader == Other.VertexShader 
-			&& PixelShader == Other.PixelShader;
-	}
-
-	void DrawShared(const FViewInfo& View, FBoundShaderStateRHIRef ShaderState) const;
-
-	void SetMeshRenderState(
-		const FViewInfo& View,
-		const FPrimitiveSceneInfo* PrimitiveSceneInfo,
-		const FMeshElement& Mesh,
-		UBOOL bBackFace,
-		const ElementDataType& ElementData
-		) const;
-
-	FBoundShaderStateRHIRef CreateBoundShaderState(DWORD DynamicStride = 0);
-
-	friend INT Compare(const FReflectionMaskDrawingPolicy& A,const FReflectionMaskDrawingPolicy& B);
-
-	/** Indicates whether the primitive has moved since last frame. */
-	static UBOOL HasMoved(const FPrimitiveSceneInfo* PrimitiveSceneInfo);
-
-private:
-
-	FReflectionMaskVertexShader* VertexShader;
-	FReflectionMaskPixelShader* PixelShader;
-	FPlane MirrorPlane;
-	FVector ReflectedCameraPosition;
-	FPlane TranslatedMirrorPlane;
-};
-
-/** Drawing policy factory for rendering dynamic meshes into a planar reflection, used for shadowing image reflections. */
-class FReflectionMaskDrawingPolicyFactory
-{
-public:
-	enum { bAllowSimpleElements = FALSE };
-
-	struct ContextType
-	{
-		ContextType(const FPlane& InMirrorPlane, const FVector& InReflectedCameraPosition, const FPlane& InTranslatedMirrorPlane) :
-			MirrorPlane(InMirrorPlane),
-			ReflectedCameraPosition(InReflectedCameraPosition),
-			TranslatedMirrorPlane(InTranslatedMirrorPlane)
-		{}
-
-		const FPlane& MirrorPlane;
-		const FVector& ReflectedCameraPosition;
-		const FPlane& TranslatedMirrorPlane;
-	};
-
-	static UBOOL DrawDynamicMesh(	
-		const FViewInfo& View,
-		ContextType DrawingContext,
-		const FMeshElement& Mesh,
-		UBOOL bBackFace,
-		UBOOL bPreFog,
-		const FPrimitiveSceneInfo* PrimitiveSceneInfo,
-		FHitProxyId HitProxyId
-		);
-
-	static UBOOL IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy);
-};
-
-FReflectionMaskDrawingPolicy::FReflectionMaskDrawingPolicy(
-	const FVertexFactory* InVertexFactory,
-	const FMaterialRenderProxy* InMaterialRenderProxy,
-	const FPlane& InMirrorPlane,
-	const FVector& InReflectedCameraPosition,
-	const FPlane& InTranslatedMirrorPlane
-	) :	
-	FMeshDrawingPolicy(InVertexFactory, InMaterialRenderProxy, FALSE, TRUE),
-	MirrorPlane(InMirrorPlane),
-	ReflectedCameraPosition(InReflectedCameraPosition),
-	TranslatedMirrorPlane(InTranslatedMirrorPlane)
-{
-	const FMaterial* MaterialResource = InMaterialRenderProxy->GetMaterial();
-	VertexShader = MaterialResource->GetShader<FReflectionMaskVertexShader>(InVertexFactory->GetType());
-	PixelShader = MaterialResource->GetShader<FReflectionMaskPixelShader>(InVertexFactory->GetType());
-}
-
-void FReflectionMaskDrawingPolicy::DrawShared(const FViewInfo& View, FBoundShaderStateRHIRef ShaderState) const
-{
-	RHISetBoundShaderState(ShaderState);
-
-	VertexShader->SetParameters(VertexFactory, MaterialRenderProxy, View, TranslatedMirrorPlane);
-	PixelShader->SetParameters(View, MirrorPlane, ReflectedCameraPosition);
-
-	// Set the shared mesh resources.
-	FMeshDrawingPolicy::DrawShared(&View);
-}
-
-void FReflectionMaskDrawingPolicy::SetMeshRenderState(
-	const FViewInfo& View,
-	const FPrimitiveSceneInfo* PrimitiveSceneInfo,
-	const FMeshElement& Mesh,
-	UBOOL bBackFace,
-	const ElementDataType& ElementData
-	) const
-{
-	VertexShader->SetMesh(Mesh, View);
-
-	FMeshDrawingPolicy::SetMeshRenderState(View, PrimitiveSceneInfo, Mesh, bBackFace, ElementData);
-}
-
-/** 
- * Create bound shader state using the vertex decl from the mesh draw policy
- * as well as the shaders needed to draw the mesh
- * @param DynamicStride - optional stride for dynamic vertex data
- * @return new bound shader state object
- */
-FBoundShaderStateRHIRef FReflectionMaskDrawingPolicy::CreateBoundShaderState(DWORD DynamicStride)
-{
-	FVertexDeclarationRHIRef VertexDeclaration;
-	DWORD StreamStrides[MaxVertexElementCount];
-
-	FMeshDrawingPolicy::GetVertexDeclarationInfo(VertexDeclaration, StreamStrides);
-	if (DynamicStride)
-	{
-		StreamStrides[0] = DynamicStride;
-	}
-
-	return RHICreateBoundShaderState(VertexDeclaration, StreamStrides, VertexShader->GetVertexShader(), PixelShader->GetPixelShader());	
-}
-
-INT Compare(const FReflectionMaskDrawingPolicy& A, const FReflectionMaskDrawingPolicy& B)
-{
-	COMPAREDRAWINGPOLICYMEMBERS(VertexShader);
-	COMPAREDRAWINGPOLICYMEMBERS(PixelShader);
-	COMPAREDRAWINGPOLICYMEMBERS(VertexFactory);
-	return 0;
-}
-
-UBOOL FReflectionMaskDrawingPolicyFactory::DrawDynamicMesh(
-	const FViewInfo& View,
-	ContextType DrawingContext,
-	const FMeshElement& Mesh,
-	UBOOL bBackFace,
-	UBOOL bPreFog,
-	const FPrimitiveSceneInfo* PrimitiveSceneInfo,
-	FHitProxyId HitProxyId
-	)
-{
-	const FMaterialRenderProxy* MaterialRenderProxy = Mesh.MaterialRenderProxy;
-	const FMaterial* Material = MaterialRenderProxy->GetMaterial();
-	EBlendMode BlendMode = Material->GetBlendMode();
-	// Only add primitives with opaque or masked materials, unless they have a decal material.
-	if (Mesh.CastShadow
-		&& (BlendMode == BLEND_Opaque || BlendMode == BLEND_Masked) 
-		&& !Material->IsDecalMaterial())
-	{
-		// Override with the default material.
-		// Masked and two-sided materials are not handled separately, but the artifacts are normally not severe.
-		FReflectionMaskDrawingPolicy DrawingPolicy(Mesh.VertexFactory, GEngine->DefaultMaterial->GetRenderProxy(FALSE), DrawingContext.MirrorPlane, DrawingContext.ReflectedCameraPosition, DrawingContext.TranslatedMirrorPlane);
-		DrawingPolicy.DrawShared(View,DrawingPolicy.CreateBoundShaderState(Mesh.GetDynamicVertexStride()));
-		DrawingPolicy.SetMeshRenderState(View, PrimitiveSceneInfo, Mesh, bBackFace, FMeshDrawingPolicy::ElementDataType());
-		DrawingPolicy.DrawMesh(Mesh);
-		return TRUE;
-	}
-	return FALSE;
-}
-
-UBOOL FReflectionMaskDrawingPolicyFactory::IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy)
-{
-	// Ignore primitives with translucent materials
-	return IsTranslucentBlendMode(MaterialRenderProxy->GetMaterial()->GetBlendMode());
-}
-
-/** Geometry shader that generates quads which blur the reflection mask by scattering the pixel's mask to its neighbors. */
-class FMaskBlurGeometryShader : public FGlobalShader
-{
-	DECLARE_SHADER_TYPE(FMaskBlurGeometryShader,Global);
-public:
-
-	static UBOOL ShouldCache(EShaderPlatform Platform)
-	{
-		return Platform == SP_PCD3D_SM5;
-	}
-
-	/** Default constructor. */
-	FMaskBlurGeometryShader() {}
-
-	/** Initialization constructor. */
-	FMaskBlurGeometryShader(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
-		: FGlobalShader(Initializer)
-	{
-		ReflectionMaskTextureParameter.Bind(Initializer.ParameterMap, TEXT("ReflectionMaskTexture"), TRUE);
-		SceneCoordinate1ScaleBiasParameter.Bind(Initializer.ParameterMap,TEXT("SceneCoordinate1ScaleBias"),TRUE);
-		SceneCoordinate2ScaleBiasParameter.Bind(Initializer.ParameterMap,TEXT("SceneCoordinate2ScaleBias"),TRUE);
-		ArraySettingsParameter.Bind(Initializer.ParameterMap,TEXT("ArraySettings"),TRUE);
-	}
-
-	void SetParameters(const FViewInfo& View)
-	{
-#if PLATFORM_SUPPORTS_D3D10_PLUS
-		const UINT BufferSizeX = GSceneRenderTargets.GetBufferSizeX();
-		const UINT BufferSizeY = GSceneRenderTargets.GetBufferSizeY();
-		const UINT HalfSizeX = BufferSizeX / 2;
-		const UINT HalfSizeY = BufferSizeY / 2;
-
-		const INT HalfTargetSizeX = View.RenderTargetSizeX / 2;
-		const INT HalfTargetSizeY = View.RenderTargetSizeY / 2;
-
-		const FGeometryShaderRHIRef& ShaderRHI = GetGeometryShader();
-
-		SetTextureParameter(
-			ShaderRHI,
-			ReflectionMaskTextureParameter,
-			TStaticSamplerState<SF_Point,AM_Border,AM_Border,AM_Border>::GetRHI(),
-			GSceneRenderTargets.GetTranslucencyBufferTexture());
-
-		SetShaderValue(
-			ShaderRHI,
-			SceneCoordinate1ScaleBiasParameter,
-			FVector4(
-			2.0f / HalfTargetSizeX,
-			-2.0f / HalfTargetSizeY,
-			-GPixelCenterOffset / HalfSizeX - 1.0f,
-			GPixelCenterOffset / HalfSizeY + 1.0f));
-
-		UINT NumPrimitivesInX = HalfTargetSizeX;
-
-		SetShaderValue(
-			ShaderRHI,
-			SceneCoordinate2ScaleBiasParameter,
-			FVector4(
-			1.0f / HalfSizeX,
-			1.0f / HalfSizeY,
-			0.5f / HalfSizeX,
-			0.5f / HalfSizeY));
-
-		SetShaderValue(
-			ShaderRHI,
-			ArraySettingsParameter,
-			FVector4(
-			NumPrimitivesInX,
-			0.0f,
-			0.0f,
-			0.0f));
-#endif
-	}
-
-	// FShader interface.
-	virtual UBOOL Serialize(FArchive& Ar)
-	{
-		UBOOL bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << ReflectionMaskTextureParameter << SceneCoordinate1ScaleBiasParameter << SceneCoordinate2ScaleBiasParameter << ArraySettingsParameter;
-		return bShaderHasOutdatedParameters;
-	}
-
-private: 
-
-	FShaderResourceParameter ReflectionMaskTextureParameter;
-	FShaderParameter SceneCoordinate1ScaleBiasParameter;
-	FShaderParameter SceneCoordinate2ScaleBiasParameter;
-	FShaderParameter ArraySettingsParameter;
-};
-
-IMPLEMENT_SHADER_TYPE(,FMaskBlurGeometryShader,TEXT("ImageReflectionShader"),TEXT("MaskBlurGeometryShader"),SF_Geometry,0,0);
-
-/** Pixel shader that blurs the reflection mask by scattering the pixel's mask to its neighbors. */
-class FMaskBlurPixelShader : public FGlobalShader
-{
-	DECLARE_SHADER_TYPE(FMaskBlurPixelShader,Global)
-public:
-
-	static UBOOL ShouldCache(EShaderPlatform Platform)
-	{
-		return Platform == SP_PCD3D_SM5;
-	}
-
-	FMaskBlurPixelShader(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
-		: FGlobalShader(Initializer)
-	{}
-
-	FMaskBlurPixelShader() {}
-
-	virtual UBOOL Serialize(FArchive& Ar)
-	{		
-		UBOOL bShaderHasOutdatedParameters = FShader::Serialize(Ar);
-		return bShaderHasOutdatedParameters;
-	}
-};
-
-IMPLEMENT_SHADER_TYPE(,FMaskBlurPixelShader,TEXT("ImageReflectionShader"),TEXT("MaskBlurPixelShader"),SF_Pixel,0,0);
-
-FGlobalBoundShaderState MaskBlurBoundShaderState;
-
 /** Shader parameters needed to render image based reflections. */
 class FImageReflectionShaderParameters
 {
 public:
 
 	const static UINT MaxNumImageReflections;
-	const static UINT MaxNumLightReflections;
 
 	/** Binds the parameters. */
 	void Bind(const FShaderParameterMap& ParameterMap);
@@ -894,7 +478,7 @@ public:
 	friend FArchive& operator<<(FArchive& Ar,FImageReflectionShaderParameters& P);
 
 	/** Sets the shader parameters needed for image based reflections. */
-	void Set(const FPixelShaderRHIRef& PixelShaderRHI, const FSceneView& View, FScene& Scene, const FReflectionPlanarShadowInfo* ShadowInfo) const;
+	void Set(const FPixelShaderRHIRef& PixelShaderRHI, const FSceneView& View, FScene& Scene) const;
 
 private:
 
@@ -904,14 +488,9 @@ private:
 	FShaderParameter ImageReflectionOriginParameter;
 	FShaderParameter ImageReflectionXAxisParameter;
 	FShaderParameter ImageReflectionColorParameter;
-	FShaderParameter LightReflectionOriginParameter;
-	FShaderParameter LightReflectionColorParameter;
+	FShaderParameter CameraWorldPositionParameter;
 	FShaderResourceParameter ImageReflectionTextureParameter;
 	FShaderResourceParameter ImageReflectionSamplerParameter;
-	FShaderResourceParameter StaticShadowingTextureParameter0;
-	FShaderResourceParameter StaticShadowingTextureParameter1;
-	FShaderResourceParameter ReflectionMaskTextureParameter;
-	FShaderParameter MirrorPlaneParameter;
 	FShaderParameter VolumeMinParameter;
 	FShaderParameter VolumeSizeParameter;
 	FShaderResourceParameter DistanceFieldTextureParameter;
@@ -919,9 +498,6 @@ private:
 	FShaderResourceParameter EnvironmentTextureParameter;
 	FShaderResourceParameter EnvironmentSamplerParameter;
 	FShaderParameter EnvironmentColorParameter;
-	FShaderParameter ViewProjectionMatrixParameter;
-	FShaderParameter TexelSizesParameter;
-	FShaderParameter PixelSizesParameter;
 };
 
 /** Vertex shader used to render deferred image reflections. */
@@ -939,7 +515,6 @@ public:
 	{
 		FShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
 		OutEnvironment.Definitions.Set(TEXT("NUM_IMAGE_REFLECTIONS"),*appItoa(FImageReflectionShaderParameters::MaxNumImageReflections));
-		OutEnvironment.Definitions.Set(TEXT("NUM_LIGHT_REFLECTIONS"),*appItoa(FImageReflectionShaderParameters::MaxNumLightReflections));
 	}
 
 	FImageReflectionVertexShader()	{}
@@ -947,81 +522,42 @@ public:
 		FGlobalShader(Initializer)
 	{
 		DeferredParameters.Bind(Initializer.ParameterMap);
+		ScreenToWorldParameter.Bind(Initializer.ParameterMap,TEXT("ScreenToWorld"),TRUE);
 	}
 
 	void SetParameters(const FViewInfo& View)
 	{
 		DeferredParameters.Set(View, this);
+
+		if (ScreenToWorldParameter.IsBound())
+		{
+			const FMatrix ScreenToWorld = FMatrix(
+				FPlane(1,0,0,0),
+				FPlane(0,1,0,0),
+				FPlane(0,0,(1.0f - Z_PRECISION),1),
+				FPlane(0,0,-View.NearClippingDistance * (1.0f - Z_PRECISION),0)
+				) *
+				View.InvViewProjectionMatrix;
+
+			SetVertexShaderValue(GetVertexShader(), ScreenToWorldParameter, ScreenToWorld);
+		}
 	}
 
 	virtual UBOOL Serialize(FArchive& Ar)
 	{
 		UBOOL bShaderHasOutdatedParameters = FShader::Serialize(Ar);
 		Ar << DeferredParameters;
+		Ar << ScreenToWorldParameter;
 		return bShaderHasOutdatedParameters;
 	}
 
 private:
 
 	FDeferredVertexShaderParameters DeferredParameters;
+	FShaderParameter ScreenToWorldParameter;
 };
 
 IMPLEMENT_SHADER_TYPE(,FImageReflectionVertexShader,TEXT("ImageReflectionShader"),TEXT("VertexMain"),SF_Vertex,0,0);
-
-/** 
- * A pixel shader used to render half resolution static reflection shadowing.
- * Two versions - one that is used with MSAA and one that is not.
- */
-template<UBOOL bSupportMSAA>
-class TReflectionStaticShadowingPixelShader : public FGlobalShader
-{
-	DECLARE_SHADER_TYPE(TReflectionStaticShadowingPixelShader,Global)
-public:
-
-	static UBOOL ShouldCache(EShaderPlatform Platform)
-	{
-		return Platform == SP_PCD3D_SM5;
-	}
-
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
-	{
-		FShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
-		OutEnvironment.Definitions.Set(TEXT("IMAGE_REFLECTION_MSAA"),bSupportMSAA ? TEXT("1") : TEXT("0"));
-	}
-
-	TReflectionStaticShadowingPixelShader(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
-	:	FGlobalShader(Initializer)
-	{
-		DeferredParameters.Bind(Initializer.ParameterMap);
-		ReflectionParameters.Bind(Initializer.ParameterMap);
-	}
-
-	TReflectionStaticShadowingPixelShader()
-	{
-	}
-
-	void SetParameters(const FSceneView& View, FScene& Scene, const FReflectionPlanarShadowInfo* ShadowInfo)
-	{
-		ReflectionParameters.Set(GetPixelShader(), View, Scene, ShadowInfo);
-		DeferredParameters.Set(View, this);
-	}
-
-	virtual UBOOL Serialize(FArchive& Ar)
-	{		
-		UBOOL bShaderHasOutdatedParameters = FShader::Serialize(Ar);
-		Ar << DeferredParameters;
-		Ar << ReflectionParameters;
-		return bShaderHasOutdatedParameters;
-	}
-
-private:
-
-	FDeferredPixelShaderParameters DeferredParameters;
-	FImageReflectionShaderParameters ReflectionParameters;
-};
-
-IMPLEMENT_SHADER_TYPE(template<>,TReflectionStaticShadowingPixelShader<TRUE>,TEXT("ImageReflectionShader"),TEXT("StaticShadowPixelMain"),SF_Pixel,0,0);
-IMPLEMENT_SHADER_TYPE(template<>,TReflectionStaticShadowingPixelShader<FALSE>,TEXT("ImageReflectionShader"),TEXT("StaticShadowPixelMain"),SF_Pixel,0,0);
 
 /** 
  * A pixel shader used to render deferred image reflections. 
@@ -1042,9 +578,7 @@ public:
 	{
 		FShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
 		OutEnvironment.Definitions.Set(TEXT("NUM_IMAGE_REFLECTIONS"),*appItoa(FImageReflectionShaderParameters::MaxNumImageReflections));
-		OutEnvironment.Definitions.Set(TEXT("NUM_LIGHT_REFLECTIONS"),*appItoa(FImageReflectionShaderParameters::MaxNumLightReflections));
 		OutEnvironment.Definitions.Set(TEXT("IMAGE_REFLECTION_MSAA"),bSupportMSAA ? TEXT("1") : TEXT("0"));
-		OutEnvironment.Definitions.Set(TEXT("DOWNSAMPLE_STATIC_SHADOWING"),GDownsampleStaticReflectionShadowing ? TEXT("1") : TEXT("0"));
 	}
 
 	TImageReflectionPixelShader(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
@@ -1052,16 +586,39 @@ public:
 	{
 		DeferredParameters.Bind(Initializer.ParameterMap);
 		ReflectionParameters.Bind(Initializer.ParameterMap);
+		if (bSupportMSAA)
+		{
+			WorldNormalGBufferTextureMSAA.Bind(Initializer.ParameterMap,TEXT("WorldNormalGBufferTexture"),TRUE);
+			SpecularGBufferTextureMSAA.Bind(Initializer.ParameterMap,TEXT("SpecularGBufferTexture"),TRUE);
+			SceneDepthTextureMS.Bind(Initializer.ParameterMap,TEXT("SceneDepthTextureMS"),TRUE);
+		}
 	}
 
 	TImageReflectionPixelShader()
 	{
 	}
 
-	void SetParameters(const FSceneView& View, FScene& Scene, const FReflectionPlanarShadowInfo* ShadowInfo)
+	void SetParameters(const FSceneView& View, FScene& Scene)
 	{
-		ReflectionParameters.Set(GetPixelShader(), View, Scene, ShadowInfo);
+		ReflectionParameters.Set(GetPixelShader(), View, Scene);
 		DeferredParameters.Set(View, this);
+		if (bSupportMSAA)
+		{
+			SetSurfaceParameter(
+				GetPixelShader(),
+				WorldNormalGBufferTextureMSAA,
+				GSceneRenderTargets.GetWorldNormalGBufferSurface());
+
+			SetSurfaceParameter(
+				GetPixelShader(),
+				SpecularGBufferTextureMSAA,
+				GSceneRenderTargets.GetSpecularGBufferSurface());
+
+			SetSurfaceParameter(
+				GetPixelShader(),
+				SceneDepthTextureMS,
+				GSceneRenderTargets.GetSceneDepthSurface());
+		}
 	}
 
 	virtual UBOOL Serialize(FArchive& Ar)
@@ -1069,6 +626,9 @@ public:
 		UBOOL bShaderHasOutdatedParameters = FShader::Serialize(Ar);
 		Ar << DeferredParameters;
 		Ar << ReflectionParameters;
+		Ar << WorldNormalGBufferTextureMSAA;
+		Ar << SpecularGBufferTextureMSAA;
+		Ar << SceneDepthTextureMS;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -1076,6 +636,9 @@ private:
 
 	FDeferredPixelShaderParameters DeferredParameters;
 	FImageReflectionShaderParameters ReflectionParameters;
+	FShaderResourceParameter WorldNormalGBufferTextureMSAA;
+	FShaderResourceParameter SpecularGBufferTextureMSAA;
+	FShaderResourceParameter SceneDepthTextureMS;
 };
 
 /** Implement a version that supports MSAA, and one that does not. */
@@ -1102,8 +665,6 @@ public:
 
 IMPLEMENT_SHADER_TYPE(,FImageReflectionPerSamplePixelShader,TEXT("ImageReflectionShader"),TEXT("SampleMain"),SF_Pixel,0,0);
 
-FGlobalBoundShaderState ImageReflectionStaticShadowingMSAABoundShaderState;
-FGlobalBoundShaderState ImageReflectionStaticShadowingNoMSAABoundShaderState;
 FGlobalBoundShaderState ImageReflectionBoundStateMSAAFirstPass;
 FGlobalBoundShaderState ImageReflectionBoundStateMSAASecondPass;
 FGlobalBoundShaderState ImageReflectionBoundStateNoMSAA;
@@ -1115,14 +676,9 @@ void FImageReflectionShaderParameters::Bind(const FShaderParameterMap& Parameter
 	ImageReflectionOriginParameter.Bind(ParameterMap,TEXT("ImageReflectionOrigin"),TRUE);
 	ImageReflectionXAxisParameter.Bind(ParameterMap,TEXT("ReflectionXAxis"),TRUE);
 	ImageReflectionColorParameter.Bind(ParameterMap,TEXT("ReflectionColor"),TRUE);
-	LightReflectionOriginParameter.Bind(ParameterMap,TEXT("LightReflectionOrigin"),TRUE);
-	LightReflectionColorParameter.Bind(ParameterMap,TEXT("LightReflectionColor"),TRUE);
+	CameraWorldPositionParameter.Bind(ParameterMap,TEXT("CameraWorldPos"),TRUE);
 	ImageReflectionTextureParameter.Bind(ParameterMap,TEXT("ImageReflectionTexture"),TRUE);
 	ImageReflectionSamplerParameter.Bind(ParameterMap,TEXT("ImageReflectionSampler"),TRUE);
-	StaticShadowingTextureParameter0.Bind(ParameterMap,TEXT("StaticShadowingTexture0"),TRUE);
-	StaticShadowingTextureParameter1.Bind(ParameterMap,TEXT("StaticShadowingTexture1"),TRUE);
-	ReflectionMaskTextureParameter.Bind(ParameterMap,TEXT("ReflectionMaskTexture"),TRUE);
-	MirrorPlaneParameter.Bind(ParameterMap,TEXT("MirrorPlane"),TRUE);
 
 	VolumeMinParameter.Bind(ParameterMap,TEXT("VolumeMinAndMaxDistance"),TRUE);
 	VolumeSizeParameter.Bind(ParameterMap,TEXT("VolumeSizeAndbCalculateShadowing"),TRUE);
@@ -1132,9 +688,6 @@ void FImageReflectionShaderParameters::Bind(const FShaderParameterMap& Parameter
 	EnvironmentTextureParameter.Bind(ParameterMap,TEXT("EnvironmentTexture"),TRUE);
 	EnvironmentSamplerParameter.Bind(ParameterMap,TEXT("EnvironmentSampler"),TRUE);
 	EnvironmentColorParameter.Bind(ParameterMap,TEXT("EnvironmentColor"),TRUE);
-	ViewProjectionMatrixParameter.Bind(ParameterMap,TEXT("ViewProjectionMatrix"),TRUE);
-	TexelSizesParameter.Bind(ParameterMap,TEXT("TexelSizes"),TRUE);
-	PixelSizesParameter.Bind(ParameterMap,TEXT("PixelSizes"),TRUE);
 }
 
 FArchive& operator<<(FArchive& Ar,FImageReflectionShaderParameters& Parameters)
@@ -1144,14 +697,9 @@ FArchive& operator<<(FArchive& Ar,FImageReflectionShaderParameters& Parameters)
 	Ar << Parameters.ImageReflectionOriginParameter;
 	Ar << Parameters.ImageReflectionXAxisParameter;
 	Ar << Parameters.ImageReflectionColorParameter;
-	Ar << Parameters.LightReflectionOriginParameter;
-	Ar << Parameters.LightReflectionColorParameter;
+	Ar << Parameters.CameraWorldPositionParameter;
 	Ar << Parameters.ImageReflectionTextureParameter;
 	Ar << Parameters.ImageReflectionSamplerParameter;
-	Ar << Parameters.StaticShadowingTextureParameter0;
-	Ar << Parameters.StaticShadowingTextureParameter1;
-	Ar << Parameters.ReflectionMaskTextureParameter;
-	Ar << Parameters.MirrorPlaneParameter;
 	Ar << Parameters.VolumeMinParameter;
 	Ar << Parameters.VolumeSizeParameter;
 	Ar << Parameters.DistanceFieldTextureParameter;
@@ -1159,9 +707,6 @@ FArchive& operator<<(FArchive& Ar,FImageReflectionShaderParameters& Parameters)
 	Ar << Parameters.EnvironmentTextureParameter;
 	Ar << Parameters.EnvironmentSamplerParameter;
 	Ar << Parameters.EnvironmentColorParameter;
-	Ar << Parameters.ViewProjectionMatrixParameter;
-	Ar << Parameters.TexelSizesParameter;
-	Ar << Parameters.PixelSizesParameter;
 	return Ar;
 }
 
@@ -1171,14 +716,8 @@ FArchive& operator<<(FArchive& Ar,FImageReflectionShaderParameters& Parameters)
  */
 const UINT FImageReflectionShaderParameters::MaxNumImageReflections = 85;
 
-/** 
- * Number of simultaneous light reflections supported. 
- * This is limited by constant buffer size since the image reflection instance data takes a lot of constants to upload.
- */
-const UINT FImageReflectionShaderParameters::MaxNumLightReflections = 85;
-
 /** Sets the shader parameters needed for image based reflections. */
-void FImageReflectionShaderParameters::Set(const FPixelShaderRHIRef& PixelShaderRHI, const FSceneView& View, FScene& Scene, const FReflectionPlanarShadowInfo* ShadowInfo) const
+void FImageReflectionShaderParameters::Set(const FPixelShaderRHIRef& PixelShaderRHI, const FSceneView& View, FScene& Scene) const
 {
 #if PLATFORM_SUPPORTS_D3D10_PLUS
 	if ((NumActiveReflectionsParameter.IsBound() || ImageReflectionTextureParameter.IsBound() || ImageReflectionPlaneParameter.IsBound())
@@ -1188,8 +727,6 @@ void FImageReflectionShaderParameters::Set(const FPixelShaderRHIRef& PixelShader
 		FVector4 ImageReflectionOrigins[MaxNumImageReflections];
 		FVector4 ImageReflectionXAxes[MaxNumImageReflections];
 		FVector4 ImageReflectionColors[MaxNumImageReflections];
-		FVector4 LightReflectionOrigins[MaxNumLightReflections];
-		FVector4 LightReflectionColors[MaxNumLightReflections];
 
 		if (ImageReflectionSamplerParameter.IsBound())
 		{
@@ -1201,67 +738,14 @@ void FImageReflectionShaderParameters::Set(const FPixelShaderRHIRef& PixelShader
 				TStaticSamplerState<SF_AnisotropicLinear,AM_Border,AM_Border,AM_Clamp,MIPBIAS_None,16,0>::GetRHI());
 		}
 
-		if (ShadowInfo)
-		{
-			SetTextureParameter(
-				PixelShaderRHI, 
-				ReflectionMaskTextureParameter, 
-				TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), 
-				GBlurDynamicReflectionShadowing ? GSceneRenderTargets.GetBokehDOFTexture() : GSceneRenderTargets.GetTranslucencyBufferTexture()
-				);
-
-			SetPixelShaderValue(
-				PixelShaderRHI, 
-				MirrorPlaneParameter, 
-				ShadowInfo->MirrorPlane);
-		}
-		else
-		{
-			SetTextureParameter(
-				PixelShaderRHI, 
-				ReflectionMaskTextureParameter, 
-				TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), 
-				GBlackTexture->TextureRHI
-				);
-
-			SetPixelShaderValue(
-				PixelShaderRHI, 
-				MirrorPlaneParameter, 
-				FPlane(0, 0, 1, WORLD_MAX));
-		}
-
-		SetTextureParameter(
-			PixelShaderRHI, 
-			StaticShadowingTextureParameter0, 
-			TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), 
-			GSceneRenderTargets.GetTranslucencyBufferTexture()
-			);
-
-		SetTextureParameter(
-			PixelShaderRHI, 
-			StaticShadowingTextureParameter1, 
-			TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), 
-			GSceneRenderTargets.GetHalfResPostProcessTexture()
-			);
-
 		TArray<FImageReflectionSceneInfo*> ImageReflections;
 		Scene.ImageReflections.GenerateValueArray(ImageReflections);
 
 		INT ValidImageReflectionIndex = 0;
-		INT ValidLightReflectionIndex = 0;
 		for (INT ReflectionIndex = 0; ReflectionIndex < ImageReflections.Num(); ReflectionIndex++)
 		{
 			const FImageReflectionSceneInfo* ImageReflection = ImageReflections(ReflectionIndex);
-			if (ImageReflection->bLightReflection)
-			{
-				if (ValidLightReflectionIndex < MaxNumLightReflections)
-				{
-					LightReflectionOrigins[ValidLightReflectionIndex] = FVector4(ImageReflection->ReflectionOrigin, 0);
-					LightReflectionColors[ValidLightReflectionIndex] = FVector4(ImageReflection->ReflectionColor);
-					ValidLightReflectionIndex++;
-				}
-			}
-			else
+			if (!ImageReflection->bLightReflection)
 			{
 				const INT TextureIndex = Scene.ImageReflectionTextureArray.GetTextureIndex(ImageReflection->ReflectionTexture);
 				// Only use reflections with a valid texture resource
@@ -1280,16 +764,14 @@ void FImageReflectionShaderParameters::Set(const FPixelShaderRHIRef& PixelShader
 		}
 
 		const FLOAT NumActiveImageReflectionsFloat = ValidImageReflectionIndex;
-		const FLOAT NumActiveLightReflectionsFloat = ValidLightReflectionIndex;
 		// Set the arrays of reflection quad data
-		// Anisotropy value in w
-		SetPixelShaderValue(PixelShaderRHI, NumActiveReflectionsParameter, FVector4(NumActiveImageReflectionsFloat, NumActiveLightReflectionsFloat, Scene.ImageReflectionTextureArray.GetSizeX(), 16.0f));
+		// Anisotropy value in z
+		SetPixelShaderValue(PixelShaderRHI, NumActiveReflectionsParameter, FVector(NumActiveImageReflectionsFloat, Scene.ImageReflectionTextureArray.GetSizeX(), 16.0f));
 		SetPixelShaderValues(PixelShaderRHI, ImageReflectionPlaneParameter, &ImageReflectionPlanes, ValidImageReflectionIndex);
 		SetPixelShaderValues(PixelShaderRHI, ImageReflectionOriginParameter, &ImageReflectionOrigins, ValidImageReflectionIndex);
 		SetPixelShaderValues(PixelShaderRHI, ImageReflectionXAxisParameter, &ImageReflectionXAxes, ValidImageReflectionIndex);
 		SetPixelShaderValues(PixelShaderRHI, ImageReflectionColorParameter, &ImageReflectionColors, ValidImageReflectionIndex);
-		SetPixelShaderValues(PixelShaderRHI, LightReflectionOriginParameter, &LightReflectionOrigins, ValidLightReflectionIndex);
-		SetPixelShaderValues(PixelShaderRHI, LightReflectionColorParameter, &LightReflectionColors, ValidLightReflectionIndex);
+		SetPixelShaderValue(PixelShaderRHI, CameraWorldPositionParameter, (FVector)View.ViewOrigin);
 
 		if (ImageReflectionTextureParameter.IsBound())
 		{
@@ -1363,19 +845,6 @@ void FImageReflectionShaderParameters::Set(const FPixelShaderRHIRef& PixelShader
 				TStaticSamplerState<SF_Trilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 		}
 
-		SetPixelShaderValue(PixelShaderRHI, ViewProjectionMatrixParameter, View.ViewProjectionMatrix);
-
-		SetPixelShaderValue(PixelShaderRHI, TexelSizesParameter, FVector4(
-			1.0f / GSceneRenderTargets.GetBufferSizeX(), 
-			1.0f / GSceneRenderTargets.GetBufferSizeY(),
-			1.0f / (GSceneRenderTargets.GetBufferSizeX() / 2),
-			1.0f / (GSceneRenderTargets.GetBufferSizeY() / 2)));
-
-		SetPixelShaderValue(PixelShaderRHI, PixelSizesParameter, FVector4(
-			2.0f / View.RenderTargetSizeX, 
-			2.0f / View.RenderTargetSizeY,
-			2.0f / (View.RenderTargetSizeX / 2),
-			2.0f / (View.RenderTargetSizeY / 2)));
 	}
 #endif
 }
@@ -1383,24 +852,6 @@ void FImageReflectionShaderParameters::Set(const FPixelShaderRHIRef& PixelShader
 /** Creates planar reflection shadows for this frame. */
 void FSceneRenderer::CreatePlanarReflectionShadows()
 {
-	if (GRHIShaderPlatform == SP_PCD3D_SM5 && GRenderDynamicReflectionShadowing)
-	{
-		//@todo - handle multiple views
-		const FViewInfo& View = Views(0);
-
-		for (TMap<const UActorComponent*, FPlane>::TConstIterator It(Scene->ImageReflectionShadowPlanes); It; ++It)
-		{
-			FReflectionPlanarShadowInfo NewShadowInfo;
-			NewShadowInfo.MirrorPlane = It.Value();
-
-			// FMirrorMatrix wants the flipped plane for some reason
-			const FMirrorMatrix MirrorMatrix(NewShadowInfo.MirrorPlane * -1);
-			const FMatrix MirrorViewProjectionMatrix = (MirrorMatrix * View.ViewProjectionMatrix);
-			GetViewFrustumBounds(NewShadowInfo.ViewFrustum, MirrorViewProjectionMatrix, FALSE);
-			PlanarReflectionShadows.AddItem(NewShadowInfo);
-			break;
-		}
-	}
 }
 
 /** Renders deferred image reflections. */
@@ -1419,152 +870,12 @@ UBOOL FSceneRenderer::RenderImageReflections(UINT DPGIndex)
 		{
 			const FImageReflectionSceneInfo* ImageReflection = ReflectionIt.Value();
 			bAnyReflectionsToRender = bAnyReflectionsToRender 
-				|| ImageReflection->bLightReflection
-				|| Scene->ImageReflectionTextureArray.GetTextureIndex(ImageReflection->ReflectionTexture) != INDEX_NONE;
+				|| (!ImageReflection->bLightReflection && Scene->ImageReflectionTextureArray.GetTextureIndex(ImageReflection->ReflectionTexture) != INDEX_NONE);
 		}
 
 		if (bAnyReflectionsToRender)
 		{
 			SCOPED_DRAW_EVENT(EventRenderDeferredReflections)(DEC_SCENE_ITEMS,TEXT("Deferred Reflections"));
-
-			const FReflectionPlanarShadowInfo* PlanarShadowInfo = NULL;
-			if (PlanarReflectionShadows.Num() > 0)
-			{
-				{
-					PlanarShadowInfo = &PlanarReflectionShadows(0);
-					// FMirrorMatrix wants the flipped plane for some reason
-					const FMirrorMatrix MirrorMatrix(PlanarShadowInfo->MirrorPlane * -1);
-
-					SCOPED_DRAW_EVENT(EventRenderReflectionMask)(DEC_SCENE_ITEMS,TEXT("Dynamic Planar Shadow masks"));
-
-					RHISetDepthState(TStaticDepthState<TRUE, CF_LessEqual>::GetRHI());
-					RHISetBlendState(TStaticBlendState<>::GetRHI());
-
-					RHISetRenderTarget(GSceneRenderTargets.GetTranslucencyBufferSurface(), GSceneRenderTargets.GetReflectionSmallDepthSurface());
-
-					RHIClear(TRUE, FLinearColor(0,0,0,0), TRUE, 1.0f, FALSE, 0);
-
-					for (INT ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
-					{
-						FViewInfo& View = Views(ViewIndex);
-
-						const FVector ReflectedCameraPosition = MirrorMatrix.TransformFVector(View.ViewOrigin);
-		
-						// Translate the mirror plane to be in the offsetted world space used in vertex shaders
-						const FPlane TranslatedMirrorPlane(PlanarShadowInfo->MirrorPlane, PlanarShadowInfo->MirrorPlane.W + ((FVector)PlanarShadowInfo->MirrorPlane | View.PreViewTranslation));
-		
-						// Set the device viewport for the view
-						RHISetViewport(View.RenderTargetX / 2, View.RenderTargetY / 2, 0.0f, View.RenderTargetX / 2 + View.RenderTargetSizeX / 2, View.RenderTargetY / 2 + View.RenderTargetSizeY / 2, 1.0f);
-
-						const FMirrorMatrix TranslatedMirrorMatrix(TranslatedMirrorPlane * -1);
-						// Apply the mirror matrix to world space positions
-						// This renders a planar reflection by mirroring the world around the reflection plane, instead of mirroring the camera
-						const FMatrix MirrorViewProjectionMatrix = TranslatedMirrorMatrix * View.TranslatedViewProjectionMatrix;
-						RHISetViewParametersWithOverrides(View, MirrorViewProjectionMatrix, View.DiffuseOverrideParameter, View.SpecularOverrideParameter);
-						
-						TDynamicPrimitiveDrawer<FReflectionMaskDrawingPolicyFactory> CurrentDPGDrawer(
-							&View, 
-							DPGIndex, 
-							FReflectionMaskDrawingPolicyFactory::ContextType(PlanarShadowInfo->MirrorPlane, ReflectedCameraPosition, TranslatedMirrorPlane), 
-							TRUE);
-
-						// Render visible dynamic meshes for this planar reflection shadow
-						for (INT PrimitiveIndex = 0; PrimitiveIndex < PlanarShadowInfo->VisibleDynamicPrimitives.Num(); PrimitiveIndex++)
-						{
-							const FPrimitiveSceneInfo* PrimitiveSceneInfo = PlanarShadowInfo->VisibleDynamicPrimitives(PrimitiveIndex);
-							FPrimitiveViewRelevance PrimitiveViewRelevance = View.PrimitiveViewRelevanceMap(PrimitiveSceneInfo->Id);
-
-							if (!PrimitiveViewRelevance.bInitializedThisFrame)
-							{
-								// Calculate the relevance if it was not cached from the main views
-								PrimitiveViewRelevance = PrimitiveSceneInfo->Proxy->GetViewRelevance(&View);
-							}
-		
-							// Only render if visible
-							if(PrimitiveViewRelevance.GetDPG(DPGIndex) 
-								// Used to determine whether object is movable or not
-								&& !PrimitiveSceneInfo->bStaticShadowing 
-								// Only render shadow casters
-								&& PrimitiveViewRelevance.bShadowRelevance
-								// Skip translucent objects
-								&& PrimitiveViewRelevance.bOpaqueRelevance)
-							{
-								CurrentDPGDrawer.SetPrimitive(PrimitiveSceneInfo);
-								PrimitiveSceneInfo->Proxy->DrawDynamicElements(
-									&CurrentDPGDrawer,
-									&View,
-									DPGIndex
-									);
-							}
-						}
-					}
-
-					RHICopyToResolveTarget(GSceneRenderTargets.GetTranslucencyBufferSurface(), FALSE, FResolveParams());
-				}
-
-				if (GBlurDynamicReflectionShadowing)
-				{
-					SCOPED_DRAW_EVENT(EventBlurReflectionMask)(DEC_SCENE_ITEMS,TEXT("Blur Dynamic masks"));
-
-					// No depth tests
-					RHISetDepthState(TStaticDepthState<FALSE, CF_Always>::GetRHI());
-
-					// Use additive blending, since we are going to accumulate quads
-					RHISetBlendState(TStaticBlendState<BO_Add, BF_One, BF_One, BO_Add, BF_One, BF_One>::GetRHI());
-
-					// No backface culling
-					RHISetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
-
-					RHISetRenderTarget(GSceneRenderTargets.GetBokehDOFSurface(), FSurfaceRHIRef());
-
-					RHIClear(TRUE, FLinearColor(0,0,0,0), FALSE, 0, FALSE, 0);
-
-					for (INT ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
-					{
-						FViewInfo& View = Views(ViewIndex);
-
-						// Set the device viewport for the view.
-						RHISetViewport(View.RenderTargetX / 2, View.RenderTargetY / 2, 0.0f, View.RenderTargetX / 2 + View.RenderTargetSizeX / 2, View.RenderTargetY / 2 + View.RenderTargetSizeY / 2, 1.0f);
-						RHISetViewParameters(View);
-
-						TShaderMapRef<FScreenVertexShader> VertexShader(GetGlobalShaderMap());
-						TShaderMapRef<FMaskBlurGeometryShader> GeometryShader(GetGlobalShaderMap());
-						TShaderMapRef<FMaskBlurPixelShader> PixelShader(GetGlobalShaderMap());
-
-						SetGlobalBoundShaderState(
-							MaskBlurBoundShaderState,
-							GFilterVertexDeclaration.VertexDeclarationRHI,
-							*VertexShader,
-							*PixelShader,
-							sizeof(FFilterVertex),
-							*GeometryShader
-							);
-
-						GeometryShader->SetParameters(View);
-		
-						// Using a stride of 0 so the one vertex gets repeated
-						UINT Stride = 0;
-						UINT NumVerticesPerInstance = 3;
-
-						// Reuse the bokeh DOF vertex buffer which just has one vertex
-						RHISetStreamSource(0, FBokehDOFRenderer::VertexBuffer.VertexBufferRHI, Stride, FALSE, NumVerticesPerInstance, 1);
-
-						const UINT HalfSizeX = View.RenderTargetSizeX / 2;
-						const UINT HalfSizeY = View.RenderTargetSizeY / 2;
-
-						UINT NumPrimitivesInX = HalfSizeX;
-						UINT NumPrimitivesInY = HalfSizeY;
-
-						UINT BatchVertexIndex = 0;
-
-						// Render one primitive per half res pixel, the geometry shader will create a quad out of it and size it based on the blur kernel radius
-						UINT NumPrimitivesInBatch = NumPrimitivesInX * NumPrimitivesInY;
-						RHIDrawPrimitive(PT_TriangleList, BatchVertexIndex, NumPrimitivesInBatch);
-
-						RHICopyToResolveTarget(GSceneRenderTargets.GetBokehDOFSurface(), FALSE, FResolveParams());
-					}
-				}
-			}
 
 			{
 				// No depth tests
@@ -1572,71 +883,6 @@ UBOOL FSceneRenderer::RenderImageReflections(UINT DPGIndex)
 
 				// No backface culling
 				RHISetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
-
-				if (GDownsampleStaticReflectionShadowing)
-				{
-					SCOPED_DRAW_EVENT(EventRenderIRShadowing)(DEC_SCENE_ITEMS,TEXT("Static shadowing"));
-
-					RHISetBlendState(TStaticBlendState<>::GetRHI());
-
-					RHISetRenderTarget(GSceneRenderTargets.GetTranslucencyBufferSurface(), FSurfaceRHIRef());
-					RHISetMRTRenderTarget(GSceneRenderTargets.GetHalfResPostProcessSurface(), 1);
-					RHISetMRTColorWriteEnable(TRUE, 1);
-
-					for (INT ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
-					{
-						FViewInfo& View = Views(ViewIndex);
-
-						// Set the device viewport for the view.
-						RHISetViewport(View.RenderTargetX / 2, View.RenderTargetY / 2, 0.0f, View.RenderTargetX / 2 + View.RenderTargetSizeX / 2, View.RenderTargetY / 2 + View.RenderTargetSizeY / 2, 1.0f);
-						RHISetViewParameters(View);
-
-						TShaderMapRef<FImageReflectionVertexShader> VertexShader(GetGlobalShaderMap());
-						VertexShader->SetParameters(View);
-
-						if (GSystemSettings.UsesMSAA())
-						{
-							TShaderMapRef<TReflectionStaticShadowingPixelShader<TRUE> > PixelShader(GetGlobalShaderMap());
-							SetGlobalBoundShaderState(
-								ImageReflectionStaticShadowingMSAABoundShaderState,
-								GFilterVertexDeclaration.VertexDeclarationRHI,
-								*VertexShader,
-								*PixelShader,
-								sizeof(FFilterVertex)
-								);
-
-							PixelShader->SetParameters(View, *Scene, PlanarShadowInfo);
-						}
-						else
-						{
-							TShaderMapRef<TReflectionStaticShadowingPixelShader<FALSE> > PixelShader(GetGlobalShaderMap());
-							SetGlobalBoundShaderState(
-								ImageReflectionStaticShadowingNoMSAABoundShaderState,
-								GFilterVertexDeclaration.VertexDeclarationRHI,
-								*VertexShader,
-								*PixelShader,
-								sizeof(FFilterVertex)
-								);
-
-							PixelShader->SetParameters(View, *Scene, PlanarShadowInfo);
-						}
-					
-						// Render static reflection shadowing at half resolution
-						DrawDenormalizedQuad( 
-							View.RenderTargetX / 2, View.RenderTargetY / 2, 
-							View.RenderTargetSizeX / 2, View.RenderTargetSizeY / 2,
-							View.RenderTargetX, View.RenderTargetY, 
-							View.RenderTargetSizeX, View.RenderTargetSizeY,
-							View.RenderTargetSizeX / 2, View.RenderTargetSizeY / 2,
-							GSceneRenderTargets.GetBufferSizeX(), GSceneRenderTargets.GetBufferSizeY());
-					}
-
-					RHICopyToResolveTarget(GSceneRenderTargets.GetTranslucencyBufferSurface(), FALSE, FResolveParams());
-					RHICopyToResolveTarget(GSceneRenderTargets.GetHalfResPostProcessSurface(), FALSE, FResolveParams());
-
-					RHISetMRTRenderTarget(FSurfaceRHIRef(), 1);
-					RHISetMRTColorWriteEnable(FALSE, 1);
-				}
 
 				// Bind scene color
 				GSceneRenderTargets.BeginRenderingSceneColor();
@@ -1681,7 +927,7 @@ UBOOL FSceneRenderer::RenderImageReflections(UINT DPGIndex)
 							sizeof(FFilterVertex)
 							);
 
-						PixelShader->SetParameters(View, *Scene, PlanarShadowInfo);
+						PixelShader->SetParameters(View, *Scene);
 
 						DrawDenormalizedQuad( 
 							View.RenderTargetX, View.RenderTargetY, 
@@ -1708,7 +954,7 @@ UBOOL FSceneRenderer::RenderImageReflections(UINT DPGIndex)
 							sizeof(FFilterVertex)
 							);
 
-						SamplePixelShader->SetParameters(View, *Scene, PlanarShadowInfo);
+						SamplePixelShader->SetParameters(View, *Scene);
 					}
 					else
 					{
@@ -1721,7 +967,7 @@ UBOOL FSceneRenderer::RenderImageReflections(UINT DPGIndex)
 							sizeof(FFilterVertex)
 							);
 
-						PixelShader->SetParameters(View, *Scene, PlanarShadowInfo);
+						PixelShader->SetParameters(View, *Scene);
 					}
 
 					SCOPED_DRAW_EVENT(EventRenderPerSample)(DEC_SCENE_ITEMS,(GSystemSettings.UsesMSAA() ? TEXT("PerSample IR") : TEXT("Image Reflections")));

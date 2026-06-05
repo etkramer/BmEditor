@@ -15,7 +15,7 @@
 #endif
 
 /** Whether to use deferred shading, where the base pass outputs G buffer attributes, and lighting passes fetch these attributes and do shading based on them. */
-UBOOL GAllowDeferredShading = TRUE;
+UBOOL GAllowDeferredShading = FALSE;
 
 /** Returns TRUE if the given material and primitive can be lit in a deferred pass. */
 UBOOL MeshSupportsDeferredLighting(const FMaterial* Material, const FPrimitiveSceneInfo* PrimitiveSceneInfo)
@@ -146,6 +146,8 @@ void FAPlus3DLightLightMapPolicy::SetMesh(
 {
 	// Mirrors retail BM2 (sub_6E57F0) when AP3D scene info is present. The NULL path
 	// is only for editor preview draws that have BM2 AP3D cooked shaders but no game light environment.
+	// Retail never supplied a fullbright fallback; keeping missing AP3D dark makes the error visible
+	// without washing characters out.
 	if (VertexShaderParameters)
 	{
 		FVector4 Dirs[3];
@@ -172,7 +174,7 @@ void FAPlus3DLightLightMapPolicy::SetMesh(
 		}
 		ColorsAndAmbient[3] = AmbientPlus3DirectionalLight
 			? FVector4(AmbientPlus3DirectionalLight->Ambient, 0.0f)
-			: FVector4(1.0f, 1.0f, 1.0f, 0.0f);
+			: FVector4(0.0f, 0.0f, 0.0f, 0.0f);
 		SetPixelShaderValues<FVector4>(
 			PixelShader->GetPixelShader(),
 			PixelShaderParameters->APlus3DLightPixelInfoParameter,

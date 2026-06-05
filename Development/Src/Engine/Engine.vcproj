@@ -9503,10 +9503,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\Engine\Shaders\ImageReflectionMeshShader.usf"
-				>
-			</File>
-			<File
 				RelativePath="..\..\..\Engine\Shaders\LightMapDensityShader.usf"
 				>
 			</File>

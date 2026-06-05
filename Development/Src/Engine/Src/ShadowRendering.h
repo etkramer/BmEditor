@@ -902,7 +902,6 @@ public:
 #if BATMAN
 		Ar << P.SceneTextureParameters;
 		Ar << P.ScreenToShadowMatrixParameter;
-		Ar << P.ShadowBufferSizeAndSoftTransitionScaleParameter;
 		Ar << P.ShadowDepthTextureParameter;
 #else
 		Ar << P.DeferredParameters;
@@ -913,6 +912,13 @@ public:
 #endif
 		return Ar;
 	}
+
+#if BATMAN
+	void SerializeShadowBufferParameters(FArchive& Ar)
+	{
+		Ar << ShadowBufferSizeAndSoftTransitionScaleParameter;
+	}
+#endif
 
 private:
 
@@ -1066,6 +1072,9 @@ public:
 		UBOOL bShaderHasOutdatedParameters = FShader::Serialize(Ar);
 		Ar << ProjectionParameters;
 		Ar << SampleOffsetsParameter;
+#if BATMAN
+		ProjectionParameters.SerializeShadowBufferParameters(Ar);
+#endif
 		Ar << ShadowFadeFractionParameter;
 #if !BATMAN
 		Ar << LightingChannelMaskParameter;

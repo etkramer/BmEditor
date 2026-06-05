@@ -1270,18 +1270,9 @@ void AmbientOcclusionApply(const FScene* Scene, const FViewInfo& View, const FDo
 
 	FLinearColor OcclusionColor = AOSettings.OcclusionColor;
 
-	if (ShouldUseDeferredShading())
-	{
-		// Modulate against the diffuse G buffer, so that only direct lighting will be affected
-		// This is not ideal because it affects direct lighting but at least emissive and specular are excluded
-		RHISetRenderTarget(GSceneRenderTargets.GetDiffuseGBufferSurface(), GSceneRenderTargets.GetSceneDepthSurface());
-	}
-	else
-	{
-		// Render to the scene color buffer, everything that's been rendered so far will be affected 
-		// (emissive, direct lighting diffuse + specular, indirect lighting from lightmaps and ambient lights)
-		GSceneRenderTargets.BeginRenderingSceneColor();
-	}
+	// Render to the scene color buffer, everything that's been rendered so far will be affected
+	// (emissive, direct lighting diffuse + specular, indirect lighting from lightmaps and ambient lights)
+	GSceneRenderTargets.BeginRenderingSceneColor();
 
 	UBOOL bSSAO = (View.Family->ShowFlags & SHOW_SSAO) != 0;
 	UBOOL bVisualizeSSAO = (View.Family->ShowFlags & SHOW_VisualizeSSAO) != 0;
@@ -1364,14 +1355,7 @@ void AmbientOcclusionApply(const FScene* Scene, const FViewInfo& View, const FDo
 
 	RHISetColorWriteMask(CW_RGBA);
 
-	if (ShouldUseDeferredShading())
-	{
-		RHICopyToResolveTarget(GSceneRenderTargets.GetDiffuseGBufferSurface(), TRUE, FResolveParams());
-	}
-	else
-	{
-		GSceneRenderTargets.FinishRenderingSceneColor(!(bSSAO && !bVisualizeSSAO));
-	}
+	GSceneRenderTargets.FinishRenderingSceneColor(!(bSSAO && !bVisualizeSSAO));
 }
 
 FAmbientOcclusionSettings::FAmbientOcclusionSettings(const UAmbientOcclusionEffect* InEffect) :

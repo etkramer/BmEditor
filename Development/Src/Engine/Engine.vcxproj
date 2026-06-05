@@ -1181,7 +1181,6 @@
     <None Include="..\..\..\Engine\Shaders\HitMaskVertexShader.usf" />
     <None Include="..\..\..\Engine\Shaders\HitProxyPixelShader.usf" />
     <None Include="..\..\..\Engine\Shaders\HitProxyVertexShader.usf" />
-    <None Include="..\..\..\Engine\Shaders\ImageReflectionMeshShader.usf" />
     <None Include="..\..\..\Engine\Shaders\ImageReflectionShader.usf" />
     <None Include="..\..\..\Engine\Shaders\LandscapeVertexFactory.usf" />
     <None Include="..\..\..\Engine\Shaders\LDRExtractPixelShader.usf" />

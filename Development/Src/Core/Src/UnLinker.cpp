@@ -3751,20 +3751,25 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 
         // BM: Skip currently unsupported types.
         if (IsBmCooked() && (
+			// Skip functions, as some may override nonexistent bases for now
+			LoadClass->GetName() == "Function" ||
+
 			LoadClass->GetName() == "Pylon" ||
 			LoadClass->GetName() == "SceneCapture2DActor" ||
-			// LoadClass->GetName() == "SceneCaptureReflectActor" ||
 			LoadClass->GetName() == "FractureMaterial" ||
 			LoadClass->GetName() == "ApexClothingAsset" ||
+			LoadClass->GetName() == "ParticleSystemComponent" ||
+
+			// "TypeIndex out of range" messages with most SequenceObjects
+			LoadClass->GetName() == "Sequence" ||
 
 			LoadClass->GetName() == "InterpData" ||
-			LoadClass->GetName() == "PhysicalMaterial" ||
-
 			LoadClass->GetName() == "SeqAct_Interp" ||
-			LoadClass->GetName() == "NavigationMeshBase" ||
 
+			LoadClass->GetName() == "PhysicalMaterial" ||
+			LoadClass->GetName() == "NavigationMeshBase" ||
             LoadClass->GetName() == "FaceFxAnimSet"
-            ))
+        ))
         {
             return NULL;
         }

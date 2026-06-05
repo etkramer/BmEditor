@@ -1935,16 +1935,16 @@ UBOOL FSceneRenderer::RenderDPGBegin(UINT DPGIndex, UBOOL& bRequiresClear, UBOOL
 			}
 		}
 
-		if (ShouldUseDeferredShading())
+		if (GSystemSettings.RenderThreadSettings.bAllowSubsurfaceScattering && GRHIShaderPlatform == SP_PCD3D_SM5)
 		{
 			if ((ViewFamily.ShowFlags & SHOW_Lighting))
 			{
 				// Render post process effects that affect lighting only
-				// When using deferred shading, SSAO will modify the diffuse G buffer, so we have to do this before the G buffer resolve
+				// Image reflections sample the resolved world-normal and specular buffers.
 				bSceneColorDirty |= RenderPostProcessEffects(DPGIndex, TRUE);
 			}
 
-			// Resolve the GBuffers used for deferred shading
+			// Resolve the image-reflection buffers.
 			GSceneRenderTargets.ResolveGBufferSurfaces(FResolveRect(0, 0, FamilySizeX, FamilySizeY));
 		}
 	}
@@ -2055,7 +2055,7 @@ void FSceneRenderer::RenderDPGEnd(UINT DPGIndex, UBOOL bDeferPrePostProcessResol
 			// Render subsurface scattering.
 			bSceneColorDirty |= RenderSubsurfaceScattering(DPGIndex);
 
-			if (!ShouldUseDeferredShading())
+			if (!(GSystemSettings.RenderThreadSettings.bAllowSubsurfaceScattering && GRHIShaderPlatform == SP_PCD3D_SM5))
 			{
 				// Render post process effects that affect lighting only
 				bSceneColorDirty |= RenderPostProcessEffects(DPGIndex, TRUE);

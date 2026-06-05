@@ -558,29 +558,23 @@ void FSceneRenderTargets::FinishRenderingLUTBlend()
 void FSceneRenderTargets::ClearGBufferTargets()
 {
 	#if !CONSOLE
-		if (GRHIShaderPlatform == SP_PCD3D_SM5)
+		if (GSystemSettings.RenderThreadSettings.bAllowSubsurfaceScattering)
 		{
 			SCOPED_DRAW_EVENT(Event)(DEC_SCENE_ITEMS,TEXT("ClearGBufferTargets"));
 
 			//@todo - faster to clear at the same time with MRT?
-			RHISetRenderTarget(GSceneRenderTargets.GetWorldNormalGBufferSurface(),FSurfaceRHIRef());
-			RHIClear(TRUE,FLinearColor(0,0,1,0),FALSE,0,FALSE,0);
-
-			RHISetRenderTarget(GSceneRenderTargets.GetWorldReflectionNormalGBufferSurface(),FSurfaceRHIRef());
-			RHIClear(TRUE,FLinearColor(0,0,1,0),FALSE,0,FALSE,0);
-
-			RHISetRenderTarget(GSceneRenderTargets.GetSpecularGBufferSurface(),FSurfaceRHIRef());
+			RHISetRenderTarget(GSceneRenderTargets.GetSubsurfaceInscatteringSurface(),FSurfaceRHIRef());
 			RHIClear(TRUE,FLinearColor(0,0,0,0),FALSE,0,FALSE,0);
 
-			RHISetRenderTarget(GSceneRenderTargets.GetDiffuseGBufferSurface(),FSurfaceRHIRef());
+			RHISetRenderTarget(GSceneRenderTargets.GetSubsurfaceScatteringAttenuationSurface(),FSurfaceRHIRef());
 			RHIClear(TRUE,FLinearColor(0,0,0,0),FALSE,0,FALSE,0);
 
-			if (GSystemSettings.RenderThreadSettings.bAllowSubsurfaceScattering)
+			if (GRHIShaderPlatform == SP_PCD3D_SM5)
 			{
-				RHISetRenderTarget(GSceneRenderTargets.GetSubsurfaceInscatteringSurface(),FSurfaceRHIRef());
-				RHIClear(TRUE,FLinearColor(0,0,0,0),FALSE,0,FALSE,0);
+				RHISetRenderTarget(GSceneRenderTargets.GetWorldNormalGBufferSurface(),FSurfaceRHIRef());
+				RHIClear(TRUE,FLinearColor(0,0,1,0),FALSE,0,FALSE,0);
 
-				RHISetRenderTarget(GSceneRenderTargets.GetSubsurfaceScatteringAttenuationSurface(),FSurfaceRHIRef());
+				RHISetRenderTarget(GSceneRenderTargets.GetSpecularGBufferSurface(),FSurfaceRHIRef());
 				RHIClear(TRUE,FLinearColor(0,0,0,0),FALSE,0,FALSE,0);
 			}
 
@@ -619,31 +613,25 @@ void FSceneRenderTargets::BeginRenderingSceneColor( DWORD RenderTargetUsage /*= 
 	RHISetRenderTarget( GetSceneColorSurface(), GetSceneDepthSurface());
 
 	#if !CONSOLE
-		if (GRHIShaderPlatform == SP_PCD3D_SM5)
+		if (GSystemSettings.RenderThreadSettings.bAllowSubsurfaceScattering)
 		{
 			checkSlow(!(bGBufferPass && bLightingPass));
 			if (bGBufferPass)
 			{
-				if (GSystemSettings.RenderThreadSettings.bAllowSubsurfaceScattering)
+				RHISetMRTRenderTarget(GetSubsurfaceInscatteringSurface(), 1);
+				RHISetMRTColorWriteEnable(TRUE, 1);
+
+				RHISetMRTRenderTarget(GetSubsurfaceScatteringAttenuationSurface(), 2);
+				RHISetMRTColorWriteEnable(TRUE, 2);
+
+				if (GRHIShaderPlatform == SP_PCD3D_SM5)
 				{
-					RHISetMRTRenderTarget(GetSubsurfaceInscatteringSurface(), 1);
-					RHISetMRTColorWriteEnable(TRUE, 1);
+					RHISetMRTRenderTarget(GSceneRenderTargets.GetWorldNormalGBufferSurface(), 3);
+					RHISetMRTColorWriteEnable(TRUE, 3);
 
-					RHISetMRTRenderTarget(GetSubsurfaceScatteringAttenuationSurface(), 2);
-					RHISetMRTColorWriteEnable(TRUE, 2);
+					RHISetMRTRenderTarget(GSceneRenderTargets.GetSpecularGBufferSurface(), 4);
+					RHISetMRTColorWriteEnable(TRUE, 4);
 				}
-
-				RHISetMRTRenderTarget(GSceneRenderTargets.GetWorldNormalGBufferSurface(), 3);
-				RHISetMRTColorWriteEnable(TRUE, 3);
-
-				RHISetMRTRenderTarget(GSceneRenderTargets.GetWorldReflectionNormalGBufferSurface(), 4);
-				RHISetMRTColorWriteEnable(TRUE, 4);
-
-				RHISetMRTRenderTarget(GSceneRenderTargets.GetSpecularGBufferSurface(), 5);
-				RHISetMRTColorWriteEnable(TRUE, 5);
-
-				RHISetMRTRenderTarget(GSceneRenderTargets.GetDiffuseGBufferSurface(), 6);
-				RHISetMRTColorWriteEnable(TRUE, 6);
 			}
 			else if (bLightingPass)
 			{
@@ -668,28 +656,22 @@ void FSceneRenderTargets::FinishRenderingSceneColor(UBOOL bKeepChanges, const FR
 	}
 
 	#if !CONSOLE
-		if (GRHIShaderPlatform == SP_PCD3D_SM5)
+		if (GSystemSettings.RenderThreadSettings.bAllowSubsurfaceScattering)
 		{
-			if (GSystemSettings.RenderThreadSettings.bAllowSubsurfaceScattering)
+			RHISetMRTRenderTarget(FSurfaceRHIRef(), 1);
+			RHISetMRTColorWriteEnable(FALSE, 1);
+
+			RHISetMRTRenderTarget(FSurfaceRHIRef(), 2);
+			RHISetMRTColorWriteEnable(FALSE, 2);
+
+			if (GRHIShaderPlatform == SP_PCD3D_SM5)
 			{
-				RHISetMRTRenderTarget(FSurfaceRHIRef(), 1);
-				RHISetMRTColorWriteEnable(FALSE, 1);
+				RHISetMRTRenderTarget(FSurfaceRHIRef(), 3);
+				RHISetMRTColorWriteEnable(FALSE, 3);
 
-				RHISetMRTRenderTarget(FSurfaceRHIRef(), 2);
-				RHISetMRTColorWriteEnable(FALSE, 2);
+				RHISetMRTRenderTarget(FSurfaceRHIRef(), 4);
+				RHISetMRTColorWriteEnable(FALSE, 4);
 			}
-
-			RHISetMRTRenderTarget(FSurfaceRHIRef(), 3);
-			RHISetMRTColorWriteEnable(FALSE, 3);
-
-			RHISetMRTRenderTarget(FSurfaceRHIRef(), 4);
-			RHISetMRTColorWriteEnable(FALSE, 4);
-
-			RHISetMRTRenderTarget(FSurfaceRHIRef(), 5);
-			RHISetMRTColorWriteEnable(FALSE, 5);
-
-			RHISetMRTRenderTarget(FSurfaceRHIRef(), 6);
-			RHISetMRTColorWriteEnable(FALSE, 6);
 		}
 	#endif
 }
@@ -756,13 +738,14 @@ void FSceneRenderTargets::ResolveSubsurfaceScatteringSurfaces(const FResolveRect
 void FSceneRenderTargets::ResolveGBufferSurfaces(const FResolveRect& ResolveRect)
 {
 #if !CONSOLE
-	if (GRHIShaderPlatform == SP_PCD3D_SM5)
+	if (GSystemSettings.RenderThreadSettings.bAllowSubsurfaceScattering)
 	{
-		SCOPED_DRAW_EVENT(Event)(DEC_SCENE_ITEMS,TEXT("ResolveGBufferSurfaces"));
-		RHICopyToResolveTarget(GetWorldNormalGBufferSurface(), TRUE, FResolveParams(ResolveRect));
-		RHICopyToResolveTarget(GetWorldReflectionNormalGBufferSurface(), TRUE, FResolveParams(ResolveRect));
-		RHICopyToResolveTarget(GetSpecularGBufferSurface(), TRUE, FResolveParams(ResolveRect));
-		RHICopyToResolveTarget(GetDiffuseGBufferSurface(), TRUE, FResolveParams(ResolveRect));
+		SCOPED_DRAW_EVENT(Event)(DEC_SCENE_ITEMS,TEXT("ResolveImageReflection"));
+		if (GRHIShaderPlatform == SP_PCD3D_SM5)
+		{
+			RHICopyToResolveTarget(GetWorldNormalGBufferSurface(), TRUE, FResolveParams(ResolveRect));
+			RHICopyToResolveTarget(GetSpecularGBufferSurface(), TRUE, FResolveParams(ResolveRect));
+		}
 	}
 #endif
 }
@@ -2027,15 +2010,6 @@ void FSceneRenderTargets::InitDynamicRHI()
 					TEXT("WorldNormalGBuffer")
 					);
 
-				// Create the world-space reflection normal g-buffer.
-				RenderTargets[WorldReflectionNormalGBuffer].Texture = RHICreateTexture2D(BufferSizeX,BufferSizeY,PF_A2B10G10R10,1,TexCreate_ResolveTargetable,NULL);
-				RenderTargets[WorldReflectionNormalGBuffer].Surface = RHICreateTargetableSurface(
-					BufferSizeX,BufferSizeY,PF_A2B10G10R10,
-					RenderTargets[WorldReflectionNormalGBuffer].Texture,
-					MultiSampleFlag,
-					TEXT("WorldReflectionNormalGBuffer")
-					);
-
 				// Create the specular color and power g-buffer.
 				const EPixelFormat SpecularGBufferFormat = GSystemSettings.bHighPrecisionGBuffers ? PF_FloatRGBA : PF_A8R8G8B8;
 				RenderTargets[SpecularGBuffer].Texture = RHICreateTexture2D(BufferSizeX,BufferSizeY,SpecularGBufferFormat,1,TexCreate_ResolveTargetable,NULL);
@@ -2044,16 +2018,6 @@ void FSceneRenderTargets::InitDynamicRHI()
 					RenderTargets[SpecularGBuffer].Texture,
 					MultiSampleFlag,
 					TEXT("SpecularGBuffer")
-					);
-
-				// Create the diffuse color g-buffer.
-				const EPixelFormat DiffuseGBufferFormat  = GSystemSettings.bHighPrecisionGBuffers ? PF_FloatRGBA : PF_A8R8G8B8;
-				RenderTargets[DiffuseGBuffer].Texture = RHICreateTexture2D(BufferSizeX,BufferSizeY,DiffuseGBufferFormat,1,TexCreate_ResolveTargetable,NULL);
-				RenderTargets[DiffuseGBuffer].Surface = RHICreateTargetableSurface(
-					BufferSizeX,BufferSizeY,DiffuseGBufferFormat,
-					RenderTargets[DiffuseGBuffer].Texture,
-					MultiSampleFlag,
-					TEXT("DiffuseGBuffer")
 					);
 
 				// Allocate a half res depth buffer to be used by image reflections

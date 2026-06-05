@@ -7615,9 +7615,6 @@
     <None Include="..\..\..\Engine\Shaders\HitProxyVertexShader.usf">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="..\..\..\Engine\Shaders\ImageReflectionMeshShader.usf">
-      <Filter>Shaders</Filter>
-    </None>
     <None Include="..\..\..\Engine\Shaders\LightMapDensityShader.usf">
       <Filter>Shaders</Filter>
     </None>

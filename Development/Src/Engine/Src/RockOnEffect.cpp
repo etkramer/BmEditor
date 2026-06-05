@@ -7,10 +7,9 @@
 	shader does not include RockAtmosCommon.usf - so no Atmos parameters appear
 	here. Ported from BM2 ("Rock") to match the original game.
 
-	NOTE on approximations: the RockOn bloom gaussian loop is produced here using
-	the inherited FDOFAndBloomPostProcessSceneProxy helpers. The DOF producer path
-	uses the original RockOn half-downsample and DOF anti-dither shaders so the
-	final blend shader consumes the same BlurredImage format as BM2/Gangland.
+	The half-res producer path uses the original RockOn half-downsample, bloom
+	filter, and DOF anti-dither shaders so the final blend shader consumes the same
+	BlurredImage/LightShaftBuffer format as BM2/Gangland.
 =============================================================================*/
 
 #include "EnginePrivate.h"
@@ -242,19 +241,19 @@ public:
 		BufferTexelSizeXYParameter.Bind(Initializer.ParameterMap,TEXT("BufferTexelSizeXY"),TRUE);
 	}
 
-	void SetParameters(const FViewInfo& View)
+	void SetParameters(const FViewInfo& View, const FDepthOfFieldParams& DepthOfFieldParams)
 	{
 		SceneTextureParameters.Set(&View, this, SF_Point);
-		DOFParameters.SetPS(this, View.DepthOfFieldParams);
+		DOFParameters.SetPS(this, DepthOfFieldParams);
 
 		const FLOAT InvX = 1.0f / GSceneRenderTargets.GetBufferSizeX();
 		const FLOAT InvY = 1.0f / GSceneRenderTargets.GetBufferSizeY();
 		SetPixelShaderValue(GetPixelShader(), BufferTexelSizeXYParameter, FVector4(InvX, InvY, InvX, InvY));
 	}
 
-	void SetParameters(const FViewInfo& View, const FTexture2DRHIRef& SourceTexture)
+	void SetParameters(const FViewInfo& View, const FDepthOfFieldParams& DepthOfFieldParams, const FTexture2DRHIRef& SourceTexture)
 	{
-		SetParameters(View);
+		SetParameters(View, DepthOfFieldParams);
 		SetTextureParameterDirectly(
 			GetPixelShader(),
 			SceneColorTextureParameter,
@@ -342,6 +341,11 @@ class FRockOnFilterVertexShader : public FGlobalShader
 	}
 
 public:
+	void SetParameters(const FVector2D& SampleKernel)
+	{
+		SetVertexShaderValue(GetVertexShader(), SampleKernelParameter, SampleKernel);
+	}
+
 	FShaderParameter SampleKernelParameter;
 };
 IMPLEMENT_SHADER_TYPE(,FRockOnFilterVertexShader,TEXT("RockOnFilterVertexShader"),TEXT("MainBloom"),SF_Vertex,0,0);
@@ -380,6 +384,36 @@ class FRockOnFilterPixelShader : public FGlobalShader
 	}
 
 public:
+	void SetParameters(
+		FTextureRHIParamRef FilterTexture,
+		FTextureRHIParamRef LightShaftsTexture,
+		const FVector2D& SampleMaskMin,
+		const FVector2D& SampleMaskMax,
+		const FVector4& BloomTintAndScreenBlendThreshold)
+	{
+		SetTextureParameterDirectly(
+			GetPixelShader(),
+			FilterTextureParameter,
+			TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
+			FilterTexture);
+
+		SetTextureParameterDirectly(
+			GetPixelShader(),
+			LightShaftsTextureParameter,
+			TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
+			LightShaftsTexture);
+
+		SetPixelShaderValue(
+			GetPixelShader(),
+			SampleMaskRectParameter,
+			FVector4(SampleMaskMin.X, SampleMaskMin.Y, SampleMaskMax.X, SampleMaskMax.Y));
+
+		SetPixelShaderValue(
+			GetPixelShader(),
+			BloomTintAndScreenBlendThresholdParameter,
+			BloomTintAndScreenBlendThreshold);
+	}
+
 	FShaderResourceParameter	FilterTextureParameter;
 	FShaderResourceParameter	LightShaftsTextureParameter;
 	FShaderParameter			SampleMaskRectParameter;
@@ -714,7 +748,7 @@ public:
 	}
 
 	// generate the half-res post process buffer (BlurredImage): rgb=color/4, a=DOF mask.
-	void RenderRockOnBloomGatherPass(FViewInfo& View, FSceneRenderTargetIndex FilterColorIndex)
+	void RenderRockOnBloomGatherPass(FViewInfo& View, const FDepthOfFieldParams& DepthOfFieldParams, FSceneRenderTargetIndex FilterColorIndex)
 	{
 		SCOPED_DRAW_EVENT(Event)(DEC_SCENE_ITEMS,TEXT("RockOnBloomGatherPass"));
 
@@ -741,7 +775,7 @@ public:
 				FVector4(1.0f / BufferSizeX, 1.0f / BufferSizeY, -0.5f / BufferSizeX, -0.5f / BufferSizeY));
 
 			TShaderMapRef<FRockOnHalfDownsamplePixelShader> PixelShader(GetGlobalShaderMap());
-			PixelShader->SetParameters(View);
+			PixelShader->SetParameters(View, DepthOfFieldParams);
 
 			static FGlobalBoundShaderState HalfDownsampleBoundShaderState;
 			SetGlobalBoundShaderState(HalfDownsampleBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, sizeof(FFilterVertex));
@@ -770,7 +804,7 @@ public:
 				FVector4(1.0f / HalfSizeX, 1.0f / HalfSizeY, -0.5f / HalfSizeX, -0.5f / HalfSizeY));
 
 			TShaderMapRef<FRockOnHalfsizeDownsampleAndDOFPixelShader> PixelShader(GetGlobalShaderMap());
-			PixelShader->SetParameters(View, GSceneRenderTargets.GetHalfResPostProcessTexture());
+			PixelShader->SetParameters(View, DepthOfFieldParams, GSceneRenderTargets.GetHalfResPostProcessTexture());
 
 			static FGlobalBoundShaderState HalfsizeDownsampleAndDOFBoundShaderState;
 			SetGlobalBoundShaderState(HalfsizeDownsampleAndDOFBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, sizeof(FFilterVertex));
@@ -786,6 +820,100 @@ public:
 
 			GSceneRenderTargets.FinishRenderingFilter(FilterColorIndex);
 		}
+	}
+
+	template<UBOOL bInitialBloomPass, UBOOL bFinalBloomPass>
+	void RenderRockGaussianBlurPass(
+		UINT SizeX,
+		UINT SizeY,
+		FSceneRenderTargetIndex SourceIndex,
+		FSceneRenderTargetIndex DestIndex,
+		const FVector2D& SampleMaskMin,
+		const FVector2D& SampleMaskMax,
+		const FVector4& BloomTintAndScreenBlendThreshold)
+	{
+		const UINT FilterBufferSizeX = GSceneRenderTargets.GetFilterBufferSizeX();
+		const UINT FilterBufferSizeY = GSceneRenderTargets.GetFilterBufferSizeY();
+		const FVector2D SampleKernel(1.5f / FilterBufferSizeX, 1.5f / FilterBufferSizeY);
+
+		GSceneRenderTargets.BeginRenderingFilter(DestIndex);
+
+		TShaderMapRef<FRockOnFilterVertexShader> VertexShader(GetGlobalShaderMap());
+		VertexShader->SetParameters(SampleKernel);
+
+		TShaderMapRef<FRockOnFilterPixelShader<bInitialBloomPass,bFinalBloomPass> > PixelShader(GetGlobalShaderMap());
+		PixelShader->SetParameters(
+			GSceneRenderTargets.GetFilterColorTexture(SourceIndex),
+			GBlackTexture->TextureRHI,
+			SampleMaskMin,
+			SampleMaskMax,
+			BloomTintAndScreenBlendThreshold);
+
+		static FGlobalBoundShaderState BloomFilterBoundShaderState;
+		SetGlobalBoundShaderState(BloomFilterBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, sizeof(FFilterVertex));
+		RHIReduceTextureCachePenalty(PixelShader->GetPixelShader());
+
+		DrawDenormalizedQuad(
+			0, 0,
+			SizeX, SizeY,
+			0, 0,
+			SizeX, SizeY,
+			FilterBufferSizeX, FilterBufferSizeY,
+			FilterBufferSizeX, FilterBufferSizeY);
+
+		GSceneRenderTargets.FinishRenderingFilter(DestIndex);
+	}
+
+	void RockGaussianBlurFilterBuffer(UINT SizeX, UINT SizeY, FSceneRenderTargetIndex SourceIndex, FSceneRenderTargetIndex DestIndex, FVector2D SampleMaskMin, FVector2D SampleMaskMax)
+	{
+		SCOPED_DRAW_EVENT(Event)(DEC_SCENE_ITEMS,TEXT("RockGaussianBlur"));
+
+		RHISetDepthState(TStaticDepthState<FALSE,CF_Always>::GetRHI());
+		RHISetRasterizerState(TStaticRasterizerState<FM_Solid,CM_None>::GetRHI());
+		RHISetBlendState(TStaticBlendState<>::GetRHI());
+
+		const FLOAT BloomPower = (appPow(0.5f, 0.5f * BloomThreshold + 1.0f) - 1.0f) * -2.0f;
+		const FVector4 BloomTintAndScreenBlendThreshold(
+			BloomTint.R * BloomPower * BloomScale,
+			BloomTint.G * BloomPower * BloomScale,
+			BloomTint.B * BloomPower * BloomScale,
+			1.0f - BloomPower);
+
+		RenderRockGaussianBlurPass<TRUE,FALSE>(
+			SizeX,
+			SizeY,
+			SourceIndex,
+			SRTI_FilterColor2,
+			SampleMaskMin,
+			SampleMaskMax,
+			BloomTintAndScreenBlendThreshold);
+
+		RenderRockGaussianBlurPass<FALSE,FALSE>(
+			SizeX,
+			SizeY,
+			SRTI_FilterColor2,
+			DestIndex,
+			SampleMaskMin,
+			SampleMaskMax,
+			BloomTintAndScreenBlendThreshold);
+
+		RenderRockGaussianBlurPass<FALSE,FALSE>(
+			SizeX,
+			SizeY,
+			DestIndex,
+			SRTI_FilterColor2,
+			SampleMaskMin,
+			SampleMaskMax,
+			BloomTintAndScreenBlendThreshold);
+
+		RenderRockGaussianBlurPass<FALSE,TRUE>(
+			SizeX,
+			SizeY,
+			SRTI_FilterColor2,
+			DestIndex,
+			SampleMaskMin,
+			SampleMaskMax,
+			BloomTintAndScreenBlendThreshold);
 	}
 
 	void SetRockDOFOffsets(UBOOL bFourSamples, UBOOL bLocalMotionBlur, FVector4* DOFOffsets, FVector4* MoBlurOffsets, FVector2D& MoBlurDOFWeight)
@@ -837,7 +965,7 @@ public:
 	}
 
 	template<UINT NumSamples>
-	void RenderRockDOFBlurPass(FViewInfo& View, UBOOL bLocalMotionBlur)
+	void RenderRockDOFBlurPass(FViewInfo& View, UBOOL bLocalMotionBlur, FSceneRenderTargetIndex SourceIndex)
 	{
 		const UINT FilterBufferSizeX = GSceneRenderTargets.GetFilterBufferSizeX();
 		const UINT FilterBufferSizeY = GSceneRenderTargets.GetFilterBufferSizeY();
@@ -855,7 +983,7 @@ public:
 		TShaderMapRef<FRockOnDOFFilterVertexShader> VertexShader(GetGlobalShaderMap());
 		TShaderMapRef<TRockOnDOFFilterPixelShader<NumSamples> > PixelShader(GetGlobalShaderMap());
 		PixelShader->SetParameters(
-			GSceneRenderTargets.GetFilterColorTexture(SRTI_FilterColor0),
+			GSceneRenderTargets.GetFilterColorTexture(SourceIndex),
 			GSceneRenderTargets.GetVelocityTexture(),
 			DOFOffsets,
 			MoBlurOffsets,
@@ -880,11 +1008,18 @@ public:
 	{
 		SCOPED_DRAW_EVENT(Event)(DEC_SCENE_ITEMS,TEXT("RockDOFBlur"));
 
-		RenderRockDOFBlurPass<17>(View, bLocalMotionBlur);
-		RenderRockDOFBlurPass<4>(View, bLocalMotionBlur);
+		if(bHighQualityDOF)
+		{
+			RenderRockDOFBlurPass<17>(View, bLocalMotionBlur, SRTI_FilterColor0);
+			RenderRockDOFBlurPass<4>(View, bLocalMotionBlur, SRTI_FilterColor0);
+		}
+		else
+		{
+			RenderRockDOFBlurPass<4>(View, bLocalMotionBlur, SRTI_FilterColor0);
+		}
 	}
 
-	void RenderHalfRes(FViewInfo& View, UBOOL bLocalMotionBlur)
+	void RenderHalfRes(FViewInfo& View, const FDepthOfFieldParams& DepthOfFieldParams, UBOOL bLocalMotionBlur)
 	{
 		SCOPED_DRAW_EVENT(Event)(DEC_SCENE_ITEMS,TEXT("RockOnHalfRes"));
 
@@ -897,42 +1032,16 @@ public:
 		FVector2D SampleMaskMin(0 / (FLOAT)BufferSizeX, 0 / (FLOAT)BufferSizeY);
 		FVector2D SampleMaskMax((0 + View.SizeX - 1) / (FLOAT)BufferSizeX, (0 + View.SizeY - 1) / (FLOAT)BufferSizeY);
 
-		RenderRockOnBloomGatherPass(View, SRTI_FilterColor0);
-		GaussianBlurFilterBuffer(View.SizeX, DownsampledSizeX + AntiLeakBorder, DownsampledSizeY + AntiLeakBorder, BlurKernelSize, 1.0f, SRTI_FilterColor0, SampleMaskMin, SampleMaskMax);
+		RenderRockOnBloomGatherPass(View, DepthOfFieldParams, SRTI_FilterColor0);
+		RockGaussianBlurFilterBuffer(DownsampledSizeX + AntiLeakBorder, DownsampledSizeY + AntiLeakBorder, SRTI_FilterColor0, SRTI_FilterColor1, SampleMaskMin, SampleMaskMax);
 		RockDOFBlurFilterBuffer(View, bLocalMotionBlur);
 
-		// FilterColor0 now holds the blurred DOF scene content (the RockOn "BlurredImage").
-	}
-
-	// generate quarter resolution bloom content into FilterColor1 ("LightShaftBuffer")
-	// NOTE: single-gaussian bloom (BloomType==single, BloomQuality==1) - RockOn has no
-	// BloomWeight*/BloomSizeScale*/multi-gaussian fields, so we use the simple path that
-	// matches DOFAndBloom. The RockOnFilter (MainBloom) shaders are registered above.
-	void RenderBloom(FViewInfo& View)
-	{
-		SCOPED_DRAW_EVENT(Event)(DEC_SCENE_ITEMS,TEXT("RockOnBloom"));
-
-		const UINT BufferSizeX = GSceneRenderTargets.GetBufferSizeX();
-		const UINT BufferSizeY = GSceneRenderTargets.GetBufferSizeY();
-		const UINT FilterDownsampleFactor = GSceneRenderTargets.GetFilterDownsampleFactor();
-		const UINT DownsampledSizeX = View.RenderTargetSizeX / FilterDownsampleFactor;
-		const UINT DownsampledSizeY = View.RenderTargetSizeY / FilterDownsampleFactor;
-
-		FVector2D SampleMaskMin(0 / (FLOAT)BufferSizeX, 0 / (FLOAT)BufferSizeY);
-		FVector2D SampleMaskMax((0 + View.SizeX - 1) / (FLOAT)BufferSizeX, (0 + View.SizeY - 1) / (FLOAT)BufferSizeY);
-
-		// the color was range compressed to fit in the range so we need to decompress it
-		const FLOAT MAX_SCENE_COLOR = 4.0f;
-
-		RenderGatherPass(View, EGD_Bloom, SRTI_FilterColor1, MAX_SCENE_COLOR, 1);
-		GaussianBlurFilterBuffer(View.SizeX, DownsampledSizeX + AntiLeakBorder, DownsampledSizeY + AntiLeakBorder, BlurBloomKernelSize, 1.0f, SRTI_FilterColor1, SampleMaskMin, SampleMaskMax);
-
-		// FilterColor1 now holds the bloomed scene content.
+		// FilterColor1 is the blurred RockOn bloom/light-shaft buffer; FilterColor0 is the DOF-filtered BlurredImage.
 	}
 
 	// the final RockOn blend pass: DOF composite + bloom + grain + tonemapping + LUT grading.
 	template<UBOOL bTHighQualityDOF, UBOOL bTImageGrain, UBOOL bTMotionBlur>
-	void RenderBlend(FViewInfo& View, FSceneColorLDRInfo& LDRInfo, const FTextureRHIRef& ColorGradingRHI)
+	void RenderBlend(FViewInfo& View, const FDepthOfFieldParams& DepthOfFieldParams, FSceneColorLDRInfo& LDRInfo, const FTextureRHIRef& ColorGradingRHI)
 	{
 		const UINT BufferSizeX = GSceneRenderTargets.GetBufferSizeX();
 		const UINT BufferSizeY = GSceneRenderTargets.GetBufferSizeY();
@@ -972,7 +1081,7 @@ public:
 		SetGlobalBoundShaderState(RockOnBlendBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *BlendVertexShader, *BlendPixelShader, sizeof(FFilterVertex));
 
 		// DOF parameters (FocusDistance/InverseFocusRadius/MinMaxBlurClamp/PackedParameters)
-		BlendPixelShader->DOFParameters.SetPS(*BlendPixelShader, View.DepthOfFieldParams);
+		BlendPixelShader->DOFParameters.SetPS(*BlendPixelShader, DepthOfFieldParams);
 
 		// scene texture (point) for CalcSceneColorAndDepth
 		BlendPixelShader->SceneTextureParameters.Set(&View, *BlendPixelShader, SF_Point);
@@ -1143,10 +1252,16 @@ public:
 
 		// should we do motion blur for this view?
 		UBOOL bLocalMotionBlur = bMotionBlur;
-		if((View.Family->ShowFlags & SHOW_MotionBlur) == 0 || !View.Family->bRealtimeUpdate)
+		extern UBOOL GIsTiledScreenshot;
+		extern INT GGameScreenshotCounter;
+		extern UBOOL GScreenShotRequest;
+		if((View.Family->ShowFlags & SHOW_MotionBlur) == 0 || !View.Family->bRealtimeUpdate || !GIsGame || GIsEditor || GIsTiledScreenshot || GGameScreenshotCounter != 0 || GScreenShotRequest)
 		{
 			bLocalMotionBlur = FALSE;
 		}
+
+		FDepthOfFieldParams RockOnDOFParams;
+		ComputeDOFParams(View, RockOnDOFParams);
 
 		// NOTE: When motion blur is active the original game runs a camera-velocity pass
 		// plus a velocity smear pass (RockCameraMotionBlur*/RockVelocitySmear*) to populate
@@ -1154,9 +1269,8 @@ public:
 		// motion-blur prepass (RequiresVelocities) here, so the RockOn blend reads it
 		// directly; the bespoke smear is approximated by that prepass.
 
-		// half-res post process buffer (BlurredImage) and bloom (LightShaftBuffer)
-		RenderHalfRes(View, bLocalMotionBlur);
-		RenderBloom(View);
+		// half-res post process buffers: BlurredImage and LightShaftBuffer
+		RenderHalfRes(View, RockOnDOFParams, bLocalMotionBlur);
 
 		UBOOL bLocalImageGrain = SceneImageGrainScale > 0.0f;
 		if((View.Family->ShowFlags & SHOW_ImageGrain) == 0)
@@ -1168,7 +1282,7 @@ public:
 #define VARIATION_BLEND(A,B,C) \
 		if(A == bHighQualityDOF && B == bLocalImageGrain && C == bLocalMotionBlur) \
 		{ \
-			RenderBlend<A,B,C>(View, LDRInfo, ColorGradingRHI); \
+			RenderBlend<A,B,C>(View, RockOnDOFParams, LDRInfo, ColorGradingRHI); \
 		} else
 		VARIATION_BLEND(0,0,0) VARIATION_BLEND(0,0,1) VARIATION_BLEND(0,1,0) VARIATION_BLEND(0,1,1)
 		VARIATION_BLEND(1,0,0) VARIATION_BLEND(1,0,1) VARIATION_BLEND(1,1,0) VARIATION_BLEND(1,1,1)
@@ -1239,14 +1353,19 @@ FPostProcessSceneProxy* URockOn::CreateSceneProxy(const FPostProcessSettings* Wo
 
 	extern UBOOL GIsTiledScreenshot;
 	extern INT GGameScreenshotCounter;
+	extern UBOOL GScreenShotRequest;
 
-	if ( (WorldSettings == NULL || WorldSettings->bEnableMotionBlur) && GSystemSettings.bAllowMotionBlur && !GIsTiledScreenshot && (GGameScreenshotCounter == 0) )
+	if ( (WorldSettings == NULL || WorldSettings->bEnableMotionBlur) && GSystemSettings.bAllowMotionBlur && GIsGame && !GIsEditor && !GIsTiledScreenshot && (GGameScreenshotCounter == 0) && !GScreenShotRequest )
 	{
 		bLocalMotionBlur = TRUE;
 	}
 
 	const UBOOL bLocalImageGrain = bEnableImageGrain && (SceneImageGrainScale > 0.0f);
-	const UBOOL bLocalHighQualityDOF = (DepthOfFieldQuality == DOFQuality_High);
+	UBOOL bLocalHighQualityDOF = (DepthOfFieldQuality == DOFQuality_High);
+	if(WorldSettings && WorldSettings->bOverride_bEnableHighQualityDOF)
+	{
+		bLocalHighQualityDOF = WorldSettings->bEnableHighQualityDOF;
+	}
 
 	return new FRockOnSceneProxy(this, WorldSettings, GColorGrading, bLocalMotionBlur, bLocalImageGrain, bLocalHighQualityDOF);
 }
