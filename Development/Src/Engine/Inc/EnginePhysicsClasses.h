@@ -45,6 +45,15 @@ enum EPhysEffectType
 #define FOREACH_ENUM_EPHYSEFFECTTYPE(op) \
     op(EPMET_Impact) \
     op(EPMET_Slide) 
+enum ConstraintProjectionMode
+{
+    ECPM_Linear             =0,
+    ECPM_LinearAndAngular   =1,
+    ECPM_MAX                =2,
+};
+#define FOREACH_ENUM_CONSTRAINTPROJECTIONMODE(op) \
+    op(ECPM_Linear) \
+    op(ECPM_LinearAndAngular) 
 enum EWheelSide
 {
     SIDE_None               =0,
@@ -882,13 +891,19 @@ public:
     //## BEGIN PROPS RB_BodySetup
     BYTE SleepFamily;
     FName BoneName;
+    FName GroupName;
     BITFIELD bFixed:1;
     BITFIELD bNoCollision:1;
+    BITFIELD bPawnCollisionOnly:1;
+    BITFIELD bNoPawnCollision:1;
     BITFIELD bBlockZeroExtent:1;
     BITFIELD bBlockNonZeroExtent:1;
     BITFIELD bEnableContinuousCollisionDetection:1;
+    BITFIELD bIgnorePhysicsTranslation:1;
+    BITFIELD bDisableMinCollisionThickness:1;
     BITFIELD bAlwaysFullAnimWeight:1;
     BITFIELD bConsiderForBounds:1;
+    class UObject* FlapBodySetup;
     class UPhysicalMaterial* PhysMaterial;
     FLOAT MassScale;
     TArrayNoInit<FPointer> CollisionGeom;
@@ -989,11 +1004,15 @@ class UPhysicsAsset : public UObject
 public:
     //## BEGIN PROPS PhysicsAsset
     class USkeletalMesh* DefaultSkelMesh;
+    class USkeletalMesh* DefaultExtraSkelMesh;
+    TArrayNoInit<class USkeletalMesh*> DefaultExtraSkelMeshes;
     TArrayNoInit<class URB_BodySetup*> BodySetup;
     TMap<FName, INT> BodySetupIndexMap;
     TArrayNoInit<INT> BoundsBodies;
+    TArrayNoInit<FSimpleBox> Bounds;
     TArrayNoInit<class URB_ConstraintSetup*> ConstraintSetup;
     class UPhysicsAssetInstance* DefaultInstance;
+    class UObject* FlapsAsset;
     //## END PROPS PhysicsAsset
 
     INT FindBodyIndex(FName BodyName);
@@ -1658,6 +1677,7 @@ public:
     FVector PulleyPivot1;
     FVector PulleyPivot2;
     BITFIELD bEnableProjection:1;
+    BITFIELD bEnableCollision:1;
     BITFIELD bLinearLimitSoft:1;
     BITFIELD bLinearBreakable:1;
     BITFIELD bSwingLimited:1;
@@ -1667,7 +1687,11 @@ public:
     BITFIELD bAngularBreakable:1;
     BITFIELD bIsPulley:1;
     BITFIELD bMaintainMinDistance:1;
+    BITFIELD bIsDistance:1;
     SCRIPT_ALIGN;
+    BYTE ProjectionMode;
+    FLOAT ProjectionDistance;
+    FLOAT ProjectionAngle;
     struct FLinearDOFSetup LinearXSetup;
     struct FLinearDOFSetup LinearYSetup;
     struct FLinearDOFSetup LinearZSetup;
@@ -1683,6 +1707,8 @@ public:
     FLOAT TwistLimitDamping;
     FLOAT AngularBreakThreshold;
     FLOAT PulleyRatio;
+    FLOAT MaxDistance;
+    FLOAT MinDistance;
     //## END PROPS RB_ConstraintSetup
 
     DECLARE_CLASS(URB_ConstraintSetup,UObject,0,Engine)
@@ -2199,7 +2225,7 @@ VERIFY_CLASS_OFFSET_NODIE(UPhysicalMaterial,PhysicalMaterial,PhysicalMaterialPro
 VERIFY_CLASS_SIZE_NODIE(UPhysicalMaterial)
 VERIFY_CLASS_SIZE_NODIE(UPhysicalMaterialPropertyBase)
 VERIFY_CLASS_OFFSET_NODIE(UPhysicsAsset,PhysicsAsset,DefaultSkelMesh)
-VERIFY_CLASS_OFFSET_NODIE(UPhysicsAsset,PhysicsAsset,DefaultInstance)
+VERIFY_CLASS_OFFSET_NODIE(UPhysicsAsset,PhysicsAsset,FlapsAsset)
 VERIFY_CLASS_SIZE_NODIE(UPhysicsAsset)
 VERIFY_CLASS_OFFSET_NODIE(UPhysicsAssetInstance,PhysicsAssetInstance,Owner)
 VERIFY_CLASS_OFFSET_NODIE(UPhysicsAssetInstance,PhysicsAssetInstance,AngularForceLimitScale)
@@ -2213,7 +2239,7 @@ VERIFY_CLASS_OFFSET_NODIE(URB_ConstraintInstance,RB_ConstraintInstance,Owner)
 VERIFY_CLASS_OFFSET_NODIE(URB_ConstraintInstance,RB_ConstraintInstance,DummyKinActor)
 VERIFY_CLASS_SIZE_NODIE(URB_ConstraintInstance)
 VERIFY_CLASS_OFFSET_NODIE(URB_ConstraintSetup,RB_ConstraintSetup,JointName)
-VERIFY_CLASS_OFFSET_NODIE(URB_ConstraintSetup,RB_ConstraintSetup,PulleyRatio)
+VERIFY_CLASS_OFFSET_NODIE(URB_ConstraintSetup,RB_ConstraintSetup,MinDistance)
 VERIFY_CLASS_SIZE_NODIE(URB_ConstraintSetup)
 VERIFY_CLASS_SIZE_NODIE(URB_BSJointSetup)
 VERIFY_CLASS_SIZE_NODIE(URB_DistanceJointSetup)

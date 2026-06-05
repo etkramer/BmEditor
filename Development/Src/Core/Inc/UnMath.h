@@ -2209,6 +2209,17 @@ public:
 	}
 };
 
+struct FSimpleBox
+{
+	FVector Min;
+	FVector Max;
+
+	friend FArchive& operator<<( FArchive& Ar, FSimpleBox& Box )
+	{
+		return Ar << Box.Min << Box.Max;
+	}
+};
+
 /**
  * An axis aligned bounding box and bounding sphere with the same origin. (28 bytes).
  */

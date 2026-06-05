@@ -63,11 +63,20 @@ var(Capture) float MaxViewDistanceOverride;
     The prepass CPU cost is not worth the GPU savings when the scene capture is small. */
 var(Capture) bool bSkipRenderingDepthPrepass;
 
+/** BM2 capture toggle used by game-side capture filtering. */
+var(Capture) bool bCaptureEnabled;
+
+/** BM2 capture toggle for detective/XRay rendering. */
+var(Capture) bool bEnabledInXRayMode;
+
 /** 
  * if > 0, skip streaming texture updates for the scene capture if the Owner is further than this many units away from the viewer.
  * if == 0, then view information for this scene capture is not used by texture streaming manager for updates.
  */
 var(Capture) float MaxStreamingUpdateDist;
+
+/** only capture if at least one actor in this list is visible */
+var(Capture) array<Actor> OnlyCaptureIfTheseActorsVisible;
 
 // transients
 

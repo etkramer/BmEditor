@@ -11889,6 +11889,8 @@ class ASceneCaptureActor : public AActor
 public:
     //## BEGIN PROPS SceneCaptureActor
     class USceneCaptureComponent* SceneCapture;
+    BITFIELD bKeepUpdatingInGame:1;
+    SCRIPT_ALIGN;
     //## END PROPS SceneCaptureActor
 
     DECLARE_ABSTRACT_CLASS(ASceneCaptureActor,AActor,0,Engine)
@@ -11976,6 +11978,8 @@ public:
     //## BEGIN PROPS SceneCaptureReflectActor
     class UStaticMeshComponent* StaticMesh;
     class UMaterialInstanceConstant* ReflectMaterialInst;
+    BITFIELD bNeverDisable:1;
+    SCRIPT_ALIGN;
     //## END PROPS SceneCaptureReflectActor
 
     DECLARE_CLASS(ASceneCaptureReflectActor,ASceneCaptureActor,0,Engine)
@@ -12395,6 +12399,8 @@ public:
     BITFIELD bSkipUpdateIfTextureUsersOccluded:1;
     BITFIELD bSkipUpdateIfOwnerOccluded:1;
     BITFIELD bSkipRenderingDepthPrepass:1;
+    BITFIELD bCaptureEnabled:1;
+    BITFIELD bEnabledInXRayMode:1;
     SCRIPT_ALIGN;
     FColor ClearColor;
     BYTE ViewMode;
@@ -12404,6 +12410,7 @@ public:
     FLOAT MaxUpdateDist;
     FLOAT MaxViewDistanceOverride;
     FLOAT MaxStreamingUpdateDist;
+    TArrayNoInit<class AActor*> OnlyCaptureIfTheseActorsVisible;
     FCaptureSceneInfo* CaptureInfo;
     FSceneViewStateInterface* ViewState;
     TArrayNoInit<class FPostProcessSceneProxy*> PostProcessProxies;

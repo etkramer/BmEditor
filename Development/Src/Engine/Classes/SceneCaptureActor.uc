@@ -13,6 +13,9 @@ class SceneCaptureActor extends Actor
 /** component that renders the scene to a texture */
 var() const SceneCaptureComponent SceneCapture;
 
+/** keep the scene capture updating while in game */
+var() bool bKeepUpdatingInGame;
+
 cpptext
 {
 	/** 

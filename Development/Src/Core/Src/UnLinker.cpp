@@ -3751,11 +3751,9 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 
         // BM: Skip currently unsupported types.
         if (IsBmCooked() && (
-			LoadClass->GetName() == "PhysicsAsset" ||
-			LoadClass->GetName() == "RB_BodySetup" ||
-
 			LoadClass->GetName() == "Pylon" ||
-			LoadClass->GetName() == "SceneCaptureReflectActor" ||
+			LoadClass->GetName() == "SceneCapture2DActor" ||
+			// LoadClass->GetName() == "SceneCaptureReflectActor" ||
 			LoadClass->GetName() == "FractureMaterial" ||
 			LoadClass->GetName() == "ApexClothingAsset" ||
 

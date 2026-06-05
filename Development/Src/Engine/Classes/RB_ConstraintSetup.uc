@@ -55,11 +55,21 @@ var vector SecAxis2;
 var	vector	PulleyPivot1;
 var	vector	PulleyPivot2;
 
+enum ConstraintProjectionMode
+{
+	ECPM_Linear,
+	ECPM_LinearAndAngular,
+};
+
 /** 
  * If distance error between bodies exceeds 0.1 units, or rotation error exceeds 10 degrees, body will be projected to fix this.
  * For example a chain spinning too fast will have its elements appear detached due to velocity, this will project all bodies so they still appear attached to each other. 
  */
 var()	bool	bEnableProjection;
+var()	bool	bEnableCollision;
+var()	ConstraintProjectionMode ProjectionMode;
+var()	float	ProjectionDistance;
+var()	float	ProjectionAngle;
 
 ///////////////////////////// LINEAR DOF
 
@@ -124,7 +134,10 @@ var(Angular)	float		AngularBreakThreshold;
 
 var(Pulley)		bool		bIsPulley;
 var(Pulley)		bool		bMaintainMinDistance;
+var(Pulley)		bool		bIsDistance;
 var(Pulley)		float		PulleyRatio;
+var(Pulley)		float		MaxDistance;
+var(Pulley)		float		MinDistance;
 
 cpptext
 {

@@ -20,11 +20,20 @@ var() ESleepFamily				SleepFamily;
 /** Used in the PhysicsAsset case. Associates this Body with Bone in a skeletal mesh. */
 var()	editconst name			BoneName;	
 
+/** Optional grouping name used by BM2 physics/flaps data. */
+var()	editconst name			GroupName;
+
 /** No dynamics on this body - fixed relative to the world. */
 var()	bool					bFixed; 
 
 /** This body will not collide with anything. */
 var()	bool					bNoCollision;
+
+/** This body only collides with pawns. */
+var()	bool					bPawnCollisionOnly;
+
+/** This body does not collide with pawns. */
+var()	bool					bNoPawnCollision;
 
 /** When doing line checks against this PhysicsAsset, this body should return hits with zero-extent (ie line) checks. */
 var()	bool					bBlockZeroExtent;
@@ -38,6 +47,12 @@ var()	bool					bBlockNonZeroExtent;
  */
 var()	bool					bEnableContinuousCollisionDetection;
 
+/** Ignore translation supplied by physics for this body. */
+var()	bool					bIgnorePhysicsTranslation;
+
+/** Disable the minimum collision thickness expansion for this body. */
+var()	bool					bDisableMinCollisionThickness;
+
 /** 
  *	If true (and bEnableFullAnimWeightBodies in SkelMeshComp is true), the physics of this bone will always be blended into the skeletal mesh, regardless of what PhysicsWeight of the SkelMeshComp is. 
  *	This is useful for bones that should always be physics, even when blending physics in and out for hit reactions (eg cloth or pony-tails).
@@ -49,6 +64,9 @@ var()	bool					bAlwaysFullAnimWeight;
  *	There is a speed improvement from having less BodySetups processed each frame when updating the bounds.
  */
 var()	bool					bConsiderForBounds;
+
+/** BM2 flaps body setup associated with this physics body. */
+var()	Object					FlapBodySetup;
 
 /** Physical material to use for this body. Encodes information about density, friction etc. */
 var()   PhysicalMaterial		PhysMaterial;

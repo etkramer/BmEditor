@@ -664,8 +664,7 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 			if( Tag.Name == NAME_None )
 			{
 #if BATMAN
-				// BM2 cooked simple intrinsic: tag carries no Name, value follows directly
-				// at obj+PropertyOffset. End marker (Type == NAME_None) is handled below.
+				// BM: FCookedPropertyTag format
 				if (Ar.IsBmCooked(TRUE, FALSE) && Tag.Type != NAME_None)
 				{
 					const UClass* SerializedClass = ConstCast<UClass>(this);
@@ -674,11 +673,6 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 						UProperty* OffsetProp = NULL;
 						for (UProperty* P = PropertyLink; P; P = P->PropertyLinkNext)
 						{
-							if (SerializedClass && SerializedClass->GetName() == "WindDirectionalSource")
-							{
-								warnf(TEXT("BM2 WindDirectionalSource[%d]: %s"), P->Offset, *P->GetName());
-							}
-
 							// BM: cooked tags for fixed-array elements carry the per-element
 							// offset (BaseOffset + Index * ElementSize), so accept any tag
 							// offset that lands inside this property's footprint.
@@ -691,7 +685,13 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 						}
 						if (!OffsetProp)
 						{
-							appErrorf(TEXT("BM2 cooked: no property at offset %u (type %s) in %s (package %s)"),
+							warnf(TEXT("%s:"), *GetName());
+							for (UProperty* P = PropertyLink; P; P = P->PropertyLinkNext)
+							{
+								warnf(TEXT("  %s[%d]: %s"), *P->GetOuter()->GetName(), P->Offset, *P->GetName());
+							}
+
+							appErrorf(TEXT("BM: no property at offset %u (type %s) in %s (package %s)"),
 								(UINT)Tag.PropertyOffset, *Tag.Type.ToString(), *GetName(), *Ar.GetArchiveName());
 						}
 					}
@@ -719,7 +719,7 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 						Ar << *(UObject**)Dest;
 						break;
 					default:
-						appErrorf(TEXT("BM2 cooked: unexpected simple type %s at offset %u in %s"),
+						appErrorf(TEXT("BM: unexpected simple type %s at offset %u in %s"),
 							*Tag.Type.ToString(), (UINT)Tag.PropertyOffset, *GetName());
 					}
 					continue;
@@ -1077,7 +1077,7 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 						INT BytesRead = Ar.Tell() - StartPos;
 						if (BytesRead != Tag.Size)
 						{
-							debugf(NAME_Warning, TEXT("BM2: Property %s of %s read %d bytes but Tag.Size=%d, correcting stream (package: %s)"),
+							debugf(NAME_Warning, TEXT("BM: Property %s of %s read %d bytes but Tag.Size=%d, correcting stream (package: %s)"),
 								*Tag.Name.ToString(), *GetName(), BytesRead, Tag.Size, *Ar.GetArchiveName());
 							Ar.Seek(StartPos + Tag.Size);
 						}

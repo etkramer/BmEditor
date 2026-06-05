@@ -13,6 +13,10 @@ class PhysicsAsset extends Object
  */
 var		const editoronly SkeletalMesh				DefaultSkelMesh;
 
+/** Extra skeletal mesh references used by BM2 preview/physics tooling. */
+var		const SkeletalMesh							DefaultExtraSkelMesh;
+var		const array<SkeletalMesh>					DefaultExtraSkelMeshes;
+
 /** 
  *	Array of RB_BodySetup objects. Stores information about collision shape etc. for each body.
  *	Does not include body position - those are taken from mesh.
@@ -26,6 +30,7 @@ var 	native const Map_Mirror						BodySetupIndexMap{TMap<FName, INT>};
 
 /** Index of bodies that are marked bConsiderForBounds */
 var		const array<int>							BoundsBodies;
+var		const array<SimpleBox>						Bounds;
 
 /** 
  *	Array of RB_ConstraintSetup objects. 
@@ -35,6 +40,9 @@ var		const instanced array<RB_ConstraintSetup>	ConstraintSetup;
 
 /** Default per-instance paramters for this PhysicsAsset. */
 var		const instanced PhysicsAssetInstance		DefaultInstance; 
+
+/** BM2 flaps asset linked to this physics asset. */
+var		const Object								FlapsAsset;
 
 cpptext
 {

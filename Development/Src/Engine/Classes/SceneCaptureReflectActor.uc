@@ -16,6 +16,9 @@ var() const StaticMeshComponent StaticMesh;
 /** material instance used to apply the target texture to the static mesh */
 var transient MaterialInstanceConstant ReflectMaterialInst;
 
+/** prevent this reflection capture from being disabled automatically */
+var() bool bNeverDisable;
+
 cpptext
 {
 	// SceneCaptureActor interface
