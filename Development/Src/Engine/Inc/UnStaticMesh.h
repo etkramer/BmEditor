@@ -885,11 +885,29 @@ public:
 		checkSlow(VertexIndex < GetNumVertices());
 		if( !bUseFullPrecisionUVs )
 		{
-			((TStaticMeshFullVertexFloat16UVs<MAX_TEXCOORDS>*)(Data + VertexIndex * Stride))->UVs[UVIndex] = Vec2D;
+#if BATMAN
+			if( !bHasNormalsAndTangents )
+			{
+				((TStaticMeshVertexFloat16UVs<MAX_TEXCOORDS>*)(Data + VertexIndex * Stride))->UVs[UVIndex] = Vec2D;
+			}
+			else
+#endif
+			{
+				((TStaticMeshFullVertexFloat16UVs<MAX_TEXCOORDS>*)(Data + VertexIndex * Stride))->UVs[UVIndex] = Vec2D;
+			}
 		}
 		else
 		{
-			((TStaticMeshFullVertexFloat32UVs<MAX_TEXCOORDS>*)(Data + VertexIndex * Stride))->UVs[UVIndex] = Vec2D;
+#if BATMAN
+			if( !bHasNormalsAndTangents )
+			{
+				((TStaticMeshVertexFloat32UVs<MAX_TEXCOORDS>*)(Data + VertexIndex * Stride))->UVs[UVIndex] = Vec2D;
+			}
+			else
+#endif
+			{
+				((TStaticMeshFullVertexFloat32UVs<MAX_TEXCOORDS>*)(Data + VertexIndex * Stride))->UVs[UVIndex] = Vec2D;
+			}
 		}		
 	}
 
@@ -905,10 +923,22 @@ public:
 		checkSlow(VertexIndex < GetNumVertices());
 		if( !bUseFullPrecisionUVs )
 		{
+#if BATMAN
+			if( !bHasNormalsAndTangents )
+			{
+				return ((TStaticMeshVertexFloat16UVs<MAX_TEXCOORDS>*)(Data + VertexIndex * Stride))->UVs[UVIndex];
+			}
+#endif
 			return ((TStaticMeshFullVertexFloat16UVs<MAX_TEXCOORDS>*)(Data + VertexIndex * Stride))->UVs[UVIndex];
 		}
 		else
 		{
+#if BATMAN
+			if( !bHasNormalsAndTangents )
+			{
+				return ((TStaticMeshVertexFloat32UVs<MAX_TEXCOORDS>*)(Data + VertexIndex * Stride))->UVs[UVIndex];
+			}
+#endif
 			return ((TStaticMeshFullVertexFloat32UVs<MAX_TEXCOORDS>*)(Data + VertexIndex * Stride))->UVs[UVIndex];
 		}		
 	}
@@ -929,6 +959,10 @@ public:
 	FORCEINLINE UBOOL GetUseFullPrecisionUVs() const
 	{
 		return bUseFullPrecisionUVs;
+	}
+	FORCEINLINE UBOOL GetHasNormalsAndTangents() const
+	{
+		return bHasNormalsAndTangents;
 	}
 	FORCEINLINE void SetUseFullPrecisionUVs(UBOOL UseFull)
 	{
