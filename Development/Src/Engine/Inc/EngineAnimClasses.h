@@ -4502,8 +4502,11 @@ public:
     FLOAT Precision;
     BITFIELD bStartFromTail:1;
     BITFIELD bNoTurnOptimization:1;
+    BITFIELD ComponentOffsetEnabled:1;
     TArrayNoInit<FLOAT> AngleConstraint;
     FLOAT MaxAngleSteps;
+    INT IgnoreNumBones;
+    FBoneAtom ComponentOffset;
     //## END PROPS SkelControl_CCD_IK
 
     DECLARE_CLASS(USkelControl_CCD_IK,USkelControlBase,0,Engine)
@@ -5610,7 +5613,7 @@ VERIFY_CLASS_OFFSET_NODIE(USkelControlBase,SkelControlBase,ControlName)
 VERIFY_CLASS_OFFSET_NODIE(USkelControlBase,SkelControlBase,ControlPosY_DEPRECATED)
 VERIFY_CLASS_SIZE_NODIE(USkelControlBase)
 VERIFY_CLASS_OFFSET_NODIE(USkelControl_CCD_IK,SkelControl_CCD_IK,EffectorLocation)
-VERIFY_CLASS_OFFSET_NODIE(USkelControl_CCD_IK,SkelControl_CCD_IK,MaxAngleSteps)
+VERIFY_CLASS_OFFSET_NODIE(USkelControl_CCD_IK,SkelControl_CCD_IK,ComponentOffset)
 VERIFY_CLASS_SIZE_NODIE(USkelControl_CCD_IK)
 VERIFY_CLASS_OFFSET_NODIE(USkelControl_Multiply,SkelControl_Multiply,Multiplier)
 VERIFY_CLASS_SIZE_NODIE(USkelControl_Multiply)

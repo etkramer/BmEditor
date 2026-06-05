@@ -33,6 +33,12 @@ var(CCD) const	Array<FLOAT>			AngleConstraint;
 var(CCD)		FLOAT					MaxAngleSteps;
 /** if TRUE, skip update when turn is negligible. */
 var(CCD)		bool					bNoTurnOptimization;
+/** if TRUE, apply ComponentOffset to the IK result. */
+var(CCD)		bool					ComponentOffsetEnabled;
+/** Number of bones at the end of the chain to skip. */
+var(CCD)		int						IgnoreNumBones;
+/** Additional component-space offset for the IK result. */
+var(CCD)		BoneAtom				ComponentOffset;
 
 cpptext
 {
@@ -52,4 +58,5 @@ defaultproperties
 	MaxPerBoneIterations=3
 	MaxAngleSteps=0.4f
 	Precision=0.1f
+	ComponentOffset=(Rotation=(X=0.0,Y=0.0,Z=0.0,W=1.0),Translation=(X=0.0,Y=0.0,Z=0.0),Scale=1.0)
 }

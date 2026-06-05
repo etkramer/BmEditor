@@ -5732,6 +5732,7 @@ public:
     FLOAT FluidRotationCoefficient;
     class FPhysXMeshInstance* RenderInstance;
     struct FPhysXEmitterVerticalLodProperties VerticalLod;
+    FLOAT ZOffset;
     //## END PROPS ParticleModuleTypeDataMeshPhysX
 
     DECLARE_CLASS(UParticleModuleTypeDataMeshPhysX,UParticleModuleTypeDataMesh,0,Engine)
@@ -5814,12 +5815,14 @@ public:
     INT MaxTrailCount;
     INT MaxParticleInTrailCount;
     BITFIELD bClipSourceSegement:1;
+    BITFIELD bUseFixedAxis:1;
     BITFIELD bClearTangents:1;
     BITFIELD RenderGeometry:1;
     BITFIELD RenderDirectLine:1;
     BITFIELD RenderLines:1;
     BITFIELD RenderTessellation:1;
     SCRIPT_ALIGN;
+    FVector FixedAxis;
     //## END PROPS ParticleModuleTypeDataTrail2
 
     DECLARE_CLASS(UParticleModuleTypeDataTrail2,UParticleModuleTypeDataBase,0,Engine)
@@ -6851,7 +6854,7 @@ VERIFY_CLASS_OFFSET_NODIE(UParticleModuleTypeDataMesh,ParticleModuleTypeDataMesh
 VERIFY_CLASS_OFFSET_NODIE(UParticleModuleTypeDataMesh,ParticleModuleTypeDataMesh,Yaw)
 VERIFY_CLASS_SIZE_NODIE(UParticleModuleTypeDataMesh)
 VERIFY_CLASS_OFFSET_NODIE(UParticleModuleTypeDataMeshPhysX,ParticleModuleTypeDataMeshPhysX,PhysXParSys)
-VERIFY_CLASS_OFFSET_NODIE(UParticleModuleTypeDataMeshPhysX,ParticleModuleTypeDataMeshPhysX,VerticalLod)
+VERIFY_CLASS_OFFSET_NODIE(UParticleModuleTypeDataMeshPhysX,ParticleModuleTypeDataMeshPhysX,ZOffset)
 VERIFY_CLASS_SIZE_NODIE(UParticleModuleTypeDataMeshPhysX)
 VERIFY_CLASS_OFFSET_NODIE(UParticleModuleTypeDataPhysX,ParticleModuleTypeDataPhysX,PhysXParSys)
 VERIFY_CLASS_OFFSET_NODIE(UParticleModuleTypeDataPhysX,ParticleModuleTypeDataPhysX,VerticalLod)
@@ -6863,7 +6866,7 @@ VERIFY_CLASS_OFFSET_NODIE(UParticleModuleTypeDataTrail,ParticleModuleTypeDataTra
 VERIFY_CLASS_OFFSET_NODIE(UParticleModuleTypeDataTrail,ParticleModuleTypeDataTrail,SpawnDistance)
 VERIFY_CLASS_SIZE_NODIE(UParticleModuleTypeDataTrail)
 VERIFY_CLASS_OFFSET_NODIE(UParticleModuleTypeDataTrail2,ParticleModuleTypeDataTrail2,TessellationFactor)
-VERIFY_CLASS_OFFSET_NODIE(UParticleModuleTypeDataTrail2,ParticleModuleTypeDataTrail2,MaxParticleInTrailCount)
+VERIFY_CLASS_OFFSET_NODIE(UParticleModuleTypeDataTrail2,ParticleModuleTypeDataTrail2,FixedAxis)
 VERIFY_CLASS_SIZE_NODIE(UParticleModuleTypeDataTrail2)
 VERIFY_CLASS_OFFSET_NODIE(UParticleModuleUberBase,ParticleModuleUberBase,RequiredModules)
 VERIFY_CLASS_SIZE_NODIE(UParticleModuleUberBase)

@@ -39,6 +39,7 @@ var native pointer RenderInstance {class FPhysXMeshInstance};
 
 /** Parameters for Vertical LOD: See ParticleModuleTypeDataPhysX.uc */
 var(PhysXEmitter) PhysXEmitterVerticalLodProperties VerticalLod;
+var(PhysXEmitter) float ZOffset;
 
 cpptext
 {

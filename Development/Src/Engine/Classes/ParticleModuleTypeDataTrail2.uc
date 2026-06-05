@@ -36,6 +36,9 @@ var(Trail)		int		MaxParticleInTrailCount;
 /** If true, do not join the trail to the source position 		*/
 var(Trail)		bool 	bClipSourceSegement;
 
+/** If true, use FixedAxis as the trail render axis.				*/
+var(Trail)		bool	bUseFixedAxis;
+
 /**
  *	If true, clear the tangents (old bug behavior)
  *	This is present to preserve existing content...
@@ -49,6 +52,9 @@ var(Rendering)	bool	RenderGeometry;
 var(Rendering)	bool	RenderDirectLine;
 var(Rendering)	bool	RenderLines;
 var(Rendering)	bool	RenderTessellation;
+
+/** Fixed render axis used when bUseFixedAxis is true.			*/
+var(Trail)		vector	FixedAxis;
 
 //*************************************************************************************************
 // C++ Text
@@ -86,6 +92,9 @@ defaultproperties
 	RenderTessellation=FALSE
 
 	bClipSourceSegement=FALSE
+	bUseFixedAxis=FALSE
 
 	bClearTangents=TRUE
+
+	FixedAxis=(X=0.0,Y=0.0,Z=1.0)
 }
