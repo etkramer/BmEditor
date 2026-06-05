@@ -3751,9 +3751,6 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 
         // BM: Skip currently unsupported types.
         if (IsBmCooked() && (
-			// Don't load class functions for now
-			LoadClass->GetName() == "Function" ||
-
 			LoadClass->GetName() == "PhysicsAsset" ||
 			LoadClass->GetName() == "RB_BodySetup" ||
 

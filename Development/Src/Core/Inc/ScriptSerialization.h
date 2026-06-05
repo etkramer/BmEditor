@@ -131,7 +131,7 @@
 		} \
 		iCode += sizeof(ScriptPointerType); \
 	}
-	#define XFERPTR(T) if (Ar.Ver() <= 576 || Ar.IsBmCooked(FALSE)) { XFERPTR_OLD(T) } else { XFERPTR_NEW(T) }
+	#define XFERPTR(T) if (Ar.Ver() <= 576) { XFERPTR_OLD(T) } else { XFERPTR_NEW(T) }
 #else
 	#define XFERPTR(T) \
 	{ \
@@ -762,6 +762,12 @@
 		case EX_JumpIfNotEditorOnly:
 		{
 			XFER(CodeSkipSizeType); // Code offset to jump past editor-only code.
+			if (Ar.IsObjectReferenceCollector())
+			{
+				CodeSkipSizeType SkipTarget;
+				appMemcpy(&SkipTarget, &Script(iCode - sizeof(CodeSkipSizeType)), sizeof(CodeSkipSizeType));
+				iCode = SkipTarget;
+			}
 			break;
 		}
 #endif
@@ -774,4 +780,3 @@
 	}
 
 #endif	//!TAGGED_PROPERTIES_ONLY || SERIALIZEEXPR_ONLY
-
