@@ -330,6 +330,10 @@ FArchive& operator<<( FArchive& Ar, FObjectImport& I )
 	return Ar;
 }
 
+#if BATMAN
+static FString BmRemapPackageName( const FString& InName );
+#endif
+
 /*----------------------------------------------------------------------------
 	FCompressedChunk.
 ----------------------------------------------------------------------------*/
@@ -882,10 +886,30 @@ ULinkerLoad* ULinkerLoad::CreateLinker( UPackage* Parent, const TCHAR* Filename,
  */
 ULinkerLoad* ULinkerLoad::CreateLinkerAsync( UPackage* Parent, const TCHAR* Filename, DWORD LoadFlags )
 {
+#if BATMAN
+	const FString BaseFilename = FFilename(Filename).GetBaseFilename();
+	const UBOOL bBmExplicitPrefixedPackage = Parent
+		&& BaseFilename.Len() > 1
+		&& BaseFilename[0] == TEXT('_')
+		&& BaseFilename.Mid(1) == Parent->GetName();
+#endif
+
 	// See whether there already is a linker for this parent/ linker root.
 	ULinkerLoad* Linker = NULL;
 	for( INT LoaderIndex=0; LoaderIndex<GObjLoaders.Num(); LoaderIndex++ )
 	{
+#if BATMAN
+		if( bBmExplicitPrefixedPackage )
+		{
+			if( UObject::GetLoader(LoaderIndex)->Filename == Filename )
+			{
+				debugf(TEXT("ULinkerLoad::CreateLinkerAsync: Found existing linker for '%s'"), Filename);
+				Linker = UObject::GetLoader(LoaderIndex);
+				break;
+			}
+		}
+		else
+#endif
 		if( UObject::GetLoader(LoaderIndex)->LinkerRoot == Parent )
 		{
 			debugf(TEXT("ULinkerLoad::CreateLinkerAsync: Found existing linker for '%s'"), *Parent->GetName());
@@ -1263,6 +1287,13 @@ UBOOL ULinkerLoad::CreateLoader()
 		{
 			if( GetLoader(i)->LinkerRoot == LinkerRoot )
 			{
+#if BATMAN
+				const FString BaseFilename = FFilename(*Filename).GetBaseFilename();
+				if( BaseFilename.Len() > 1 && BaseFilename[0] == TEXT('_') && BaseFilename.Mid(1) == LinkerRoot->GetName() )
+				{
+					continue;
+				}
+#endif
 				appThrowf( LocalizeSecure(LocalizeError(TEXT("LinkerExists"),TEXT("Core")), *LinkerRoot->GetName()) );
 			}
 		}
@@ -2404,8 +2435,28 @@ UObject* ULinkerLoad::FindExistingExport(INT ExportIndex)
 
 	// find the outer package for this object, if it's already loaded
 	UObject* OuterObject = NULL;
+	UBOOL bAllowNullOuter = FALSE;
+	FString ObjectName = Export.ObjectName.ToString();
 	if (Export.OuterIndex == 0)
 	{
+#if BATMAN
+		if( IsBmCooked() )
+		{
+			if( GetExportClassName(ExportIndex) == NAME_Package )
+			{
+				ObjectName = BmRemapPackageName(ObjectName);
+				bAllowNullOuter = TRUE;
+			}
+			else
+			{
+				const FString RemappedRootName = BmRemapPackageName(LinkerRoot->GetName());
+				OuterObject = RemappedRootName != LinkerRoot->GetName()
+					? FindObject<UPackage>(NULL, *RemappedRootName)
+					: LinkerRoot;
+			}
+		}
+		else
+#endif
 		// this export's outer is the UPackage root of this loader
 		OuterObject = LinkerRoot;
 	}
@@ -2417,7 +2468,7 @@ UObject* ULinkerLoad::FindExistingExport(INT ExportIndex)
 
 	// if we found one, keep going. if we didn't find one, then this package has never been loaded before
 	// things inside a class however should not be touched, as they are in .u files and shouldn't have SetLinker called on them
-	if (OuterObject && !Outer->IsInA(UClass::StaticClass()))
+	if ((OuterObject || bAllowNullOuter) && (!OuterObject || !OuterObject->IsInA(UClass::StaticClass())))
 	{
 		// find the class of this object
 		UClass* TheClass;
@@ -2437,7 +2488,7 @@ UObject* ULinkerLoad::FindExistingExport(INT ExportIndex)
 		// if the class exists, try to find the object
 		if (TheClass)
 		{
-			Export._Object = StaticFindObject(TheClass, OuterObject, *Export.ObjectName.ToString(), 1);
+			Export._Object = StaticFindObject(TheClass, OuterObject, *ObjectName, 1);
 
 			// if we found an object, set it's linker to us
 			if (Export._Object)
@@ -3746,6 +3797,11 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 		// if (IsBmCooked() && (LoadClass->GetName() == "Class"))
 		if (IsBmCooked() && (LoadClass->GetName() == "Class") && (Export.ObjectName.ToString() != "RSkeletalMeshActor"))
         {
+			UObject* ExistingClass = StaticFindObject(UClass::StaticClass(), NULL, *GetExportPathName(Index, NULL, TRUE), TRUE);
+			if (ExistingClass)
+			{
+				return ExistingClass;
+			}
             return NULL;
         }
 

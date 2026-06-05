@@ -38,3 +38,5 @@ Most log channels are silenced in UE3. Prefer "debugf(NAME_Log, ...)" or "warnf(
 In major investigations - use subagents where possible, instead of performing research in-context. Context compaction is a huge setback that can be avoided through careful use of subagents - try to act as a manager (of subagents) rather than a worker
 
 BM2 packages are all Ver=805, LicenseeVer=101
+
+Use "#if BATMAN" for our changes where it makes sense, otherwise mark our changes with a "// BM" comment (always // format, not a block comment). "// BM" itself works, so does "// BM: Short comment"

@@ -6578,6 +6578,7 @@ ULinkerLoad* UObject::GetPackageLinker
 	{
 		// See if the linker is already loaded.
 		FString NewFilename;
+		UBOOL bBmExplicitPrefixedPackage = FALSE;
 		if( Result )
 		{
 			// Linker already found.
@@ -6644,6 +6645,13 @@ ULinkerLoad* UObject::GetPackageLinker
 			{
 				*appStrstr(T,TEXT(".")) = 0;
 			}
+#if BATMAN
+			if( T[0] == TEXT('_') && T[1] != 0 )
+			{
+				bBmExplicitPrefixedPackage = TRUE;
+				T++;
+			}
+#endif
 			//@script patcher (LOAD_RemappedPackage)
 			UPackage* FilenamePkg = CreatePackage( NULL, T, (LoadFlags&LOAD_RemappedPackage) != 0 );
 
@@ -6657,6 +6665,16 @@ ULinkerLoad* UObject::GetPackageLinker
 				InOuter = FilenamePkg;
 				for( INT i=0; i<GObjLoaders.Num() && !Result; i++ )
 				{
+#if BATMAN
+					if( bBmExplicitPrefixedPackage )
+					{
+						if( GetLoader(i)->Filename == NewFilename )
+						{
+							Result = GetLoader(i);
+						}
+					}
+					else
+#endif
 					if( GetLoader(i)->LinkerRoot == InOuter )
 					{
 						Result = GetLoader(i);
