@@ -17,8 +17,6 @@ struct native LUTBlender
 	var array<Texture> LUTTextures;
 	// is emptied at end of each frame
 	var array<float> LUTWeights;
-	/** Whether this LUTBlender contains new parameters and should regenerate the LUT Texture. */
-	var const native transient bool bHasChanged;
 
 	structcpptext
 	{
@@ -46,14 +44,6 @@ struct native LUTBlender
 		 * Check if the parameters are different, compared to the previous LUT Blender parameters.
 		 */
 		void CheckForChanges( const FLUTBlender& PreviousLUTBlender );
-
-		/**
-		 * Whether this LUTBlender contains new parameters and should regenerate the LUT Texture.
-		 */
-		UBOOL HasChanged() const
-		{
-			return bHasChanged;
-		}
 
 		/**
 		* Clean the container and adds the neutral LUT.

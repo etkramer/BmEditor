@@ -15,8 +15,6 @@ FLUTBlender::FLUTBlender()
 {
 	// required as we might be in unreal script
 	appMemzero(this, sizeof(FLUTBlender));
-
-	bHasChanged = TRUE;
 }
 
 UBOOL FLUTBlender::IsLUTEmpty() const
@@ -373,58 +371,55 @@ UINT FLUTBlender::GenerateFinalTable(FTexture* OutTextures[], float OutWeights[]
 /** resolve to one LUT (look up table) */
 const FTextureRHIRef FLUTBlender::ResolveLUT(FViewInfo& View, const struct ColorTransformMaterialProperties& ColorTransform)
 {
-	if ( HasChanged() )
+	FTexture* LocalTextures[GMaxLUTBlendCount];
+	float LocalWeights[GMaxLUTBlendCount];
+
+	UINT LocalCount = GenerateFinalTable(LocalTextures, LocalWeights, GMaxLUTBlendCount);
+
+	if(LocalCount)
 	{
-		FTexture* LocalTextures[GMaxLUTBlendCount];
-		float LocalWeights[GMaxLUTBlendCount];
+		SCOPED_DRAW_EVENT(Event)(DEC_SCENE_ITEMS,TEXT("LUTBlender"));
 
-		UINT LocalCount = GenerateFinalTable(LocalTextures, LocalWeights, GMaxLUTBlendCount);
+		RHISetDepthState(TStaticDepthState<FALSE,CF_Always>::GetRHI());
+		RHISetRasterizerState(TStaticRasterizerState<FM_Solid,CM_None>::GetRHI());
+		RHISetBlendState(TStaticBlendState<>::GetRHI());
 
-		if(LocalCount)
-		{
-			SCOPED_DRAW_EVENT(Event)(DEC_SCENE_ITEMS,TEXT("LUTBlender"));
+		GSceneRenderTargets.BeginRenderingLUTBlend();
 
-			RHISetDepthState(TStaticDepthState<FALSE,CF_Always>::GetRHI());
-			RHISetRasterizerState(TStaticRasterizerState<FM_Solid,CM_None>::GetRHI());
-			RHISetBlendState(TStaticBlendState<>::GetRHI());
-
-			GSceneRenderTargets.BeginRenderingLUTBlend();
-
-			SetLUTBlenderShader(LocalCount, LocalTextures, LocalWeights, View, ColorTransform);
+		SetLUTBlenderShader(LocalCount, LocalTextures, LocalWeights, View, ColorTransform);
 
 #if XBOX
-			// Xbox360 uses 16 slices
-			for(UINT Slice = 0; Slice < 16; ++Slice)
-			{
-				const UINT Scale = 2;		// SourceX needs to be 32 pixel aligned as this is a Xbox360 Resolve() requirement
+		// Xbox360 uses 16 slices
+		for(UINT Slice = 0; Slice < 16; ++Slice)
+		{
+			const UINT Scale = 2;		// SourceX needs to be 32 pixel aligned as this is a Xbox360 Resolve() requirement
 
-				DrawDenormalizedQuad(
-					16 * Slice * Scale, 0,	// XY
-					16, 16,					// SizeXY
-					16 * Slice, 0,			// UV
-					16, 16,					// SizeUV
-					16 * 16 * Scale, 16,	// TargetSize
-					16 * 16, 16				// TextureSize
-					);
-			}
+			DrawDenormalizedQuad(
+				16 * Slice * Scale, 0,	// XY
+				16, 16,					// SizeXY
+				16 * Slice, 0,			// UV
+				16, 16,					// SizeUV
+				16 * 16 * Scale, 16,	// TargetSize
+				16 * 16, 16				// TextureSize
+				);
+		}
 #else // XBOX
-			// other platforms use unwrapped 2d texture
-			DrawDenormalizedQuad( 
-				0, 0,
-				16 * 16, 16,
-				0, 0,
-				16 * 16, 16,
-				16 * 16, 16,
-				16 * 16, 16
-				); 
+		// other platforms use unwrapped 2d texture
+		DrawDenormalizedQuad(
+			0, 0,
+			16 * 16, 16,
+			0, 0,
+			16 * 16, 16,
+			16 * 16, 16,
+			16 * 16, 16
+			);
 #endif // XBOX
 
-			GSceneRenderTargets.FinishRenderingLUTBlend();
-		}
-		else
-		{
-			return NULL;
-		}
+		GSceneRenderTargets.FinishRenderingLUTBlend();
+	}
+	else
+	{
+		return NULL;
 	}
 	return GSceneRenderTargets.GetLUTBlendTexture();
 }
@@ -510,28 +505,6 @@ void FLUTBlender::CopyToRenderThread(FLUTBlender &Dest) const
  */
 void FLUTBlender::CheckForChanges( const FLUTBlender& PreviousLUTBlender )
 {
-	if ( LUTTextures.Num() != PreviousLUTBlender.LUTTextures.Num() || LUTWeights.Num() != PreviousLUTBlender.LUTWeights.Num() )
-	{
-		bHasChanged = TRUE;
-		return;
-	}
-
-	for ( INT TextureIndex=0; TextureIndex < LUTTextures.Num(); ++TextureIndex )
-	{
-		if ( LUTTextures(TextureIndex) != PreviousLUTBlender.LUTTextures(TextureIndex) )
-		{
-			bHasChanged = TRUE;
-			return;
-		}
-	}
-
-	for ( INT WeightIndex=0; WeightIndex < LUTWeights.Num(); ++WeightIndex )
-	{
-		if ( LUTWeights(WeightIndex) != PreviousLUTBlender.LUTWeights(WeightIndex) )
-		{
-			bHasChanged = TRUE;
-			return;
-		}
-	}
-	bHasChanged = FALSE;
+	(void)PreviousLUTBlender;
+	// BM: Retail BM2 FLUTBlender has no cached change flag.
 }
