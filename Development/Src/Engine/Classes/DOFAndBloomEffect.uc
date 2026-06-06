@@ -79,7 +79,7 @@ cpptext
 	// UObject interface
 
 	/**
-	* Called after this instance has been serialized.  UberPostProcessEffect should only
+	* Called after this instance has been serialized.  RockOn should only
 	* ever exists in the SDPG_PostProcess scene
 	*/
 	virtual void PostLoad();
@@ -89,7 +89,7 @@ cpptext
 	*/
 	virtual void OnPostProcessWarning(FString& OutWarning) const
 	{
-		OutWarning = TEXT("Warning: DOFAndBloom should no longer be used, use Uberpostprocess instead.");
+		OutWarning = TEXT("Warning: DOFAndBloom should no longer be used, use RockOn instead.");
 	}
 }
 

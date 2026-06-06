@@ -1,11 +1,11 @@
 /*=============================================================================
 	RockOnEffect.cpp: Batman: Arkham City uber post process (RockOn).
 
-	RockOn replaces UUberPostProcessEffect as the HDR->LDR pass. It performs DOF,
-	bloom, motion blur, tone mapping, LUT color grading and image grain in a
-	single fixed pipeline. Unlike Uber it does NOT do atmospherics - its blend
-	shader does not include RockAtmosCommon.usf - so no Atmos parameters appear
-	here. Ported from BM2 ("Rock") to match the original game.
+	RockOn is the BM2 HDR->LDR pass. It performs DOF, bloom, motion blur, tone
+	mapping, LUT color grading and image grain in a single fixed pipeline. It
+	does NOT do atmospherics - its blend shader does not include
+	RockAtmosCommon.usf - so no Atmos parameters appear here. Ported from BM2
+	("Rock") to match the original game.
 
 	The half-res producer path uses the original RockOn half-downsample, bloom
 	filter, and DOF anti-dither shaders so the final blend shader consumes the same

@@ -5,6 +5,7 @@ This file provides guidance to coding agents when working with this repository.
 ## Project Overview
 
 Custom build of Unreal Engine 3 that loads and saves Batman: Arkham City (BM2) packages in the UE3 editor. BM2 packages are all cooked using seekfree cooking, though seekfree loading is always disabled in the editor. All changes should be in the interest of accuracy to the original game binary - we intend to turn this into a full engine reimplementation.
+This is a codebase reconstruction project: compatibility changes must be direct, 1:1 ports from the BM2/Gangland/X360 references with no invented behavior.
 
 ## Build Commands
 

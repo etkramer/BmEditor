@@ -609,10 +609,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\Src\UberPostProcessEffect.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\Src\ue3stereo.cpp"
 				>
 			</File>
@@ -8225,10 +8221,6 @@
 					RelativePath=".\Classes\PostProcessVolume.uc"
 					>
 				</File>
-				<File
-					RelativePath=".\Classes\UberPostProcessEffect.uc"
-					>
-				</File>
 			</Filter>
 			<Filter
 				Name="AI"
@@ -9803,10 +9795,6 @@
 				</File>
 				<File
 					RelativePath="..\..\..\Engine\Shaders\PostProcessCommon.usf"
-					>
-				</File>
-				<File
-					RelativePath="..\..\..\Engine\Shaders\UberPostProcessBlendPixelShader.usf"
 					>
 				</File>
 				<File

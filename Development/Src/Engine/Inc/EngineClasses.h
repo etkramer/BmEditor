@@ -1447,17 +1447,6 @@ enum EDOFType
     op(DOFType_SimpleDOF) \
     op(DOFType_ReferenceDOF) \
     op(DOFType_BokehDOF) 
-enum ETonemapperType
-{
-    Tonemapper_Off          =0,
-    Tonemapper_Filmic       =1,
-    Tonemapper_Customizable =2,
-    Tonemapper_MAX          =3,
-};
-#define FOREACH_ENUM_ETONEMAPPERTYPE(op) \
-    op(Tonemapper_Off) \
-    op(Tonemapper_Filmic) \
-    op(Tonemapper_Customizable) 
 
 #endif // !INCLUDED_ENGINE_ENUMS
 #endif // !NO_ENUMS
@@ -19064,7 +19053,7 @@ public:
 	// UObject interface
 
 	/**
-	* Called after this instance has been serialized.  UberPostProcessEffect should only
+	* Called after this instance has been serialized.  RockOn should only
 	* ever exists in the SDPG_PostProcess scene
 	*/
 	virtual void PostLoad();
@@ -19074,7 +19063,7 @@ public:
 	*/
 	virtual void OnPostProcessWarning(FString& OutWarning) const
 	{
-		OutWarning = TEXT("Warning: DOFAndBloom should no longer be used, use Uberpostprocess instead.");
+		OutWarning = TEXT("Warning: DOFAndBloom should no longer be used, use RockOn instead.");
 	}
 };
 
@@ -19181,75 +19170,6 @@ public:
 	virtual void OnPostProcessWarning(FString& OutWarning) const
 	{
 		// RockOn is the intended uber post process; no warning.
-	}
-};
-
-class UUberPostProcessEffect : public UDOFBloomMotionBlurEffect
-{
-public:
-    //## BEGIN PROPS UberPostProcessEffect
-    FVector SceneShadows;
-    FVector SceneHighLights;
-    FVector SceneMidTones;
-    FLOAT SceneDesaturation;
-    FVector SceneColorize;
-    BYTE TonemapperType;
-    FLOAT TonemapperRange;
-    FLOAT TonemapperToeFactor;
-    FLOAT TonemapperScale;
-    FLOAT MotionBlurSoftEdgeKernelSize;
-    BITFIELD bEnableImageGrain:1;
-    BITFIELD bScaleEffectsWithViewSize:1;
-    BITFIELD bEnableHDRTonemapper_DEPRECATED:1;
-    FLOAT SceneImageGrainScale;
-    FLOAT BloomWeightSmall;
-    FLOAT BloomWeightMedium;
-    FLOAT BloomWeightLarge;
-    FLOAT BloomSizeScaleSmall;
-    FLOAT BloomSizeScaleMedium;
-    FLOAT BloomSizeScaleLarge;
-    struct FLUTBlender PreviousLUTBlender;
-    FLOAT SceneHDRTonemapperScale_DEPRECATED;
-    //## END PROPS UberPostProcessEffect
-
-    DECLARE_CLASS(UUberPostProcessEffect,UDOFBloomMotionBlurEffect,0,Engine)
-	// UPostProcessEffect interface
-
-	/**
-	 * Creates a proxy to represent the render info for a post process effect
-	 * @param WorldSettings - The world's post process settings for the view.
-	 * @return The proxy object.
-	 */
-	virtual class FPostProcessSceneProxy* CreateSceneProxy(const FPostProcessSettings* WorldSettings);
-
-	// UObject interface
-
-	/**
-	* Called after this instance has been serialized.  UberPostProcessEffect should only
-	* ever exists in the SDPG_PostProcess scene
-	*/
-	virtual void PostLoad();
-	
-	/**
-	 * Called when properties change.  UberPostProcessEffect should only
-	 * ever exists in the SDPG_PostProcess scene
-	 */
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent);
-
-	/**
-	* Tells the SceneRenderer is this effect includes the uber post process.
-	*/
-	virtual UBOOL IncludesUberpostprocess() const
-	{
-		return TRUE;
-	}
-
-	/**
-	* This allows to print a warning when the effect is used.
-	*/
-	virtual void OnPostProcessWarning(FString& OutWarning) const
-	{
-		// we don't want to output any warning but derive from a effect that might do that.
 	}
 };
 
@@ -20752,7 +20672,6 @@ AUTOGENERATE_FUNCTION(UUIManager,-1,execGetUIManager);
 	UDOFBloomMotionBlurEffect::StaticClass(); \
 	URockAtmos::StaticClass(); \
 	URockOn::StaticClass(); \
-	UUberPostProcessEffect::StaticClass(); \
 	UDwTriovizImplEffect::StaticClass(); \
 	UMaterialEffect::StaticClass(); \
 	UMotionBlurEffect::StaticClass(); \
@@ -22234,9 +22153,6 @@ VERIFY_CLASS_SIZE_NODIE(URockAtmos)
 VERIFY_CLASS_OFFSET_NODIE(URockOn,RockOn,SceneShadows)
 VERIFY_CLASS_OFFSET_NODIE(URockOn,RockOn,PreviousLUTBlender)
 VERIFY_CLASS_SIZE_NODIE(URockOn)
-VERIFY_CLASS_OFFSET_NODIE(UUberPostProcessEffect,UberPostProcessEffect,SceneShadows)
-VERIFY_CLASS_OFFSET_NODIE(UUberPostProcessEffect,UberPostProcessEffect,SceneHDRTonemapperScale_DEPRECATED)
-VERIFY_CLASS_SIZE_NODIE(UUberPostProcessEffect)
 VERIFY_CLASS_OFFSET_NODIE(UMaterialEffect,MaterialEffect,Material)
 VERIFY_CLASS_SIZE_NODIE(UMaterialEffect)
 VERIFY_CLASS_OFFSET_NODIE(UMotionBlurEffect,MotionBlurEffect,MaxVelocity)

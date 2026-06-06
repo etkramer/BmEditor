@@ -2712,7 +2712,6 @@ void ULocalPlayer::RebuildPlayerPostProcessChain()
 	UBOOL bDwFoundTriovizNode = FALSE;
 #endif
 
-	UBOOL bUberEffectInserted = FALSE;
 	for (INT ChainIndex = 0; ChainIndex < PlayerPostProcessChains.Num(); ChainIndex++)
 	{
 		UPostProcessChain* PPChain = PlayerPostProcessChains(ChainIndex);
@@ -2730,22 +2729,7 @@ void ULocalPlayer::RebuildPlayerPostProcessChain()
 						bDwFoundTriovizNode = TRUE;
 					}
 #endif
-					if (PPEffect->IsA(UUberPostProcessEffect::StaticClass())== TRUE)
-					{
-						if (bUberEffectInserted == FALSE)
-						{
-							PlayerPostProcess->Effects.AddItem(PPEffect);
-							bUberEffectInserted = TRUE;
-						}
-						else
-						{
-							warnf(TEXT("LocalPlayer %d - Multiple UberPostProcessEffects present..."), ControllerId);
-						}
-					}
-					else
-					{
-						PlayerPostProcess->Effects.AddItem(PPEffect);
-					}
+					PlayerPostProcess->Effects.AddItem(PPEffect);
 				}
 			}
 		}
@@ -4036,7 +4020,6 @@ void APlayerController::LogOutBugItAIGoToLogFile( const FString& InScreenShotDes
 
 #endif // ALLOW_DEBUG_FILES
 }
-
 
 
 

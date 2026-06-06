@@ -99,7 +99,9 @@ FFogVolumeDensitySceneInfo::FFogVolumeDensitySceneInfo(const UFogVolumeDensityCo
 	{
 		// InComponent can be NULL when the fog volume is being rendered in thumbnails, so set reasonable defaults.
 		StartDistance = 0.0f;
+#if !BATMAN
 		MaxDistance = 65535.0f;
+#endif
 		bAffectsTranslucency = TRUE;
 		bOnlyAffectsTranslucency = FALSE;
 		ApproxFogColor = FLinearColor::Black;
@@ -108,7 +110,6 @@ FFogVolumeDensitySceneInfo::FFogVolumeDensitySceneInfo(const UFogVolumeDensityCo
 	else
 	{
 		StartDistance = InComponent->StartDistance;
-		MaxDistance = InComponent->MaxDistance;
 		bAffectsTranslucency = InComponent->bAffectsTranslucency;
 		bOnlyAffectsTranslucency = InComponent->bOnlyAffectsTranslucency;
 		ApproxFogColor = InComponent->ApproxFogLightColor;
@@ -288,13 +289,10 @@ FLOAT FFogVolumeConeDensitySceneInfo::GetMaxIntegral() const
 #define BM_FOG_VOLUME_SHADER_VERSION 796
 #define BM_FOG_VOLUME_VERTEX_SHADER_LICENSEE_VERSION 93
 #define BM_FOG_VOLUME_PIXEL_SHADER_LICENSEE_VERSION 97
-// Gangland registers these as 102, but BM2 shader cache packages are LicenseeVer 101.
-#define BM_BM2_FOG_VOLUME_LICENSEE_VERSION 101
 #else
 #define BM_FOG_VOLUME_SHADER_VERSION VER_CONTENT_RESAVE_AUGUST_2007_QA_BUILD
 #define BM_FOG_VOLUME_VERTEX_SHADER_LICENSEE_VERSION 0
 #define BM_FOG_VOLUME_PIXEL_SHADER_LICENSEE_VERSION 0
-#define BM_BM2_FOG_VOLUME_LICENSEE_VERSION 0
 #endif
 
 IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TFogIntegralVertexShader<FConstantDensityPolicy>,TEXT("FogIntegralVertexShader"),TEXT("Main"),SF_Vertex,BM_FOG_VOLUME_SHADER_VERSION,BM_FOG_VOLUME_VERTEX_SHADER_LICENSEE_VERSION);
@@ -303,21 +301,20 @@ IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TFogIntegralPixelShader<FConstantDensi
 IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TFogIntegralVertexShader<FLinearHalfspaceDensityPolicy>,TEXT("FogIntegralVertexShader"),TEXT("Main"),SF_Vertex,BM_FOG_VOLUME_SHADER_VERSION,BM_FOG_VOLUME_VERTEX_SHADER_LICENSEE_VERSION);
 IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TFogIntegralPixelShader<FLinearHalfspaceDensityPolicy>,TEXT("FogIntegralPixelShader"),TEXT("LinearHalfspaceDensityMain"),SF_Pixel,BM_FOG_VOLUME_SHADER_VERSION,BM_FOG_VOLUME_PIXEL_SHADER_LICENSEE_VERSION);
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TFogIntegralVertexShader<FSphereDensityPolicy>,TEXT("FogIntegralVertexShader"),TEXT("Main"),SF_Vertex,BM_FOG_VOLUME_SHADER_VERSION,BM_BM2_FOG_VOLUME_LICENSEE_VERSION);
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TFogIntegralPixelShader<FSphereDensityPolicy>,TEXT("FogIntegralPixelShader"),TEXT("SphericalDensityMain"),SF_Pixel,BM_FOG_VOLUME_SHADER_VERSION,BM_BM2_FOG_VOLUME_LICENSEE_VERSION);
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TFogIntegralVertexShader<FSphereDensityPolicy>,TEXT("FogIntegralVertexShader"),TEXT("Main"),SF_Vertex,BM_FOG_VOLUME_SHADER_VERSION,BM_FOG_VOLUME_VERTEX_SHADER_LICENSEE_VERSION);
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TFogIntegralPixelShader<FSphereDensityPolicy>,TEXT("FogIntegralPixelShader"),TEXT("SphericalDensityMain"),SF_Pixel,BM_FOG_VOLUME_SHADER_VERSION,BM_FOG_VOLUME_PIXEL_SHADER_LICENSEE_VERSION);
 
 IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TFogIntegralVertexShader<FConeDensityPolicy>,TEXT("FogIntegralVertexShader"),TEXT("Main"),SF_Vertex,BM_FOG_VOLUME_SHADER_VERSION,BM_FOG_VOLUME_VERTEX_SHADER_LICENSEE_VERSION);
 IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TFogIntegralPixelShader<FConeDensityPolicy>,TEXT("FogIntegralPixelShader"),TEXT("ConeDensityMain"),SF_Pixel,BM_FOG_VOLUME_SHADER_VERSION,BM_FOG_VOLUME_PIXEL_SHADER_LICENSEE_VERSION);
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FFogVolumeApplyVertexShader,TEXT("FogVolumeApplyVertexShader"),TEXT("Main"),SF_Vertex,BM_FOG_VOLUME_SHADER_VERSION,BM_BM2_FOG_VOLUME_LICENSEE_VERSION);
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FFogVolumeApplyPixelShader,TEXT("FogVolumeApplyPixelShader"),TEXT("Main"),SF_Pixel,BM_FOG_VOLUME_SHADER_VERSION,BM_BM2_FOG_VOLUME_LICENSEE_VERSION);
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FSphericalFogVolumeApplyPixelShader,TEXT("FogVolumeApplyPixelShader"),TEXT("MainSpherical"),SF_Pixel,BM_FOG_VOLUME_SHADER_VERSION,BM_BM2_FOG_VOLUME_LICENSEE_VERSION);
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FSphericalCheapLightApplyPixelShader,TEXT("FogVolumeApplyPixelShader"),TEXT("MainSphericalCheapLight"),SF_Pixel,BM_FOG_VOLUME_SHADER_VERSION,BM_BM2_FOG_VOLUME_LICENSEE_VERSION);
+IMPLEMENT_MATERIAL_SHADER_TYPE(,FFogVolumeApplyVertexShader,TEXT("FogVolumeApplyVertexShader"),TEXT("Main"),SF_Vertex,BM_FOG_VOLUME_SHADER_VERSION,BM_FOG_VOLUME_VERTEX_SHADER_LICENSEE_VERSION);
+IMPLEMENT_MATERIAL_SHADER_TYPE(,FFogVolumeApplyPixelShader,TEXT("FogVolumeApplyPixelShader"),TEXT("Main"),SF_Pixel,BM_FOG_VOLUME_SHADER_VERSION,BM_FOG_VOLUME_PIXEL_SHADER_LICENSEE_VERSION);
+IMPLEMENT_MATERIAL_SHADER_TYPE(,FSphericalFogVolumeApplyPixelShader,TEXT("FogVolumeApplyPixelShader"),TEXT("MainSpherical"),SF_Pixel,BM_FOG_VOLUME_SHADER_VERSION,BM_FOG_VOLUME_PIXEL_SHADER_LICENSEE_VERSION);
+IMPLEMENT_MATERIAL_SHADER_TYPE(,FSphericalCheapLightApplyPixelShader,TEXT("FogVolumeApplyPixelShader"),TEXT("MainSphericalCheapLight"),SF_Pixel,BM_FOG_VOLUME_SHADER_VERSION,BM_FOG_VOLUME_PIXEL_SHADER_LICENSEE_VERSION);
 
 #undef BM_FOG_VOLUME_SHADER_VERSION
 #undef BM_FOG_VOLUME_VERTEX_SHADER_LICENSEE_VERSION
 #undef BM_FOG_VOLUME_PIXEL_SHADER_LICENSEE_VERSION
-#undef BM_BM2_FOG_VOLUME_LICENSEE_VERSION
 
 
 template<class DensityFunctionPolicy>

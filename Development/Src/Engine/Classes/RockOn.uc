@@ -1,9 +1,9 @@
 /**
  * Copyright 1998-2011 Epic Games, Inc. All Rights Reserved.
  *
- * Batman: Arkham City uber post process effect (RockOn). Performs DOF, bloom,
+ * Rocksteady uber post process effect (RockOn). Performs DOF, bloom,
  * motion blur, scene color grading and tone mapping in a single pass, and
- * composites the RockAtmos atmospherics. Replaces UberPostProcessEffect.
+ * composites the RockAtmos atmospherics.
  */
 class RockOn extends DOFBloomMotionBlurEffect
 	native

@@ -1347,19 +1347,8 @@ void SerializeShaders(const TMap<FGuid,FShader*>& InShaders, FArchive& Ar)
 			}
 			else
 			{
-				UBOOL bShaderSourceOutdated = FALSE;
-				UBOOL bCheckShaderSourceHash = ShouldReloadChangedShaders();
-#if BATMAN
-				if (Ar.IsBmCooked())
-				{
-					bCheckShaderSourceHash = FALSE;
-				}
-#endif
-				if (bCheckShaderSourceHash)
-				{
-					const FSHAHash& CurrentHash = ShaderType->GetSourceHash();
-					bShaderSourceOutdated = SavedHash != CurrentHash;
-				}
+				// Get the current hash of the shader's source files
+				const FSHAHash& CurrentHash = ShaderType->GetSourceHash();
 
 				FShader* Shader = ShaderType->FindShaderById(ShaderId);
 				if (Shader)
@@ -1368,7 +1357,7 @@ void SerializeShaders(const TMap<FGuid,FShader*>& InShaders, FArchive& Ar)
 					Ar.Seek(SkipOffset);
 					NumRedundantShaders++;
 				}
-				else if (bShaderSourceOutdated)
+				else if (ShouldReloadChangedShaders() && SavedHash != CurrentHash && !Ar.IsBmCooked(TRUE))
 				{
 					// If the shader has changed since it was last compiled, skip it.
 					Ar.Seek(SkipOffset);

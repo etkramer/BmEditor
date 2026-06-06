@@ -97,7 +97,9 @@ public:
 	/** Distance from the camera at which the fog should start, in world units. */
 	FLOAT StartDistance;
 
+#if !BATMAN
 	FLOAT MaxDistance;
+#endif
 
 	/** Name of the owner actor, used for debugging */
 	FName OwnerName;

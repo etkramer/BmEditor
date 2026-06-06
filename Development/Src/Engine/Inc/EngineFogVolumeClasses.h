@@ -146,7 +146,6 @@ public:
     FLinearColor SimpleLightColor;
     FLinearColor ApproxFogLightColor;
     FLOAT StartDistance;
-    FLOAT MaxDistance;
     TArrayNoInit<class AActor*> FogVolumeActors;
     //## END PROPS FogVolumeDensityComponent
 

@@ -42,12 +42,6 @@ var()	interp	LinearColor	ApproxFogLightColor;
 var()	interp	float	StartDistance;
 
 /** 
- * MaxDistance can be tweaked to be as low as it can go without making the fog noticeably less opaque, 
- * And that will greatly improve the anti aliasing effect on opaque geometry in the foreground. 
- */
-var()	float	MaxDistance;
-
-/** 
  * Optional array of actors that will define the shape of the fog volume. 
  * These actors will not be moved along with the fog volume, and they can be selected directly.
  */
@@ -106,5 +100,4 @@ defaultproperties
 	SimpleLightColor=(R=0.5,G=0.5,B=0.7,A=1.0)
 	ApproxFogLightColor=(R=0.5,G=0.5,B=0.7,A=1.0)
 	StartDistance=0.0
-	MaxDistance=65535.0
 }

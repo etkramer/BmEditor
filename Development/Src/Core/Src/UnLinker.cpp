@@ -3813,6 +3813,7 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 			LoadClass->GetName() == "Pylon" ||
 			LoadClass->GetName() == "SceneCapture2DActor" ||
 			LoadClass->GetName() == "FractureMaterial" ||
+			LoadClass->GetName() == "FracturedStaticMeshComponent" ||
 			LoadClass->GetName() == "ApexClothingAsset" ||
 			LoadClass->GetName() == "ParticleSystemComponent" ||
 
@@ -3824,6 +3825,7 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 
 			LoadClass->GetName() == "PhysicalMaterial" ||
 			LoadClass->GetName() == "NavigationMeshBase" ||
+			LoadClass->GetName() == "FaceFxAsset" ||
             LoadClass->GetName() == "FaceFxAnimSet"
         ))
         {
