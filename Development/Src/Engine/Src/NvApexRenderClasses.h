@@ -34,6 +34,7 @@
 #include "Engine.h"
 #include "GPUSkinVertexFactory.h"
 #include "LocalVertexFactoryShaderParms.h"
+#include "ParticleInstancedMeshVertexFactory.h"
 
 #if WITH_APEX
 
@@ -1263,6 +1264,41 @@ private:
 	DataType                   Data;
 };
 
+/**
+ * FLocalInstancedVertexFactoryApex
+ *
+ * BM2/Gangland APEX instanced meshes use the packed instanced mesh vertex factory shader.
+ */
+class FLocalInstancedVertexFactoryApex : public FLocalVertexFactoryApex
+{
+	DECLARE_VERTEX_FACTORY_TYPE(FLocalInstancedVertexFactoryApex);
+
+public:
+#if WITH_APEX
+	FLocalInstancedVertexFactoryApex(const FApexRenderResource &InApexRenderResource) :
+		FLocalVertexFactoryApex(InApexRenderResource)
+	{
+	}
+#endif
+
+	static FVertexFactoryShaderParameters* ConstructShaderParameters(EShaderFrequency ShaderFrequency)
+	{
+		return ShaderFrequency == SF_Vertex ? new FParticleInstancedMeshVertexFactoryShaderParameters() : NULL;
+	}
+
+	static UBOOL ShouldCache(EShaderPlatform Platform, const class FMaterial *Material, const class FShaderType *ShaderType)
+	{
+		return Platform == SP_PCD3D_SM3
+			&& (Material->IsUsedWithAPEXMeshes() || Material->IsSpecialEngineMaterial() || Material->IsUsedWithInstancedMeshes())
+			&& !Material->IsUsedWithDecals();
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		OutEnvironment.Definitions.Set(TEXT("COLOR_OVER_LIFE"), TEXT("1"));
+	}
+};
+
 
 /**
  * FGPUSkinVertexFactoryApexDestructible - used by APEX destructible module which may take advantage of GPU skinning
@@ -1679,6 +1715,7 @@ private:
 #endif
 
 
+IMPLEMENT_VERTEX_FACTORY_TYPE(FLocalInstancedVertexFactoryApex, "MeshInstancedVertexFactoryPacked", TRUE, FALSE, TRUE, TRUE, 500, 0);
 IMPLEMENT_VERTEX_FACTORY_TYPE(FLocalVertexFactoryApex, "LocalVertexFactory", TRUE, FALSE, TRUE, TRUE, VER_DEPRECATED_EDITOR_POSITION, 0);
 
 /**

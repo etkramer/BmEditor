@@ -21,23 +21,21 @@ class FVelocityShaderParameters
 public:
 	FVelocityShaderParameters(const FShaderParameterMap& ParameterMap)
 	{
-		PreViewTranslationDeltaParameter.Bind(ParameterMap,TEXT("PreViewTranslationDelta"),TRUE);
+		PrevViewProjectionMatrixParameter.Bind(ParameterMap,TEXT("PrevViewProjectionMatrix"),TRUE);
 	}
 	FVelocityShaderParameters() {}
 
 	/** Serializer. */
 	friend FArchive& operator<<(FArchive& Ar,FVelocityShaderParameters& P)
 	{
-		Ar << P.PreViewTranslationDeltaParameter;
+		Ar << P.PrevViewProjectionMatrixParameter;
 		return Ar;
 	}
 
 	template<typename ShaderRHIParamRef>
 	void Set(ShaderRHIParamRef Shader, const FViewInfo& View, UBOOL bFullMotionBlur)
 	{
-		FSceneViewState* ViewState = (FSceneViewState*) View.State;
-
-		SetShaderValue(Shader, PreViewTranslationDeltaParameter, View.PreViewTranslation - View.PrevPreViewTranslation);
+		SetShaderValue(Shader, PrevViewProjectionMatrixParameter, FTranslationMatrix(-View.PrevPreViewTranslation) * View.PrevViewProjMatrix);
 	}
 
 	/** Set the vertex shader parameter values. */
@@ -56,7 +54,7 @@ public:
 
 private:
 
-	FShaderParameter			PreViewTranslationDeltaParameter;
+	FShaderParameter			PrevViewProjectionMatrixParameter;
 };
 
 //=============================================================================

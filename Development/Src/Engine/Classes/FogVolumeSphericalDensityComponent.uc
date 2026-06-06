@@ -10,6 +10,9 @@ class FogVolumeSphericalDensityComponent extends FogVolumeDensityComponent
 /** This is the density at the center of the sphere, which will be the maximum. */
 var()	interp	float	MaxDensity;
 
+/** Treat this spherical fog volume as a cheap light. */
+var()	bool	bTreatAsCheapLight;
+
 /** The sphere's center in world space. */
 var	vector SphereCenter;
 

@@ -13,6 +13,8 @@ IMPLEMENT_CLASS(UParticleLightEnvironmentComponent);
 // Default to AP3D mode, matching retail BM2 (Default.xex.c:188280). A future console command
 // can toggle to DLEC_Unmolested to fall back to the stock SH/Sky pair for debugging.
 EDLEC_Mode GDLEC_Mode = DLEC_APlus3D;
+FLOAT GDirectionalAmbientRatio = 0.15000001f;
+UBOOL bDoWeightedShadowAmbient = TRUE;
 #endif
 
 DECLARE_STATS_GROUP(TEXT("DLE"),STATGROUP_DLE);
@@ -520,6 +522,26 @@ static FSHVectorRGB GetSkyLightEnvironment(const UDynamicLightEnvironmentCompone
 			FSHVector::LowerSkyFunction() * TotalLowerColor;
 }
 
+#if BATMAN
+IMPLEMENT_COMPARE_CONSTREF(FDirectionalApproximation,DLEC,
+{
+	if (B.Intensity > A.Intensity)
+	{
+		return 1;
+	}
+	if (A.Intensity > B.Intensity)
+	{
+		return -1;
+	}
+	return 0;
+})
+
+static FLinearColor GetAPlus3DAmbientColour(const FSHVectorRGB& IncidentRadiance)
+{
+	return GetPositiveColor(IncidentRadiance.CalcIntegral() / FSHVector::ConstantBasisIntegral);
+}
+#endif
+
 /** Returns the integral of the square of the difference between two spherical harmonic projected functions. */
 static FLOAT GetSquaredDifferenceIntegral(const FSHVectorRGB& A,const FSHVectorRGB& B)
 {
@@ -541,8 +563,191 @@ FDynamicLightEnvironmentState::FDynamicLightEnvironmentState(UDynamicLightEnviro
 ,	CurrentDominantShadowTransitionDistance(InComponent->DominantShadowTransitionStartDistance)
 ,	CurrentRepresentativeShadowLight(NULL)
 ,	bFirstFullUpdate(TRUE)
+#if BATMAN
+,	StaticAmbientColour(FLinearColor::Black)
+,	DynamicAmbientColour(FLinearColor::Black)
+,	AccumulatedAlpha(1.0f)
+#endif
 {
 }
+
+#if BATMAN
+void FDynamicLightEnvironmentState::AddAPlus3DDirectionalApproximation(const FLinearColor& Colour,const FVector& Direction,UBOOL bIsDynamic)
+{
+	if (GDLEC_Mode < DLEC_APlus3D)
+	{
+		return;
+	}
+
+	const FLOAT IntensitySq = Square(Colour.R) + Square(Colour.G) + Square(Colour.B);
+	if (IntensitySq > 0.0f && Direction.SizeSquared() > SMALL_NUMBER)
+	{
+		FDirectionalApproximation Approximation(Colour, Direction.SafeNormal());
+		if (bIsDynamic)
+		{
+			DynamicDirectionalApproximations.AddItem(Approximation);
+		}
+		else
+		{
+			StaticDirectionalApproximations.AddItem(Approximation);
+		}
+	}
+}
+
+void FDynamicLightEnvironmentState::AddAPlus3DAmbient(const FLinearColor& Colour,UBOOL bIsDynamic)
+{
+	if (GDLEC_Mode < DLEC_APlus3D)
+	{
+		return;
+	}
+
+	if (bIsDynamic)
+	{
+		DynamicAmbientColour += Colour;
+	}
+	else
+	{
+		StaticAmbientColour += Colour;
+	}
+}
+
+void FDynamicLightEnvironmentState::AddAPlus3DFromSH(const FSHVectorRGB& InIncidentRadiance,UBOOL bIsDynamic)
+{
+	if (GDLEC_Mode < DLEC_APlus3D)
+	{
+		return;
+	}
+
+	FSHVectorRGB IncidentRadiance = InIncidentRadiance;
+
+	for (INT DirectionIndex = 0; DirectionIndex < 3; DirectionIndex++)
+	{
+		FVector Direction;
+		FLinearColor Intensity;
+		if (ExtractDominantLight(IncidentRadiance, Direction, Intensity, 1.0f))
+		{
+			AddAPlus3DDirectionalApproximation(Intensity, Direction, bIsDynamic);
+		}
+		else
+		{
+			break;
+		}
+	}
+
+	AddAPlus3DAmbient(GetAPlus3DAmbientColour(IncidentRadiance), bIsDynamic);
+}
+
+void FDynamicLightEnvironmentState::RebuildAPlus3DState(UBOOL bSnapToTarget)
+{
+	if (GDLEC_Mode < DLEC_APlus3D)
+	{
+		return;
+	}
+
+	TArray<FDirectionalApproximation> Approximations = StaticDirectionalApproximations;
+	for (INT DynamicIndex = 0; DynamicIndex < DynamicDirectionalApproximations.Num(); DynamicIndex++)
+	{
+		Approximations.AddItem(DynamicDirectionalApproximations(DynamicIndex));
+	}
+
+	FLinearColor AmbientColour = StaticAmbientColour + DynamicAmbientColour;
+	if (Approximations.Num() > 1)
+	{
+		Sort<USE_COMPARE_CONSTREF(FDirectionalApproximation,DLEC)>(&Approximations(0), Approximations.Num());
+	}
+
+	while (Approximations.Num() > 3)
+	{
+		const INT LastIndex = Approximations.Num() - 1;
+		const FDirectionalApproximation Extra = Approximations(LastIndex);
+		Approximations.Remove(LastIndex);
+
+		if (Abs(Extra.Intensity) <= 0.0099999998f)
+		{
+			continue;
+		}
+
+		INT BestIndex = INDEX_NONE;
+		FLOAT BestDot = -2.0f;
+		for (INT TestIndex = 0; TestIndex < Approximations.Num(); TestIndex++)
+		{
+			const FLOAT CurrentDot = Extra.Direction | Approximations(TestIndex).Direction;
+			if (CurrentDot > BestDot)
+			{
+				BestDot = CurrentDot;
+				BestIndex = TestIndex;
+			}
+		}
+
+		if (BestIndex != INDEX_NONE && BestDot > 0.8434f)
+		{
+			FDirectionalApproximation& Best = Approximations(BestIndex);
+			const FLOAT BestIntensity = Best.Intensity;
+			Best.Colour += Extra.Colour;
+			Best.Direction = (Best.Direction * BestIntensity + Extra.Direction * Extra.Intensity).SafeNormal();
+			Best.Intensity = appSqrt(Square(Best.Colour.R) + Square(Best.Colour.G) + Square(Best.Colour.B));
+			if (Approximations.Num() > 1)
+			{
+				Sort<USE_COMPARE_CONSTREF(FDirectionalApproximation,DLEC)>(&Approximations(0), Approximations.Num());
+			}
+		}
+		else
+		{
+			AmbientColour += bDoWeightedShadowAmbient ? Extra.Colour * GDirectionalAmbientRatio : Extra.Colour;
+		}
+	}
+
+	for (INT DirectionIndex = 0; DirectionIndex < 3; DirectionIndex++)
+	{
+		Next3DPlusAState.Direction[DirectionIndex] = FVector(0,0,1);
+		Next3DPlusAState.Colour[DirectionIndex] = FVector::ZeroVector;
+		if (DirectionIndex < Approximations.Num())
+		{
+			const FDirectionalApproximation& Approximation = Approximations(DirectionIndex);
+			Next3DPlusAState.Direction[DirectionIndex] = Approximation.Direction.SafeNormal();
+			Next3DPlusAState.Colour[DirectionIndex] = FVector(Approximation.Colour.R, Approximation.Colour.G, Approximation.Colour.B);
+		}
+	}
+	Next3DPlusAState.Ambient = FVector(AmbientColour.R, AmbientColour.G, AmbientColour.B);
+
+	Previous3DPlusAState = Current3DPlusAState;
+	AccumulatedAlpha = 0.0f;
+	if (bSnapToTarget)
+	{
+		Previous3DPlusAState = Next3DPlusAState;
+		Current3DPlusAState = Next3DPlusAState;
+		AccumulatedAlpha = 1.0f;
+	}
+}
+
+void FDynamicLightEnvironmentState::InterpolateAPlus3DState(FLOAT Alpha)
+{
+	if (Alpha <= 0.0f)
+	{
+		Current3DPlusAState = Previous3DPlusAState;
+		return;
+	}
+	if (Alpha >= 1.0f)
+	{
+		Previous3DPlusAState = Next3DPlusAState;
+		Current3DPlusAState = Next3DPlusAState;
+		return;
+	}
+
+	for (INT DirectionIndex = 0; DirectionIndex < 3; DirectionIndex++)
+	{
+		Current3DPlusAState.Direction[DirectionIndex] =
+			(Previous3DPlusAState.Direction[DirectionIndex] +
+			(Next3DPlusAState.Direction[DirectionIndex] - Previous3DPlusAState.Direction[DirectionIndex]) * Alpha).SafeNormal();
+		Current3DPlusAState.Colour[DirectionIndex] =
+			Previous3DPlusAState.Colour[DirectionIndex] +
+			(Next3DPlusAState.Colour[DirectionIndex] - Previous3DPlusAState.Colour[DirectionIndex]) * Alpha;
+	}
+	Current3DPlusAState.Ambient =
+		Previous3DPlusAState.Ambient +
+		(Next3DPlusAState.Ambient - Previous3DPlusAState.Ambient) * Alpha;
+}
+#endif
 
 void FDynamicLightEnvironmentState::UpdateOwner()
 {
@@ -691,6 +896,10 @@ void FDynamicLightEnvironmentState::UpdateStaticEnvironment(ULightComponent* New
 	NewStaticNonShadowedLightEnvironment = FSHVectorRGB();
 	NewStaticShadowInfo.DominantShadowFactor = 1.0f;
 	FSHVectorRGB NewStaticShadowEnvironment;
+#if BATMAN
+	StaticDirectionalApproximations.Empty();
+	StaticAmbientColour = FLinearColor::Black;
+#endif
 
 	if ((!GLightEnvironmentDebugInfo.bShowIndirectLightingOnly || GLightEnvironmentDebugInfo.Component && GLightEnvironmentDebugInfo.Component != Component) && 
 		Component->OverriddenLightComponents.Num() == 0)
@@ -806,6 +1015,9 @@ void FDynamicLightEnvironmentState::UpdateStaticEnvironment(ULightComponent* New
 			const FSHVectorRGB CombinedIncidentRadiance = AccumulatedIncidentRadiance * (1.0f / AccumulatedWeight);
 
 			NewStaticLightEnvironment += CombinedIncidentRadiance;
+#if BATMAN
+			AddAPlus3DFromSH(CombinedIncidentRadiance, FALSE);
+#endif
 			if (GLightEnvironmentDebugInfo.bShowIndirectLightingShadowDirection)
 			{
 				// Apply the indirect lighting to the shadow environment so that it will affect the shadow direction and color
@@ -826,6 +1038,9 @@ void FDynamicLightEnvironmentState::UpdateStaticEnvironment(ULightComponent* New
 			const FSHVectorRGB EnvironmentSH = FSHVector::UpperSkyFunction() * EnvironmentColor * .9f + FSHVector::LowerSkyFunction() * EnvironmentColor * .1f;
 			NewStaticLightEnvironment += EnvironmentSH;
 			NewStaticShadowEnvironment += EnvironmentSH;
+#if BATMAN
+			AddAPlus3DFromSH(EnvironmentSH, FALSE);
+#endif
 		}
 
 		// Update debug info if we're visualizing volume samples
@@ -889,6 +1104,9 @@ void FDynamicLightEnvironmentState::UpdateStaticEnvironment(ULightComponent* New
 
 	// Add the ambient glow.
 	NewStaticLightEnvironment += FSHVector::AmbientFunction() * (Component->AmbientGlow * 4.0f);
+#if BATMAN
+	AddAPlus3DAmbient(Component->AmbientGlow * 4.0f, FALSE);
+#endif
 
 	// Add the ambient shadow source.
 	const FSHVector AmbientShadowSH = SHBasisFunction(Component->AmbientShadowSourceDirection.SafeNormal());
@@ -905,6 +1123,10 @@ void FDynamicLightEnvironmentState::UpdateStaticEnvironment(ULightComponent* New
 		NewStaticShadowInfo.DominantShadowIntensity = FLinearColor::Black;
 		NewStaticShadowInfo.TotalShadowIntensity = FLinearColor::Black;
 	}
+
+#if BATMAN
+	RebuildAPlus3DState(FALSE);
+#endif
 }
 
 void FDynamicLightEnvironmentState::UpdateDynamicEnvironment()
@@ -915,6 +1137,10 @@ void FDynamicLightEnvironmentState::UpdateDynamicEnvironment()
 	DynamicLightEnvironment = FSHVectorRGB();
 	DynamicNonShadowedLightEnvironment = FSHVectorRGB();
 	FSHVectorRGB DynamicShadowEnvironment;
+#if BATMAN
+	DynamicDirectionalApproximations.Empty();
+	DynamicAmbientColour = FLinearColor::Black;
+#endif
 
 	if ((!GLightEnvironmentDebugInfo.bShowIndirectLightingOnly || GLightEnvironmentDebugInfo.Component && GLightEnvironmentDebugInfo.Component != Component)
 		&& Component->OverriddenLightComponents.Num() == 0)
@@ -946,6 +1172,10 @@ void FDynamicLightEnvironmentState::UpdateDynamicEnvironment()
 		DynamicShadowInfo.DominantShadowIntensity = FLinearColor::Black;
 		DynamicShadowInfo.TotalShadowIntensity = FLinearColor::Black;
 	}
+
+#if BATMAN
+	RebuildAPlus3DState(FALSE);
+#endif
 }
 
 void FDynamicLightEnvironmentState::UpdateEnvironmentInterpolation(FLOAT DeltaTime,FLOAT TimeBetweenUpdates)
@@ -960,6 +1190,13 @@ void FDynamicLightEnvironmentState::UpdateEnvironmentInterpolation(FLOAT DeltaTi
 	StaticLightEnvironment						+= TransitionAlpha * NewStaticLightEnvironment;
 	StaticNonShadowedLightEnvironment			+= TransitionAlpha * NewStaticNonShadowedLightEnvironment;
 	StaticShadowInfo.DominantShadowFactor		= (1.0f - TransitionAlpha) * StaticShadowInfo.DominantShadowFactor + TransitionAlpha * NewStaticShadowInfo.DominantShadowFactor;
+#if BATMAN
+	if (GDLEC_Mode >= DLEC_APlus3D)
+	{
+		AccumulatedAlpha = Clamp(AccumulatedAlpha + TransitionAlpha, 0.0f, 1.0f);
+		InterpolateAPlus3DState(AccumulatedAlpha);
+	}
+#endif
 
 	// Interpolate the shadow based on distance traveled instead of time.
 	// This has the advantage that the shadow interpolation will stop when the DLE stops moving.
@@ -988,6 +1225,9 @@ void FDynamicLightEnvironmentState::Update()
 
 	UpdateStaticEnvironment(NewAffectingDominantLight);
 	UpdateDynamicEnvironment();
+#if BATMAN
+	RebuildAPlus3DState(TRUE);
+#endif
 
 	// Immediately transition to the newly computed light environment.
 	StaticLightEnvironment = NewStaticLightEnvironment;
@@ -1428,9 +1668,7 @@ void FDynamicLightEnvironmentState::CreateEnvironmentLightList(ULightComponent* 
 #if BATMAN
 			if (GDLEC_Mode >= DLEC_APlus3D)
 			{
-				// BM2 AP3D path: fit the secondary environment to 3 representative directional
-				// lights plus an ambient term, then emit a single UAmbientPlus3DirectionalLightComponent
-				// instead of the legacy SH/Sky pair. Mirrors retail Default.xex.c:645660-645716.
+				// BM: Retail BM2 copies the already-built F3DPlusAState into the AP3D light here.
 				UAmbientPlus3DirectionalLightComponent* AP3DLight = AllocateLight<UAmbientPlus3DirectionalLightComponent>();
 				AP3DLight->LightingChannels = OwnerLightingChannels;
 				AP3DLight->LightEnvironment = Component;
@@ -1439,34 +1677,12 @@ void FDynamicLightEnvironmentState::CreateEnvironmentLightList(ULightComponent* 
 				// uses when the DLE casts shadows isn't ported yet; until it is, leaving this
 				// FALSE would drop the AP3D contribution entirely and render BM2 characters black.
 				AP3DLight->bRenderBeforeModShadows = TRUE;
-
-				// Start with the weighted secondary environment and extract three dominant
-				// directions, leaving the residual to become the ambient term.
-				FSHVectorRGB Remaining = SecondaryLightEnvironment * SecondaryLightWeight;
 				for (INT DirIndex = 0; DirIndex < 3; DirIndex++)
 				{
-					FVector Dir;
-					FLinearColor Intensity;
-					if (ExtractDominantLight(Remaining, Dir, Intensity, 1.0f))
-					{
-						// ExtractDominantLight returns the direction towards the light source,
-						// which is the polarity consumed by the AP3D base pass shader.
-						const FLinearColor DesaturatedIntensity = Intensity.Desaturate(Component->LightDesaturation);
-						AP3DLight->LightDirections[DirIndex] = Dir;
-						AP3DLight->LightColours[DirIndex] = FVector(DesaturatedIntensity.R, DesaturatedIntensity.G, DesaturatedIntensity.B);
-					}
-					else
-					{
-						AP3DLight->LightDirections[DirIndex] = FVector(0, 0, 1);
-						AP3DLight->LightColours[DirIndex] = FVector::ZeroVector;
-					}
+					AP3DLight->LightDirections[DirIndex] = Current3DPlusAState.Direction[DirIndex];
+					AP3DLight->LightColours[DirIndex] = Current3DPlusAState.Colour[DirIndex];
 				}
-
-				// Whatever's left in the SH environment after the three directional extractions
-				// is folded down to a constant-term ambient. AmbientFunction is the SH basis
-				// constant; dotting against it recovers the average radiance.
-				const FLinearColor AmbientIntensity = GetLightIntensity(Remaining, FSHVector::AmbientFunction()).Desaturate(Component->LightDesaturation);
-				AP3DLight->Ambient = FVector(AmbientIntensity.R, AmbientIntensity.G, AmbientIntensity.B);
+				AP3DLight->Ambient = Current3DPlusAState.Ambient;
 
 				AP3DLight->ConditionalAttach(Component->GetScene(), NULL, FMatrix::Identity);
 			}
@@ -1802,6 +2018,9 @@ void FDynamicLightEnvironmentState::AddLightToEnvironment(
 
 			// Add the sky light to the light environment SH.
 			LightEnvironment += IndividualSkyLightEnvironment;
+#if BATMAN
+			AddAPlus3DAmbient(GetAPlus3DAmbientColour(IndividualSkyLightEnvironment), bIsDynamic);
+#endif
 
 			if(Light->bCastCompositeShadow)
 			{
@@ -1841,6 +2060,9 @@ void FDynamicLightEnvironmentState::AddLightToEnvironment(
 				// Add the light to the light environment SH.
 				const FSHVectorRGB IndividualLightEnvironment = SHBasisFunction(LightVector) * Intensity;
 				LightEnvironment += IndividualLightEnvironment;
+#if BATMAN
+				AddAPlus3DDirectionalApproximation(Intensity, LightVector, bIsDynamic);
+#endif
 			}
 
 			// Add the bounced light to the non-shadowed light environment SH.

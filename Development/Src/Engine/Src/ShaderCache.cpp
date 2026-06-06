@@ -1135,23 +1135,21 @@ public:
 		{
 			if (!bMismatch)
 			{
-				static INT MismatchLogs = 0;
-				if (MismatchLogs++ < 20)
+				WORD Expected = NextSerialization < PastSerializations.Num() ? PastSerializations(NextSerialization) : 0;
+				FString Dump = FString::Printf(TEXT("  PastSer: "));
+				for (INT i = 0; i < Min(PastSerializations.Num(), NextSerialization + 5); i++)
 				{
-					WORD Expected = NextSerialization < PastSerializations.Num() ? PastSerializations(NextSerialization) : 0;
-					debugf(NAME_Warning, TEXT("ShaderLoadArchive: FIRST mismatch [%s] in %s at call %d/%d: expected %d, got %d, pos=%d"),
-						ShaderTypeName,
-						GetLinker() ? *GetLinker()->Filename : TEXT("UnknownArchive"),
-						NextSerialization, PastSerializations.Num(), Expected, Length, Tell());
-					FString Dump = FString::Printf(TEXT("  PastSer: "));
-					for (INT i = 0; i < Min(PastSerializations.Num(), NextSerialization + 5); i++)
-					{
-						Dump += FString::Printf(TEXT("%s%d"), (i == NextSerialization) ? TEXT("[") : TEXT(""), PastSerializations(i));
-						if (i == NextSerialization) Dump += TEXT("]");
-						if (i < PastSerializations.Num() - 1) Dump += TEXT(",");
-					}
-					debugf(NAME_Warning, *Dump);
+					Dump += FString::Printf(TEXT("%s%d"), (i == NextSerialization) ? TEXT("[") : TEXT(""), PastSerializations(i));
+					if (i == NextSerialization) Dump += TEXT("]");
+					if (i < PastSerializations.Num() - 1) Dump += TEXT(",");
 				}
+
+				appErrorf(
+					TEXT("ShaderLoadArchive: FIRST mismatch [%s] in %s at call %d/%d: expected %d, got %d, pos=%d\n%s"),
+					ShaderTypeName,
+					GetLinker() ? *GetLinker()->Filename : TEXT("UnknownArchive"),
+					NextSerialization, PastSerializations.Num(), Expected, Length, Tell(),
+					*Dump);
 			}
 			bMismatch = TRUE;
 		}
@@ -1349,8 +1347,19 @@ void SerializeShaders(const TMap<FGuid,FShader*>& InShaders, FArchive& Ar)
 			}
 			else
 			{
-				// Get the current hash of the shader's source files
-				const FSHAHash& CurrentHash = ShaderType->GetSourceHash();
+				UBOOL bShaderSourceOutdated = FALSE;
+				UBOOL bCheckShaderSourceHash = ShouldReloadChangedShaders();
+#if BATMAN
+				if (Ar.IsBmCooked(TRUE))
+				{
+					bCheckShaderSourceHash = FALSE;
+				}
+#endif
+				if (bCheckShaderSourceHash)
+				{
+					const FSHAHash& CurrentHash = ShaderType->GetSourceHash();
+					bShaderSourceOutdated = SavedHash != CurrentHash;
+				}
 
 				FShader* Shader = ShaderType->FindShaderById(ShaderId);
 				if (Shader)
@@ -1359,13 +1368,7 @@ void SerializeShaders(const TMap<FGuid,FShader*>& InShaders, FArchive& Ar)
 					Ar.Seek(SkipOffset);
 					NumRedundantShaders++;
 				}
-				else if (ShouldReloadChangedShaders() && SavedHash != CurrentHash
-#if BATMAN
-					// BM2's shipped shader cache was compiled against retail .usf files. Until our
-					// shader sources match those exactly, prefer the cooked bytecode for BM2 packages.
-					&& !Ar.IsBmCooked(TRUE)
-#endif
-				)
+				else if (bShaderSourceOutdated)
 				{
 					// If the shader has changed since it was last compiled, skip it.
 					Ar.Seek(SkipOffset);
@@ -1374,6 +1377,20 @@ void SerializeShaders(const TMap<FGuid,FShader*>& InShaders, FArchive& Ar)
 				}
 				else if ((Ar.Ver() < ShaderType->GetMinPackageVersion()) || (Ar.LicenseeVer() < ShaderType->GetMinLicenseePackageVersion()))
 				{
+#if BATMAN
+					if (Ar.IsBmCooked(TRUE))
+					{
+						appErrorf(
+							TEXT("ShaderCache: refusing to skip BM2 shader %s in %s for package version mismatch. Archive Ver=%d LicenseeVer=%d, Shader MinVer=%d MinLicenseeVer=%d, pos=%d"),
+							ShaderType->GetName(),
+							Ar.GetLinker() ? *Ar.GetLinker()->Filename : TEXT("UnknownArchive"),
+							Ar.Ver(),
+							Ar.LicenseeVer(),
+							ShaderType->GetMinPackageVersion(),
+							ShaderType->GetMinLicenseePackageVersion(),
+							Ar.Tell());
+					}
+#endif
 					// If the shader type's serialization is compatible with the version the shader was saved in, skip it.
 					Ar.Seek(SkipOffset);
 					NumLegacyShaders++;
@@ -1398,6 +1415,19 @@ void SerializeShaders(const TMap<FGuid,FShader*>& InShaders, FArchive& Ar)
 
 					if (LoadArchive.HadSerializationMismatch() || bShaderHasOutdatedParameters)
 					{
+#if BATMAN
+						if (Ar.IsBmCooked(TRUE))
+						{
+							appErrorf(
+								TEXT("ShaderCache: refusing to skip BM2 shader %s in %s for outdated parameters. SerializationMismatch=%d OutdatedParameters=%d, pos=%d, skip=%d"),
+								ShaderType->GetName(),
+								Ar.GetLinker() ? *Ar.GetLinker()->Filename : TEXT("UnknownArchive"),
+								LoadArchive.HadSerializationMismatch(),
+								bShaderHasOutdatedParameters,
+								Ar.Tell(),
+								SkipOffset);
+						}
+#endif
 						// Remove all references to the shader and delete it since it has outdated parameters.
 						ShaderType->DeregisterShader(Shader);
 						delete Shader;

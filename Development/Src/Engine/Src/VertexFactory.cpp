@@ -89,6 +89,15 @@ FArchive& operator<<(FArchive& Ar,FVertexFactoryType*& TypeRef)
 		FName TypeName = NAME_None;
 		Ar << TypeName;
 		TypeRef = FindVertexFactoryType(TypeName);
+#if BATMAN
+		if (!TypeRef && Ar.IsBmCooked(TRUE))
+		{
+			appErrorf(
+				TEXT("VertexFactoryType: missing BM2 vertex factory type %s while loading shader cache at pos=%d"),
+				*TypeName.ToString(),
+				Ar.Tell());
+		}
+#endif
 	}
 	return Ar;
 }
@@ -489,19 +498,27 @@ UBOOL operator<<(FArchive& Ar,FVertexFactoryVSParameterRef& Ref)
 		delete Ref.Parameters;
 		if (Ref.VertexFactoryType)
 		{
-			const FSHAHash& CurrentVFHash = Ref.VertexFactoryType->GetSourceHash();
+			UBOOL bVertexFactoryHashMatches = TRUE;
+#if !CONSOLE
+			bVertexFactoryHashMatches = !ShouldReloadChangedShaders();
+#if BATMAN
+			if (Ar.IsBmCooked(TRUE))
+			{
+				bVertexFactoryHashMatches = TRUE;
+			}
+#endif
+			if (!bVertexFactoryHashMatches)
+			{
+				const FSHAHash& CurrentVFHash = Ref.VertexFactoryType->GetSourceHash();
+				bVertexFactoryHashMatches = Ref.VFHash == CurrentVFHash;
+			}
+#endif
 
 			if (Ar.Ver() >= Ref.VertexFactoryType->GetMinPackageVersion() 
 				&& Ar.LicenseeVer() >= Ref.VertexFactoryType->GetMinLicenseePackageVersion()
 #if !CONSOLE
 				// Only create the vertex factory shader parameters if the current vertex factory file hash matches the one the shader was compiled with
-				&& (!ShouldReloadChangedShaders() || Ref.VFHash == CurrentVFHash
-#if BATMAN
-					// BM2's cooked shader caches were compiled with retail vertex factory shader sources.
-					// Keep the shipped bytecode usable until our local .usf files match retail exactly.
-					|| Ar.IsBmCooked(TRUE)
-#endif
-					)
+				&& bVertexFactoryHashMatches
 #endif
 				)
 			{
@@ -509,12 +526,31 @@ UBOOL operator<<(FArchive& Ar,FVertexFactoryVSParameterRef& Ref)
 			}
 			else
 			{
+#if BATMAN
+				if (Ar.IsBmCooked(TRUE))
+				{
+					appErrorf(
+						TEXT("VertexFactoryParameterRef: refusing to skip BM2 vertex factory parameters for VF %s. Archive Ver=%d LicenseeVer=%d, VF MinVer=%d MinLicenseeVer=%d, pos=%d"),
+						Ref.VertexFactoryType ? Ref.VertexFactoryType->GetName() : TEXT("NULL"),
+						Ar.Ver(),
+						Ar.LicenseeVer(),
+						Ref.VertexFactoryType ? Ref.VertexFactoryType->GetMinPackageVersion() : 0,
+						Ref.VertexFactoryType ? Ref.VertexFactoryType->GetMinLicenseePackageVersion() : 0,
+						Ar.Tell());
+				}
+#endif
 				bShaderHasOutdatedParameters = TRUE;
 				Ref.Parameters = NULL;
 			}
 		}
 		else
 		{
+#if BATMAN
+			if (Ar.IsBmCooked(TRUE))
+			{
+				appErrorf(TEXT("VertexFactoryParameterRef: NULL vertex factory type while loading BM2 shader cache at pos=%d"), Ar.Tell());
+			}
+#endif
 			bShaderHasOutdatedParameters = TRUE;
 			Ref.Parameters = NULL;
 		}
@@ -591,19 +627,27 @@ UBOOL operator<<(FArchive& Ar,FVertexFactoryPSParameterRef& Ref)
 
 		if (Ref.VertexFactoryType)
 		{
-			const FSHAHash& CurrentVFHash = Ref.VertexFactoryType->GetSourceHash();
+			UBOOL bVertexFactoryHashMatches = TRUE;
+#if !CONSOLE
+			bVertexFactoryHashMatches = !ShouldReloadChangedShaders();
+#if BATMAN
+			if (Ar.IsBmCooked(TRUE))
+			{
+				bVertexFactoryHashMatches = TRUE;
+			}
+#endif
+			if (!bVertexFactoryHashMatches)
+			{
+				const FSHAHash& CurrentVFHash = Ref.VertexFactoryType->GetSourceHash();
+				bVertexFactoryHashMatches = Ref.VFHash == CurrentVFHash;
+			}
+#endif
 
 			if (Ar.Ver() >= Ref.VertexFactoryType->GetMinPackageVersion() 
 				&& Ar.LicenseeVer() >= Ref.VertexFactoryType->GetMinLicenseePackageVersion()
 #if !CONSOLE
 				// Only create the vertex factory shader parameters if the current vertex factory file hash matches the one the shader was compiled with
-				&& (!ShouldReloadChangedShaders() || Ref.VFHash == CurrentVFHash
-#if BATMAN
-					// BM2's cooked shader caches were compiled with retail vertex factory shader sources.
-					// Keep the shipped bytecode usable until our local .usf files match retail exactly.
-					|| Ar.IsBmCooked(TRUE)
-#endif
-					)
+				&& bVertexFactoryHashMatches
 #endif
 				)
 			{

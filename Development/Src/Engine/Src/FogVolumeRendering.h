@@ -114,6 +114,16 @@ public:
 		const FPrimitiveSceneInfo* PrimitiveSceneInfo,
 		FHitProxyId HitProxyId) = 0;
 
+	virtual UBOOL UseTreatAsCheapLight() const
+	{
+		return FALSE;
+	}
+
+	virtual UBOOL UseOptimisation() const
+	{
+		return FALSE;
+	}
+
 	/** Gets the number of pixel shader instructions to render the integral. */
 	virtual UINT GetNumIntegralShaderInstructions(const FMaterial* MaterialResource, const FVertexFactory* InVertexFactory) const = 0;
 
@@ -249,6 +259,8 @@ public:
 	/** The density at the center of the sphere, which is the maximum density. */
 	FLOAT MaxDensity;
 
+	UBOOL bTreatAsCheapLight;
+
 	/** The sphere in worldspace */
 	FSphere Sphere;
 
@@ -264,6 +276,16 @@ public:
 		FHitProxyId HitProxyId);
 
 	virtual UINT GetNumIntegralShaderInstructions(const FMaterial* MaterialResource, const FVertexFactory* InVertexFactory) const;
+
+	virtual UBOOL UseTreatAsCheapLight() const
+	{
+		return bTreatAsCheapLight;
+	}
+
+	virtual UBOOL UseOptimisation() const
+	{
+		return TRUE;
+	}
 
 	virtual FVector4 GetFirstDensityFunctionParameters(const FSceneView& Vie) const;
 	virtual FVector4 GetSecondDensityFunctionParameters(const FSceneView& Vie) const;
@@ -441,7 +463,7 @@ public:
 	static UBOOL ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 #if BATMAN
-		return Material->GetBlendMode() == BLEND_Opaque;
+		return !Material->IsUsedWithDecals();
 #else
 		//don't compile the translucency vertex shader for GPU skinned vertex factories with this density function since it will run out of constant registers
 		if (!Material->IsUsedWithFogVolumes() && appStrstr(VertexFactoryType->GetName(), TEXT("FGPUSkin")))
@@ -1063,6 +1085,218 @@ private:
 	FShaderResourceParameter AccumulatedBackfacesLineIntegralTextureParam;
 };
 
+/**
+* A pixel shader for applying optimized spherical fog volumes.
+*/
+class FSphericalFogVolumeApplyPixelShader : public FShader
+{
+	DECLARE_SHADER_TYPE(FSphericalFogVolumeApplyPixelShader,MeshMaterial);
+
+public:
+	static UBOOL ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	{
+		return Material->IsUsedWithFogVolumes();
+	}
+
+	FSphericalFogVolumeApplyPixelShader(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		:	FShader(Initializer)
+	{
+		MaxIntegralParameter.Bind(Initializer.ParameterMap,TEXT("MaxIntegral"), TRUE);
+		MaterialParameters.Bind(Initializer.ParameterMap);
+		AccumulatedFrontfacesLineIntegralTextureParam.Bind(Initializer.ParameterMap,TEXT("AccumulatedFrontfacesLineIntegralTexture"), TRUE);
+		AccumulatedBackfacesLineIntegralTextureParam.Bind(Initializer.ParameterMap,TEXT("AccumulatedBackfacesLineIntegralTexture"), TRUE);
+		ScreenToWorldParameter.Bind(Initializer.ParameterMap,TEXT("ScreenToWorld"),TRUE);
+		CameraPosParameter.Bind(Initializer.ParameterMap,TEXT("FogCameraPosition"),TRUE);
+		FirstDensityFunctionParameters.Bind(Initializer.ParameterMap,TEXT("FirstDensityFunctionParameters"),TRUE);
+		SecondDensityFunctionParameters.Bind(Initializer.ParameterMap,TEXT("SecondDensityFunctionParameters"),TRUE);
+	}
+
+	FSphericalFogVolumeApplyPixelShader()
+	{
+	}
+
+	void SetParameters(
+		const FVertexFactory* VertexFactory,
+		const FMaterialRenderProxy* MaterialRenderProxy,
+		const FSceneView& View,
+		const FFogVolumeDensitySceneInfo* DensitySceneInfo)
+	{
+		FMaterialRenderContext MaterialRenderContext(MaterialRenderProxy, View.Family->CurrentWorldTime, View.Family->CurrentRealTime, &View);
+		MaterialParameters.Set(this,MaterialRenderContext);
+
+		SetTextureParameter(
+			GetPixelShader(),
+			AccumulatedFrontfacesLineIntegralTextureParam,
+			TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
+			GSceneRenderTargets.GetFogFrontfacesIntegralAccumulationTexture()
+			);
+
+		SetTextureParameter(
+			GetPixelShader(),
+			AccumulatedBackfacesLineIntegralTextureParam,
+			TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
+			GSceneRenderTargets.GetFogBackfacesIntegralAccumulationTexture()
+			);
+
+		SetPixelShaderValue( GetPixelShader(), MaxIntegralParameter, DensitySceneInfo->GetMaxIntegral());
+
+		const FMatrix ScreenToWorld =
+			FMatrix(
+			FPlane(1,0,0,0),
+			FPlane(0,1,0,0),
+			FPlane(0,0,(1.0f - Z_PRECISION),1),
+			FPlane(0,0,-View.NearClippingDistance * (1.0f - Z_PRECISION),0)
+			) * View.InvTranslatedViewProjectionMatrix;
+
+		SetPixelShaderValue( GetPixelShader(), ScreenToWorldParameter, ScreenToWorld );
+
+		const FVector4 TranslatedViewOrigin = View.ViewOrigin + FVector4(View.PreViewTranslation,0);
+		SetPixelShaderValue( GetPixelShader(), CameraPosParameter, TranslatedViewOrigin);
+		SetPixelShaderValue( GetPixelShader(), FirstDensityFunctionParameters, DensitySceneInfo->GetFirstDensityFunctionParameters(View));
+		SetPixelShaderValue( GetPixelShader(), SecondDensityFunctionParameters, DensitySceneInfo->GetSecondDensityFunctionParameters(View));
+	}
+
+	void SetMesh(const FPrimitiveSceneInfo* PrimitiveSceneInfo,const FMeshElement& Mesh,const FSceneView& View,UBOOL bBackFace)
+	{
+		MaterialParameters.SetMesh(this,PrimitiveSceneInfo,Mesh,View,bBackFace);
+	}
+
+	virtual UBOOL Serialize(FArchive& Ar)
+	{
+		UBOOL bShaderHasOutdatedParameters = FShader::Serialize(Ar);
+		Ar << MaxIntegralParameter;
+		Ar << MaterialParameters;
+		Ar << AccumulatedFrontfacesLineIntegralTextureParam;
+		Ar << AccumulatedBackfacesLineIntegralTextureParam;
+		Ar << ScreenToWorldParameter;
+		Ar << CameraPosParameter;
+		Ar << FirstDensityFunctionParameters;
+		Ar << SecondDensityFunctionParameters;
+		return bShaderHasOutdatedParameters;
+	}
+
+	virtual UBOOL IsUniformExpressionSetValid(const FUniformExpressionSet& UniformExpressionSet) const
+	{
+		return MaterialParameters.IsUniformExpressionSetValid(UniformExpressionSet);
+	}
+
+private:
+	FShaderParameter MaxIntegralParameter;
+	FMaterialPixelShaderParameters MaterialParameters;
+	FShaderResourceParameter AccumulatedFrontfacesLineIntegralTextureParam;
+	FShaderResourceParameter AccumulatedBackfacesLineIntegralTextureParam;
+	FShaderParameter ScreenToWorldParameter;
+	FShaderParameter CameraPosParameter;
+	FShaderParameter FirstDensityFunctionParameters;
+	FShaderParameter SecondDensityFunctionParameters;
+};
+
+/**
+* A pixel shader for applying optimized spherical fog volumes as cheap lights.
+*/
+class FSphericalCheapLightApplyPixelShader : public FShader
+{
+	DECLARE_SHADER_TYPE(FSphericalCheapLightApplyPixelShader,MeshMaterial);
+
+public:
+	static UBOOL ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	{
+		return Material->IsUsedWithFogVolumes();
+	}
+
+	FSphericalCheapLightApplyPixelShader(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		:	FShader(Initializer)
+	{
+		MaxIntegralParameter.Bind(Initializer.ParameterMap,TEXT("MaxIntegral"), TRUE);
+		MaterialParameters.Bind(Initializer.ParameterMap);
+		AccumulatedFrontfacesLineIntegralTextureParam.Bind(Initializer.ParameterMap,TEXT("AccumulatedFrontfacesLineIntegralTexture"), TRUE);
+		AccumulatedBackfacesLineIntegralTextureParam.Bind(Initializer.ParameterMap,TEXT("AccumulatedBackfacesLineIntegralTexture"), TRUE);
+		ScreenToWorldParameter.Bind(Initializer.ParameterMap,TEXT("ScreenToWorld"),TRUE);
+		CameraPosParameter.Bind(Initializer.ParameterMap,TEXT("FogCameraPosition"),TRUE);
+		FirstDensityFunctionParameters.Bind(Initializer.ParameterMap,TEXT("FirstDensityFunctionParameters"),TRUE);
+		SecondDensityFunctionParameters.Bind(Initializer.ParameterMap,TEXT("SecondDensityFunctionParameters"),TRUE);
+	}
+
+	FSphericalCheapLightApplyPixelShader()
+	{
+	}
+
+	void SetParameters(
+		const FVertexFactory* VertexFactory,
+		const FMaterialRenderProxy* MaterialRenderProxy,
+		const FSceneView& View,
+		const FFogVolumeDensitySceneInfo* DensitySceneInfo)
+	{
+		FMaterialRenderContext MaterialRenderContext(MaterialRenderProxy, View.Family->CurrentWorldTime, View.Family->CurrentRealTime, &View);
+		MaterialParameters.Set(this,MaterialRenderContext);
+
+		SetTextureParameter(
+			GetPixelShader(),
+			AccumulatedFrontfacesLineIntegralTextureParam,
+			TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
+			GSceneRenderTargets.GetFogFrontfacesIntegralAccumulationTexture()
+			);
+
+		SetTextureParameter(
+			GetPixelShader(),
+			AccumulatedBackfacesLineIntegralTextureParam,
+			TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
+			GSceneRenderTargets.GetFogBackfacesIntegralAccumulationTexture()
+			);
+
+		SetPixelShaderValue( GetPixelShader(), MaxIntegralParameter, DensitySceneInfo->GetMaxIntegral());
+
+		const FMatrix ScreenToWorld =
+			FMatrix(
+			FPlane(1,0,0,0),
+			FPlane(0,1,0,0),
+			FPlane(0,0,(1.0f - Z_PRECISION),1),
+			FPlane(0,0,-View.NearClippingDistance * (1.0f - Z_PRECISION),0)
+			) * View.InvTranslatedViewProjectionMatrix;
+
+		SetPixelShaderValue( GetPixelShader(), ScreenToWorldParameter, ScreenToWorld );
+
+		const FVector4 TranslatedViewOrigin = View.ViewOrigin + FVector4(View.PreViewTranslation,0);
+		SetPixelShaderValue( GetPixelShader(), CameraPosParameter, TranslatedViewOrigin);
+		SetPixelShaderValue( GetPixelShader(), FirstDensityFunctionParameters, DensitySceneInfo->GetFirstDensityFunctionParameters(View));
+		SetPixelShaderValue( GetPixelShader(), SecondDensityFunctionParameters, DensitySceneInfo->GetSecondDensityFunctionParameters(View));
+	}
+
+	void SetMesh(const FPrimitiveSceneInfo* PrimitiveSceneInfo,const FMeshElement& Mesh,const FSceneView& View,UBOOL bBackFace)
+	{
+		MaterialParameters.SetMesh(this,PrimitiveSceneInfo,Mesh,View,bBackFace);
+	}
+
+	virtual UBOOL Serialize(FArchive& Ar)
+	{
+		UBOOL bShaderHasOutdatedParameters = FShader::Serialize(Ar);
+		Ar << MaxIntegralParameter;
+		Ar << MaterialParameters;
+		Ar << AccumulatedFrontfacesLineIntegralTextureParam;
+		Ar << AccumulatedBackfacesLineIntegralTextureParam;
+		Ar << ScreenToWorldParameter;
+		Ar << CameraPosParameter;
+		Ar << FirstDensityFunctionParameters;
+		Ar << SecondDensityFunctionParameters;
+		return bShaderHasOutdatedParameters;
+	}
+
+	virtual UBOOL IsUniformExpressionSetValid(const FUniformExpressionSet& UniformExpressionSet) const
+	{
+		return MaterialParameters.IsUniformExpressionSetValid(UniformExpressionSet);
+	}
+
+private:
+	FShaderParameter MaxIntegralParameter;
+	FMaterialPixelShaderParameters MaterialParameters;
+	FShaderResourceParameter AccumulatedFrontfacesLineIntegralTextureParam;
+	FShaderResourceParameter AccumulatedBackfacesLineIntegralTextureParam;
+	FShaderParameter ScreenToWorldParameter;
+	FShaderParameter CameraPosParameter;
+	FShaderParameter FirstDensityFunctionParameters;
+	FShaderParameter SecondDensityFunctionParameters;
+};
+
 
 /**
 * Policy for applying fog contribution to scene color
@@ -1129,6 +1363,8 @@ public:
 private:
 	FFogVolumeApplyVertexShader* VertexShader;
 	FFogVolumeApplyPixelShader* PixelShader;
+	FSphericalFogVolumeApplyPixelShader* SphericalPixelShader;
+	FSphericalCheapLightApplyPixelShader* SphericalCheapLightPixelShader;
 	UINT NumIntegralInstructions;
 };
 

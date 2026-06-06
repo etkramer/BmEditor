@@ -6,6 +6,7 @@
 #include "Common.usf"
 #include "Material.usf"
 #include "VertexFactory.usf"
+#include "FogVolumeCommon.usf"
 
 /* Texture containing the accumulated integral for frontfaces */
 sampler2D AccumulatedFrontfacesLineIntegralTexture;
@@ -74,3 +75,108 @@ void Main(
 }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//==============================================================================================================================
+//@Rock - JoelS: Start optimised spherical fog path...
+//==============================================================================================================================
+
+/* transform from post projective space to world space */
+float4x4 ScreenToWorld;
+
+/* world space camera position */
+float4	FogCameraPosition;
+
+// NVCHANGE_BEGIN_RS: JJ - stereo fixes
+/*
+* Returns the world space position of ScreenPosition or the closest opaque object.
+*/
+float3 GetClosestWorldPos(float4 StereoScreenPosition)
+{
+	half SceneW = PreviousDepth(StereoScreenPosition);
+
+	//clamp scene depth to a reasonable range
+	SceneW = min(SceneW, 65535.0f);
+
+	//use whichever is closest, this pixel or the nearest opaque object
+	half ClosestDistance = min(SceneW, StereoScreenPosition.z);
+	
+	float4 StereoClosestScreenPos = StereoScreenPosition * (SceneW/StereoScreenPosition.w);
+	float4 MonoClosestScreenPos = StereoToMonoClipPos(StereoClosestScreenPos);
+	
+	//transform into worldspace
+	return MulMatrix(ScreenToWorld, float4(MonoClosestScreenPos.xy, SceneW, 1)).xyz;
+}
+// NVCHANGE_END_RS: JJ - stereo fixes
+
+void MainSpherical(
+	FVertexFactoryInterpolantsVSToPS Interpolants,
+	float4	PixelPosition	: TEXCOORD5,
+	in float4	CameraVectorOrVertexColor	: TEXCOORD6,
+	OPTIONAL_FacingSign
+	out float4 OutColor		: COLOR0
+	)
+{
+	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Interpolants);
+	CalcMaterialParameters(MaterialParameters,FacingSign,CameraVectorOrVertexColor,PixelPosition);
+	
+	//use the material's emissive input as fog color
+	half3 FogColor = GetMaterialEmissive(MaterialParameters);
+
+	// NVCHANGE_BEGIN_RS: JJ - stereo fixes
+	float3 WorldReceiverPos = GetClosestWorldPos(MaterialParameters.ScreenPosition);
+	// NVCHANGE_END_RS: JJ - stereo fixes
+	
+	float AccumulatedLineIntegral = RockSphericalLineIntegral(WorldReceiverPos, FogCameraPosition.xyz);
+
+	//evaluate the transmittance function, f = exp(-LineIntegral)
+	//use material opacity to scale the fog integral
+	float FogFactor = saturate(exp2(-AccumulatedLineIntegral * GetMaterialOpacity(MaterialParameters)));
+
+	//combine with scene color, SrcColor * f + (1-f) * FogColor
+	OutColor = RETURN_COLOR(half4(FogColor, FogFactor)); //float4(1,0,0,0);//
+}
+
+void MainSphericalCheapLight(
+	FVertexFactoryInterpolantsVSToPS Interpolants,
+	float4	PixelPosition	: TEXCOORD5,
+	in float4	CameraVectorOrVertexColor	: TEXCOORD6,
+	OPTIONAL_FacingSign
+	out float4 OutColor		: COLOR0
+	)
+{
+	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Interpolants);
+	CalcMaterialParameters(MaterialParameters,FacingSign,CameraVectorOrVertexColor,PixelPosition);
+	
+	//use the material's emissive input as fog color
+	half3 FogColor = GetMaterialEmissive(MaterialParameters);
+
+	// NVCHANGE_BEGIN_RS: JJ - stereo fixes
+	float3 WorldReceiverPos = GetClosestWorldPos(MaterialParameters.ScreenPosition);
+	// NVCHANGE_END_RS: JJ - stereo fixes
+	
+	half AccumulatedLineIntegral = RockCheapLightIntegral(WorldReceiverPos, FogCameraPosition.xyz);
+
+	//evaluate the transmittance function, f = exp(-LineIntegral)
+	//use material opacity to scale the fog integral
+	FogColor *= 1.h - saturate(exp2(-AccumulatedLineIntegral * GetMaterialOpacity(MaterialParameters)));
+
+	//combine with scene color
+	OutColor = half4(1.h + FogColor, 1.h);
+
+}
+//==============================================================================================================================
+//@Rock - JoelS: ...End optimised spherical fog path
+//==============================================================================================================================

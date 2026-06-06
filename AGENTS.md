@@ -13,8 +13,6 @@ Build uses UnrealBuildTool. Do not try to trigger builds on your own. The editor
 ## Key Preprocessor Defines
 
 - `BATMAN=1` — always enabled; gates all Batman-specific code paths via `#if BATMAN`
-- `GAMENAME=BMGAME`, `IS_BMGAME=1` — game identification
-- These are set in `Development/Src/UnrealBuildTool/Configuration/UE3BuildBmGame.cs`
 
 ## Decompiled Reference
 
@@ -32,10 +30,6 @@ The core work in this repo is making UE3's serialization understand BM2's cooked
 ## Logging
 
 Most log channels are silenced in UE3. Prefer "debugf(NAME_Log, ...)" or "warnf(NAME_Warning, ...)" for logging
-
-## Subagents
-
-In major investigations - use subagents where possible, instead of performing research in-context. Context compaction is a huge setback that can be avoided through careful use of subagents - try to act as a manager (of subagents) rather than a worker
 
 BM2 packages are all Ver=805, LicenseeVer=101
 

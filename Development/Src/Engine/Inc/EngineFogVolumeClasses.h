@@ -253,6 +253,8 @@ class UFogVolumeSphericalDensityComponent : public UFogVolumeDensityComponent
 public:
     //## BEGIN PROPS FogVolumeSphericalDensityComponent
     FLOAT MaxDensity;
+	BITFIELD bTreatAsCheapLight:1;
+	SCRIPT_ALIGN;
     FVector SphereCenter;
     FLOAT SphereRadius;
     class UDrawLightRadiusComponent* PreviewSphereRadius;

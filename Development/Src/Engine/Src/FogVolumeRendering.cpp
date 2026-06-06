@@ -203,6 +203,7 @@ FFogVolumeSphericalDensitySceneInfo
 FFogVolumeSphericalDensitySceneInfo::FFogVolumeSphericalDensitySceneInfo(const UFogVolumeSphericalDensityComponent* InComponent, const FBox &InVolumeBounds, UINT InDPGIndex):
 	FFogVolumeDensitySceneInfo(InComponent, InVolumeBounds, InDPGIndex),
 	MaxDensity(InComponent->MaxDensity),
+	bTreatAsCheapLight(InComponent->bTreatAsCheapLight),
 	Sphere(FSphere(InComponent->SphereCenter, InComponent->SphereRadius))
 {}
 
@@ -225,7 +226,7 @@ UINT FFogVolumeSphericalDensitySceneInfo::GetNumIntegralShaderInstructions(const
 
 FVector4 FFogVolumeSphericalDensitySceneInfo::GetFirstDensityFunctionParameters(const FSceneView& View) const
 {
-	return FVector4(MaxDensity, 0.0f, 0.0f, 0.0f);
+	return FVector4(MaxDensity * 650.0f, 0.0f, 0.0f, 0.0f);
 }
 
 FVector4 FFogVolumeSphericalDensitySceneInfo::GetSecondDensityFunctionParameters(const FSceneView& View) const
@@ -283,20 +284,40 @@ FLOAT FFogVolumeConeDensitySceneInfo::GetMaxIntegral() const
 }
 
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TFogIntegralVertexShader<FConstantDensityPolicy>,TEXT("FogIntegralVertexShader"),TEXT("Main"),SF_Vertex,VER_CONTENT_RESAVE_AUGUST_2007_QA_BUILD,0);
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TFogIntegralPixelShader<FConstantDensityPolicy>,TEXT("FogIntegralPixelShader"),TEXT("ConstantDensityMain"),SF_Pixel,VER_CONTENT_RESAVE_AUGUST_2007_QA_BUILD,0);
+#if BATMAN
+#define BM_FOG_VOLUME_SHADER_VERSION 796
+#define BM_FOG_VOLUME_VERTEX_SHADER_LICENSEE_VERSION 93
+#define BM_FOG_VOLUME_PIXEL_SHADER_LICENSEE_VERSION 97
+// Gangland registers these as 102, but BM2 shader cache packages are LicenseeVer 101.
+#define BM_BM2_FOG_VOLUME_LICENSEE_VERSION 101
+#else
+#define BM_FOG_VOLUME_SHADER_VERSION VER_CONTENT_RESAVE_AUGUST_2007_QA_BUILD
+#define BM_FOG_VOLUME_VERTEX_SHADER_LICENSEE_VERSION 0
+#define BM_FOG_VOLUME_PIXEL_SHADER_LICENSEE_VERSION 0
+#define BM_BM2_FOG_VOLUME_LICENSEE_VERSION 0
+#endif
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TFogIntegralVertexShader<FLinearHalfspaceDensityPolicy>,TEXT("FogIntegralVertexShader"),TEXT("Main"),SF_Vertex,VER_CONTENT_RESAVE_AUGUST_2007_QA_BUILD,0);
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TFogIntegralPixelShader<FLinearHalfspaceDensityPolicy>,TEXT("FogIntegralPixelShader"),TEXT("LinearHalfspaceDensityMain"),SF_Pixel,VER_CONTENT_RESAVE_AUGUST_2007_QA_BUILD,0);
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TFogIntegralVertexShader<FConstantDensityPolicy>,TEXT("FogIntegralVertexShader"),TEXT("Main"),SF_Vertex,BM_FOG_VOLUME_SHADER_VERSION,BM_FOG_VOLUME_VERTEX_SHADER_LICENSEE_VERSION);
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TFogIntegralPixelShader<FConstantDensityPolicy>,TEXT("FogIntegralPixelShader"),TEXT("ConstantDensityMain"),SF_Pixel,BM_FOG_VOLUME_SHADER_VERSION,BM_FOG_VOLUME_PIXEL_SHADER_LICENSEE_VERSION);
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TFogIntegralVertexShader<FSphereDensityPolicy>,TEXT("FogIntegralVertexShader"),TEXT("Main"),SF_Vertex,VER_CONTENT_RESAVE_AUGUST_2007_QA_BUILD,0);
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TFogIntegralPixelShader<FSphereDensityPolicy>,TEXT("FogIntegralPixelShader"),TEXT("SphericalDensityMain"),SF_Pixel,VER_CONTENT_RESAVE_AUGUST_2007_QA_BUILD,0);
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TFogIntegralVertexShader<FLinearHalfspaceDensityPolicy>,TEXT("FogIntegralVertexShader"),TEXT("Main"),SF_Vertex,BM_FOG_VOLUME_SHADER_VERSION,BM_FOG_VOLUME_VERTEX_SHADER_LICENSEE_VERSION);
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TFogIntegralPixelShader<FLinearHalfspaceDensityPolicy>,TEXT("FogIntegralPixelShader"),TEXT("LinearHalfspaceDensityMain"),SF_Pixel,BM_FOG_VOLUME_SHADER_VERSION,BM_FOG_VOLUME_PIXEL_SHADER_LICENSEE_VERSION);
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TFogIntegralVertexShader<FConeDensityPolicy>,TEXT("FogIntegralVertexShader"),TEXT("Main"),SF_Vertex,VER_CONTENT_RESAVE_AUGUST_2007_QA_BUILD,0);
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TFogIntegralPixelShader<FConeDensityPolicy>,TEXT("FogIntegralPixelShader"),TEXT("ConeDensityMain"),SF_Pixel,VER_CONTENT_RESAVE_AUGUST_2007_QA_BUILD,0);
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TFogIntegralVertexShader<FSphereDensityPolicy>,TEXT("FogIntegralVertexShader"),TEXT("Main"),SF_Vertex,BM_FOG_VOLUME_SHADER_VERSION,BM_BM2_FOG_VOLUME_LICENSEE_VERSION);
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TFogIntegralPixelShader<FSphereDensityPolicy>,TEXT("FogIntegralPixelShader"),TEXT("SphericalDensityMain"),SF_Pixel,BM_FOG_VOLUME_SHADER_VERSION,BM_BM2_FOG_VOLUME_LICENSEE_VERSION);
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FFogVolumeApplyVertexShader,TEXT("FogVolumeApplyVertexShader"),TEXT("Main"),SF_Vertex,VER_CONTENT_RESAVE_AUGUST_2007_QA_BUILD,0);
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FFogVolumeApplyPixelShader,TEXT("FogVolumeApplyPixelShader"),TEXT("Main"),SF_Pixel,VER_CONTENT_RESAVE_AUGUST_2007_QA_BUILD,0);
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TFogIntegralVertexShader<FConeDensityPolicy>,TEXT("FogIntegralVertexShader"),TEXT("Main"),SF_Vertex,BM_FOG_VOLUME_SHADER_VERSION,BM_FOG_VOLUME_VERTEX_SHADER_LICENSEE_VERSION);
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TFogIntegralPixelShader<FConeDensityPolicy>,TEXT("FogIntegralPixelShader"),TEXT("ConeDensityMain"),SF_Pixel,BM_FOG_VOLUME_SHADER_VERSION,BM_FOG_VOLUME_PIXEL_SHADER_LICENSEE_VERSION);
+
+IMPLEMENT_MATERIAL_SHADER_TYPE(,FFogVolumeApplyVertexShader,TEXT("FogVolumeApplyVertexShader"),TEXT("Main"),SF_Vertex,BM_FOG_VOLUME_SHADER_VERSION,BM_BM2_FOG_VOLUME_LICENSEE_VERSION);
+IMPLEMENT_MATERIAL_SHADER_TYPE(,FFogVolumeApplyPixelShader,TEXT("FogVolumeApplyPixelShader"),TEXT("Main"),SF_Pixel,BM_FOG_VOLUME_SHADER_VERSION,BM_BM2_FOG_VOLUME_LICENSEE_VERSION);
+IMPLEMENT_MATERIAL_SHADER_TYPE(,FSphericalFogVolumeApplyPixelShader,TEXT("FogVolumeApplyPixelShader"),TEXT("MainSpherical"),SF_Pixel,BM_FOG_VOLUME_SHADER_VERSION,BM_BM2_FOG_VOLUME_LICENSEE_VERSION);
+IMPLEMENT_MATERIAL_SHADER_TYPE(,FSphericalCheapLightApplyPixelShader,TEXT("FogVolumeApplyPixelShader"),TEXT("MainSphericalCheapLight"),SF_Pixel,BM_FOG_VOLUME_SHADER_VERSION,BM_BM2_FOG_VOLUME_LICENSEE_VERSION);
+
+#undef BM_FOG_VOLUME_SHADER_VERSION
+#undef BM_FOG_VOLUME_VERTEX_SHADER_LICENSEE_VERSION
+#undef BM_FOG_VOLUME_PIXEL_SHADER_LICENSEE_VERSION
+#undef BM_BM2_FOG_VOLUME_LICENSEE_VERSION
 
 
 template<class DensityFunctionPolicy>
@@ -412,7 +433,26 @@ FFogVolumeApplyDrawingPolicy::FFogVolumeApplyDrawingPolicy(
 {
 	const FMaterial* MaterialResource = InMaterialRenderProxy->GetMaterial();
 	VertexShader = MaterialResource->GetShader<FFogVolumeApplyVertexShader>(InVertexFactory->GetType());
-	PixelShader = MaterialResource->GetShader<FFogVolumeApplyPixelShader>(InVertexFactory->GetType());
+	if (DensitySceneInfo->UseOptimisation())
+	{
+		PixelShader = NULL;
+		if (DensitySceneInfo->UseTreatAsCheapLight())
+		{
+			SphericalPixelShader = NULL;
+			SphericalCheapLightPixelShader = MaterialResource->GetShader<FSphericalCheapLightApplyPixelShader>(InVertexFactory->GetType());
+		}
+		else
+		{
+			SphericalPixelShader = MaterialResource->GetShader<FSphericalFogVolumeApplyPixelShader>(InVertexFactory->GetType());
+			SphericalCheapLightPixelShader = NULL;
+		}
+	}
+	else
+	{
+		PixelShader = MaterialResource->GetShader<FFogVolumeApplyPixelShader>(InVertexFactory->GetType());
+		SphericalPixelShader = NULL;
+		SphericalCheapLightPixelShader = NULL;
+	}
 
 #if !FINAL_RELEASE
 	if (bInOverrideWithShaderComplexity)
@@ -434,7 +474,9 @@ UBOOL FFogVolumeApplyDrawingPolicy::Matches(
 {
 	return FMeshDrawingPolicy::Matches(Other) &&
 		VertexShader == Other.VertexShader && 
-		PixelShader == Other.PixelShader;
+		PixelShader == Other.PixelShader &&
+		SphericalPixelShader == Other.SphericalPixelShader &&
+		SphericalCheapLightPixelShader == Other.SphericalCheapLightPixelShader;
 }
 
 /**
@@ -461,8 +503,20 @@ void FFogVolumeApplyDrawingPolicy::DrawShared(
 		
 		const UINT FogDownsampleFactor = GSceneRenderTargets.GetFogAccumulationDownsampleFactor();
 		// Approximate the number of instructions used to shade each final pixel of the fog volume
-		const UINT NumPixelInstructions = PixelShader->GetNumInstructions() 
-			+ NumIntegralInstructions / (FogDownsampleFactor * FogDownsampleFactor);
+		UINT NumPixelInstructions = 0;
+		if (PixelShader)
+		{
+			NumPixelInstructions = PixelShader->GetNumInstructions()
+				+ NumIntegralInstructions / (FogDownsampleFactor * FogDownsampleFactor);
+		}
+		else if (SphericalPixelShader)
+		{
+			NumPixelInstructions = SphericalPixelShader->GetNumInstructions();
+		}
+		else
+		{
+			NumPixelInstructions = SphericalCheapLightPixelShader->GetNumInstructions();
+		}
 
 		// Don't add any vertex complexity
 		ShaderComplexityPixelShader->SetParameters( 0, NumPixelInstructions);
@@ -470,7 +524,18 @@ void FFogVolumeApplyDrawingPolicy::DrawShared(
 	else
 #endif
 	{
-		PixelShader->SetParameters(VertexFactory,MaterialRenderProxy,*View, DensitySceneInfo);
+		if (PixelShader)
+		{
+			PixelShader->SetParameters(VertexFactory,MaterialRenderProxy,*View, DensitySceneInfo);
+		}
+		else if (SphericalPixelShader)
+		{
+			SphericalPixelShader->SetParameters(VertexFactory,MaterialRenderProxy,*View, DensitySceneInfo);
+		}
+		else
+		{
+			SphericalCheapLightPixelShader->SetParameters(VertexFactory,MaterialRenderProxy,*View, DensitySceneInfo);
+		}
 	}
 
 	// Set shared mesh resources
@@ -497,7 +562,8 @@ FBoundShaderStateRHIRef FFogVolumeApplyDrawingPolicy::CreateBoundShaderState(DWO
 		StreamStrides[0] = DynamicStride;
 	}
 
-	FPixelShaderRHIParamRef PixelShaderRHIRef = PixelShader->GetPixelShader();
+	FPixelShaderRHIParamRef PixelShaderRHIRef = PixelShader ? PixelShader->GetPixelShader() :
+		(SphericalPixelShader ? SphericalPixelShader->GetPixelShader() : SphericalCheapLightPixelShader->GetPixelShader());
 
 #if !FINAL_RELEASE
 	if (bOverrideWithShaderComplexity)
@@ -534,7 +600,18 @@ void FFogVolumeApplyDrawingPolicy::SetMeshRenderState(
 	if (!bOverrideWithShaderComplexity)
 #endif
 	{
-		PixelShader->SetMesh(PrimitiveSceneInfo,Mesh,View,bBackFace);
+		if (PixelShader)
+		{
+			PixelShader->SetMesh(PrimitiveSceneInfo,Mesh,View,bBackFace);
+		}
+		else if (SphericalPixelShader)
+		{
+			SphericalPixelShader->SetMesh(PrimitiveSceneInfo,Mesh,View,bBackFace);
+		}
+		else
+		{
+			SphericalCheapLightPixelShader->SetMesh(PrimitiveSceneInfo,Mesh,View,bBackFace);
+		}
 	}
 
 	// Set rasterizer state.
@@ -702,82 +779,102 @@ UBOOL RenderFogVolume(
 		check(FogDensityInfo);
 		SCOPED_CONDITIONAL_DRAW_EVENT(FogEvent,FogDensityInfo->OwnerName != NAME_None)(DEC_SCENE_ITEMS, FogDensityInfo->OwnerName.IsValid() ? *FogDensityInfo->OwnerName.ToString() : TEXT(""));
 
-		//calculate the dimensions of the integral accumulation buffers based on the fog downsample factor
-		const UINT FogAccumulationDownsampleFactor = GSceneRenderTargets.GetFogAccumulationDownsampleFactor();
-		const UINT FogAccumulationBufferX = View->RenderTargetX / FogAccumulationDownsampleFactor;
-		const UINT FogAccumulationBufferY = View->RenderTargetY / FogAccumulationDownsampleFactor;
-		const UINT FogAccumulationBufferSizeX = View->RenderTargetSizeX / FogAccumulationDownsampleFactor;
-		const UINT FogAccumulationBufferSizeY = View->RenderTargetSizeY / FogAccumulationDownsampleFactor;
+		const UBOOL bUseOptimisation = FogDensityInfo->UseOptimisation();
+		const UBOOL bTreatAsCheapLight = FogDensityInfo->UseTreatAsCheapLight();
+		const FVector ViewOrigin(View->ViewOrigin.X, View->ViewOrigin.Y, View->ViewOrigin.Z);
+		const UBOOL bCameraNearOrInside = bUseOptimisation &&
+			PrimitiveSceneInfo->Bounds.SphereRadius > (PrimitiveSceneInfo->Bounds.Origin - ViewOrigin).Size() - (NEAR_CLIPPING_PLANE + NEAR_CLIPPING_PLANE);
 
-		//on sm3 and PS3 this will accumulate the integral for both faces
-		//on Xenon this will accumulate the integral for back faces only
-		GSceneRenderTargets.BeginRenderingFogBackfacesIntegralAccumulation();
-		RHISetViewport(FogAccumulationBufferX, FogAccumulationBufferY, 0.0f, FogAccumulationBufferX + FogAccumulationBufferSizeX, FogAccumulationBufferY + FogAccumulationBufferSizeY, 1.0f);
-		RHISetViewParameters(*View);
+		if (bUseOptimisation)
+		{
+			bDirty = TRUE;
+		}
+		else
+		{
+			//calculate the dimensions of the integral accumulation buffers based on the fog downsample factor
+			const UINT FogAccumulationDownsampleFactor = GSceneRenderTargets.GetFogAccumulationDownsampleFactor();
+			const UINT FogAccumulationBufferX = View->RenderTargetX / FogAccumulationDownsampleFactor;
+			const UINT FogAccumulationBufferY = View->RenderTargetY / FogAccumulationDownsampleFactor;
+			const UINT FogAccumulationBufferSizeX = View->RenderTargetSizeX / FogAccumulationDownsampleFactor;
+			const UINT FogAccumulationBufferSizeY = View->RenderTargetSizeY / FogAccumulationDownsampleFactor;
 
-		//clear all channels to 0 so we start with no integral
-		RHIClear(TRUE, FLinearColor(0.0f, 0.0f, 0.0f, 0.0f), FALSE, 0, FALSE, 0);
+			//on sm3 and PS3 this will accumulate the integral for both faces
+			//on Xenon this will accumulate the integral for back faces only
+			GSceneRenderTargets.BeginRenderingFogBackfacesIntegralAccumulation();
+			RHISetViewport(FogAccumulationBufferX, FogAccumulationBufferY, 0.0f, FogAccumulationBufferX + FogAccumulationBufferSizeX, FogAccumulationBufferY + FogAccumulationBufferSizeY, 1.0f);
+			RHISetViewParameters(*View);
 
-		//no depth writes, no depth tests
-		RHISetDepthState(TStaticDepthState<FALSE,CF_Always>::GetRHI());
+			//clear all channels to 0 so we start with no integral
+			RHIClear(TRUE, FLinearColor(0.0f, 0.0f, 0.0f, 0.0f), FALSE, 0, FALSE, 0);
 
-		//additive blending for all 4 channels
-		RHISetBlendState(TStaticBlendState<BO_Add,BF_One,BF_One,BO_Add,BF_One,BF_One>::GetRHI());
+			//no depth writes, no depth tests
+			RHISetDepthState(TStaticDepthState<FALSE,CF_Always>::GetRHI());
+
+			//additive blending for all 4 channels
+			RHISetBlendState(TStaticBlendState<BO_Add,BF_One,BF_One,BO_Add,BF_One,BF_One>::GetRHI());
 
 #if !XBOX
-		//try to save some bandwidth with FP blending implementation, since we are only using the red channel
-		RHISetColorWriteMask( CW_RED);
+			//try to save some bandwidth with FP blending implementation, since we are only using the red channel
+			RHISetColorWriteMask( CW_RED);
 #endif
 
-		//render fog volume backfaces, calculating the integral from the camera to the backface (or an intersecting opaque object)
-		//and adding this to the accumulation buffer.
-		bDirty |= FogDensityInfo->DrawDynamicMesh(
-			*View,
-			Mesh,
-			TRUE,
-			bPreFog,
-			PrimitiveSceneInfo,
-			HitProxyId);
+			//render fog volume backfaces, calculating the integral from the camera to the backface (or an intersecting opaque object)
+			//and adding this to the accumulation buffer.
+			bDirty |= FogDensityInfo->DrawDynamicMesh(
+				*View,
+				Mesh,
+				TRUE,
+				bPreFog,
+				PrimitiveSceneInfo,
+				HitProxyId);
 
 #if XBOX
-		GSceneRenderTargets.FinishRenderingFogBackfacesIntegralAccumulation();
+			GSceneRenderTargets.FinishRenderingFogBackfacesIntegralAccumulation();
 
-		GSceneRenderTargets.BeginRenderingFogFrontfacesIntegralAccumulation();
-		RHISetViewport(FogAccumulationBufferX, FogAccumulationBufferY, 0.0f, FogAccumulationBufferX + FogAccumulationBufferSizeX, FogAccumulationBufferY + FogAccumulationBufferSizeY, 1.0f);
-		RHISetViewParameters(*View);
-		//clear all channels to 0 so we start with no integral
-		RHIClear( TRUE, FLinearColor(0.0f, 0.0f, 0.0f, 0.0f), FALSE, 0, FALSE, 0 );
+			GSceneRenderTargets.BeginRenderingFogFrontfacesIntegralAccumulation();
+			RHISetViewport(FogAccumulationBufferX, FogAccumulationBufferY, 0.0f, FogAccumulationBufferX + FogAccumulationBufferSizeX, FogAccumulationBufferY + FogAccumulationBufferSizeY, 1.0f);
+			RHISetViewParameters(*View);
+			//clear all channels to 0 so we start with no integral
+			RHIClear( TRUE, FLinearColor(0.0f, 0.0f, 0.0f, 0.0f), FALSE, 0, FALSE, 0 );
 
-		//render fog volume frontfaces, calculating the integral from the camera to the frontface (or an intersecting opaque object) 
-		//and adding this to the accumulation buffer for frontfaces.
-		bDirty |= FogDensityInfo->DrawDynamicMesh(
-			*View,
-			Mesh,
-			FALSE,
-			bPreFog,
-			PrimitiveSceneInfo,
-			HitProxyId);
+			//render fog volume frontfaces, calculating the integral from the camera to the frontface (or an intersecting opaque object)
+			//and adding this to the accumulation buffer for frontfaces.
+			bDirty |= FogDensityInfo->DrawDynamicMesh(
+				*View,
+				Mesh,
+				FALSE,
+				bPreFog,
+				PrimitiveSceneInfo,
+				HitProxyId);
 
-		GSceneRenderTargets.FinishRenderingFogFrontfacesIntegralAccumulation();
+			GSceneRenderTargets.FinishRenderingFogFrontfacesIntegralAccumulation();
 #else
-		//render fog volume frontfaces, calculating the integral from the camera to the frontface (or an intersecting opaque object) 
-		//and subtracting this from the accumulation buffer.
-		bDirty |= FogDensityInfo->DrawDynamicMesh(
-			*View,
-			Mesh,
-			FALSE,
-			bPreFog,
-			PrimitiveSceneInfo,
-			HitProxyId);
+			//render fog volume frontfaces, calculating the integral from the camera to the frontface (or an intersecting opaque object)
+			//and subtracting this from the accumulation buffer.
+			bDirty |= FogDensityInfo->DrawDynamicMesh(
+				*View,
+				Mesh,
+				FALSE,
+				bPreFog,
+				PrimitiveSceneInfo,
+				HitProxyId);
 
-		GSceneRenderTargets.FinishRenderingFogBackfacesIntegralAccumulation();
+			GSceneRenderTargets.FinishRenderingFogBackfacesIntegralAccumulation();
 #endif
+		}
 
 		//restore render targets assumed by transparency even if nothing was rendered in the accumulation passes
 		GSceneRenderTargets.BeginRenderingSceneColor(); 
 
-		// Alpha blend color = FogColor * (1 - FogFactor) + DestColor * FogFactor, preserve dest alpha since it stores depth on some platforms
-		RHISetBlendState(TStaticBlendState<BO_Add,BF_InverseSourceAlpha,BF_SourceAlpha,BO_Add,BF_Zero,BF_One>::GetRHI());
+		if (bTreatAsCheapLight)
+		{
+			RHISetBlendState(TStaticBlendState<BO_Add,BF_DestColor,BF_Zero,BO_Add,BF_Zero,BF_One>::GetRHI());
+		}
+		else
+		{
+			// Alpha blend color = FogColor * (1 - FogFactor) + DestColor * FogFactor, preserve dest alpha since it stores depth on some platforms
+			RHISetBlendState(TStaticBlendState<BO_Add,BF_InverseSourceAlpha,BF_SourceAlpha,BO_Add,BF_Zero,BF_One>::GetRHI());
+		}
 
 		RHISetViewport(View->RenderTargetX,View->RenderTargetY,0.0f,View->RenderTargetX + View->RenderTargetSizeX,View->RenderTargetY + View->RenderTargetSizeY,1.0f);
 		RHISetViewParameters(*View);
@@ -786,8 +883,27 @@ UBOOL RenderFogVolume(
 
 		if (bDirty)
 		{
+			if (bUseOptimisation)
+			{
+				RHISetStencilState(TStaticStencilState<>::GetRHI());
+				if (bCameraNearOrInside)
+				{
+					if (bTreatAsCheapLight)
+					{
+						RHISetDepthState(TStaticDepthState<FALSE,CF_GreaterEqual>::GetRHI());
+					}
+					else
+					{
+						RHISetDepthState(TStaticDepthState<FALSE,CF_Always>::GetRHI());
+					}
+				}
+				else
+				{
+					RHISetDepthState(TStaticDepthState<FALSE,CF_LessEqual>::GetRHI());
+				}
+			}
 			// Disable the 'write once' stencil mask when shader complexity is enabled, so that overdraw will be factored in
-			if (!(View->Family->ShowFlags & SHOW_ShaderComplexity))
+			else if (!(View->Family->ShowFlags & SHOW_ShaderComplexity))
 			{
 				//we need to only apply the fog to each pixel within the fog volume ONCE
 				//this is done with the stencil buffer
@@ -818,7 +934,7 @@ UBOOL RenderFogVolume(
 				*View,
 				FFogVolumeApplyDrawingPolicyFactory::ContextType(),
 				Mesh,
-				TRUE,
+				bUseOptimisation ? bCameraNearOrInside : TRUE,
 				bPreFog,
 				PrimitiveSceneInfo,
 				HitProxyId,
@@ -834,4 +950,3 @@ UBOOL RenderFogVolume(
 
 	return bDirty;
 }
-

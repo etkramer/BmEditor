@@ -19,6 +19,48 @@ enum EDLEC_Mode
 	DLEC_APlus3D    = 1,
 };
 extern EDLEC_Mode GDLEC_Mode;
+
+struct FDirectionalApproximation
+{
+	FLinearColor Colour;
+	FVector Direction;
+	FLOAT Intensity;
+
+	FDirectionalApproximation()
+	:	Colour(FLinearColor::Black)
+	,	Direction(0,0,1)
+	,	Intensity(0.0f)
+	{}
+
+	FDirectionalApproximation(const FLinearColor& InColour,const FVector& InDirection)
+	:	Colour(InColour)
+	,	Direction(InDirection)
+	,	Intensity(appSqrt(Square(InColour.R) + Square(InColour.G) + Square(InColour.B)))
+	{}
+
+	FDirectionalApproximation(FLOAT InIntensity,const FVector& InDirection)
+	:	Colour(FLinearColor(0,0,0,1))
+	,	Direction(InDirection)
+	,	Intensity(InIntensity)
+	{}
+};
+
+struct F3DPlusAState
+{
+	FVector Direction[3];
+	FVector Colour[3];
+	FVector Ambient;
+
+	F3DPlusAState()
+	{
+		for (INT Index = 0; Index < 3; Index++)
+		{
+			Direction[Index] = FVector(0,0,1);
+			Colour[Index] = FVector::ZeroVector;
+		}
+		Ambient = FVector::ZeroVector;
+	}
+};
 #endif
 
 /**
@@ -225,6 +267,17 @@ private:
 	/** The positions relative to the owner's bounding box which are sampled for light visibility. */
 	TArray<FVector> LightVisibilitySamplePoints;
 
+#if BATMAN
+	TArray<FDirectionalApproximation> StaticDirectionalApproximations;
+	TArray<FDirectionalApproximation> DynamicDirectionalApproximations;
+	FLinearColor StaticAmbientColour;
+	FLinearColor DynamicAmbientColour;
+	FLOAT AccumulatedAlpha;
+	F3DPlusAState Previous3DPlusAState;
+	F3DPlusAState Current3DPlusAState;
+	F3DPlusAState Next3DPlusAState;
+#endif
+
 	//@todo - remove these in a shipping build
 	TArray<FVolumeLightingSample> DebugInterpolatedVolumeSamples;
 	TArray<ULightComponent*> DebugVolumeSampleLights;
@@ -273,6 +326,14 @@ private:
 		const FBoxSphereBounds& OwnerBounds,
 		UBOOL bIsDynamic
 		);
+
+#if BATMAN
+	void AddAPlus3DDirectionalApproximation(const FLinearColor& Colour,const FVector& Direction,UBOOL bIsDynamic);
+	void AddAPlus3DAmbient(const FLinearColor& Colour,UBOOL bIsDynamic);
+	void AddAPlus3DFromSH(const FSHVectorRGB& InIncidentRadiance,UBOOL bIsDynamic);
+	void RebuildAPlus3DState(UBOOL bSnapToTarget);
+	void InterpolateAPlus3DState(FLOAT Alpha);
+#endif
 
 	/** 
 	 * Calculates the minimum distance to a dominant shadow transition, or 0 if not shadowed by a dominant light.

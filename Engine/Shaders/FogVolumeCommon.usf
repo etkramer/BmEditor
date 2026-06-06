@@ -189,26 +189,93 @@ float SphericalLineIntegral(float3 WorldReceiverPos, float3 InCameraPosition)
 		float2 Evaluations = FirstDensityFunctionParameters.xx * (Intersections - IntegralPolynomials / SphereRadiusSquared.xx);
 		LineIntegral = (Evaluations.y - Evaluations.x) * ReceiverToCameraDistance;
 		
-		/*
-		//spherical density = 1 / r^2
-		//looks like the inscattering from a bright lamp on a foggy night
-		float QuadraticFalloffCoef = .02;
-		float3 SphereCenterToReceiver = -ReceiverToSphereCenter;
-		float A2 = QuadraticCoef.x * QuadraticFalloffCoef;
-		float B2 = -2 * dot(V, SphereCenterToReceiver) * QuadraticFalloffCoef;
-		float C2 = dot(SphereCenterToReceiver, SphereCenterToReceiver) * QuadraticFalloffCoef;
 		
-		float IntegralDeterminant = 4 * A2 * C2 - B2 * B2;
-		float SqrtIntegralDeterminant = sqrt(abs(IntegralDeterminant));
-		float InvSqrtIntegralDeterminant = 1 / (SqrtIntegralDeterminant + Epsilon);
-		float FurthestValue = (2 * A2 * Intersections.y + B2) * InvSqrtIntegralDeterminant;
-		float ClosestValue = (2 * A2 * Intersections.x + B2) * InvSqrtIntegralDeterminant;
+		////spherical density = 1 / r^2
+		////looks like the inscattering from a bright lamp on a foggy night
+		//float QuadraticFalloffCoef = .02;
+		//float3 SphereCenterToReceiver = -ReceiverToSphereCenter;
+		//float A2 = QuadraticCoef.x * QuadraticFalloffCoef;
+		//float B2 = -2 * dot(V, SphereCenterToReceiver) * QuadraticFalloffCoef;
+		//float C2 = dot(SphereCenterToReceiver, SphereCenterToReceiver) * QuadraticFalloffCoef;
+		//
+		//float IntegralDeterminant = 4 * A2 * C2 - B2 * B2;
+		//float SqrtIntegralDeterminant = sqrt(abs(IntegralDeterminant));
+		//float InvSqrtIntegralDeterminant = 1 / (SqrtIntegralDeterminant + Epsilon);
+		//float FurthestValue = (2 * A2 * Intersections.y + B2) * InvSqrtIntegralDeterminant;
+		//float ClosestValue = (2 * A2 * Intersections.x + B2) * InvSqrtIntegralDeterminant;
+		//
+		//if (IntegralDeterminant > 0)
+		//{
+		//	LineIntegral = 2 * InvSqrtIntegralDeterminant * (ArcTan(FurthestValue) - ArcTan(ClosestValue)) * length(V);
+		//}
 		
-		if (IntegralDeterminant > 0)
-		{
-			LineIntegral = 2 * InvSqrtIntegralDeterminant * (ArcTan(FurthestValue) - ArcTan(ClosestValue)) * length(V);
-		}
-		*/
 	}
 	return LineIntegral;
+}
+
+
+
+
+//@Rock - JoelS: optimised spherical fog density function
+//This function is completely analytical, so it's less ALU's,
+//doesn't require the two backface/frontface passes, and can be applied
+//without integral comparisons. This means we can do it in one full resolution pass
+//while it's still half the cost that the original takes. This also removes the 
+//aliasing artifacts.
+//
+//Pipeline differences:
+// - skip frontface pass
+// - skip backface pass
+// - skip integral encode (x2)
+// - skip integral decode (x2)
+// - render single pass apply function, calculating:
+//		|- The analytical spherical density
+//		|- The exponential density result modulated by the material 
+//		|- Final coloured fog pixel contribution
+
+half RockSphericalLineIntegral(float3 WorldReceiverPos, float3 InCameraPosition)
+{
+
+#define SphereSize SecondDensityFunctionParameters.w
+#define SpherePos SecondDensityFunctionParameters.xyz
+
+// Distance from sphere to camera, scaled with the size of the object.
+  float3 sphereToCamera 	= (SpherePos - InCameraPosition.xyz) / SphereSize;
+// Distance from the reciever world position to the camera, then put in scale with the size of the object.
+  float3 SceneToCam			= (WorldReceiverPos.xyz - InCameraPosition.xyz) / SphereSize;
+// The sum of the square of scene to camera distance
+  float SceneContrib		= dot(SceneToCam.xyz,SceneToCam.xyz);
+// Compute the summed difference between the two vectors
+  float sphereContrib		= dot(SceneToCam.xyz,sphereToCamera.xyz);
+  
+
+//Compute density ========
+  SceneContrib				= 1 / SceneContrib;
+  sphereContrib				= saturate(SceneContrib * sphereContrib);
+  float3 DensityMarch		= (sphereContrib * SceneToCam.xyz) - sphereToCamera.xyz;
+
+// The inverted sum of the density march, squared
+// saturate here to clamp out any negative values from the previous subtraction.
+  float FinalVolFog			= 1 - saturate(dot(DensityMarch.xyz,DensityMarch.xyz));
+// Square the result for higher falloff
+  FinalVolFog				*= FinalVolFog;
+  FinalVolFog				*= FirstDensityFunctionParameters.x;
+
+  return FinalVolFog;
+}
+
+
+//@Rock - JoelS: optimised spherical cheap light integral function
+half RockCheapLightIntegral(float3 WorldReceiverPos, float3 InCameraPosition)
+{
+
+#define SphereSize SecondDensityFunctionParameters.w
+#define SpherePos SecondDensityFunctionParameters.xyz
+
+  float3 sphereToScene 		= (SpherePos - WorldReceiverPos.xyz) / SphereSize;
+  half FinalVolFog			= 1-saturate(dot(sphereToScene,sphereToScene));
+  FinalVolFog				*= FinalVolFog;
+  FinalVolFog				*= FirstDensityFunctionParameters.x;
+
+  return FinalVolFog;
 }
