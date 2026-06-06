@@ -121,7 +121,12 @@ void UFracturedStaticMesh::StaticConstructor()
 void UFracturedStaticMesh::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
-	Ar << SourceStaticMesh;
+#if BATMAN
+	if (!Ar.IsBmCooked(TRUE, FALSE))
+#endif
+	{
+		Ar << SourceStaticMesh;
+	}
 	Ar << Fragments;
 	Ar << CoreFragmentIndex;
 

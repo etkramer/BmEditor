@@ -554,13 +554,13 @@ void FSceneRenderTargets::FinishRenderingLUTBlend()
 #endif // XBOX && !USE_NULL_RHI
 }
 
-/** Clears the GBuffer render targets to default values. */
-void FSceneRenderTargets::ClearGBufferTargets()
+/** Clears the subsurface scattering render targets to default values. */
+void FSceneRenderTargets::ClearSubsurfaceScatteringTargets()
 {
 	#if !CONSOLE
 		if (GSystemSettings.RenderThreadSettings.bAllowSubsurfaceScattering)
 		{
-			SCOPED_DRAW_EVENT(Event)(DEC_SCENE_ITEMS,TEXT("ClearGBufferTargets"));
+			SCOPED_DRAW_EVENT(Event)(DEC_SCENE_ITEMS,TEXT("ClearSubsurfaceScatteringTargets"));
 
 			//@todo - faster to clear at the same time with MRT?
 			RHISetRenderTarget(GSceneRenderTargets.GetSubsurfaceInscatteringSurface(),FSurfaceRHIRef());
@@ -576,16 +576,6 @@ void FSceneRenderTargets::ClearGBufferTargets()
 
 				RHISetRenderTarget(GSceneRenderTargets.GetSpecularGBufferSurface(),FSurfaceRHIRef());
 				RHIClear(TRUE,FLinearColor(0,0,0,0),FALSE,0,FALSE,0);
-			}
-
-			if(IsSeparateTranslucencyActive())
-			{
-				RHISetRenderTarget(RenderTargets[SeparateTranslucency].Surface, GetSceneDepthSurface());
-				RHIClear(TRUE,FLinearColor(0,0,0,1),FALSE,0,FALSE,0);
-#if ENABLE_SEPARATE_TRANSLUCENCY_DEPTH
-				RHISetRenderTarget(RenderTargets[SeparateTranslucencyDepth].Surface, 0);
-				RHIClear(TRUE,FLinearColor(0,0,0,0),FALSE,0,FALSE,0);
-#endif		
 			}
 		}
 	#endif
@@ -652,7 +642,7 @@ void FSceneRenderTargets::FinishRenderingSceneColor(UBOOL bKeepChanges, const FR
 
 	if(bKeepChanges)
 	{
-		ResolveSceneColor();
+		ResolveSceneColor(ResolveRect);
 	}
 
 	#if !CONSOLE

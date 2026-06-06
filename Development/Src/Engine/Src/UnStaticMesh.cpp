@@ -2048,10 +2048,13 @@ void UStaticMesh::Serialize(FArchive& Ar)
 	}
 
 #if BATMAN
-	if (Ar.IsBmCooked(TRUE))
+	if (Ar.LicenseeVer() >= 9)
 	{
-		UBOOL ForceShadowVolumes = FALSE;
 		Ar << ForceShadowVolumes;
+	}
+	else if (Ar.IsLoading())
+	{
+		ForceShadowVolumes = FALSE;
 	}
 #endif
 
@@ -2088,6 +2091,18 @@ void UStaticMesh::Serialize(FArchive& Ar)
 	{
 		bRemoveDegenerates = TRUE;
 	}
+
+#if BATMAN
+	if (!Ar.IsBmCooked(FALSE, FALSE) && !GUseSeekFreeLoading && (!GCookingTarget || !Ar.IsSaving()) && InternalVersion >= 19)
+	{
+		Ar << MaterialOverrides;
+	}
+
+	if (Ar.LicenseeVer() >= 79)
+	{
+		Ar << LedgeSetup;
+	}
+#endif
 }
 
 //
@@ -4856,4 +4871,3 @@ UBOOL AStaticMeshCollectionActor::ForceReturnComponent(UPrimitiveComponent* Test
 }
 
 // EOF
-

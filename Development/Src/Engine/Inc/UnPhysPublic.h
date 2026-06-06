@@ -776,6 +776,17 @@ public:
 		Ar << Elem.FaceNormalDirections;
 		Ar << Elem.FacePlaneData;
 		Ar << Elem.ElemBox;
+#if BATMAN
+		if (Ar.IsBmCooked(TRUE))
+		{
+			BYTE NoRBCollision = Elem.bNoRBCollision ? 1 : 0;
+			Ar << NoRBCollision;
+			if (Ar.IsLoading())
+			{
+				Elem.bNoRBCollision = NoRBCollision != 0;
+			}
+		}
+#endif
 		return Ar;
 	}
 };

@@ -1482,14 +1482,20 @@ void FSceneRenderer::ClearView()
 // In practice, there should not be anything rendered at infinite (surrounding sky dome)
 // but in the exampleentry map for instance, we only have a piece of map in the middle of nowhere
 // This altered the Trioviz behavior, since we need depth range to apply our 3D effect
-#if DWTRIOVIZSDK
-	RHIClear( TRUE, FLinearColor(0.0f, 0.0f, 0.0f, GUsesInvertedZ ? 0.0f : 1.0f), FALSE, 0, FALSE, 0 );
-#else
-	RHIClear( TRUE, FLinearColor::Black, FALSE, 0, FALSE, 0 );
+#if BATMAN
+	// BM: Gangland only does the full color clear for game view families. Editor thumbnails clear their own view rects below.
+	if( !GIsEditor )
 #endif
+	{
+#if DWTRIOVIZSDK
+		RHIClear( TRUE, FLinearColor(0.0f, 0.0f, 0.0f, GUsesInvertedZ ? 0.0f : 1.0f), FALSE, 0, FALSE, 0 );
+#else
+		RHIClear( TRUE, FLinearColor::Black, FALSE, 0, FALSE, 0 );
+#endif
+	}
 
-	// Clear the G Buffer render targets
-	GSceneRenderTargets.ClearGBufferTargets();
+	// Clear the subsurface scattering render targets
+	GSceneRenderTargets.ClearSubsurfaceScatteringTargets();
 
 	// Clear the viewports to their background color
 	if( GIsEditor )

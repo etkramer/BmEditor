@@ -226,8 +226,8 @@ public:
 	void BeginRenderingLUTBlend();
 	void FinishRenderingLUTBlend();
 
-	/** Clears the GBuffer render targets to default values. */
-	void ClearGBufferTargets();
+	/** Clears the subsurface scattering render targets to default values. */
+	void ClearSubsurfaceScatteringTargets();
 
 	/**
 	 * Sets the scene color target and restores its contents if necessary
