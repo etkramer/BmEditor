@@ -4922,7 +4922,7 @@ FArchive& ULinkerLoad::operator<<( FName& Name )
 	if( !NameMap.IsValidIndex(NameIndex) )
 	{
 #if BATMAN
-		if (IsBmCooked(FALSE))
+		if (IsBmCooked())
 		{
 			warnf( NAME_Warning, TEXT("Bad name index %i/%i (serializing %s at offset %i)"), NameIndex, NameMap.Num(),
 				GSerializedObject ? *GSerializedObject->GetFullName() : TEXT("NULL"), Tell() );

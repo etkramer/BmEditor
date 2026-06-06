@@ -821,6 +821,9 @@ public:
 	virtual QWORD GetMobileMaterialSortKey (void) const { return 0; }
 	virtual FLOAT GetOpacityMaskClipValue() const = 0;
 	virtual FString GetFriendlyName() const = 0;
+#if BATMAN
+	virtual UBOOL IsBmCookedMaterialResource() const { return FALSE; }
+#endif
 protected:
 	virtual UBOOL HasNormalmapConnected() const { return FALSE; }
 	virtual UBOOL AllowTranslucencyDoF() const { return FALSE; }
@@ -1427,6 +1430,7 @@ public:
 	virtual FLOAT GetShadowDepthBias() const;
 	virtual UBOOL UsesPerPixelCameraVector() const;
 #if BATMAN
+	virtual UBOOL IsBmCookedMaterialResource() const;
 	virtual UBOOL CanStripNormalsAndTangents() const;
 	virtual UBOOL CanStripVertexColours() const;
 	virtual UBOOL ShouldUseFastLODRendering() const;

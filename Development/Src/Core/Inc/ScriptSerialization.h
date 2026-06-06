@@ -277,10 +277,6 @@
 	}
 	XFER(BYTE);
 	Expr = (EExprToken)Script(iCode-1);
-	//if( Ar.IsBmCooked(FALSE) )
-	//{
-	//	warnf( NAME_Warning, TEXT("SerializeExpr: iCode=%i expr=0x%02X in %s"), iCode-1, (BYTE)Expr, *GetFullName() );
-	//}
 	if( Expr >= EX_FirstNative )
 	{
 		// Native final function with id 1-127.

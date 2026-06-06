@@ -1084,14 +1084,6 @@ void BM2ProcessNoLightCompatibleBasePassMesh(
 			FNoLightMapPolicy(),
 			FNoLightMapPolicy::ElementDataType());
 	}
-	else if (BM2HasCookedBasePassNoSkyLightShaders<FAPlus3DLightLightMapPolicy>(Parameters.Material, Parameters.Mesh.VertexFactory->GetType()))
-	{
-		ProcessBasePassMesh_LightMapped<ProcessActionType, FAPlus3DLightLightMapPolicy>(
-			Parameters,
-			Action,
-			FAPlus3DLightLightMapPolicy(),
-			FAPlus3DLightLightMapPolicy::ElementDataType());
-	}
 	else
 	{
 	}
@@ -1234,7 +1226,7 @@ void ProcessBasePassMesh(
 					if (bIsLitMaterial 
 						&& Parameters.PrimitiveSceneInfo 
 #if BATMAN
-						&& !Parameters.Material->IsUsedWithStaticLighting())
+						&& !Parameters.Material->IsUsedWithDecals())
 #else
 						// Shaders not compiled with decal usage due to not enough constant registers
 						&& !Parameters.Material->IsUsedWithDecals())

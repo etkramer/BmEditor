@@ -1345,7 +1345,7 @@ void UStruct::Serialize( FArchive& Ar )
 		// and SerializeExpr harmlessly processes garbage from the empty buffer.
 		// We simply zero BytecodeSize so the later serialize loop is skipped
 		// and the archive position stays correct for UState/UClass fields.
-		if (Ar.IsBmCooked(FALSE) && ScriptStorageSize == 0)
+		if (Ar.IsBmCooked() && ScriptStorageSize == 0)
 		{
 			ScriptBytecodeSize = 0;
 		}
@@ -1787,7 +1787,7 @@ void UState::Serialize( FArchive& Ar )
 	WORD const TmpLabelTableOffset = LabelTableOffset;
 
 #if BATMAN
-	if (Ar.IsBmCooked(FALSE))
+	if (Ar.IsBmCooked())
 	{
 		// BM2 PC decompiled: UState::Serialize reads ProbeMask as DWORD (4 bytes),
 		// no IgnoreMask, same as post-VER_REDUCED_PROBEMASK standard UE3.
@@ -2530,7 +2530,7 @@ void UClass::Serialize( FArchive& Ar )
 	if( Ar.IsLoading() )
 	{
 #if BATMAN
-		if (Ar.IsBmCooked(FALSE) && (DWORD)Align(GetPropertiesSize(), GetMinAlignment()) < sizeof(UObject))
+		if (Ar.IsBmCooked() && (DWORD)Align(GetPropertiesSize(), GetMinAlignment()) < sizeof(UObject))
 		{
 			warnf(NAME_Warning, TEXT("UClass::Serialize %s: PropertiesSize %i < sizeof(UObject) %i, skipping CDO"),
 				*GetFullName(), GetPropertiesSize(), (INT)sizeof(UObject));

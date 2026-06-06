@@ -1066,7 +1066,12 @@ UBOOL FMaterial::InitShaderMap(FStaticParameterSet* StaticParameters, EShaderPla
 	ShaderMap = FMaterialShaderMap::FindId(*StaticParameters, Platform);
 	UBOOL bRequiredRecompile = FALSE;
 #if BATMAN
+	const UBOOL bUseBmCookedShaderMap = IsBmCookedMaterialResource();
 	const UBOOL bShaderMapIncomplete = ShaderMap && !ShaderMap->IsComplete(this, TRUE);
+	if (bShaderMapIncomplete)
+	{
+		ShaderMap->IsComplete(this, FALSE);
+	}
 #else
 	const UBOOL bShaderMapIncomplete = ShaderMap && !ShaderMap->IsComplete(this, FALSE);
 #endif
@@ -1084,7 +1089,7 @@ UBOOL FMaterial::InitShaderMap(FStaticParameterSet* StaticParameters, EShaderPla
 				ShaderMapCondition = TEXT("Missing");
 			}
 #if BATMAN
-			if (ShaderMap)
+			if (ShaderMap && bUseBmCookedShaderMap)
 			{
 				debugf(TEXT("%s cached shader map for material %s, using cooked shaders."),ShaderMapCondition,*GetFriendlyName());
 			}
@@ -1098,7 +1103,7 @@ UBOOL FMaterial::InitShaderMap(FStaticParameterSet* StaticParameters, EShaderPla
 		}
 
 #if BATMAN
-		if (bValidCompilationOutput && ShaderMap)
+		if (bUseBmCookedShaderMap && bValidCompilationOutput && ShaderMap)
 		{
 			if (LegacyUniformExpressions)
 			{
@@ -1212,6 +1217,13 @@ UBOOL FMaterialResource::HasVertexPositionOffsetConnected() const { return Mater
 UBOOL FMaterialResource::AllowTranslucencyDoF() const { return Material->bAllowTranslucencyDoF && IsTranslucentBlendMode((EBlendMode)Material->BlendMode); }
 UBOOL FMaterialResource::TranslucencyReceiveDominantShadowsFromStatic() const { return Material->bTranslucencyReceiveDominantShadowsFromStatic && IsTranslucentBlendMode((EBlendMode)Material->BlendMode); }
 FString FMaterialResource::GetBaseMaterialPathName() const { return Material->GetPathName(); }
+#if BATMAN
+UBOOL FMaterialResource::IsBmCookedMaterialResource() const
+{
+	UPackage* MaterialPackage = Material ? Material->GetOutermost() : NULL;
+	return MaterialPackage && MaterialPackage->IsBmCooked();
+}
+#endif
 
 UBOOL FMaterialResource::IsDecalMaterial() const
 {
@@ -5644,9 +5656,14 @@ UBOOL FMaterial::CompileShaderMap(
 	UBOOL bRequiredCompile = FALSE;
 #if BATMAN
 	UBOOL bUsedCookedShaderMap = FALSE;
+	const UBOOL bUseBmCookedShaderMap = IsBmCookedMaterialResource();
 #endif
 #if BATMAN
 	const UBOOL bExistingShaderMapIncomplete = ExistingShaderMap && !ExistingShaderMap->IsComplete(this, TRUE);
+	if (bExistingShaderMapIncomplete)
+	{
+		ExistingShaderMap->IsComplete(this, FALSE);
+	}
 #else
 	const UBOOL bExistingShaderMapIncomplete = ExistingShaderMap && !ExistingShaderMap->IsComplete(this, FALSE);
 #endif
@@ -5655,7 +5672,7 @@ UBOOL FMaterial::CompileShaderMap(
 		bRequiredCompile = TRUE;
 
 #if BATMAN
-		if (ExistingShaderMap)
+		if (bUseBmCookedShaderMap && ExistingShaderMap)
 		{
 			if (LegacyUniformExpressions)
 			{

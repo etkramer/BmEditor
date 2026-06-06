@@ -1086,11 +1086,16 @@ public:
 		// scene texture (point) for CalcSceneColorAndDepth
 		BlendPixelShader->SceneTextureParameters.Set(&View, *BlendPixelShader, SF_Point);
 
-		// BloomTint * BloomScale, screen blend threshold in alpha
+		const FLOAT BloomPower = (appPow(0.5f, 0.5f * BloomThreshold + 1.0f) - 1.0f) * -2.0f;
+		const FVector4 BloomTintAndScreenBlendThreshold(
+			BloomTint.R * BloomPower * BloomScale,
+			BloomTint.G * BloomPower * BloomScale,
+			BloomTint.B * BloomPower * BloomScale,
+			1.0f - BloomPower);
 		SetPixelShaderValue(
 			BlendPixelShader->GetPixelShader(),
 			BlendPixelShader->BloomTintAndScreenBlendThresholdParameter,
-			FVector4(BloomTint.R * BloomScale, BloomTint.G * BloomScale, BloomTint.B * BloomScale, BloomScreenBlendThreshold));
+			BloomTintAndScreenBlendThreshold);
 
 		// front buffer texel size
 		const FLOAT InvX = 1.0f / BufferSizeX;
@@ -1145,21 +1150,22 @@ public:
 					NoiseTexture->Resource->TextureRHI);
 			}
 
-			// FilmGrain: w = grain intensity (FilmGrainScaleOffset is set on the VS below)
+			static INT OldNoiseNum = 0;
+			OldNoiseNum = (OldNoiseNum + 1 > 2) ? 0 : OldNoiseNum + 1;
 			SetPixelShaderValue(
 				BlendPixelShader->GetPixelShader(),
 				BlendPixelShader->FilmGrainParameter,
-				FVector4(1.0f, 1.0f, 1.0f, SceneImageGrainScale));
+				FVector4(OldNoiseNum == 0 ? 1.0f : 0.0f, OldNoiseNum == 1 ? 1.0f : 0.0f, OldNoiseNum == 2 ? 1.0f : 0.0f, SceneImageGrainScale));
 
-			// noise UV scale/offset for the vertex shader (animated over time)
-			const FLOAT GrainScaleX = BufferSizeX / 64.0f;
-			const FLOAT GrainScaleY = BufferSizeY / 64.0f;
-			static UINT State = 0;
-			State = (State + 1) % 64;
-			SetVertexShaderValue(
-				BlendVertexShader->GetVertexShader(),
-				BlendVertexShader->FilmGrainScaleOffsetParameter,
-				FVector4(GrainScaleX, GrainScaleY, State / 64.0f, (State * 7 % 64) / 64.0f));
+			if(NoiseTexture)
+			{
+				const FLOAT GrainOffsetW = appFrand();
+				const FLOAT GrainOffsetZ = appFrand();
+				SetVertexShaderValue(
+					BlendVertexShader->GetVertexShader(),
+					BlendVertexShader->FilmGrainScaleOffsetParameter,
+					FVector4(BufferSizeX / (FLOAT)NoiseTexture->SizeX, BufferSizeY / (FLOAT)NoiseTexture->SizeY, GrainOffsetZ, GrainOffsetW));
+			}
 		}
 
 		// Vertex shader SceneCoordinateScaleBias - map screen position to scene UV.
@@ -1360,7 +1366,19 @@ FPostProcessSceneProxy* URockOn::CreateSceneProxy(const FPostProcessSettings* Wo
 		bLocalMotionBlur = TRUE;
 	}
 
-	const UBOOL bLocalImageGrain = bEnableImageGrain && (SceneImageGrainScale > 0.0f);
+	UBOOL bLocalImageGrain = bEnableImageGrain;
+	{
+		static IConsoleVariable* CVar = GConsoleManager->FindConsoleVariable(TEXT("ImageGrain"));
+		const FLOAT Value = CVar->GetFloat();
+		if(Value > 0.0f)
+		{
+			bLocalImageGrain = TRUE;
+		}
+		else if(Value == 0.0f)
+		{
+			bLocalImageGrain = FALSE;
+		}
+	}
 	UBOOL bLocalHighQualityDOF = (DepthOfFieldQuality == DOFQuality_High);
 	if(WorldSettings && WorldSettings->bOverride_bEnableHighQualityDOF)
 	{

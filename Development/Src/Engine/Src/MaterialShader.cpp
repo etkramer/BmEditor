@@ -1611,6 +1611,10 @@ UBOOL FMaterialShaderMap::IsComplete(const FMaterial* Material, UBOOL bSilent) c
 	TArray<FMaterial*>* CorrespondingMaterials = FMaterialShaderMap::ShaderMapsBeingCompiled.Find(this);
 	if (CorrespondingMaterials)
 	{
+		if (!bSilent)
+		{
+			warnf(NAME_Warning, TEXT("Incomplete material %s, shader map is still compiling."), *Material->GetFriendlyName());
+		}
 		return FALSE;
 	}
 

@@ -144,18 +144,15 @@ void FAPlus3DLightLightMapPolicy::SetMesh(
 	const ElementDataType& AmbientPlus3DirectionalLight
 	) const
 {
-	// Mirrors retail BM2 (sub_6E57F0) when AP3D scene info is present. The NULL path
-	// is only for editor preview draws that have BM2 AP3D cooked shaders but no game light environment.
-	// Retail never supplied a fullbright fallback; keeping missing AP3D dark makes the error visible
-	// without washing characters out.
+	// BM: Gangland/X360 dereference the AP3D scene info directly; AP3D is never a
+	// no-light fallback and must only be selected with real light-environment data.
+	check(AmbientPlus3DirectionalLight);
 	if (VertexShaderParameters)
 	{
 		FVector4 Dirs[3];
 		for (INT i = 0; i < 3; i++)
 		{
-			Dirs[i] = AmbientPlus3DirectionalLight
-				? FVector4(AmbientPlus3DirectionalLight->LightDirections[i], 0.0f)
-				: FVector4(0.0f, 0.0f, 1.0f, 0.0f);
+			Dirs[i] = FVector4(AmbientPlus3DirectionalLight->LightDirections[i], 0.0f);
 		}
 		SetVertexShaderValues<FVector4>(
 			VertexShader->GetVertexShader(),
@@ -168,13 +165,9 @@ void FAPlus3DLightLightMapPolicy::SetMesh(
 		FVector4 ColorsAndAmbient[4];
 		for (INT i = 0; i < 3; i++)
 		{
-			ColorsAndAmbient[i] = AmbientPlus3DirectionalLight
-				? FVector4(AmbientPlus3DirectionalLight->LightColours[i], 0.0f)
-				: FVector4(0.0f, 0.0f, 0.0f, 0.0f);
+			ColorsAndAmbient[i] = FVector4(AmbientPlus3DirectionalLight->LightColours[i], 0.0f);
 		}
-		ColorsAndAmbient[3] = AmbientPlus3DirectionalLight
-			? FVector4(AmbientPlus3DirectionalLight->Ambient, 0.0f)
-			: FVector4(0.0f, 0.0f, 0.0f, 0.0f);
+		ColorsAndAmbient[3] = FVector4(AmbientPlus3DirectionalLight->Ambient, 0.0f);
 		SetPixelShaderValues<FVector4>(
 			PixelShader->GetPixelShader(),
 			PixelShaderParameters->APlus3DLightPixelInfoParameter,
