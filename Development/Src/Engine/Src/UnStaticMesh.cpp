@@ -3329,22 +3329,22 @@ UBOOL UStaticMeshComponent::RequiresOverrideVertexColorsFixup( TArray<INT>& OutL
 	if ( GIsEditor && !GIsCooking && StaticMesh && StaticMesh->VertexPositionVersionNumber != VertexPositionVersionNumber )
 	{
 		// Iterate over each LOD to confirm which ones, if any, actually need to have their colors updated
-		for ( TArray<FStaticMeshComponentLODInfo>::TConstIterator LODIter( LODData ); LODIter; ++LODIter )
+		for ( INT LODIndex = 0; LODIndex < LODData.Num(); ++LODIndex )
 		{
-			const FStaticMeshComponentLODInfo& CurCompLODInfo = *LODIter;
+			const FStaticMeshComponentLODInfo& CurCompLODInfo = LODData(LODIndex);
 
 			// Confirm that the LOD has override colors and vertex color positions. If it doesn't have both, it can't be fixed up.
 			if ( CurCompLODInfo.OverrideVertexColors && 
 				CurCompLODInfo.OverrideVertexColors->GetNumVertices() > 0 && 
 				CurCompLODInfo.VertexColorPositions.Num() == CurCompLODInfo.OverrideVertexColors->GetNumVertices() && 
-				StaticMesh->LODModels.IsValidIndex( LODIter.GetIndex() ) )
+				StaticMesh->LODModels.IsValidIndex( LODIndex ) )
 			{
-				FStaticMeshRenderData& CurRenderData = StaticMesh->LODModels( LODIter.GetIndex() );
+				FStaticMeshRenderData& CurRenderData = StaticMesh->LODModels( LODIndex );
 
 				// If the number of cached positions is different from the number of vertices on the source mesh, then an update is obviously required
 				if ( CurCompLODInfo.VertexColorPositions.Num() != CurRenderData.NumVertices )
 				{
-					OutLODIndices.AddItem( LODIter.GetIndex() );
+					OutLODIndices.AddItem( LODIndex );
 					bFixupRequired = TRUE;
 				}
 				// If the number of the verts are the same, an update still may be required, but a check for positional differences must be done to confirm
@@ -3355,7 +3355,7 @@ UBOOL UStaticMeshComponent::RequiresOverrideVertexColorsFixup( TArray<INT>& OutL
 						// If the positions mis-match, an update is required
 						if ( *PosIter != CurRenderData.PositionVertexBuffer.VertexPosition( PosIter.GetIndex() ) )
 						{
-							OutLODIndices.AddItem( LODIter.GetIndex() );
+							OutLODIndices.AddItem( LODIndex );
 							bFixupRequired = TRUE;
 							break;
 						}
@@ -3375,9 +3375,9 @@ void UStaticMeshComponent::CacheMeshVertexPositionsIfNecessary()
 	if ( GIsEditor && !GIsCooking && StaticMesh )
 	{
 		// Iterate over each component LOD info checking for the existence of override colors
-		for ( TArray<FStaticMeshComponentLODInfo>::TIterator LODIter( LODData ); LODIter; ++LODIter )
+		for ( INT LODIndex = 0; LODIndex < LODData.Num(); ++LODIndex )
 		{
-			FStaticMeshComponentLODInfo& CurCompLODInfo = *LODIter;
+			FStaticMeshComponentLODInfo& CurCompLODInfo = LODData(LODIndex);
 
 			// If the mesh has override colors but no cached vertex positions, then the current vertex positions should be cached to help preserve instanced vertex colors during mesh tweaks
 			// NOTE: We purposefully do *not* cache the positions if cached positions already exist, as this would result in the loss of the ability to fixup the component if the source mesh
@@ -3385,9 +3385,9 @@ void UStaticMeshComponent::CacheMeshVertexPositionsIfNecessary()
 			if ( CurCompLODInfo.OverrideVertexColors && 
 				 CurCompLODInfo.OverrideVertexColors->GetNumVertices() > 0 &&
 				 CurCompLODInfo.VertexColorPositions.Num() == 0 &&
-				 StaticMesh->LODModels.IsValidIndex( LODIter.GetIndex() ) ) 
+				 StaticMesh->LODModels.IsValidIndex( LODIndex ) )
 			{
-				FStaticMeshRenderData& CurRenderData = StaticMesh->LODModels( LODIter.GetIndex() );
+				FStaticMeshRenderData& CurRenderData = StaticMesh->LODModels( LODIndex );
 				if ( CurRenderData.NumVertices == CurCompLODInfo.OverrideVertexColors->GetNumVertices() )
 				{
 					// Update the version number of the component to match the source mesh
@@ -4253,19 +4253,18 @@ void UStaticMeshComponent::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
 #if BATMAN
-	if( Ar.IsBmCooked(TRUE) )
+	if( Ar.IsLoading() && Ar.LicenseeVer() < 82 )
 	{
-		// BM2 stores a single inline FStaticMeshComponentLODInfo, not a counted array.
-		if( Ar.IsLoading() )
+		INT LegacyLODCount = 0;
+		Ar << LegacyLODCount;
+		if( LegacyLODCount > 0 )
 		{
-			LODData.Empty(1);
-			LODData.AddZeroed(1);
-			Ar << LODData(0);
-		}
-		else
-		{
-			FStaticMeshComponentLODInfo EmptyLOD;
-			Ar << ( LODData.Num() ? LODData(0) : EmptyLOD );
+			Ar << LODData;
+			for( INT LODIndex = 1; LODIndex < LegacyLODCount; ++LODIndex )
+			{
+				FStaticMeshComponentLODInfo LegacyLODInfo;
+				Ar << LegacyLODInfo;
+			}
 		}
 	}
 	else
@@ -4287,7 +4286,7 @@ void UStaticMeshComponent::Serialize(FArchive& Ar)
 #if BATMAN
 	if( Ar.IsBmCooked(TRUE) )
 	{
-		if ( Ar.Ver() >= VER_PRESERVE_SMC_VERT_COLORS )
+		if ( Ar.Ver() >= VER_PRESERVE_SMC_VERT_COLORS && !Ar.IsTransacting() )
 		{
 			Ar << VertexPositionVersionNumber;
 		}
@@ -4753,7 +4752,7 @@ void UStaticMeshComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePrimi
 				}
 			}
 
-			TArray<UShadowMap2D*> ShadowMaps = LODInfo.ShadowMaps;
+			const FStaticMeshComponentLODInfo::FShadowMapFakeArray& ShadowMaps = LODInfo.ShadowMaps;
 			for ( INT ShadowMapIndex=0; ShadowMapIndex < ShadowMaps.Num(); ++ShadowMapIndex )
 			{
 				UShadowMap2D* ShadowMap2D = ShadowMaps( ShadowMapIndex );

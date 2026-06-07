@@ -208,6 +208,7 @@ void FStaticMeshStaticLightingTextureMapping::Apply(FLightMapData2D* LightMapDat
 
 	// Ensure LODData has enough entries in it, free not required.
 	Primitive->SetLODDataCount(LODIndex + 1, Primitive->StaticMesh->LODModels.Num());
+	checkf(LODIndex == 0, TEXT("More than one LOD on %s - only one supported"), *Primitive->GetPathName());
 
 	if (LODIndex == 0 && QuantizedData)
 	{

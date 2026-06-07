@@ -5279,8 +5279,6 @@ class UParticleModuleSubUV : public UParticleModuleSubUVBase
 public:
     //## BEGIN PROPS ParticleModuleSubUV
     struct FRawDistributionFloat SubImageIndex;
-    BITFIELD bUseRealTime:1;
-    SCRIPT_ALIGN;
     //## END PROPS ParticleModuleSubUV
 
     DECLARE_CLASS(UParticleModuleSubUV,UParticleModuleSubUVBase,0,Engine)

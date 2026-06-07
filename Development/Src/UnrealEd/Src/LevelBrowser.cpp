@@ -2450,12 +2450,15 @@ void WxLevelBrowser::UpdateLevelPropertyWindow()
  */
 void WxLevelBrowser::ImportLevelsFromFile()
 {
+#if BATMAN
+#else
 	// Disallow for cooked packages.
 	if( GWorld && GWorld->GetOutermost()->PackageFlags & PKG_Cooked )
 	{
 		appMsgf( AMT_OK, *LocalizeUnrealEd("Error_OperationDisallowedOnCookedContent") );
 		return;
 	}
+#endif
 
 	WxFileDialog FileDialog( GApp->EditorFrame,
 								*LocalizeUnrealEd("Open"),

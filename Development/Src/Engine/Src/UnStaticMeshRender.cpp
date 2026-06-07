@@ -301,7 +301,7 @@ void UStaticMeshComponent::GenerateDecalRenderData(FDecalState* Decal, TArray< F
 					// copy 1D shadowmap from base mesh with remapping of indices
 			 		if( LODData(0).ShadowVertexBuffers.Num() > 0 )
 					{
-						const TArray<UShadowMap1D*>& VertexShadowMaps = LODData(0).ShadowVertexBuffers;
+						const FStaticMeshComponentLODInfo::ShadowVertexBufferFakeArray& VertexShadowMaps = LODData(0).ShadowVertexBuffers;
 						DecalRenderData->ShadowMap1D.Empty(VertexShadowMaps.Num());
 						for( INT ShadowMapIndex = 0; ShadowMapIndex < VertexShadowMaps.Num(); ++ShadowMapIndex )
 						{
@@ -342,6 +342,7 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(const UStaticMeshComponent* Compone
 	Owner(Component->GetOwner()),
 	StaticMesh(Component->StaticMesh),
 	StaticMeshComponent(Component),
+	LODs(Component,0),
 	ForcedLodModel(0),
 	LODMaxRange(Component->StaticMesh->LODMaxRange),
 	LevelColor(1,1,1),
@@ -355,13 +356,6 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(const UStaticMeshComponent* Compone
 	MaterialViewRelevance(Component->GetMaterialViewRelevance()),
 	WireframeColor(Component->WireframeColor)
 {
-	// Build the proxy's LOD data.
-	LODs.Empty(StaticMesh->LODModels.Num());
-	for(INT LODIndex = 0;LODIndex < StaticMesh->LODModels.Num();LODIndex++)
-	{
-		new(LODs) FLODInfo(Component,LODIndex);
-	}
-
 	// If the static mesh can accept decals, copy off statically irrelevant lights and light map guids.
 	if( Component->bAcceptsStaticDecals ||
 		Component->bAcceptsDynamicDecals )
@@ -411,25 +405,6 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(const UStaticMeshComponent* Compone
 /** Add or remove elements to have the size in the specified range. Reconstructs elements if MaxSize<MinSize */
 void UStaticMeshComponent::SetLODDataCount( const UINT MinSize, const UINT MaxSize )
 {
-	if (MaxSize < (UINT)LODData.Num())
-	{
-		// call destructors
-		LODData.Remove(MaxSize, LODData.Num() - MaxSize);
-	}
-	
-	if(MinSize > (UINT)LODData.Num())
-	{
-		// call constructors
-		LODData.Reserve(MinSize);
-
-		// TArray doesn't have a function for constructing n items
-		UINT ItemCountToAdd = MinSize - LODData.Num();
-		for(UINT i = 0; i < ItemCountToAdd; ++i)
-		{
-			// call constructor
-			new (LODData)FStaticMeshComponentLODInfo();
-		}
-	}
 }
 
 /** Sets up a FMeshElement for a specific LOD and element. */
@@ -1344,13 +1319,12 @@ void FStaticMeshSceneProxy::GetLightRelevance(const FLightSceneInfo* LightSceneI
 FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponent,INT InLODIndex):
 	OverrideColorVertexBuffer(0),
 	Component(InComponent),
-	LODIndex(InLODIndex),
 	bUsesMeshModifyingMaterials(FALSE)
 {
 	UBOOL bHasStaticLighting = FALSE;
-	if(LODIndex < Component->LODData.Num())
+	if(Component->LODData.Num() > 0)
 	{
-		const FStaticMeshComponentLODInfo& ComponentLODInfo = Component->LODData(LODIndex);
+		const FStaticMeshComponentLODInfo& ComponentLODInfo = Component->LODData(0);
 
 		// Determine if the LOD has static lighting.
 		bHasStaticLighting = ComponentLODInfo.LightMap != NULL || ComponentLODInfo.ShadowMaps.Num() || ComponentLODInfo.ShadowVertexBuffers.Num();
@@ -1358,7 +1332,7 @@ FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponen
 		// Initialize this LOD's overridden vertex colors, if it has any
 		if( ComponentLODInfo.OverrideVertexColors )
 		{
-			FStaticMeshRenderData& LODRenderData = Component->StaticMesh->LODModels( LODIndex );
+			FStaticMeshRenderData& LODRenderData = Component->StaticMesh->LODModels( InLODIndex );
 			
 			// the instance should point to the loaded data to avoid copy and memory waste
 			OverrideColorVertexBuffer = ComponentLODInfo.OverrideVertexColors;
@@ -1374,14 +1348,14 @@ FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponen
 	}
 
 	// Gather the materials applied to the LOD.
-	Elements.Empty(Component->StaticMesh->LODModels(LODIndex).Elements.Num());
-	for(INT ElementIndex = 0;ElementIndex < Component->StaticMesh->LODModels(LODIndex).Elements.Num();ElementIndex++)
+	Elements.Empty(Component->StaticMesh->LODModels(InLODIndex).Elements.Num());
+	for(INT ElementIndex = 0;ElementIndex < Component->StaticMesh->LODModels(InLODIndex).Elements.Num();ElementIndex++)
 	{
-		const FStaticMeshElement& Element = Component->StaticMesh->LODModels(LODIndex).Elements(ElementIndex);
+		const FStaticMeshElement& Element = Component->StaticMesh->LODModels(InLODIndex).Elements(ElementIndex);
 		FElementInfo ElementInfo;
 
 		// Determine the material applied to this element of the LOD.
-		ElementInfo.Material = Component->GetMaterial(Element.MaterialIndex,LODIndex);
+		ElementInfo.Material = Component->GetMaterial(Element.MaterialIndex,InLODIndex);
 
 		// If there isn't an applied material, or if we need static lighting and it doesn't support it, fall back to the default material.
 		if(!ElementInfo.Material || (bHasStaticLighting && !ElementInfo.Material->CheckMaterialUsage(MATUSAGE_StaticLighting)))
@@ -1426,9 +1400,9 @@ FLightInteraction FStaticMeshSceneProxy::FLODInfo::GetInteraction(const FLightSc
 	// This directly accesses the component's static lighting with the assumption that it won't be changed without synchronizing with the rendering thread.
 	if(LightSceneInfo->bStaticShadowing)
 	{
-		if(LODIndex < Component->LODData.Num())
+		if(Component->LODData.Num() > 0)
 		{
-			const FStaticMeshComponentLODInfo& LODInstanceData = Component->LODData(LODIndex);
+			const FStaticMeshComponentLODInfo& LODInstanceData = Component->LODData(0);
 			if(LODInstanceData.LightMap)
 			{
 				if(LODInstanceData.LightMap->ContainsLight(LightSceneInfo->LightmapGuid))
@@ -1506,40 +1480,25 @@ FStaticMeshSceneProxy::FDecalLightCache::FDecalLightCache(const FDecalInteractio
 		LightMap = Proxy.LODs(0).GetLightMap();
 
 		// 2D shadowmap texture from the underlying mesh.
-		const TArray<UShadowMap2D*>* TextureShadowMaps = Proxy.LODs(0).GetTextureShadowMaps();
-		if (TextureShadowMaps != NULL && 
-			TextureShadowMaps->Num() > 0)
+		UShadowMap2D* ShadowMap = Proxy.LODs(0).GetTextureShadowMap();
+		if (ShadowMap != NULL && ShadowMap->IsValid())
 		{
-			for (INT ShadowMapIndex = 0; ShadowMapIndex < TextureShadowMaps->Num(); ++ShadowMapIndex)
-			{
-				UShadowMap2D* ShadowMap = (*TextureShadowMaps)(ShadowMapIndex);
-				if (ShadowMap != NULL && ShadowMap->IsValid())
-				{
-					StaticLightInteractionMap.Set(ShadowMap->GetLightGuid(), 
-						FLightInteraction::ShadowMap2D(
-						ShadowMap->GetTexture(),
-						ShadowMap->GetCoordinateScale(),
-						ShadowMap->GetCoordinateBias(),
-						ShadowMap->IsShadowFactorTexture()
-						));
-				}
-			}
+			StaticLightInteractionMap.Set(ShadowMap->GetLightGuid(),
+				FLightInteraction::ShadowMap2D(
+				ShadowMap->GetTexture(),
+				ShadowMap->GetCoordinateScale(),
+				ShadowMap->GetCoordinateBias(),
+				ShadowMap->IsShadowFactorTexture()
+				));
 		}
 		else
 		{
 			// 1D shadowmap buffer from the underlying mesh.
-			const TArray<UShadowMap1D*>* VertexShadowMaps = Proxy.LODs(0).GetVertexShadowMaps();
-			if (VertexShadowMaps != NULL)
+			const UShadowMap1D* ShadowMap = Proxy.LODs(0).GetVertexShadowMap();
+			if (ShadowMap != NULL)
 			{
-				for (INT ShadowMapIndex = 0; ShadowMapIndex < VertexShadowMaps->Num(); ++ShadowMapIndex)
-				{
-					const UShadowMap1D* ShadowMap = (*VertexShadowMaps)(ShadowMapIndex);
-					if (ShadowMap != NULL)
-					{
-						StaticLightInteractionMap.Set(ShadowMap->GetLightGuid(), 
-							FLightInteraction::ShadowMap1D(ShadowMap));
-					}
-				}
+				StaticLightInteractionMap.Set(ShadowMap->GetLightGuid(),
+					FLightInteraction::ShadowMap1D(ShadowMap));
 			}
 		}
 	}

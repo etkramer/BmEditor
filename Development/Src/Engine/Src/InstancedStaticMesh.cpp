@@ -1485,7 +1485,8 @@ void UInstancedStaticMeshComponent::ResolveInstancedLightmapsForActor(AActor* In
 						DestComponent->bAllowCullDistanceVolume = SourceComponent->bAllowCullDistanceVolume;
 						DestComponent->bOverrideLightMapRes = SourceComponent->bOverrideLightMapRes;
 						DestComponent->ReplacementPrimitive = SourceComponent->ReplacementPrimitive;
-						DestComponent->LODData = SourceComponent->LODData;
+						DestComponent->LODData.~FStaticMeshComponentLODInfo();
+						new(&DestComponent->LODData) FStaticMeshComponentLODInfo(SourceComponent->LODData);
 						check(DestComponent->LODData.Num() == 1);
 						DestComponent->LODData(0).LightMap = TestLightMap;
 						if (SourceComponent->LODData(0).LightMap)

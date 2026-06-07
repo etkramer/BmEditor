@@ -1756,21 +1756,8 @@ UBOOL UParticleModuleSubUV::DetermineImageIndex(FParticleEmitterInstance* Owner,
 
 	if ((eMethod == PSUVIM_Linear) || (eMethod == PSUVIM_Linear_Blend))
 	{
-		if (bUseRealTime == FALSE)
-		{
-			Interp = SubImageIndex.GetValue(Particle->RelativeTime, Owner->Component);
-		}
-		else
-		{
-			if ((GWorld != NULL) && (GWorld->GetWorldInfo() != NULL))
-			{
-				Interp = SubImageIndex.GetValue(Particle->RelativeTime / GWorld->GetWorldInfo()->TimeDilation, Owner->Component);
-			}
-			else
-			{
-				Interp = SubImageIndex.GetValue(Particle->RelativeTime, Owner->Component);
-			}
-		}
+		// BM: Use particle relative time directly.
+		Interp = SubImageIndex.GetValue(Particle->RelativeTime, Owner->Component);
 		// Assuming a 0..<# sub images> range here...
 		ImageIndex = appTrunc(Interp);
 		ImageIndex = Clamp(ImageIndex, 0, TotalSubImages - 1);
@@ -1977,21 +1964,8 @@ UBOOL UParticleModuleSubUVMovie::DetermineImageIndex(FParticleEmitterInstance* O
 	check(LODLevel);
 
 	FSubUVMovieParticlePayload& MoviePayload = *((FSubUVMovieParticlePayload*)((BYTE*)Particle + Offset));
-	if (bUseRealTime == FALSE)
-	{
-		MoviePayload.Time += DeltaTime;
-	}
-	else
-	{
-		if ((GWorld != NULL) && (GWorld->GetWorldInfo() != NULL))
-		{
-			MoviePayload.Time += DeltaTime / GWorld->GetWorldInfo()->TimeDilation;
-		}
-		else
-		{
-			MoviePayload.Time += DeltaTime;
-		}
-	}
+	// BM: Advance movie time directly from delta time.
+	MoviePayload.Time += DeltaTime;
 	
 	FLOAT FrameRateValue = 
 		1.0f / FrameRate.GetValue(bUseEmitterTime ? Owner->EmitterTime : Particle->RelativeTime, Owner->Component);

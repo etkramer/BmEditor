@@ -12,12 +12,6 @@ class ParticleModuleSubUV extends ParticleModuleSubUVBase
  */
 var(SubUV) rawdistributionfloat	SubImageIndex;
 
-/** 
- *	If TRUE, use *real* time when updating the image index.
- *	The movie will update regardless of the slomo settings of the game.
- */
-var(RealTime)	bool				bUseRealTime;
-
 cpptext
 {
 	virtual void	Spawn(FParticleEmitterInstance* Owner, INT Offset, FLOAT SpawnTime);

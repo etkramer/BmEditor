@@ -43,8 +43,8 @@ var const array<Guid>	IrrelevantLights;
 
 struct StaticMeshComponentLODInfo
 {
-	var private const array<ShadowMap2D> ShadowMaps;
-	var private const array<Object> ShadowVertexBuffers;
+	var private const ShadowMap2D ShadowMap;
+	var private const ShadowMap1D ShadowVertexBuffer;
 	var native private const pointer LightMap{FLightMap};
 
 	/** Vertex colors to use for this mesh LOD */
@@ -55,7 +55,7 @@ struct StaticMeshComponentLODInfo
 };
 
 /** Static mesh LOD data.  Contains static lighting data along with instanced mesh vertex colors. */
-var native serializetext private const array<StaticMeshComponentLODInfo> LODData;
+var native serializetext private const StaticMeshComponentLODInfo LODData;
 
 /** Incremented any time the position of vertices from the source mesh change, used to determine if an update from the source static mesh is required */
 var private const editoronly int VertexPositionVersionNumber;

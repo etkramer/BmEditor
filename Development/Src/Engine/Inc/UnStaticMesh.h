@@ -1487,8 +1487,104 @@ protected:
 
 struct FStaticMeshComponentLODInfo
 {
-	TArray<UShadowMap2D*> ShadowMaps;
-	TArray<UShadowMap1D*> ShadowVertexBuffers;
+	struct FShadowMapFakeArray
+	{
+		UShadowMap2D* ShadowMap;
+
+		FShadowMapFakeArray()
+		: ShadowMap(NULL)
+		{}
+
+		UShadowMap2D*& operator()(INT i)
+		{
+			check(i == 0);
+			return ShadowMap;
+		}
+
+		UShadowMap2D* operator()(INT i) const
+		{
+			check(i == 0);
+			return ShadowMap;
+		}
+
+		INT Num() const
+		{
+			return ShadowMap != NULL;
+		}
+
+		void Empty(INT Slack = 0)
+		{
+			ShadowMap = NULL;
+		}
+
+		void Reset()
+		{
+			ShadowMap = NULL;
+		}
+
+		INT AddItem(UShadowMap2D* InShadowMap)
+		{
+			check(ShadowMap == NULL);
+			ShadowMap = InShadowMap;
+			return 0;
+		}
+
+		friend FArchive& operator<<(FArchive& Ar,FShadowMapFakeArray& I)
+		{
+			Ar << I.ShadowMap;
+			return Ar;
+		}
+	} ShadowMaps;
+
+	struct ShadowVertexBufferFakeArray
+	{
+		UShadowMap1D* ShadowVertexBuffer;
+
+		ShadowVertexBufferFakeArray()
+		: ShadowVertexBuffer(NULL)
+		{}
+
+		UShadowMap1D*& operator()(INT i)
+		{
+			check(i == 0);
+			return ShadowVertexBuffer;
+		}
+
+		UShadowMap1D* operator()(INT i) const
+		{
+			check(i == 0);
+			return ShadowVertexBuffer;
+		}
+
+		INT Num() const
+		{
+			return ShadowVertexBuffer != NULL;
+		}
+
+		void Empty(INT Slack = 0)
+		{
+			ShadowVertexBuffer = NULL;
+		}
+
+		void Reset()
+		{
+			ShadowVertexBuffer = NULL;
+		}
+
+		INT AddItem(UShadowMap1D* InShadowVertexBuffer)
+		{
+			check(ShadowVertexBuffer == NULL);
+			ShadowVertexBuffer = InShadowVertexBuffer;
+			return 0;
+		}
+
+		friend FArchive& operator<<(FArchive& Ar,ShadowVertexBufferFakeArray& I)
+		{
+			Ar << I.ShadowVertexBuffer;
+			return Ar;
+		}
+	} ShadowVertexBuffers;
+
 	FLightMapRef LightMap;
 	/**
 	 * 0 if not used, here we take care of the object creation and destruction, OverrideColorVertexBuffer might point to the same FColorVertexBuffer object. 
@@ -1519,37 +1615,16 @@ struct FStaticMeshComponentLODInfo
 
 	void ReleaseResources();
 
+	// BM: BM2 stores a single inline LOD info struct where stock UE3 stores an array.
+	INT Num() const { return 1; }
+	FStaticMeshComponentLODInfo& operator()(INT Index) { check(Index == 0); return *this; }
+	const FStaticMeshComponentLODInfo& operator()(INT Index) const { check(Index == 0); return *this; }
+
 	/** Serializer. */
 	friend FArchive& operator<<(FArchive& Ar,FStaticMeshComponentLODInfo& I)
 	{
-#if BATMAN
-		if( (Ar.IsLoading() || Ar.IsSaving()) && Ar.IsBmCooked(TRUE) )
-		{
-			UObject* ShadowMap = I.ShadowMaps.Num() ? I.ShadowMaps(0) : NULL;
-			UObject* ShadowVertexBuffer = I.ShadowVertexBuffers.Num() ? I.ShadowVertexBuffers(0) : NULL;
-			Ar << ShadowMap;
-			Ar << ShadowVertexBuffer;
-
-			if( Ar.IsLoading() )
-			{
-				I.ShadowMaps.Empty(ShadowMap ? 1 : 0);
-				I.ShadowVertexBuffers.Empty(ShadowVertexBuffer ? 1 : 0);
-				if( ShadowMap )
-				{
-					I.ShadowMaps.AddItem(CastChecked<UShadowMap2D>(ShadowMap));
-				}
-				if( ShadowVertexBuffer )
-				{
-					I.ShadowVertexBuffers.AddItem(CastChecked<UShadowMap1D>(ShadowVertexBuffer));
-				}
-			}
-		}
-		else
-#endif
-		{
-			Ar << I.ShadowMaps;
-			Ar << I.ShadowVertexBuffers;
-		}
+		Ar << I.ShadowMaps;
+		Ar << I.ShadowVertexBuffers;
 		Ar << I.LightMap;
 		if( Ar.Ver() >= VER_MESH_PAINT_SYSTEM_ENUM )
 		{
@@ -1602,7 +1677,6 @@ struct FStaticMeshComponentLODInfo
 	}
 
 private:
-
 	/** Purposely hidden */
 	FStaticMeshComponentLODInfo &operator=( const FStaticMeshComponentLODInfo &rhs ) { check(0); return *this; }
 };
@@ -1651,7 +1725,7 @@ public:
 	TArray<FGuid> IrrelevantLights;	// Statically irrelevant lights.
 
 	/** Per-LOD instance information */
-	TArray<FStaticMeshComponentLODInfo> LODData;
+	FStaticMeshComponentLODInfo LODData;
 
 	/** Incremented any time the position of vertices from the source mesh change, used to determine if an update from the source static mesh is required */
 	INT VertexPositionVersionNumber;
@@ -2354,7 +2428,6 @@ protected:
 		    and passed along to the renderer instead of the mesh's stock vertex factory */
 		TScopedPointer< FLocalVertexFactory > OverrideColorVertexFactory;
 
-
 		/** Initialization constructor. */
 		FLODInfo(const UStaticMeshComponent* InComponent,INT InLODIndex);
 
@@ -2364,36 +2437,36 @@ protected:
 		// Accessors.
 		const FLightMap* GetLightMap() const
 		{
-			return LODIndex < Component->LODData.Num() ?
-				Component->LODData(LODIndex).LightMap :
-				NULL;
+			return Component->LODData.LightMap;
 		}
 
-		const TArray<UShadowMap2D*>* GetTextureShadowMaps() const
+		UShadowMap2D* GetTextureShadowMap() const
 		{
-			return LODIndex < Component->LODData.Num() ?
-				&Component->LODData(LODIndex).ShadowMaps :
-				NULL;
+			return Component->LODData.ShadowMaps.ShadowMap;
 		}
 
-		const TArray<UShadowMap1D*>* GetVertexShadowMaps() const
+		UShadowMap1D* GetVertexShadowMap() const
 		{
-			return LODIndex < Component->LODData.Num() ?
-				&Component->LODData(LODIndex).ShadowVertexBuffers :
-				NULL;
+			return Component->LODData.ShadowVertexBuffers.ShadowVertexBuffer;
 		}
 
 		UBOOL UsesMeshModifyingMaterials() const { return bUsesMeshModifyingMaterials; }
+
+		INT Num() const { return 1; }
+		FLODInfo& operator()(INT Index) { return *this; }
+		const FLODInfo& operator()(INT Index) const { return *this; }
+
+		DWORD GetAllocatedSize() const
+		{
+			return Elements.GetAllocatedSize() + ( OverrideColorVertexBuffer ? OverrideColorVertexBuffer->GetAllocatedSize() : 0 );
+		}
 
 		// FLightCacheInterface.
 		virtual FLightInteraction GetInteraction(const FLightSceneInfo* LightSceneInfo) const;
 
 		virtual FLightMapInteraction GetLightMapInteraction() const
 		{
-			const FLightMap* LightMap = 
-				LODIndex < Component->LODData.Num() ?
-					Component->LODData(LODIndex).LightMap :
-					NULL;
+			const FLightMap* LightMap = Component->LODData.LightMap;
 			return LightMap ?
 				LightMap->GetInteraction() :
 				FLightMapInteraction();
@@ -2403,9 +2476,6 @@ protected:
 
 		/** The static mesh component. */
 		const UStaticMeshComponent* const Component;
-
-		/** The LOD index. */
-		const INT LODIndex;
 
 		/** True if any elements in this LOD use mesh-modifying materials **/
 		UBOOL bUsesMeshModifyingMaterials;
@@ -2455,7 +2525,7 @@ protected:
 	const UStaticMesh* StaticMesh;
 	const UStaticMeshComponent* StaticMeshComponent;
 
-	TIndirectArray<FLODInfo> LODs;
+	FLODInfo LODs;
 
 	/**
 	 * The forcedLOD set in the static mesh editor, copied from the mesh component
