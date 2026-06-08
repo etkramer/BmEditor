@@ -481,6 +481,13 @@ UBOOL UMaterial::SetMaterialUsage(UBOOL &bNeedsRecompile, EMaterialUsage Usage)
 	// Check that the material has been flagged for use with the given usage flag.
 	else if(!GetUsageByFlag(Usage) && !bUsedAsSpecialEngineMaterial)
 	{
+#if BATMAN
+		if( Usage == MATUSAGE_Decals )
+		{
+			warnf(NAME_Warning, TEXT("Material %s missing %s=True!"), *GetPathName(), *GetUsageName(Usage));
+			return FALSE;
+		}
+#endif
         // For materials which do not have their bUsedWith____ correctly set the DefaultMaterial<type> should be used in game
         // Leaving this GIsEditor ensures that in game on PC will not look different than on the Consoles as we will not be compiling shaders on the fly
 		if( GIsEditor && !GIsGame )

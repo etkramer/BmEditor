@@ -226,6 +226,12 @@ struct FStreamingTexture
 		RequestedMips = Texture->RequestedMips;
 		MinAllowedMips = 1;			//Min(Texture->ResidentMips, Texture->RequestedMips);
 		MaxAllowedMips = MipCount;	//Max(Texture->ResidentMips, Texture->RequestedMips);
+#if BATMAN
+		// BM: BM2 caches this per texture instead of dereferencing Texture during CalcMinMaxMips.
+		MinTextureResidentMipCount = Texture->GetMinTextureResidentMipCount(GSystemSettings.TextureLODSettings);
+#else
+		MinTextureResidentMipCount = GMinTextureResidentMipCount;
+#endif
 		STAT_FAST( MaxAllowedOptimalMips = MaxAllowedMips );
 		STAT_FAST( MostResidentMips = Max(MostResidentMips, Texture->ResidentMips) );
 		LastRenderTime = (GCurrentTime > Texture->Resource->LastRenderTime) ? FLOAT( GCurrentTime - Texture->Resource->LastRenderTime ) : 0.0f;
@@ -265,7 +271,16 @@ struct FStreamingTexture
 	 */
 	static UBOOL IsStreamingTexture( const UTexture2D* Texture )
 	{
-		return Texture && Texture->bIsStreamable && Texture->NeverStream == FALSE && Texture->Mips.Num() > GMinTextureResidentMipCount;
+		if( Texture == NULL )
+		{
+			return FALSE;
+		}
+#if BATMAN
+		const INT MinTextureResidentMipCount = Texture->GetMinTextureResidentMipCount(GSystemSettings.TextureLODSettings);
+#else
+		const INT MinTextureResidentMipCount = GMinTextureResidentMipCount;
+#endif
+		return Texture->bIsStreamable && Texture->NeverStream == FALSE && Texture->Mips.Num() > MinTextureResidentMipCount;
 	}
 
 	/**
@@ -365,6 +380,8 @@ struct FStreamingTexture
 	INT				TextureSizes[MAX_TEXTURE_MIP_COUNT + 1];
 	/** Ref-count for how many ULevels want this texture fully-loaded. */
 	INT				ForceLoadRefCount;
+	/** Cached minimum resident mip count from the texture's LOD group. */
+	INT				MinTextureResidentMipCount;
 
 	/** Cached texture group. */
 	TextureGroup	LODGroup;
@@ -1914,9 +1931,14 @@ UBOOL FStreamingManagerTexture::StreamOutTextureData( INT RequiredMemorySize )
 		if ( Texture->LODGroup == TEXTUREGROUP_Skybox )
 			continue;
 
-		// Number of mip-levels that must be resident due to mip-tails and GMinTextureResidentMipCount.
+		// Number of mip-levels that must be resident due to mip-tails and the minimum resident mip count.
 		INT NumRequiredResidentMips = (Texture->MipTailBaseIdx >= 0) ? Max<INT>(Texture->Mips.Num() - Texture->MipTailBaseIdx, 0 ) : 0;
+#if BATMAN
+		// BM: Match BM2's per-LOD-group resident mip floor.
+		NumRequiredResidentMips = Max<INT>(NumRequiredResidentMips, Texture->GetMinTextureResidentMipCount(GSystemSettings.TextureLODSettings));
+#else
 		NumRequiredResidentMips = Max<INT>(NumRequiredResidentMips, GMinTextureResidentMipCount);
+#endif
 
 		// Only consider streamable textures that have enough miplevels, and who are currently ready for streaming.
 		if ( Texture->bIsStreamable && Texture->NeverStream == FALSE && Texture->ResidentMips > NumRequiredResidentMips && Texture->IsReadyForStreaming() )
@@ -3447,7 +3469,7 @@ void FStreamingManagerTexture::CalcMinMaxMips( FStreamingTexture& StreamingTextu
 	}
 
 	// Calculate the minimum number of mip-levels required.
-	StreamingTexture.MinAllowedMips	= Max( GMinTextureResidentMipCount, StreamingTexture.NumMipTailLevels );
+	StreamingTexture.MinAllowedMips	= Max( StreamingTexture.MinTextureResidentMipCount, StreamingTexture.NumMipTailLevels );
 
 	// Calculate the maximum number of mip-levels.
 	INT MaxTextureMipCount = GMaxTextureMipCount;

@@ -640,58 +640,6 @@ void UTexture2D::Serialize(FArchive& Ar)
 	Super::Serialize(Ar);
 	LegacySerialize(Ar);
 
-#if BATMAN
-	// BM2: Fully load mips from .TFC
-	if (GIsEditor && TextureFileCacheName != NAME_None)
-	{
-		// Figure out TFC path
-		FString TextureCacheString = TextureFileCacheName.ToString() + TEXT(".") + GSys->TextureFileCacheExtension;
-		FString	PlatformName = TEXT("PCConsole");
-		FString Filename = appGameDir() + TEXT("Cooked") + PlatformName * TextureCacheString;
-
-		// Open TFC for reading
-		FArchive* FileReader = GFileManager->CreateFileReader(*Filename);
-		if (FileReader != NULL)
-		{
-			// Unset TextureFileCacheName
-			TextureFileCacheName = NAME_None;
-
-			for (INT i = 0; i < Mips.Num(); i++)
-			{
-				FTexture2DMipMap& MipMap = Mips(i);
-
-				// Skip resident/non-streamed mips
-				if (!MipMap.Data.IsStoredInSeparateFile() || MipMap.Data.GetBulkDataOffsetInFile() == INDEX_NONE)
-				{
-					continue;
-				}
-
-				// Read raw bytes from disk
-				TArray<BYTE> RawData(MipMap.Data.GetBulkDataSize());
-				FileReader->Seek(MipMap.Data.GetBulkDataOffsetInFile());
-				if (MipMap.Data.IsStoredCompressedOnDisk())
-				{
-					FileReader->SerializeCompressed(RawData.GetData(), MipMap.Data.GetBulkDataSize(), MipMap.Data.GetDecompressionFlags());
-				}
-				else
-				{
-					FileReader->Serialize(RawData.GetData(), MipMap.Data.GetBulkDataSize());
-				}
-
-				// Copy raw bytes to new bulk data
-				FTextureMipBulkData NewBulkData;
-				NewBulkData.Lock(LOCK_READ_WRITE);
-				appMemcpy(NewBulkData.Realloc(MipMap.Data.GetBulkDataSize()), RawData.GetData(), MipMap.Data.GetBulkDataSize());
-				NewBulkData.Unlock();
-
-				// Use this new bulk data
-				MipMap.Data.ClearBulkDataFlags(BULKDATA_StoreInSeparateFile);
-				MipMap.Data = NewBulkData;
-			}
-		}
-	}
-#endif
-
 	// Keep track of the fact that we have been loaded from a persistent archive as it's a prerequisite of
 	// being streamable.
 	if( Ar.IsLoading() && Ar.IsPersistent() )
@@ -1009,6 +957,13 @@ void UTexture2D::GenerateTextureFileCacheGUID(UBOOL bForceGeneration)
 	}
 #endif
 }
+
+#if BATMAN
+INT UTexture2D::GetMinTextureResidentMipCount(const FTextureLODSettings& TextureLODSettings) const
+{
+	return Max<INT>(GMinTextureResidentMipCount, TextureLODSettings.GetMinLODMipCount(LODGroup));
+}
+#endif
 
 /**
  * Creates a new resource for the texture, and updates any cached references to the resource.
@@ -1773,7 +1728,15 @@ FTextureResource* UTexture2D::CreateResource()
 			{
 				// get cooked directory
 				FString CookedPath;
+#if BATMAN
+				// BM: The editor runs as PLATFORM_Windows, but BM2 TFCs live in CookedPCConsole.
+				const UE3::EPlatformType TextureCachePlatform = (GetLinker() && GetLinker()->IsBmCooked(FALSE, FALSE))
+					? UE3::PLATFORM_WindowsConsole
+					: appGetPlatformType();
+				appGetCookedContentPath(TextureCachePlatform, CookedPath);
+#else
 				appGetCookedContentPath(appGetPlatformType(), CookedPath);
+#endif
 
 				// append the TFC filename
 				Filename		= CookedPath + TextureCacheString;
@@ -1839,7 +1802,12 @@ FTextureResource* UTexture2D::CreateResource()
 		if( bIsStreamable )
 		{
 			// Only request lower miplevels and let texture streaming code load the rest.
+#if BATMAN
+			// BM: Match BM2's per-LOD-group resident mip floor.
+			RequestedMips	= GetMinTextureResidentMipCount(GSystemSettings.TextureLODSettings);
+#else
 			RequestedMips	= GMinTextureResidentMipCount;
+#endif
 		}
 		// Handle non- streaming textures.
 		else

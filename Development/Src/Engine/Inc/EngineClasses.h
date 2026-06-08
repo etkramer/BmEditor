@@ -19083,14 +19083,6 @@ public:
 	 * @return TRUE if the effect should be rendered
 	 */
 	virtual UBOOL IsShown(const FSceneView* View) const;
-	
-	/**
-	* This allows to print a warning when the effect is used.
-	*/
-	virtual void OnPostProcessWarning(FString& OutWarning) const
-	{
-		OutWarning = TEXT("Warning: DOFAndBloomAndMotionBlur should no longer be used, use Uberpostprocess instead.");
-	}
 };
 
 class URockAtmos : public UDOFBloomMotionBlurEffect

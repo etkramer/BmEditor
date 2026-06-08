@@ -748,6 +748,25 @@ INT FTextureLODSettings::GetTextureLODGroupLODBias( INT InLODGroup ) const
 	return Retval;
 }
 
+#if BATMAN
+/**
+ * Will return the minimum resident mip count for a passed in LODGroup.
+ *
+ * @param	InLODGroup		The LOD Group ID
+ * @return	Minimum resident mip count
+ */
+INT FTextureLODSettings::GetMinLODMipCount( INT InLODGroup ) const
+{
+	INT Retval = 0;
+
+	const FTextureLODGroup& LODGroup = TextureLODGroups[InLODGroup];
+
+	Retval = LODGroup.MinLODMipCount;
+
+	return Retval;
+}
+#endif
+
 /**
  * Returns the LODGroup setting for number of streaming mip-levels.
  * -1 means that all mip-levels are allowed to stream.
@@ -787,6 +806,5 @@ ESamplerFilter FTextureLODSettings::GetSamplerFilter( const UTexture* Texture ) 
 
 	return Filter;
 }
-
 
 

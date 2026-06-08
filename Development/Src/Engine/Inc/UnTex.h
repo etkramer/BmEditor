@@ -742,6 +742,16 @@ struct FTextureLODSettings
 	 */
 	INT GetTextureLODGroupLODBias( INT InLODGroup ) const;
 
+#if BATMAN
+	/**
+	 * Will return the minimum resident mip count for a passed in LODGroup.
+	 *
+	 * @param	InLODGroup		The LOD Group ID
+	 * @return	Minimum resident mip count
+	 */
+	INT GetMinLODMipCount( INT InLODGroup ) const;
+#endif
+
 	/**
 	 * Returns the LODGroup setting for number of streaming mip-levels.
 	 * -1 means that all mip-levels are allowed to stream.
@@ -814,7 +824,6 @@ protected:
 	/** Array of LOD settings with entries per group. */
 	FTextureLODGroup TextureLODGroups[TEXTUREGROUP_MAX];
 };
-
 
 
 

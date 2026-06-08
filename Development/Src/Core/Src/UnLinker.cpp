@@ -3810,9 +3810,13 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 			// Skip functions, as some may override nonexistent bases for now
 			LoadClass->GetName() == "Function" ||
 
+			LoadClass->GetName() == "ActorFactoryEmitter" ||
+
 			LoadClass->GetName() == "Pylon" ||
+			LoadClass->GetName() == "DynamicPylon" ||
 			LoadClass->GetName() == "SceneCapture2DActor" ||
 			LoadClass->GetName() == "FractureMaterial" ||
+			LoadClass->GetName() == "FracturedStaticMeshActor" ||
 			LoadClass->GetName() == "FracturedStaticMeshComponent" ||
 			LoadClass->GetName() == "ApexClothingAsset" ||
 			LoadClass->GetName() == "ParticleSystemComponent" ||

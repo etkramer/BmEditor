@@ -194,6 +194,9 @@ public:
 	 * @param bForceGeneration	Whether we should generate a GUID even if it is already valid.
 	 */
 	void GenerateTextureFileCacheGUID(UBOOL bForceGeneration=FALSE);
+#if BATMAN
+	INT GetMinTextureResidentMipCount(const FTextureLODSettings& TextureLODSettings) const;
+#endif
 
 	// USurface interface
 	virtual FLOAT GetSurfaceWidth() const { return SizeX; }
