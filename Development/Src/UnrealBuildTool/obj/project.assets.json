@@ -310,11 +310,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "I:\\UnrealEngine3\\Development\\Src\\UnrealBuildTool\\UnrealBuildTool.csproj",
+      "projectUniqueName": "I:\\UnrealEngine3-bm2\\Development\\Src\\UnrealBuildTool\\UnrealBuildTool.csproj",
       "projectName": "UnrealBuildTool",
-      "projectPath": "I:\\UnrealEngine3\\Development\\Src\\UnrealBuildTool\\UnrealBuildTool.csproj",
+      "projectPath": "I:\\UnrealEngine3-bm2\\Development\\Src\\UnrealBuildTool\\UnrealBuildTool.csproj",
       "packagesPath": "C:\\Users\\elitk\\.nuget\\packages\\",
-      "outputPath": "I:\\UnrealEngine3\\Development\\Src\\UnrealBuildTool\\obj\\",
+      "outputPath": "I:\\UnrealEngine3-bm2\\Development\\Src\\UnrealBuildTool\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -329,10 +329,12 @@
       ],
       "sources": {
         "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+        "https://api.nuget.org/v3/index.json": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
         "net7.0": {
+          "framework": "net7.0",
           "targetAlias": "net7.0",
           "projectReferences": {}
         }
@@ -351,6 +353,7 @@
     },
     "frameworks": {
       "net7.0": {
+        "framework": "net7.0",
         "targetAlias": "net7.0",
         "dependencies": {
           "System.Data.SqlClient": {
@@ -396,7 +399,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.201\\RuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.204\\RuntimeIdentifierGraph.json"
       }
     }
   }

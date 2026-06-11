@@ -91,21 +91,27 @@ PX_INLINE bool SerializePlatform::operator !=(const SerializePlatform &p) const
 	return !(*this == p);
 }
 
-PX_INLINE Serializer::DeserializedData::DeserializedData()
+#if BATMAN
+#define NX_SERIALIZER_DECLARING_CLASS SerializerBase
+#else
+#define NX_SERIALIZER_DECLARING_CLASS Serializer
+#endif
+
+PX_INLINE NX_SERIALIZER_DECLARING_CLASS::DeserializedData::DeserializedData()
 	: objs(0), nobjs(0), traits(0) {}
 
-PX_INLINE Serializer::DeserializedData::DeserializedData(const Serializer::DeserializedData &data)
+PX_INLINE NX_SERIALIZER_DECLARING_CLASS::DeserializedData::DeserializedData(const NX_SERIALIZER_DECLARING_CLASS::DeserializedData &data)
 {
 	*this = data;
 }
 
-PX_INLINE Serializer::DeserializedData &Serializer::DeserializedData::operator =(const Serializer::DeserializedData &rhs)
+PX_INLINE NX_SERIALIZER_DECLARING_CLASS::DeserializedData &NX_SERIALIZER_DECLARING_CLASS::DeserializedData::operator =(const NX_SERIALIZER_DECLARING_CLASS::DeserializedData &rhs)
 {
 	init(rhs.traits, rhs.objs, rhs.nobjs);
 	return *this;
 }
 
-PX_INLINE void Serializer::DeserializedData::clear()
+PX_INLINE void NX_SERIALIZER_DECLARING_CLASS::DeserializedData::clear()
 {
 	if ( objs && objs != buf ) //Memory was allocated?
 	{
@@ -114,18 +120,18 @@ PX_INLINE void Serializer::DeserializedData::clear()
 	}
 }
 
-PX_INLINE Serializer::DeserializedData::~DeserializedData()
+PX_INLINE NX_SERIALIZER_DECLARING_CLASS::DeserializedData::~DeserializedData()
 {
 	clear();
 }
 
-PX_INLINE void Serializer::DeserializedData::init(Traits *traits_, ::NxParameterized::Interface **objs_, physx::PxU32 nobjs_)
+PX_INLINE void NX_SERIALIZER_DECLARING_CLASS::DeserializedData::init(Traits *traits_, ::NxParameterized::Interface **objs_, physx::PxU32 nobjs_)
 {
 	init(traits_, nobjs_);
 	::memcpy(objs, objs_, nobjs * sizeof(::NxParameterized::Interface *));
 }
 
-PX_INLINE void Serializer::DeserializedData::init(Traits *traits_, physx::PxU32 nobjs_)
+PX_INLINE void NX_SERIALIZER_DECLARING_CLASS::DeserializedData::init(Traits *traits_, physx::PxU32 nobjs_)
 {
 	clear();
 
@@ -138,24 +144,96 @@ PX_INLINE void Serializer::DeserializedData::init(Traits *traits_, physx::PxU32 
 		: (::NxParameterized::Interface **)traits->alloc(nobjs * sizeof(::NxParameterized::Interface *));
 }
 
-PX_INLINE physx::PxU32 Serializer::DeserializedData::size() const
+PX_INLINE physx::PxU32 NX_SERIALIZER_DECLARING_CLASS::DeserializedData::size() const
 {
 	return nobjs;
 }
 
-PX_INLINE ::NxParameterized::Interface *&Serializer::DeserializedData::operator[](physx::PxU32 i)
+PX_INLINE ::NxParameterized::Interface *&NX_SERIALIZER_DECLARING_CLASS::DeserializedData::operator[](physx::PxU32 i)
 {
 	PX_ASSERT( i < nobjs );
 	return objs[i];
 }
 
-PX_INLINE ::NxParameterized::Interface *Serializer::DeserializedData::operator[](physx::PxU32 i) const
+PX_INLINE ::NxParameterized::Interface *NX_SERIALIZER_DECLARING_CLASS::DeserializedData::operator[](physx::PxU32 i) const
 {
 	PX_ASSERT( i < nobjs );
 	return objs[i];
 }
 
-PX_INLINE void Serializer::DeserializedData::getObjects(::NxParameterized::Interface **outObjs)
+PX_INLINE void NX_SERIALIZER_DECLARING_CLASS::DeserializedData::getObjects(::NxParameterized::Interface **outObjs)
 {
 	::memcpy(outObjs, objs, nobjs * sizeof(::NxParameterized::Interface *));
 }
+
+#if BATMAN
+PX_INLINE NX_SERIALIZER_DECLARING_CLASS::DeserializedMetadata::DeserializedMetadata()
+	: objs(0), nobjs(0), traits(0) {}
+
+PX_INLINE NX_SERIALIZER_DECLARING_CLASS::DeserializedMetadata::DeserializedMetadata(const NX_SERIALIZER_DECLARING_CLASS::DeserializedMetadata &data)
+{
+	*this = data;
+}
+
+PX_INLINE NX_SERIALIZER_DECLARING_CLASS::DeserializedMetadata &NX_SERIALIZER_DECLARING_CLASS::DeserializedMetadata::operator =(const NX_SERIALIZER_DECLARING_CLASS::DeserializedMetadata &rhs)
+{
+	init(rhs.traits, rhs.objs, rhs.nobjs);
+	return *this;
+}
+
+PX_INLINE void NX_SERIALIZER_DECLARING_CLASS::DeserializedMetadata::clear()
+{
+	if ( objs && objs != buf ) //Memory was allocated?
+	{
+		PX_ASSERT(traits);
+		traits->free(objs);
+	}
+}
+
+PX_INLINE NX_SERIALIZER_DECLARING_CLASS::DeserializedMetadata::~DeserializedMetadata()
+{
+	clear();
+}
+
+PX_INLINE void NX_SERIALIZER_DECLARING_CLASS::DeserializedMetadata::init(Traits *traits_, NX_SERIALIZER_DECLARING_CLASS::MetadataEntry *objs_, physx::PxU32 nobjs_)
+{
+	init(traits_, nobjs_);
+	::memcpy(objs, objs_, nobjs * sizeof(NX_SERIALIZER_DECLARING_CLASS::MetadataEntry));
+}
+
+PX_INLINE void NX_SERIALIZER_DECLARING_CLASS::DeserializedMetadata::init(Traits *traits_, physx::PxU32 nobjs_)
+{
+	clear();
+
+	traits = traits_;
+	nobjs = nobjs_;
+
+	objs = nobjs <= bufSize
+		? buf
+		: (NX_SERIALIZER_DECLARING_CLASS::MetadataEntry *)traits->alloc(nobjs * sizeof(NX_SERIALIZER_DECLARING_CLASS::MetadataEntry));
+}
+
+PX_INLINE physx::PxU32 NX_SERIALIZER_DECLARING_CLASS::DeserializedMetadata::size() const
+{
+	return nobjs;
+}
+
+PX_INLINE NX_SERIALIZER_DECLARING_CLASS::MetadataEntry &NX_SERIALIZER_DECLARING_CLASS::DeserializedMetadata::operator[](physx::PxU32 i)
+{
+	PX_ASSERT( i < nobjs );
+	return objs[i];
+}
+
+PX_INLINE const NX_SERIALIZER_DECLARING_CLASS::MetadataEntry &NX_SERIALIZER_DECLARING_CLASS::DeserializedMetadata::operator[](physx::PxU32 i) const
+{
+	PX_ASSERT( i < nobjs );
+	return objs[i];
+}
+
+PX_INLINE void NX_SERIALIZER_DECLARING_CLASS::DeserializedMetadata::getObjects(NX_SERIALIZER_DECLARING_CLASS::MetadataEntry *outObjs)
+{
+	::memcpy(outObjs, objs, nobjs * sizeof(NX_SERIALIZER_DECLARING_CLASS::MetadataEntry));
+}
+#endif
+
+#undef NX_SERIALIZER_DECLARING_CLASS

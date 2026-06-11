@@ -129,46 +129,61 @@ public:
 	\brief Remove NxParameterized class factory for current version of class
 	\return Removed factory or NULL if it is not found
 	*/
-	virtual ::NxParameterized::Factory *removeFactory( const char * className ) = 0;
+	virtual ::NxParameterized::Factory *removeFactory( const char * className ) = 0; // BM
 
 	/**
 	\brief Remove NxParameterized class factory for given version of class
 	\return Removed factory or NULL if it is not found
 	*/
-	virtual ::NxParameterized::Factory *removeFactory( const char * className, physx::PxU32 version ) = 0;
+	virtual ::NxParameterized::Factory *removeFactory( const char * className, physx::PxU32 version ) = 0; // BM
+
+	/**
+	\brief Check whether NxParameterized class factory exists for current version of class
+	*/
+	virtual bool doesFactoryExist( const char * className ) = 0; // BM
+
+	/**
+	\brief Check whether NxParameterized class factory exists for given version of class
+	*/
+	virtual bool doesFactoryExist( const char * className, physx::PxU32 version ) = 0; // BM
 
 	/**
 	\brief Create object of NxParameterized class
 	
 	Most probably this just calls Factory::create on appropriate factory.
 	*/
-	virtual ::NxParameterized::Interface * createNxParameterized( const char * name ) = 0;
+	virtual ::NxParameterized::Interface * createNxParameterized( const char * name ) = 0; // BM
 
 	/**
 	\brief Create object of NxParameterized class
 	
 	Most probably this just calls Factory::create on appropriate factory.
 	*/
-	virtual ::NxParameterized::Interface * createNxParameterized( const char * name, physx::PxU32 ver ) = 0;
+	virtual ::NxParameterized::Interface * createNxParameterized( const char * name, physx::PxU32 ver ) = 0; // BM
 
 	/**
 	\brief Finish construction of inplace object of NxParameterized class
 	
 	Most probably this just calls Factory::finish using appropriate factory.
 	*/
-	virtual ::NxParameterized::Interface * finishNxParameterized( const char * name, void *obj, void *buf, physx::PxI32 *refCount ) = 0;
+	virtual ::NxParameterized::Interface * finishNxParameterized( const char * name, void *obj, void *buf, physx::PxI32 *refCount ) = 0; // BM
 
 	/**
 	\brief Finish construction of inplace object of NxParameterized class
 	
 	Most probably this just calls Factory::finish using appropriate factory.
 	*/
-	virtual ::NxParameterized::Interface * finishNxParameterized( const char * name, physx::PxU32 ver, void *obj, void *buf, physx::PxI32 *refCount ) = 0;
+	virtual ::NxParameterized::Interface * finishNxParameterized( const char * name, physx::PxU32 ver, void *obj, void *buf, physx::PxI32 *refCount ) = 0; // BM
 
 	/**
 	\brief Get version of class which is currently used
 	*/
 	virtual physx::PxU32 getCurrentVersion(const char *className) const = 0;
+
+	/**
+	\brief Get required alignment for NxParameterized class
+	*/
+	virtual physx::PxU32 getAlignment(const char *className, physx::PxU32 version) const = 0; // BM
 
 	/**
 	\brief Register converter for legacy version of class
@@ -209,6 +224,11 @@ public:
 	virtual bool getNxParameterizedNames( const char ** names, physx::PxU32 &outCount, physx::PxU32 inCount) const = 0;
 
 	/**
+	\brief Get a list of supported NxParameterized class versions
+	*/
+	virtual bool getNxParameterizedVersions( const char *className, physx::PxU32 *versions, physx::PxU32 &outCount, physx::PxU32 inCount) const = 0; // BM
+
+	/**
 	\brief Increment reference counter
 	*/
 	virtual physx::PxI32 incRefCount(physx::PxI32 *refCount) = 0;
@@ -231,7 +251,14 @@ public:
 	/**
 	\brief Allocate memory
 	*/
-	virtual void *alloc(physx::PxU32 nbytes) = 0;
+	virtual void *alloc(physx::PxU32 nbytes, physx::PxU32 alignment) = 0; // BM
+
+	/**
+	\brief Allocate memory
+	*/
+	virtual void *allocNoAlign(physx::PxU32 nbytes) = 0; // BM: Retail one-argument alloc slot.
+
+	void *alloc(physx::PxU32 nbytes) { return allocNoAlign(nbytes); } // BM
 
 	/**
 	\brief Deallocate memory
@@ -334,6 +361,8 @@ protected:
 	}
 
 public:
+	using Traits::alloc; // BM: Keep the non-virtual one-argument allocation wrapper visible.
+
 	/**
 	\brief Constructor
 	\param [in] wrappedTraits all calls will be delegated to this Traits object
@@ -345,25 +374,34 @@ public:
 	void registerFactory( ::NxParameterized::Factory & factory );
 
 	/// Calls wrapped Traits object
-	::NxParameterized::Factory *removeFactory( const char * className );
+	::NxParameterized::Factory *removeFactory( const char * className ); // BM
 
 	/// Calls wrapped Traits object
-	::NxParameterized::Factory *removeFactory( const char * className, physx::PxU32 version );
+	::NxParameterized::Factory *removeFactory( const char * className, physx::PxU32 version ); // BM
 
 	/// Calls wrapped Traits object
-	::NxParameterized::Interface * createNxParameterized( const char * name );
+	bool doesFactoryExist( const char * className ); // BM
 
 	/// Calls wrapped Traits object
-	::NxParameterized::Interface * createNxParameterized( const char * name, physx::PxU32 ver );
+	bool doesFactoryExist( const char * className, physx::PxU32 version ); // BM
 
 	/// Calls wrapped Traits object
-	::NxParameterized::Interface * finishNxParameterized( const char * name, void *obj, void *buf, physx::PxI32 *refCount );
+	::NxParameterized::Interface * createNxParameterized( const char * name ); // BM
 
 	/// Calls wrapped Traits object
-	::NxParameterized::Interface * finishNxParameterized( const char * name, physx::PxU32 ver, void *obj, void *buf, physx::PxI32 *refCount );
+	::NxParameterized::Interface * createNxParameterized( const char * name, physx::PxU32 ver ); // BM
+
+	/// Calls wrapped Traits object
+	::NxParameterized::Interface * finishNxParameterized( const char * name, void *obj, void *buf, physx::PxI32 *refCount ); // BM
+
+	/// Calls wrapped Traits object
+	::NxParameterized::Interface * finishNxParameterized( const char * name, physx::PxU32 ver, void *obj, void *buf, physx::PxI32 *refCount ); // BM
 
 	/// Calls wrapped Traits object
 	physx::PxU32 getCurrentVersion(const char *className) const;
+
+	/// Calls wrapped Traits object
+	physx::PxU32 getAlignment(const char *className, physx::PxU32 version) const; // BM
 
 	/// Calls wrapped Traits object
 	void registerConversion(const char *className, physx::PxU32 from, physx::PxU32 to, Conversion &conv);
@@ -378,6 +416,9 @@ public:
 	bool getNxParameterizedNames( const char ** names, physx::PxU32 &outCount, physx::PxU32 inCount) const;
 
 	/// Calls wrapped Traits object
+	bool getNxParameterizedVersions( const char *className, physx::PxU32 *versions, physx::PxU32 &outCount, physx::PxU32 inCount) const; // BM
+
+	/// Calls wrapped Traits object
 	physx::PxI32 incRefCount(physx::PxI32 *refCount);
 
 	/// Calls wrapped Traits object
@@ -390,7 +431,10 @@ public:
 	void onAllInplaceObjectsDestroyed(void *buf);
 
 	/// Calls wrapped Traits object
-	void *alloc(physx::PxU32 nbytes);
+	void *alloc(physx::PxU32 nbytes, physx::PxU32 alignment); // BM
+
+	/// Calls wrapped Traits object
+	void *allocNoAlign(physx::PxU32 nbytes); // BM
 
 	/// Calls wrapped Traits object
 	void free(void *buf);
@@ -410,4 +454,3 @@ PX_POP_PACK
 }; // end of namespace
 
 #endif
-

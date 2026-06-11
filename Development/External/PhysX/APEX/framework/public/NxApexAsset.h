@@ -76,7 +76,9 @@ public:
 	 * \brief Save asset configuration to a stream
 	 * \note This method is DEPRECATED, use the NxParameterized::Serializer for NxParameterized-based assets
 	 */
+#if !BATMAN // BM: Retail Batman APEX 1.1 has no NxApexAsset::serialize vslot.
 	virtual physx::PxFileBuf & serialize( physx::PxFileBuf & ) const = 0;
+#endif
 
 	/**
 	 * \brief Returns the number of assets force loaded by all of

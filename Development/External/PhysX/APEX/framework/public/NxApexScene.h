@@ -45,6 +45,13 @@ class NxScene;
 
 namespace physx
 {
+	namespace pxtask
+	{
+		class CpuDispatcher;
+		class GpuDispatcher;
+		class TaskManager;
+	}
+
 	namespace shdfnd2
 	{
 	class PxIPC;
@@ -78,12 +85,21 @@ public:
 	NxScene * scene;
 
 	/**
+#if BATMAN
+	\brief Give this ApexScene user defined dispatchers
+#else
 	\brief Give this ApexScene a user defined TaskManager
 
 	If taskManager is NULL, the APEX scene will create a default TaskManager
 	and thread pool.
+#endif
 	*/
+#if BATMAN
+	physx::pxtask::CpuDispatcher *cpuDispatcher; // BM
+	physx::pxtask::GpuDispatcher *gpuDispatcher; // BM
+#else
 	physx::pxtask::TaskManager *taskManager;
+#endif
 	
 	/**
 	\brief Toggle the use of a legacy NxDebugRenderable
@@ -106,7 +122,12 @@ private:
 	PX_INLINE void init()
 	{
 		scene = 0;
+#if BATMAN
+		cpuDispatcher = 0;
+		gpuDispatcher = 0;
+#else
 		taskManager = 0;
+#endif
 		useDebugRenderable = false;
 		debugVisualizeRemotely = false;
 		debugVisualizeLocally = true;

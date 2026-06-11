@@ -228,6 +228,13 @@ class Hint
 class Definition
 {
 public:
+#if BATMAN
+    /**
+    \brief Destructor
+    */
+    virtual ~Definition() {} // BM
+
+#endif
     /**
     \brief Returns the number of hints in the parameter Definition
     */
@@ -291,6 +298,13 @@ public:
     */
     virtual DataType                         type(void) const = 0;
 
+#if BATMAN
+	/**
+	\brief Return the parameter type in string form
+	*/
+	virtual const char*						typeString() const = 0; // BM
+
+#endif
     /**
     \brief Returns the number of variants this parameter could be
     A reference is sometimes a union of different types, each different type is referred to as 
@@ -298,6 +312,14 @@ public:
     */
     virtual    physx::PxI32                             numRefVariants(void) const = 0;
 
+#if BATMAN
+    /**
+    \brief Given the ref variant name, get its val index
+    \returns -1 if input ref_val is not found
+    */
+    virtual    physx::PxI32                             refVariantValIndex( const char * ref_val ) const = 0; // BM
+
+#endif
     /**
     \brief Get the string value of the reference variant
     */
@@ -332,6 +354,18 @@ public:
 	*/
     virtual void                             addEnumVal(const char *enum_val) = 0;
 
+#if BATMAN
+    /**
+    \brief Returns custom alignment if parameter uses it; otherwise returns 0
+    */
+    virtual physx::PxU32 alignment(void) const = 0; // BM
+
+    /**
+    \brief Returns custom padding if parameter uses it; otherwise returns 0
+    */
+    virtual physx::PxU32 padding(void) const = 0; // BM
+
+#endif
     /**
     \brief Returns the number of dimensions of a static array
     */
@@ -378,7 +412,7 @@ public:
 	\brief Access definition of child parameter with given name
 	\warning Only used with TYPE_STRUCT
 	*/
-    virtual const Definition *child(const char *name, physx::PxI32 &index) const = 0;
+    virtual const Definition *child(const char *name, physx::PxI32 &index) const = 0; // BM
 
 	/**
 	\brief Store definitions of child parameters
@@ -758,6 +792,14 @@ public:
     */
     virtual void initDefaults(void) = 0;
 
+#if BATMAN
+    /**
+    \brief Initializes all parameters with random values
+    */
+    virtual void initRandom(void) = 0; // BM
+
+#endif
+
     /**
     \brief Get the class name
     */
@@ -787,6 +829,19 @@ public:
     \brief Get the class version
     */
     virtual physx::PxU32 version(void) const = 0;
+
+#if BATMAN
+    /**
+    \brief Get the major part of class version
+    */
+    virtual physx::PxU16 getMajorVersion(void) const = 0; // BM
+
+    /**
+    \brief Get the minor part of class version
+    */
+    virtual physx::PxU16 getMinorVersion(void) const = 0; // BM
+
+#endif
 
     /**
     \brief Get the class checksum.
@@ -837,7 +892,11 @@ public:
     virtual void setSerializationCallback(SerializationCallback *cb, void *userData = NULL) = 0;
 
 	/// Called prior by Serializer to serialization
+#if BATMAN
+    virtual ErrorType callPreSerializeCallback() const = 0; // BM
+#else
     virtual void callPreSerializeCallback() const = 0;
+#endif
 
 
     /**
@@ -847,7 +906,11 @@ public:
     \param [in] numHandlesOfInequality The number of handles that can be written to.
     \returns true if parameter definition tree is equal as well as parameter values
     */
+#if BATMAN
+    virtual bool equals(const ::NxParameterized::Interface &obj, Handle* handlesOfInequality = NULL, physx::PxU32 numHandlesOfInequality = 0, bool doCompareNotSerialized = true) const = 0; // BM
+#else
     virtual bool equals(const ::NxParameterized::Interface &obj, Handle* handlesOfInequality = NULL, physx::PxU32 numHandlesOfInequality = 0) const = 0;
+#endif
 
     /**
     \brief Checks if object satisfies schema constraints
@@ -863,9 +926,21 @@ public:
     */
     virtual ErrorType copy(const ::NxParameterized::Interface &src) = 0;
 
+#if BATMAN
+    /**
+    \brief Clones an NxParameterized object
+    */
+    virtual ErrorType clone(Interface *&nullDestObject) const = 0; // BM
+
+#endif
+
 protected:
 	/// Initialize a Reference parameter
+#if BATMAN
+    virtual ErrorType initParamRef(const Handle &handle, const char *chosenRefStr = 0, bool doDestroyOld = false) = 0; // BM
+#else
     virtual ErrorType initParamRef(const Handle &handle, const char *chosenRefStr = 0) = 0;
+#endif
 
     // These functions wrap the raw(Get|Set)XXXXX() methods.  They deal with
     // error handling and casting.
@@ -884,9 +959,10 @@ protected:
     virtual ErrorType getParamEnumArray(const Handle &handle, char **array, physx::PxI32 n, physx::PxI32 offset = 0) const = 0;
     virtual ErrorType setParamEnumArray(const Handle &handle, const char **array, physx::PxI32 n, physx::PxI32 offset= 0) = 0;
 
+    // BM: Retail Batman APEX 1.1 orders getParamRefArray before setParamRef.
     virtual ErrorType getParamRef(const Handle &handle, ::NxParameterized::Interface *&val) const = 0;
-    virtual ErrorType setParamRef(const Handle &handle, ::NxParameterized::Interface * val) = 0;
     virtual ErrorType getParamRefArray(const Handle &handle, ::NxParameterized::Interface **array, physx::PxI32 n, physx::PxI32 offset = 0) const = 0;
+    virtual ErrorType setParamRef(const Handle &handle, ::NxParameterized::Interface * val) = 0;
     virtual ErrorType setParamRefArray(const Handle &handle, /*const*/ ::NxParameterized::Interface **array, physx::PxI32 n, physx::PxI32 offset = 0) = 0;
 
     virtual ErrorType getParamI8(const Handle &handle, physx::PxI8 &val) const = 0;

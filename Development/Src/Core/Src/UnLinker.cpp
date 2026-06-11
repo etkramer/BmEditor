@@ -3795,7 +3795,7 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 #if BATMAN
 		// BM: Skip classes (BmGame.upk needs this for now)
 		// if (IsBmCooked() && (LoadClass->GetName() == "Class"))
-		if (IsBmCooked() && (LoadClass->GetName() == "Class") && (Export.ObjectName.ToString() != "RSkeletalMeshActor"))
+		if (IsBmCooked() && (LoadClass->GetName() == "Class") && ((Export.ObjectName.ToString() != "RSkeletalMeshActor") || (Export.ObjectName.ToString() != "RLevelVolume")))
         {
 			UObject* ExistingClass = StaticFindObject(UClass::StaticClass(), NULL, *GetExportPathName(Index, NULL, TRUE), TRUE);
 			if (ExistingClass)
@@ -3818,7 +3818,7 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 			LoadClass->GetName() == "FractureMaterial" ||
 			LoadClass->GetName() == "FracturedStaticMeshActor" ||
 			LoadClass->GetName() == "FracturedStaticMeshComponent" ||
-			LoadClass->GetName() == "ApexClothingAsset" ||
+			// LoadClass->GetName() == "ApexClothingAsset" ||
 			LoadClass->GetName() == "ParticleSystemComponent" ||
 
 			// "TypeIndex out of range" messages with most SequenceObjects

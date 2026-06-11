@@ -220,6 +220,12 @@ struct NxDestructibleActorMeshType
 class NxModuleDestructible : public NxModule
 {
 public:
+#if BATMAN
+	/**
+	\brief APEX 1.1 destructible module vtable slot before LOD methods.
+	*/
+	virtual void* unknownApex11VTableSlot44() = 0; // BM
+#else
 	/** Object creation */
 
 	/**
@@ -266,6 +272,7 @@ public:
 		method at any time.
 	*/
 	virtual NxDestructibleActorJoint*		createDestructibleActorJoint( const NxDestructibleActorJointDesc& desc, NxApexScene& scene ) = 0;
+#endif
 
 
 	/** LOD */
@@ -295,6 +302,13 @@ public:
 		formed.  In other words, the higher maxChunkDepthOffset, the lower the LOD.
 	*/
 	virtual void							setMaxChunkDepthOffset( physx::PxU32 maxChunkDepthOffset ) = 0;
+
+#if BATMAN
+	/**
+	\brief APEX 1.1 destructible module vtable slot before setMaxChunkSeparationLOD.
+	*/
+	virtual void* unknownApex11VTableSlot64() = 0; // BM
+#endif
 
 	/**
 		Every destructible asset defines a min and max lifetime, and maximum separation distance for its chunks.

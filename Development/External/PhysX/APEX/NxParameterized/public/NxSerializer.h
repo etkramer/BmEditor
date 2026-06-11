@@ -159,6 +159,7 @@ struct SerializePlatform
 
 class Interface;
 class Traits;
+class Definition;
 struct SerializePlatform;
 
 /**
@@ -194,7 +195,11 @@ public:
 Serializer serializes and deserializes one or more NxParameterized objects to file using various output formats
 (see SerializeType).
 */
+#if BATMAN
+class SerializerBase
+#else
 class Serializer
+#endif
 {
 public:
 
@@ -260,7 +265,11 @@ public:
 	*/
 	static ErrorType peekPlatform(physx::PxFileBuf &stream, SerializePlatform &platform);
 
+#if BATMAN
+	virtual ~SerializerBase() {}
+#else
 	virtual ~Serializer() {}
+#endif
 
 	/**
 	\brief Set platform to use in platform-dependent serialization
@@ -274,6 +283,11 @@ public:
 	*/
 	virtual ErrorType setTargetPlatform(const SerializePlatform &platform) = 0;
 
+#if BATMAN
+	// BM: APEX 1.1 serializer vtable slot.
+	virtual void setAutoUpdate(bool doUpdate) = 0;
+#endif
+
 	/**
 	\brief Serialize array of NxParameterized-objects to a stream
 	\param [in] stream the stream to which the object will be serialized
@@ -285,12 +299,21 @@ public:
 	\warning doCompression and doSerializeMetadata are not implemented
 	\warning Serialized file may depend on selected target platform
 	*/
+#if BATMAN
+	// BM: APEX 1.1 has only doSerializeMetadata here.
+	virtual ErrorType serialize(
+		physx::PxFileBuf &stream,
+		const ::NxParameterized::Interface **objs,
+		physx::PxU32 nobjs,
+		bool doSerializeMetadata = false) = 0;
+#else
 	virtual ErrorType serialize(
 		physx::PxFileBuf &stream,
 		const ::NxParameterized::Interface **objs,
 		physx::PxU32 nobjs,
 		bool doSerializeMetadata = false,
 		bool doCompression = false) = 0;
+#endif
 
 	/**
 	\brief Peek number of NxParameterized-objects in stream with serialized data
@@ -386,12 +409,63 @@ public:
 		void clear();
 	};
 
+#if BATMAN
+	// BM: Metadata deserialization result used by the APEX 1.1 serializer ABI.
+	struct MetadataEntry
+	{
+		const char *className;
+		physx::PxU32 version;
+		Definition *def;
+	};
+
+	class DeserializedMetadata
+	{
+	public:
+
+		PX_INLINE DeserializedMetadata();
+
+		PX_INLINE ~DeserializedMetadata();
+
+		PX_INLINE DeserializedMetadata(const DeserializedMetadata &data);
+
+		PX_INLINE DeserializedMetadata &operator =(const DeserializedMetadata &rhs);
+
+		PX_INLINE void init(Traits *traits_, physx::PxU32 nobjs_);
+
+		PX_INLINE void init(Traits *traits_, MetadataEntry *objs_, physx::PxU32 nobjs_);
+
+		PX_INLINE physx::PxU32 size() const;
+
+		PX_INLINE MetadataEntry &operator[](physx::PxU32 i);
+
+		PX_INLINE const MetadataEntry &operator[](physx::PxU32 i) const;
+
+		PX_INLINE void getObjects(MetadataEntry *outObjs);
+
+	private:
+		static const physx::PxU32 bufSize = 8;
+		MetadataEntry buf[bufSize];
+
+		MetadataEntry *objs;
+
+		physx::PxU32 nobjs;
+
+		Traits *traits;
+
+		void clear();
+	};
+
+	virtual ErrorType deserializeMetadata(physx::PxFileBuf &stream, DeserializedMetadata &desData) = 0;
+#endif
+
 	/**
 	\brief Deserialize a stream into one or more NxParameterized objects
 	\param [in] stream the stream from which objects will be deserialized
 	\param [out] desData storage for deserialized data
 	*/
+#if !BATMAN
 	virtual ErrorType deserialize(physx::PxFileBuf &stream, DeserializedData &desData) = 0;
+#endif
 
 	/**
 	\brief Deserialize a stream into one or more NxParameterized objects
@@ -401,6 +475,69 @@ public:
 	*/
 	virtual ErrorType deserialize(physx::PxFileBuf &stream, DeserializedData &desData, bool &isUpdated) = 0;
 
+#if BATMAN
+};
+
+class SerializerDeserializeBase : public SerializerBase
+{
+public:
+	using SerializerBase::deserialize;
+
+	virtual ErrorType deserialize(physx::PxFileBuf &stream, DeserializedData &desData) = 0;
+
+protected:
+	virtual ~SerializerDeserializeBase() {}
+};
+
+class SerializerInplaceUpdatedBase : public SerializerDeserializeBase
+{
+public:
+	using SerializerDeserializeBase::deserialize;
+
+	/**
+	\brief Deserialize memory buffer into one or more NxParameterized objects
+	\param [in] data pointer to serialized data
+	\param [in] dataLen length of serialized data
+	\param [out] desData storage for deserialized data
+	\param [out] isUpdated true if any legacy object was updated, false otherwise
+
+	\warning Currently only binary serializer supports inplace deserialization
+	*/
+	virtual ErrorType deserializeInplace(void *data, physx::PxU32 dataLen, DeserializedData &desData, bool &isUpdated) = 0;
+
+protected:
+	virtual ~SerializerInplaceUpdatedBase() {}
+};
+
+class SerializerInplaceBase : public SerializerInplaceUpdatedBase
+{
+public:
+	using SerializerInplaceUpdatedBase::deserialize;
+	using SerializerInplaceUpdatedBase::deserializeInplace;
+
+	virtual ErrorType deserializeInplace(void *data, physx::PxU32 dataLen, DeserializedData &desData) = 0;
+
+protected:
+	virtual ~SerializerInplaceBase() {}
+};
+
+class Serializer : public SerializerInplaceBase
+{
+public:
+	using SerializerInplaceBase::deserialize;
+	using SerializerInplaceBase::deserializeInplace;
+
+	static SerializeType peekSerializeType(physx::PxFileBuf &stream);
+
+	static ErrorType peekPlatform(physx::PxFileBuf &stream, SerializePlatform &platform);
+
+	virtual ~Serializer() {}
+
+	virtual ErrorType peekInplaceAlignment(physx::PxFileBuf &stream, physx::PxU32 &align) = 0;
+
+	virtual void release() = 0;
+};
+#else
 	/**
 	\brief Deserialize memory buffer into one or more NxParameterized objects
 	\param [in] data pointer to serialized data
@@ -423,9 +560,6 @@ public:
 	*/
 	virtual ErrorType deserializeInplace(void *data, physx::PxU32 dataLen, DeserializedData &desData, bool &isUpdated) = 0;
 
-	/**
-	\brief Release deserializer and any memory allocations associated with it
-	*/
 	virtual void release() = 0;
 
 	/**
@@ -436,6 +570,7 @@ public:
 	*/
 	virtual void setSerializerCompression(SerializerCompression *serializerCompression) = 0;
 };
+#endif
 
 #include "NxSerializer.inl"
 

@@ -1604,6 +1604,7 @@ public:
     FLOAT LodWeightsDistanceWeight;
     FLOAT LodWeightsBias;
     FLOAT LodWeightsBenefitsBias;
+    class UObject* ClothingMaterial;
     //## END PROPS ApexClothingAsset
 
     DECLARE_CLASS(UApexClothingAsset,UApexAsset,0,Engine)
@@ -2086,7 +2087,7 @@ VERIFY_CLASS_OFFSET_NODIE(UApexAsset,ApexAsset,OriginalApexName)
 VERIFY_CLASS_OFFSET_NODIE(UApexAsset,ApexAsset,SourceFilePath)
 VERIFY_CLASS_SIZE_NODIE(UApexAsset)
 VERIFY_CLASS_OFFSET_NODIE(UApexClothingAsset,ApexClothingAsset,MApexAsset)
-VERIFY_CLASS_OFFSET_NODIE(UApexClothingAsset,ApexClothingAsset,LodWeightsBenefitsBias)
+VERIFY_CLASS_OFFSET_NODIE(UApexClothingAsset,ApexClothingAsset,ClothingMaterial)
 VERIFY_CLASS_SIZE_NODIE(UApexClothingAsset)
 VERIFY_CLASS_OFFSET_NODIE(UApexDestructibleAsset,ApexDestructibleAsset,MApexAsset)
 VERIFY_CLASS_OFFSET_NODIE(UApexDestructibleAsset,ApexDestructibleAsset,DestructibleParameters)

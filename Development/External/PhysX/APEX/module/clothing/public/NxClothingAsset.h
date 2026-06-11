@@ -123,7 +123,9 @@ public:
 	/**
 	\brief Returns stats (sizes, counts) for the asset.  See NxClothingAssetStats.
 	*/
+#if !BATMAN // BM: Retail Batman APEX 1.1 has no NxClothingAsset::getStats vslot.
 	virtual void getStats( NxClothingAssetStats& stats ) const = 0;
+#endif
 
 	/**
 	\brief Returns the number of bones

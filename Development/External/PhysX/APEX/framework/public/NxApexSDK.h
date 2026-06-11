@@ -44,12 +44,16 @@
 #include "NxSerializer.h"
 #include "NxParameterized.h"
 #include "Nxp.h"
+#if BATMAN
+#include "PxApex11Callbacks.h"
+#endif
 
 namespace physx
 {
 	namespace pxtask
 	{
 		class TaskManager;
+		class CpuDispatcher;
 		class CudaContextManagerDesc;
 		class CudaContextManager;
 	}
@@ -63,6 +67,11 @@ namespace physx
 	{
 		class Foundation;
 	}
+};
+
+namespace PVD
+{
+	class PvdBinding;
 };
 
 /**
@@ -95,6 +104,11 @@ class NxApexAsset;
 class NxApexAssetAuthoring;
 class NxApexSDKCachedData;
 class NxRenderMeshActor;
+class NxApexShape;
+class NxApexSphereShape;
+class NxApexCapsuleShape;
+class NxApexBoxShape;
+class NxApexHalfSpaceShape;
 
 PX_PUSH_PACK_DEFAULT
 
@@ -112,12 +126,20 @@ public:
 	/**
 	\brief The allocator APEX should use
 	*/
+#if BATMAN
+	physx::PxAllocatorCallback* allocator; // BM: APEX 1.1 callback ABI.
+#else
 	physx::PxUserAllocator* allocator; 
+#endif
 
  	/**
 	\brief The output stream that APEX should use
 	*/
+#if BATMAN
+	physx::PxErrorCallback* outputStream; // BM: APEX 1.1 callback ABI.
+#else
 	physx::PxUserOutputStream* outputStream;
+#endif
 
  	/**
 	\brief The PhysX SDK version you are building with
@@ -175,6 +197,10 @@ public:
 	*/
 	const char *solidShadedMaterial;
 
+#if BATMAN
+	bool renderMeshActorLoadMaterialsLazily; // BM: APEX 1.1 descriptor tail field.
+#endif
+
 	/**
 	\brief constructor sets to default.
 	*/
@@ -224,6 +250,9 @@ private:
 		dllLoadPath = NULL;
 		solidShadedMaterial = "ApexSolidShaded";
 		wireframeMaterial = "ApexWireframe";
+#if BATMAN
+		renderMeshActorLoadMaterialsLazily = true; // BM
+#endif
 	}
 };
 
@@ -231,7 +260,11 @@ private:
 /**
 \brief The ApexSDK abstraction. Manages scenes and modules.
 */
+#if BATMAN
+class NxApexSDKBase : public NxApexInterface
+#else
 class NxApexSDK : public NxApexInterface
+#endif
 {
 public:
 	/**
@@ -244,23 +277,17 @@ public:
 	*/
 	virtual void releaseScene(NxApexScene *) = 0;
 
+#if BATMAN
+	// BM: PC APEX 1.1 exposes CPU dispatchers here, not TaskManager allocation.
+	virtual physx::pxtask::CpuDispatcher * createCpuDispatcher( physx::PxU32 numThreads = 0 ) const = 0;
+
+	virtual void releaseCpuDispatcher( physx::pxtask::CpuDispatcher& dispatcher ) = 0;
+#else
 	/**
 	 * \brief Allocates a TaskManager with optional thread pool
-     *
-     * If numThreads is non-zero, the new TaskManager will immediately
-     * allocate a CpuDispatcher thread pool with the specified thread
-     * count.  The user may query the CpuDispatcher pointer from this
-     * new TaskManager and assign it to TaskManagers for other scenes.
-     * The TaskManager maintains ownership of this CpuDispatcher and
-     * will automatically release it when the TaskManager is released.
-     *
-     * If numThreads is zero, the new TaskManager's CpuDispatcher
-     * reference will be NULL.  If the user does not set a CpuDispatcher
-     * reference before providing the TaskManager to a scene, a
-     * CpuDispatcher will be allocated the first time the simulation is
-     * stepped.
 	 */
 	virtual physx::pxtask::TaskManager * createTaskManager( physx::PxU32 numThreads = 0 ) const = 0;
+#endif
 
 	/**
 	\brief Create a physx::pxtask::CudaContextManager
@@ -276,26 +303,34 @@ public:
 	\brief Return an object describing how APEX is using the PhysX Actor.
 	\return NULL if PhysX Actor is not owned by APEX.
 	*/
+#if !BATMAN
     virtual const NxApexPhysXObjectDesc * getPhysXObjectInfo(const NxActor *actor) const = 0;
+#endif
 
 	/**
 	\brief Return an object describing how APEX is using the PhysX Shape.
 	\return NULL if PhysX Shape is not owned by APEX.
 	*/
+#if !BATMAN
 	virtual const NxApexPhysXObjectDesc * getPhysXObjectInfo(const NxShape *shape) const = 0;
+#endif
 
 	/**
 	\brief Return an object describing how APEX is using the PhysX Joint.
 	\return NULL if PhysX Joint is not owned by APEX.
 	*/
+#if !BATMAN
 	virtual const NxApexPhysXObjectDesc * getPhysXObjectInfo(const NxJoint *joint) const = 0;
+#endif
 
 
 	/**
 	\brief Return an object describing how APEX is using the PhysX Cloth.
 	\return NULL if PhysX Cloth is not owned by APEX.
 	*/
+#if !BATMAN
 	virtual const NxApexPhysXObjectDesc * getPhysXObjectInfo(const NxCloth *cloth) const = 0;
+#endif
 
 	/**
 	\brief Return an object describing how APEX is using the PhysX SoftBody.
@@ -303,10 +338,22 @@ public:
 	*/
 	virtual const NxApexPhysXObjectDesc * getPhysXObjectInfo(const NxSoftBody *softbody) const = 0;
 
+#if BATMAN
+	// BM: PC APEX 1.1 overload order.
+	virtual const NxApexPhysXObjectDesc * getPhysXObjectInfo(const NxCloth *cloth) const = 0;
+	virtual const NxApexPhysXObjectDesc * getPhysXObjectInfo(const NxJoint *joint) const = 0;
+	virtual const NxApexPhysXObjectDesc * getPhysXObjectInfo(const NxShape *shape) const = 0;
+	virtual const NxApexPhysXObjectDesc * getPhysXObjectInfo(const NxActor *actor) const = 0;
+#endif
+
 	/**
 	\brief Return the user output stream.
 	*/
+#if BATMAN
+	virtual physx::PxErrorCallback * getOutputStream() = 0; // BM
+#else
 	virtual physx::PxUserOutputStream * getOutputStream() = 0;
+#endif
 
 	/**
 	\brief Returns the cooking interface.
@@ -334,7 +381,11 @@ public:
 	/**
 	\brief Return a PxFileBuf which writes to memory.
 	*/
+#if BATMAN
+	virtual physx::general_PxIOStream2::PxFileBuf *createMemoryWriteStream(physx::PxU32 size = 0) = 0; // BM
+#else
 	virtual physx::general_PxIOStream2::PxFileBuf *createMemoryWriteStream(void) = 0;
+#endif
 
 	/**
 	\brief Return the address and length of the contents of a memory write buffer stream.
@@ -372,6 +423,22 @@ public:
 	virtual void releaseModule(NxModule* module) = 0;
 
 
+#if BATMAN
+	// BM: PC APEX 1.1 debug/shape slots replace the old render mesh SDK slots.
+	virtual NxApexRenderDebug * createApexRenderDebug(bool useRemoteDebugVisualization=false,bool debugVisualizeLocally=true) = 0;
+
+	virtual void releaseApexRenderDebug(NxApexRenderDebug &debug) = 0;
+
+	virtual NxApexSphereShape * createApexSphereShape() = 0;
+
+	virtual NxApexCapsuleShape * createApexCapsuleShape() = 0;
+
+	virtual NxApexBoxShape * createApexBoxShape() = 0;
+
+	virtual NxApexHalfSpaceShape * createApexHalfSpaceShape() = 0;
+
+	virtual void releaseApexShape(NxApexShape &shape) = 0;
+#else
    	/**
    	\brief Creates a render mesh asset from a stream
 
@@ -408,6 +475,7 @@ public:
 	\brief Release a render mesh asset authoring instance
 	*/
 	virtual void releaseRenderMeshAssetAuthoring( NxRenderMeshAssetAuthoring& ) = 0;
+#endif
 
 	/**
 	\brief Return the number of assets force loaded by all of the existing APEX modules 
@@ -432,11 +500,114 @@ public:
 
 	\deprecated
 	*/
+#if !BATMAN
 	virtual NxApexAsset * createAsset( physx::general_PxIOStream2::PxFileBuf&, const char *name ) = 0;
+#endif
 
 	/**
 	\brief Creates an APEX asset from an NxApexAssetAuthoring object.
 	*/
+#if BATMAN
+	virtual NxApexAsset * createAsset( ::NxParameterized::Interface *, const char *name ) = 0; // BM
+
+protected:
+	~NxApexSDKBase() {}
+};
+
+class NxApexSDKAssetBase : public NxApexSDKBase
+{
+public:
+	using NxApexSDKBase::createAsset;
+
+	virtual NxApexAsset * createAsset( NxApexAssetAuthoring&, const char *name ) = 0;
+
+	virtual void releaseAsset( NxApexAsset& ) = 0;
+
+	virtual NxApexAssetAuthoring * createAssetAuthoring( ::NxParameterized::Interface *, const char *name ) = 0; // BM
+
+protected:
+	~NxApexSDKAssetBase() {}
+};
+
+class NxApexSDKAssetAuthoringNamedBase : public NxApexSDKAssetBase
+{
+public:
+	using NxApexSDKAssetBase::createAssetAuthoring;
+
+	virtual NxApexAssetAuthoring * createAssetAuthoring( const char *authorTypeName, const char *name ) = 0;
+
+protected:
+	~NxApexSDKAssetAuthoringNamedBase() {}
+};
+
+class NxApexSDKAssetAuthoringBase : public NxApexSDKAssetAuthoringNamedBase
+{
+public:
+	using NxApexSDKAssetAuthoringNamedBase::createAssetAuthoring;
+
+	virtual NxApexAssetAuthoring * createAssetAuthoring( const char *authorTypeName ) = 0;
+
+	virtual void releaseAssetAuthoring( NxApexAssetAuthoring& ) = 0;
+
+	virtual NxApexSDKCachedData& getCachedData() const = 0;
+
+	virtual ::NxParameterized::Serializer * createSerializer(::NxParameterized::Serializer::SerializeType type, ::NxParameterized::Traits *traits) = 0; // BM
+
+protected:
+	~NxApexSDKAssetAuthoringBase() {}
+};
+
+class NxApexSDKSerializerBase : public NxApexSDKAssetAuthoringBase
+{
+public:
+	using NxApexSDKAssetAuthoringBase::createSerializer;
+
+	virtual ::NxParameterized::Serializer * createSerializer(::NxParameterized::Serializer::SerializeType type) = 0;
+
+	virtual ::NxParameterized::Serializer::SerializeType getSerializeType(physx::general_PxIOStream2::PxFileBuf &stream) = 0; // BM
+
+protected:
+	~NxApexSDKSerializerBase() {}
+};
+
+class NxApexSDKSerializeTypeBase : public NxApexSDKSerializerBase
+{
+public:
+	using NxApexSDKSerializerBase::getSerializeType;
+
+	virtual ::NxParameterized::Serializer::SerializeType getSerializeType(const void *data,PxU32 dlen) = 0;
+
+	virtual NxParameterized::Serializer::ErrorType getSerializePlatform(const void *data,PxU32 dlen, NxParameterized::SerializePlatform &platform) = 0; // BM
+
+protected:
+	~NxApexSDKSerializeTypeBase() {}
+};
+
+class NxApexSDK : public NxApexSDKSerializeTypeBase
+{
+public:
+	using NxApexSDKSerializeTypeBase::getSerializePlatform;
+
+	virtual NxParameterized::Serializer::ErrorType getSerializePlatform(physx::general_PxIOStream2::PxFileBuf &stream, NxParameterized::SerializePlatform &platform) = 0;
+
+	virtual void getCurrentPlatform(NxParameterized::SerializePlatform &platform) const = 0; // BM
+
+	virtual bool getPlatformFromString(const char *name, NxParameterized::SerializePlatform &platform) const = 0;
+
+	virtual const char *getPlatformName(const NxParameterized::SerializePlatform &platform) const = 0;
+
+	virtual ::NxParameterized::Interface *getDebugColorParams() const = 0;
+
+	virtual const char * getWireframeMaterial(void) = 0;
+
+	virtual const char * getSolidShadedMaterial(void) = 0;
+
+	virtual PVD::PvdBinding * getPvdBinding(void) = 0; // BM
+
+protected:
+	virtual ~NxApexSDK() {}
+};
+#else
 	virtual NxApexAsset * createAsset( NxApexAssetAuthoring&, const char *name ) = 0;
 
 	/**
@@ -532,6 +703,7 @@ protected:
 	virtual ~NxApexSDK() {}
 
 };
+#endif
 
 PX_POP_PACK
 

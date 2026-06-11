@@ -127,7 +127,9 @@ public:
 	\deprecated Use NxClothingActor::getActorDesc() and modify the clothingTemplate part of it
 	\note This can be called while the simulation is running, but will only affect simulation after the next NxApexScene::simulate() call
 	*/
+#if !BATMAN // BM: Retail Batman APEX 1.1 has no deprecated clothing-template vslots.
 	virtual void setClothingTemplate(const NxClothDesc* desc) = 0;
+#endif
 
 	/**
 	\brief \b DEPRECATED Gets the template for clothing
@@ -135,7 +137,9 @@ public:
 	\deprecated Use NxClothingActor::getActorDesc() and modify the clothingTemplate part of it
 	\return false if no template has been set
 	*/
+#if !BATMAN // BM: Retail Batman APEX 1.1 has no deprecated clothing-template vslots.
 	virtual bool getClothingTemplate(NxClothDesc& desc) const = 0;
+#endif
 
 	enum TeleportMode
 	{
@@ -205,20 +209,26 @@ public:
 	\deprecated Use NxClothingActor::getActorDesc() and modify the flag part of it
 	\note It is safe to call this even during simulation.
 	*/
+#if !BATMAN // BM: Retail Batman APEX 1.1 has no deprecated flag/frame-delay vslots.
 	virtual void setFlag(NxApexClothingFlag::Enum flag, bool on) = 0;
+#endif
 
 	/**
 	\brief \b DEPRECATED gets the current value of a flag.
 
 	\deprecated Use NxClothingActor::getActorDesc() and read the flag part of it
 	*/
+#if !BATMAN // BM: Retail Batman APEX 1.1 has no deprecated flag/frame-delay vslots.
 	virtual bool getFlag(NxApexClothingFlag::Enum flag) = 0;
+#endif
 
 	/**
 	\brief returns the current numbers of frames that the output is delayed from the animation input.
 	This frame delay depends on the flags for parallel skinning and is in the range of [0, 2].
 	*/
+#if !BATMAN // BM: Retail Batman APEX 1.1 has no deprecated flag/frame-delay vslots.
 	virtual physx::PxU32 getFrameDelay() = 0;
+#endif
 
 	/**
 	\brief Tells the actor if it will be rendered or not.

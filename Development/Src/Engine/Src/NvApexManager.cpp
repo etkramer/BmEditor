@@ -176,7 +176,19 @@ public:
 	void onDamageNotify( const NxApexDamageEventReportData& damageEvent );
 };
 
-class FApexManager : public FIApexManager, public physx::PxUserAllocator, public NxUserRenderResourceManager, public physx::PxUserOutputStream, public NxResourceCallback
+class FApexManager : public FIApexManager,
+#if BATMAN
+	public physx::PxAllocatorCallback,
+#else
+	public physx::PxUserAllocator,
+#endif
+	public NxUserRenderResourceManager,
+#if BATMAN
+	public physx::PxErrorCallback,
+#else
+	public physx::PxUserOutputStream,
+#endif
+	public NxResourceCallback
 {
 public:
 
@@ -453,11 +465,21 @@ public:
     return MApexSDK;
   }
 
+#if BATMAN
+  virtual void* allocate(size_t size, const char* typeName, const char* filename, int line)
+  {
+	  BYTE* raw = (BYTE*)appMalloc((DWORD)size + 19, 8);
+	  BYTE* ret = (BYTE*)(((PTRINT)raw + 19) & ~PTRINT(15));
+	  *((DWORD*)ret - 1) = (DWORD)(ret - raw);
+	  return ret;
+  }
+#else
   virtual void* allocate(size_t size, physx::PxU32 handle, const char* filename, int line) 
   {
 	  void *ret = appMalloc(size);
 	  return ret;
   }
+#endif
 
   /**
   \brief Frees memory previously allocated by allocate().
@@ -469,7 +491,15 @@ public:
   */
   virtual void deallocate(void* ptr) 
   {
+#if BATMAN
+	  if ( ptr )
+	  {
+		  BYTE* ret = (BYTE*)ptr;
+		  appFree(ret - *((DWORD*)ret - 1));
+	  }
+#else
 	  appFree(ptr);
+#endif
   }
 
   // Implement NxUserOuputStream interface
@@ -773,4 +803,3 @@ void FNxUserChunkReport::onDamageNotify( const NxApexDamageEventReportData& dama
 #endif
 
 #endif
-

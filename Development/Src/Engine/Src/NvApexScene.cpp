@@ -1553,6 +1553,17 @@ public:
 	  	{
 			NxApexSceneDesc apexSceneDesc;
 
+#if BATMAN
+			mTaskManager = NULL; // BM: APEX 1.1 scene desc takes dispatchers directly.
+#if USE_UE3_THREADPOOL
+			apexSceneDesc.cpuDispatcher = &GApexDispatcher;
+#endif
+			physx::pxtask::CudaContextManager *cudaContext = GApexManager->GetCudaContextManager();
+			if ( cudaContext )
+			{
+				apexSceneDesc.gpuDispatcher = cudaContext->getGpuDispatcher();
+			}
+#else
 			mTaskManager = MApexSDK->createTaskManager();
 			apexSceneDesc.taskManager = mTaskManager;
 #if USE_UE3_THREADPOOL
@@ -1566,6 +1577,7 @@ public:
 			{
 				mTaskManager->setGpuDispatcher(*cudaContext->getGpuDispatcher());
 			}
+#endif
 
 		  	apexSceneDesc.scene = MScene;
 		  	apexSceneDesc.useDebugRenderable = MUseDebugRenderable ? true : false;

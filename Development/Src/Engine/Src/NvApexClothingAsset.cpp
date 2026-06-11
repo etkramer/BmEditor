@@ -109,6 +109,32 @@ void UApexClothingAsset::Serialize(FArchive& Ar)
 			Buffer.Add( Size );
 			Ar.Serialize( Buffer.GetData(), Size );
 #if WITH_APEX
+#if BATMAN
+			// BM: Temporary diagnostics for BM2 APEX clothing load failures.
+			ANSICHAR SerializedApexName[256];
+			SerializedApexName[0] = 0;
+			if (NameBufferSize > 0)
+			{
+				const UINT CopySize = Min<UINT>(NameBufferSize, ARRAY_COUNT(SerializedApexName) - 1);
+				appMemcpy(SerializedApexName, NameBuffer.GetData(), CopySize);
+				SerializedApexName[CopySize] = 0;
+			}
+
+			const BYTE* BlobBytes = Buffer.GetData();
+			debugf(NAME_Log, TEXT("BM APEX clothing serialize load: Object=%s Ver=%d LicenseeVer=%d BmCooked=%d OriginalApexName=%s SerializedName=%s NameBytes=%u BlobBytes=%u Head=%02X %02X %02X %02X"),
+				*GetPathName(),
+				Ar.Ver(),
+				Ar.LicenseeVer(),
+				Ar.IsBmCooked(TRUE) ? 1 : 0,
+				*OriginalApexName,
+				SerializedApexName[0] ? ANSI_TO_TCHAR(SerializedApexName) : TEXT("<empty>"),
+				NameBufferSize,
+				Size,
+				(Size > 0 && BlobBytes) ? BlobBytes[0] : 0,
+				(Size > 1 && BlobBytes) ? BlobBytes[1] : 0,
+				(Size > 2 && BlobBytes) ? BlobBytes[2] : 0,
+				(Size > 3 && BlobBytes) ? BlobBytes[3] : 0);
+#endif
 			if ( MApexAsset != NULL )
 			{
 				MApexAsset->DecRefCount(0);
@@ -120,6 +146,15 @@ void UApexClothingAsset::Serialize(FArchive& Ar)
 			if ( MApexAsset )
 			{
 				MApexAsset->IncRefCount(0);
+#if BATMAN
+				// BM: Temporary diagnostics for BM2 APEX clothing load failures.
+				debugf(NAME_Log, TEXT("BM APEX clothing serialize result: Object=%s GeneratedName=%s AssetName=%s OriginalName=%s Type=%d"),
+					*GetPathName(),
+					ANSI_TO_TCHAR(scratch),
+					MApexAsset->GetAssetName() ? ANSI_TO_TCHAR(MApexAsset->GetAssetName()) : TEXT("<null>"),
+					MApexAsset->GetOriginalApexName() ? ANSI_TO_TCHAR(MApexAsset->GetOriginalApexName()) : TEXT("<null>"),
+					(INT)MApexAsset->GetType());
+#endif
 				assert( MApexAsset->GetType() == AAT_CLOTHING );
 			}
 #else

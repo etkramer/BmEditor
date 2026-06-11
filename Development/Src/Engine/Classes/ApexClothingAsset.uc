@@ -26,6 +26,7 @@ var() const float LodWeightsMaxDistance;				// LodWeightMaxDistance (see APEX cl
 var() const float LodWeightsDistanceWeight;				// LodWeightDistanceWeight (see APEX clothing documentation)
 var() const float LodWeightsBias;						// LodWeightBias (see APEX clothing documentation)
 var() const float LodWeightsBenefitsBias;				// LodWeightMaxBenefitsBias (see APEX clothing documentation)
+var() const Object ClothingMaterial;					// BM: Stubbed UClothingMaterial reference
 
 cpptext
 {
