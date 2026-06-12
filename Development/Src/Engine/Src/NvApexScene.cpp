@@ -248,10 +248,11 @@ typedef NxArray< physx::PxU32 > TPxU32Array;
 class ApexClothingPiece : public FIApexClothingPiece
 {
 public:
-	ApexClothingPiece(FIApexAsset *asset,ApexClothing *parent,::NxParameterized::Interface *np,physx::PxU32 materialIndex, USkeletalMeshComponent* skeletalMeshComp)
+	ApexClothingPiece(FIApexAsset *asset,ApexClothing *parent,::NxParameterized::Interface *np,physx::PxU32 materialIndex, USkeletalMeshComponent* skeletalMeshComp, UObject* clothingMaterial)
 	{
 		MNewFrame = 0;
 		MMaterialIndex = materialIndex;
+		MClothingMaterial = clothingMaterial;
 		MSimulateCount = 0;
 		MAsset		= asset;
 		MParent     = parent;
@@ -299,6 +300,7 @@ public:
 		MPrevLOD = 0.0f;
 		MCurrGraphicalLOD = 0;
 		MGraphicalLODAvailable = TRUE;
+		SetMaterials();
 	}
 
 	~ApexClothingPiece(void);
@@ -310,6 +312,7 @@ public:
 
 	void SyncPieceTransforms(const physx::PxMat44 *transforms,UBOOL previouslyVisible, const physx::PxMat44& LocalToWorld, UBOOL bForceTeleportAndReset, UBOOL bForceTeleport);
 	void UpdateRenderResources(void);
+	void SetMaterials(void);
 
 	void SetNonVisible(void)
 	{
@@ -368,6 +371,7 @@ public:
        			GetParam(MParameterized,"lodWeights.distanceWeight",MLodWeightsDistanceWeight);
        			GetParam(MParameterized,"lodWeights.bias",MLodWeightsBias);
        			GetParam(MParameterized,"lodWeights.benefitsBias",MLodWeightsBenefitsBias);
+				SetMaterials();
 			}
 		}
 	}
@@ -463,6 +467,8 @@ public:
 	NxClothingActor::TeleportMode MTeleportationMode;
 	UBOOL						bIsFirstFrame;
 	UBOOL						bForcedHidden;
+	UObject*					MClothingMaterial;
+	TArray<UMaterialInterface*> Materials;
 };
 
 typedef NxArray< ApexClothingPiece * > TApexClothingPieceVector;
@@ -562,9 +568,9 @@ public:
  		}
 	}
 
-	virtual FIApexClothingPiece * AddApexClothingPiece(FIApexAsset *asset,::NxParameterized::Interface *np,physx::PxU32 materialIndex, USkeletalMeshComponent* skeletalMeshComp)
+	virtual FIApexClothingPiece * AddApexClothingPiece(FIApexAsset *asset,::NxParameterized::Interface *np,physx::PxU32 materialIndex, USkeletalMeshComponent* skeletalMeshComp, UObject* clothingMaterial)
 	{
-		ApexClothingPiece *ap = new ApexClothingPiece(asset,this,np,materialIndex, skeletalMeshComp);
+		ApexClothingPiece *ap = new ApexClothingPiece(asset,this,np,materialIndex, skeletalMeshComp, clothingMaterial);
 		UBOOL found = FALSE;
 		// look for an empty slot.
 		for (TApexClothingPieceVector::iterator i=MPieces.begin(); i!=MPieces.end(); ++i)
@@ -796,10 +802,23 @@ public:
 				}
 			}
 		}
+
 		if ( MMatrices )
 		{
 			appFree(MMatrices);
 			MMatrices = NULL;
+		}
+	}
+
+	virtual void SetMaterials(void)
+	{
+		for (TApexClothingPieceVector::iterator i=MPieces.begin(); i != MPieces.end(); ++i)
+		{
+			ApexClothingPiece *ap = (*i);
+			if ( ap )
+			{
+				ap->SetMaterials();
+			}
 		}
 	}
 
@@ -1179,6 +1198,84 @@ void ApexClothingPiece::UpdateRenderResources(void)
 	if ( MActor )
 	{
 		MActor->UpdateRenderResources();
+	}
+}
+
+void ApexClothingPiece::SetMaterials(void)
+{
+	Materials.Empty();
+
+	if ( MSkeletalMeshComponent == NULL || MSkeletalMeshComponent->SkeletalMesh == NULL )
+	{
+		return;
+	}
+
+	USkeletalMesh* SkeletalMesh = MSkeletalMeshComponent->SkeletalMesh;
+	const INT MaterialSlotIndex = (INT)MMaterialIndex;
+	if ( !SkeletalMesh->ClothingAssets.IsValidIndex(MaterialSlotIndex) || SkeletalMesh->ClothingAssets(MaterialSlotIndex) == NULL )
+	{
+		return;
+	}
+
+	UApexClothingAsset* ClothingAsset = SkeletalMesh->ClothingAssets(MaterialSlotIndex);
+	if ( !SkeletalMesh->bUseClothingAssetMaterial )
+	{
+		if ( ClothingAsset->Materials.Num() > 1 )
+		{
+			warnf(NAME_Warning, TEXT("ClothingAsset %s from SkeltalMesh %s uses multiple materials without bUseClothingAssetMaterial set!"), *ClothingAsset->GetPathName(), *SkeletalMesh->GetPathName());
+		}
+
+		UMaterialInterface* Material = NULL;
+		if ( MSkeletalMeshComponent->Materials.IsValidIndex(MaterialSlotIndex) )
+		{
+			Material = MSkeletalMeshComponent->Materials(MaterialSlotIndex);
+		}
+		if ( Material == NULL && SkeletalMesh->Materials.IsValidIndex(MaterialSlotIndex) )
+		{
+			Material = SkeletalMesh->Materials(MaterialSlotIndex);
+		}
+		if ( Material == NULL || !Material->CheckMaterialUsage(MATUSAGE_APEXMesh) )
+		{
+			Material = GEngine->DefaultMaterial;
+		}
+
+		for ( INT MaterialIndex = ClothingAsset->Materials.Num(); MaterialIndex > 0; --MaterialIndex )
+		{
+			Materials.AddItem(Material);
+		}
+	}
+	else
+	{
+		for ( INT MaterialIndex = 0; MaterialIndex < ClothingAsset->Materials.Num(); ++MaterialIndex )
+		{
+			UMaterialInterface* Material = ClothingAsset->Materials(MaterialIndex);
+			if ( Material == NULL || !Material->CheckMaterialUsage(MATUSAGE_APEXMesh) )
+			{
+				Material = GEngine->DefaultMaterial;
+			}
+			Materials.AddItem(Material);
+		}
+	}
+
+	if ( MParameterized )
+	{
+		NxParameterized::Handle Handle(*MParameterized);
+		NxParameterized::ErrorType Error = Handle.getParameter("overrideMaterialNames");
+		checkf(Error == NxParameterized::ERROR_NONE, TEXT("Error code: %i"), (INT)Error);
+		Error = Handle.resizeArray(Materials.Num());
+		checkf(Error == NxParameterized::ERROR_NONE, TEXT("Error code: %i"), (INT)Error);
+
+		for ( INT MaterialIndex = 0; MaterialIndex < Materials.Num(); ++MaterialIndex )
+		{
+			UMaterialInterface* Material = Materials(MaterialIndex);
+			InitMaterialForApex(Material);
+			Error = Handle.set(MaterialIndex);
+			checkf(Error == NxParameterized::ERROR_NONE, TEXT("Error code: %i"), (INT)Error);
+			FString MaterialName = Material->GetFullName();
+			Error = Handle.setParamString(TCHAR_TO_ANSI(*MaterialName));
+			checkf(Error == NxParameterized::ERROR_NONE, TEXT("Error code: %i"), (INT)Error);
+			Handle.popIndex();
+		}
 	}
 }
 

@@ -67,6 +67,7 @@ class FApexRenderVertexBuffer;
 class FApexRenderIndexBuffer;
 class FApexRenderInstanceBuffer;
 class FApexRenderResource;
+class UMaterialInterface;
 
 /**
 	FIApexRender - interface to APEX rendering utilities
@@ -79,6 +80,8 @@ public:
 	Get the global APEX Render Resource Manager
 	*/
 	virtual physx::apex::NxUserRenderResourceManager *	GetRenderResourceManager(void) = 0;
+	virtual void RegisterMaterial(UMaterialInterface* Material, INT MaxBones) = 0;
+	virtual void UnregisterMaterial(UMaterialInterface* Material) = 0;
 
 	/**
 	Get the global APEX User Renderer

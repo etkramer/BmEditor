@@ -31,6 +31,7 @@
 #if WITH_NOVODEX
 
 #include "NvApexManager.h"
+#include "NvApexRender.h"
 
 #endif
 
@@ -943,9 +944,15 @@ void InitMaterialForApex(UMaterialInterface *MaterialInterface)
 			// In APEX we map the material name to the default material since the requested material is unusable
 			UseMat = GEngine->DefaultMaterial;
 		}
-		ApexResourceProvider->setResource( "ApexMaterials", TCHAR_TO_ANSI(*MaterialInterface->GetPathName()), UseMat );
+		ApexResourceProvider->setResource( "ApexMaterials", TCHAR_TO_ANSI(*UseMat->GetFullName()), UseMat ); // BM
+		if ( GApexRender )
+		{
+			const FMaterialResource* MaterialResource = UseMat->GetMaterialResource(GCurrentMaterialPlatform);
+			if ( MaterialResource )
+			{
+				GApexRender->RegisterMaterial(UseMat, MaterialResource->GetMaxBonesPerBatch());
+			}
+		}
 	}
 #endif
 }
-
-

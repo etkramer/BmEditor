@@ -99,6 +99,9 @@ public:
 	{
 		return this;
 	}
+	virtual void RegisterMaterial(UMaterialInterface* Material, INT MaxBones);
+	virtual void UnregisterMaterial(UMaterialInterface* Material);
+
 	/**
 	Get the global APEX User Renderer
 	*/
@@ -217,6 +220,7 @@ private:
 	* When this counter goes to zero we reorganize the reuse queue and get rid of the empty entries.
 	*/
 	physx::PxU32           EnqueDataReuseCount;
+	TMap<UMaterialInterface*, INT> MaterialMaxBones;
 };
 
 
@@ -1193,8 +1197,6 @@ public:
 										const FApexRenderInstanceBuffer *InstanceBuffer)
 	{
 		FVertexDeclarationElementList Elements;
-		FVertexDeclarationElementList PositionOnlyStreamElements;
-		UBOOL bColor1Found = FALSE;
 		for(UINT i=0; i<NumVertexBuffers; i++)
 		{
 			const FApexRenderVertexBuffer                     &ApexVertexBuffer   = *VertexBuffers[i];
@@ -1207,21 +1209,13 @@ public:
 				{
 					Data.VertexComponents[Semantic] = FVertexStreamComponent(ApexVertexBuffer.getVertexBuffer(), AVE.Offset, ApexVertexBuffer.getBufferStride(), AVE.FormatType, FALSE);
 					Elements.AddItem(AccessStreamComponent(Data.VertexComponents[Semantic], AVE.Usage, AVE.UsageIndex));
-
-					if ((AVE.Usage == VEU_Color) && (AVE.UsageIndex == 1))
-					{
-						bColor1Found = TRUE;
-					}
 				}
 			}
 		}
 
-		if(!bColor1Found)
+		if(GRHIShaderPlatform == SP_PCD3D_SM5 || GRHIShaderPlatform == SP_PCD3D_SM4)
 		{
-			//If the mesh has no color component, set the null color buffer on a new stream with a stride of 0.
-			//This wastes 4 bytes of bandwidth per vertex, but prevents having to compile out twice the number of vertex factories.
-			FVertexStreamComponent NullColorComponent(&GNullColorVertexBuffer, 0, 4, VET_Color);
-			Elements.AddItem(AccessStreamComponent(NullColorComponent,VEU_Color,1));
+			AddMissingSemanticElements(Elements); // BM
 		}
 
 		InitDeclaration(Elements, Data);
@@ -1248,6 +1242,38 @@ public:
 	{
 		return IsPCPlatform(Platform) && (Material->IsUsedWithAPEXMeshes() || Material->IsSpecialEngineMaterial());
 	}
+
+protected:
+#if WITH_APEX
+	void UtilAddMissingSemanticElements(FVertexDeclarationElementList& Elements, const BYTE* Usages, const BYTE* UsageIndices, UINT NumUsages)
+	{
+		for(UINT UsageIndex = 0; UsageIndex < NumUsages; ++UsageIndex)
+		{
+			UBOOL bFound = FALSE;
+			for(UINT ElementIndex = 0; ElementIndex < Elements.Num(); ++ElementIndex)
+			{
+				if(Elements(ElementIndex).Usage == Usages[UsageIndex] && Elements(ElementIndex).UsageIndex == UsageIndices[UsageIndex])
+				{
+					bFound = TRUE;
+					break;
+				}
+			}
+
+			if(!bFound)
+			{
+				FVertexStreamComponent NullComponent(&GNullColorVertexBuffer, 0, 0, Usages[UsageIndex]);
+				Elements.AddItem(AccessStreamComponent(NullComponent, Usages[UsageIndex], UsageIndices[UsageIndex]));
+			}
+		}
+	}
+
+	virtual void AddMissingSemanticElements(FVertexDeclarationElementList& Elements)
+	{
+		const BYTE Usages[] = { VEU_Color, VEU_Color, VEU_TextureCoordinate };
+		const BYTE UsageIndices[] = { 0, 1, 1 };
+		UtilAddMissingSemanticElements(Elements, Usages, UsageIndices, ARRAY_COUNT(Usages));
+	}
+#endif
 
 private:
 	struct DataType : public FVertexFactory::DataType
@@ -1329,6 +1355,19 @@ public:
 	{
 		OutEnvironment.Definitions.Set(TEXT("GPUSKIN_FACTORY"),TEXT("1"));
 	}
+
+#if WITH_APEX
+	virtual void AddMissingSemanticElements(FVertexDeclarationElementList& Elements)
+	{
+		const BYTE BaseUsages[] = { VEU_Color, VEU_Color, VEU_TextureCoordinate };
+		const BYTE BaseUsageIndices[] = { 0, 1, 1 };
+		UtilAddMissingSemanticElements(Elements, BaseUsages, BaseUsageIndices, ARRAY_COUNT(BaseUsages));
+
+		const BYTE Usages[] = { VEU_Tangent, VEU_Color };
+		const BYTE UsageIndices[] = { 0, 0 };
+		UtilAddMissingSemanticElements(Elements, Usages, UsageIndices, ARRAY_COUNT(Usages));
+	}
+#endif
 };
 
 /**

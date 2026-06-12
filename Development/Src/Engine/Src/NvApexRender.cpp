@@ -1038,7 +1038,31 @@ void FApexRenderResourceManager::releaseResource(NxUserRenderResource &RenderRes
 
 physx::PxU32 FApexRenderResourceManager::getMaxBonesForMaterial(void *Material)
 {
+	UMaterialInterface* MaterialInterface = (UMaterialInterface*)Material;
+	if ( MaterialInterface )
+	{
+		INT* MaxBones = MaterialMaxBones.Find(MaterialInterface);
+		if ( MaxBones )
+		{
+			return *MaxBones;
+		}
+		debugf(NAME_Log, TEXT("Error: The material %s is not registered in the Apex Render Resource Manager."), *MaterialInterface->GetFullName());
+	}
+	else
+	{
+		debugf(NAME_Log, TEXT("FApexRenderResourceManager::getMaxBonesForMaterial has been called with a NULL Material pointer."));
+	}
 	return APEX_MAX_BONES;
+}
+
+void FApexRenderResourceManager::RegisterMaterial(UMaterialInterface* Material, INT MaxBones)
+{
+	MaterialMaxBones.Set(Material, MaxBones);
+}
+
+void FApexRenderResourceManager::UnregisterMaterial(UMaterialInterface* Material)
+{
+	MaterialMaxBones.Remove(Material);
 }
 
 

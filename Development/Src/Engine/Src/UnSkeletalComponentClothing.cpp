@@ -147,7 +147,7 @@ void USkeletalMeshComponent::InitApexClothing(FRBPhysScene* RBPhysScene)
 					if ( np )
 					{
 						SetGroupsMask(this, np);
-						ApexClothing->AddApexClothingPiece(pa->MApexAsset,np,(physx::PxU32)i, this);
+						ApexClothing->AddApexClothingPiece(pa->MApexAsset,np,(physx::PxU32)i, this, pa->ClothingMaterial);
 					}
 
 					// Ensure that the material is usable for APEX clothing

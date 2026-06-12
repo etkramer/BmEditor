@@ -36,6 +36,7 @@
 
 
 #include "NvApexResourceCallback.h"
+#include "NvApexRender.h"
 #include "EnginePhysicsClasses.h"
 #include "EngineSequenceClasses.h"
 #include "EngineParticleClasses.h"
@@ -195,7 +196,15 @@ public:
 			}
 			else
 			{
-   				UMaterialInterface *MaterialInterface = FindMaterialForApex(pcName);
+				UMaterialInterface *MaterialInterface = FindMaterialForApex(pcName);
+				if ( MaterialInterface && GApexRender )
+				{
+					const FMaterialResource* MaterialResource = MaterialInterface->GetMaterialResource(GCurrentMaterialPlatform);
+					if ( MaterialResource )
+					{
+						GApexRender->RegisterMaterial(MaterialInterface, MaterialResource->GetMaxBonesPerBatch());
+					}
+				}
 #if 0
    				// If we couldn't load the material, or its not set to work on apex meshes, then load the default material...
 				if(!MaterialInterface || !MaterialInterface->CheckMaterialUsage(MATUSAGE_APEXMesh))

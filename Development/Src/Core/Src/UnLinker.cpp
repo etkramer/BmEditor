@@ -3818,7 +3818,6 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 			LoadClass->GetName() == "FractureMaterial" ||
 			LoadClass->GetName() == "FracturedStaticMeshActor" ||
 			LoadClass->GetName() == "FracturedStaticMeshComponent" ||
-			// LoadClass->GetName() == "ApexClothingAsset" ||
 			LoadClass->GetName() == "ParticleSystemComponent" ||
 
 			// "TypeIndex out of range" messages with most SequenceObjects

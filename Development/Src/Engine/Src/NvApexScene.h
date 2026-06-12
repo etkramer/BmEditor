@@ -128,6 +128,10 @@ static UMaterialInterface* FindMaterialForApex(const char* MaterialNameA)
 	if( bIsValidName )
 	{
 		Material = FindObject<UMaterialInterface>(0, ANSI_TO_TCHAR(MaterialNameA), 0);
+		if( Material == NULL && GIsEditor )
+		{
+			Material = LoadObject<UMaterialInterface>(0, ANSI_TO_TCHAR(MaterialNameA), NULL, LOAD_None, NULL); // BM
+		}
 		if( Material == NULL )
 		{
 			debugf( NAME_DevPhysics, TEXT("Unable to find material %s for APEX"), ANSI_TO_TCHAR(MaterialNameA) );
@@ -267,7 +271,7 @@ public:
 	 *
 	 * @return	null if it fails, else a pointer to the FIApexClothingPiece.
 	**/
-	virtual FIApexClothingPiece *AddApexClothingPiece(FIApexAsset *Asset,::NxParameterized::Interface *Iface,physx::PxU32 materialIndex, USkeletalMeshComponent* skeletalMeshComp) = 0;
+	virtual FIApexClothingPiece *AddApexClothingPiece(FIApexAsset *Asset,::NxParameterized::Interface *Iface,physx::PxU32 materialIndex, USkeletalMeshComponent* skeletalMeshComp, UObject* ClothingMaterial) = 0;
 
 	/**
 	 * Removes a piece of clothing
@@ -303,6 +307,8 @@ public:
 	  *
 	 **/
 	virtual void UpdateRenderResources(void) = 0;
+
+	virtual void SetMaterials(void) = 0;
 
 
 	/**
