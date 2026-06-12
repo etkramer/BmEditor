@@ -17,16 +17,39 @@ var() const bool bUseHardwareCloth;						// if true use hardware clothing for si
 var() const bool bFallbackSkinning;						// if true, falls back to skinning clothing in software instead of using GPU skinning
 var() const bool bSlowStart;							// Designates the 'slowStart' flag; see APEX clothing documentation
 var() const bool bRecomputeNormals;						// Designates the 'recomputeNormals' flag; see APEX clothing documentation
+var() const bool bAllowAdaptiveTargetFrequency;
+var() const bool bFreezeByLOD;
+var() const bool bResetAfterTeleport;					// If true, it resets the simulation after a teleport.
+var() const bool bForceSimulation;
+var() bool bApplyRenderOffset;
+var bool bHasUniqueAssetMaterialNames;
+var() editoronly transient bool bSimulationSelfcollision;
+var() editoronly transient bool bOrthoBending;
+var() editoronly transient bool bComDamping;
+var(Sound) bool bIgnoreInitialTrigger;
 var() const int UVChannelForTangentUpdate;				// Which UV channel is used for updating tangent space.
 var() const float MaxDistanceBlendTime<ClampMin=0.0>;	// The maximimum distance blend time (see APEX clothing documentation)
 var() const float ContinuousRotationThreshold;			// The angle in degrees to consider the clothing simulation continuous.
 var() const float ContinuousDistanceThreshold;			// The distance to consider the clothing simulation continuous.
-var() const bool  bResetAfterTeleport;					// If true, it resets the simulation after a teleport.
 var() const float LodWeightsMaxDistance;				// LodWeightMaxDistance (see APEX clothing documentation)
 var() const float LodWeightsDistanceWeight;				// LodWeightDistanceWeight (see APEX clothing documentation)
 var() const float LodWeightsBias;						// LodWeightBias (see APEX clothing documentation)
 var() const float LodWeightsBenefitsBias;				// LodWeightMaxBenefitsBias (see APEX clothing documentation)
-var() const Object ClothingMaterial;					// BM: Stubbed UClothingMaterial reference
+var() editoronly transient float SimulationSelfcollisionThickness;
+var() editoronly transient float SimulationThickness;
+var() editoronly transient float StretchingStiffness;
+var() editoronly transient float BendingStiffness;
+var() editoronly transient float CompressionLimit;
+var() editoronly transient float CompressionStiffness;
+var() editoronly transient float Damping;
+var() editoronly transient float Friction;
+var() editoronly transient int SolverIterations;
+var() editoronly transient float GravityScale;
+var() editoronly transient float HardStretchLimitation;
+var(Sound) Object SoundOnMove;							// BM: AkEvent stub
+var(Sound) Object SoundOnRest;							// BM: AkEvent stub
+var(Sound) float SpeedThresholdOnMove;
+var(Sound) float SpeedThresholdOnRest;
 
 cpptext
 {
@@ -93,7 +116,9 @@ defaultproperties
   bUseHardwareCloth=true                 // if true use hardware clothing for simulation
   bFallbackSkinning=false                // if true, falls back to skinning clothing in software instead of using GPU skinning
   bSlowStart=true                        // Designates the 'slowStart' flag; see APEX clothing documentation
+  bAllowAdaptiveTargetFrequency=true
   bRecomputeNormals=false;
+  bIgnoreInitialTrigger=true
   UVChannelForTangentUpdate=0            // Which UV channel is used for updating tangent space.
   MaxDistanceBlendTime=1                 // The maximimum distance blend time (see APEX clothing documentation)
   ContinuousRotationThreshold=84         // The angle in degrees to consider the clothing simulation continuous.

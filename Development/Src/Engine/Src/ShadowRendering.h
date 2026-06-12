@@ -888,12 +888,31 @@ public:
 			ShadowDepthSampler = GSceneRenderTargets.GetShadowDepthColorTexture(ShadowInfo->IsPrimaryWholeSceneDominantShadow(), ShadowInfo->bAllocatedInPreshadowCache);
 		}
 
-		SetTextureParameter(
-			Shader->GetPixelShader(),
-			ShadowDepthTextureParameter,
-			DepthSamplerState,
-			ShadowDepthSampler
-			);
+#if BATMAN && PLATFORM_SUPPORTS_D3D10_PLUS
+		if (GRHIShaderPlatform == SP_PCD3D_SM5)
+		{
+			// BM: BM2 PC binds the SM5 shadow depth texture and sampler directly to slot 1.
+			RHISetTextureParameter(
+				Shader->GetPixelShader(),
+				1,
+				ShadowDepthSampler
+				);
+			RHISetSamplerStateOnly(
+				Shader->GetPixelShader(),
+				1,
+				DepthSamplerState
+				);
+		}
+		else
+#endif
+		{
+			SetTextureParameter(
+				Shader->GetPixelShader(),
+				ShadowDepthTextureParameter,
+				DepthSamplerState,
+				ShadowDepthSampler
+				);
+		}
 	}
 
 	/** Serializer. */

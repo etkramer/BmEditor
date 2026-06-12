@@ -1595,7 +1595,16 @@ public:
     BITFIELD bFallbackSkinning:1;
     BITFIELD bSlowStart:1;
     BITFIELD bRecomputeNormals:1;
+    BITFIELD bAllowAdaptiveTargetFrequency:1;
+    BITFIELD bFreezeByLOD:1;
     BITFIELD bResetAfterTeleport:1;
+    BITFIELD bForceSimulation:1;
+    BITFIELD bApplyRenderOffset:1;
+    BITFIELD bHasUniqueAssetMaterialNames:1;
+    BITFIELD bSimulationSelfcollision:1;
+    BITFIELD bOrthoBending:1;
+    BITFIELD bComDamping:1;
+    BITFIELD bIgnoreInitialTrigger:1;
     INT UVChannelForTangentUpdate;
     FLOAT MaxDistanceBlendTime;
     FLOAT ContinuousRotationThreshold;
@@ -1604,7 +1613,21 @@ public:
     FLOAT LodWeightsDistanceWeight;
     FLOAT LodWeightsBias;
     FLOAT LodWeightsBenefitsBias;
-    class UObject* ClothingMaterial;
+    FLOAT SimulationSelfcollisionThickness;
+    FLOAT SimulationThickness;
+    FLOAT StretchingStiffness;
+    FLOAT BendingStiffness;
+    FLOAT CompressionLimit;
+    FLOAT CompressionStiffness;
+    FLOAT Damping;
+    FLOAT Friction;
+    INT SolverIterations;
+    FLOAT GravityScale;
+    FLOAT HardStretchLimitation;
+    class UObject* SoundOnMove;
+    class UObject* SoundOnRest;
+    FLOAT SpeedThresholdOnMove;
+    FLOAT SpeedThresholdOnRest;
     //## END PROPS ApexClothingAsset
 
     DECLARE_CLASS(UApexClothingAsset,UApexAsset,0,Engine)
@@ -2087,7 +2110,7 @@ VERIFY_CLASS_OFFSET_NODIE(UApexAsset,ApexAsset,OriginalApexName)
 VERIFY_CLASS_OFFSET_NODIE(UApexAsset,ApexAsset,SourceFilePath)
 VERIFY_CLASS_SIZE_NODIE(UApexAsset)
 VERIFY_CLASS_OFFSET_NODIE(UApexClothingAsset,ApexClothingAsset,MApexAsset)
-VERIFY_CLASS_OFFSET_NODIE(UApexClothingAsset,ApexClothingAsset,ClothingMaterial)
+VERIFY_CLASS_OFFSET_NODIE(UApexClothingAsset,ApexClothingAsset,SpeedThresholdOnRest)
 VERIFY_CLASS_SIZE_NODIE(UApexClothingAsset)
 VERIFY_CLASS_OFFSET_NODIE(UApexDestructibleAsset,ApexDestructibleAsset,MApexAsset)
 VERIFY_CLASS_OFFSET_NODIE(UApexDestructibleAsset,ApexDestructibleAsset,DestructibleParameters)

@@ -1295,7 +1295,8 @@ UBOOL FMaterialResource::IsUsedWithStaticMesh() const
 
 UBOOL FMaterialResource::IsUsedWithPerVertexRockAtmosFog() const
 {
-	return Material->bUsedWithPerVertexRockAtmosFog;
+	// BM: Gangland requires the material to allow fog before requesting RockAtmos fog shaders.
+	return Material->bUsedWithPerVertexRockAtmosFog && Material->bAllowFog;
 }
 #endif
 
