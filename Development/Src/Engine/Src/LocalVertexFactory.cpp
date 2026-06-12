@@ -75,6 +75,14 @@ void FLocalVertexFactory::InitRHI()
 		{
 			Elements.AddItem(AccessStreamComponent(Data.TangentBasisComponents[AxisIndex],TangentBasisUsages[AxisIndex]));
 		}
+#if BATMAN
+		else
+		{
+			// BM: Gangland supplies null tangent/normal streams for stripped static LODs.
+			FVertexStreamComponent NullTangentComponent(&GNullColorVertexBuffer, 0, 0, VET_PackedNormal);
+			Elements.AddItem(AccessStreamComponent(NullTangentComponent,TangentBasisUsages[AxisIndex]));
+		}
+#endif
 	}
 
 	if(Data.ColorComponent.VertexBuffer)
