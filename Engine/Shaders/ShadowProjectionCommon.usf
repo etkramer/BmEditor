@@ -7,30 +7,39 @@
 #define NUM_SAMPLE_CHUNKS 1
 #endif
 
+// NVCHANGE_BEGIN_RS: Implementing hardware PCF for DX11
 #if SM5_PROFILE
 
-float GetPerSampleLightingChannelMask(float2 UV, int SampleIndex)
+Texture2D<float> ShadowDepthTexture 	: register(t1);
+SamplerState 	 PointSampler  			: register(s1);
+SamplerComparisonState PCFSampler		: register(s1);
+
+#undef texDepth2D
+#undef texDepth2Dproj
+
+// For Manual PCF
+float texDepth2D(Texture2D<float> Texture, float2 UV)
 {
-	float2 SurfaceDimensions;
-	int NumSurfaceSamples;
-	DiffuseGBufferTextureMS.GetDimensions(SurfaceDimensions.x, SurfaceDimensions.y, NumSurfaceSamples);
-
-	int2 IntUV = trunc(UV * SurfaceDimensions);
-
-	return DiffuseGBufferTextureMS.Load(IntUV, SampleIndex).w * 64;
+	return Texture.Sample(PointSampler, UV).r;
 }
 
-float GetPerPixelLightingChannelMask(float2 UV)
+// For Hardware PCF
+float texDepth2Dproj(Texture2D<float> Texture, float4 TexCoords)
 {
-	return tex2Dlod(DiffuseGBufferTexture, float4(UV, 0, 0)).w * 64;
+	// Assuming that TexCoords.w == 1.0
+	if (TexCoords.z >= 1.0) return 1;
+	return Texture.SampleCmp(PCFSampler, TexCoords.xy, TexCoords.z).r;
 }
 
-#endif
+#else //SM5_PROFILE
 
 sampler2D ShadowDepthTexture;
+
+#endif //SM5_PROFILE
+// NVCHANGE_END_RS: Implementing hardware PCF for DX11
+
 float4 SampleOffsets[NUM_SAMPLE_CHUNKS * 2];
 float3 ShadowBufferSizeAndSoftTransitionScale;
-float LightingChannelMask;
 
 /** Returns an occlusion factor based on the depths. */
 float CalculateOcclusion(float SceneDepth, float ShadowmapDepth)

@@ -1077,17 +1077,9 @@ UBOOL FMaterial::InitShaderMap(FStaticParameterSet* StaticParameters, EShaderPla
 #endif
 	if(!bValidCompilationOutput || !ShaderMap || bShaderMapIncomplete)
 	{
+		const TCHAR* ShaderMapCondition = ShaderMap ? TEXT("Incomplete") : TEXT("Missing");
 		if(bValidCompilationOutput)
 		{
-			const TCHAR* ShaderMapCondition;
-			if(ShaderMap)
-			{
-				ShaderMapCondition = TEXT("Incomplete");
-			}
-			else
-			{
-				ShaderMapCondition = TEXT("Missing");
-			}
 #if BATMAN
 			if (ShaderMap && bUseBmCookedShaderMap)
 			{
@@ -1105,6 +1097,7 @@ UBOOL FMaterial::InitShaderMap(FStaticParameterSet* StaticParameters, EShaderPla
 #if BATMAN
 		if (bUseBmCookedShaderMap && bValidCompilationOutput && ShaderMap)
 		{
+			appErrorf(TEXT("%s cached shader map for BM2 material %s. This indicates a shader request mismatch."), ShaderMapCondition, *GetFriendlyName());
 			if (LegacyUniformExpressions)
 			{
 				ShaderMap->SetUniformExpressions(*LegacyUniformExpressions);
@@ -1112,6 +1105,10 @@ UBOOL FMaterial::InitShaderMap(FStaticParameterSet* StaticParameters, EShaderPla
 			check(ShaderMap->IsUniformExpressionSetValid());
 			ShaderMap->BeginInit();
 			return TRUE;
+		}
+		else if (bUseBmCookedShaderMap && bValidCompilationOutput)
+		{
+			appErrorf(TEXT("Missing cached shader map for BM2 material %s."), *GetFriendlyName());
 		}
 #endif
 
@@ -1220,8 +1217,8 @@ FString FMaterialResource::GetBaseMaterialPathName() const { return Material->Ge
 #if BATMAN
 UBOOL FMaterialResource::IsBmCookedMaterialResource() const
 {
-	UPackage* MaterialPackage = Material ? Material->GetOutermost() : NULL;
-	return MaterialPackage && MaterialPackage->IsBmCooked();
+	ULinkerLoad* MaterialLinker = Material ? Material->GetLinker() : NULL;
+	return MaterialLinker && MaterialLinker->IsBmCooked();
 }
 #endif
 

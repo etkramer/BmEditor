@@ -679,7 +679,7 @@ public:
 
 	static UBOOL ShouldCache(EShaderPlatform Platform)
 	{
-		return Platform == SP_PCD3D_SM3 || Platform == SP_PS3;
+		return Platform != SP_XBOXD3D;
 	}
 };
 
@@ -1129,7 +1129,11 @@ public:
 	// FShader interface.
 	static UBOOL ShouldCache(EShaderPlatform Platform)
 	{
+#if BATMAN
+		return FALSE;
+#else
 		return Platform == SP_PCD3D_SM5;
+#endif
 	}
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
@@ -1769,7 +1773,11 @@ extern UBOOL GRenderOnePassPointLightShadows;
 /** Returns TRUE if the given shadow belongs to a point light that should be rendered in one pass. */
 inline UBOOL ShouldRenderOnePassPointLightShadow(const FProjectedShadowInfo* Shadow)
 {
+#if BATMAN
+	return FALSE;
+#else
 	return GRenderOnePassPointLightShadows 
 		&& GRHIShaderPlatform == SP_PCD3D_SM5
 		&& Shadow->IsWholeScenePointLightShadow();
+#endif
 }

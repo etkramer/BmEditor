@@ -25,7 +25,8 @@ const UINT GConstantBufferSizes[MAX_CONSTANT_BUFFER_SLOTS] =
 	Align(sizeof(FHullShaderOffsetConstantBufferContents), 16),
 	Align(sizeof(FDomainShaderOffsetConstantBufferContents), 16),
 	Align(MAX_IR_CONSTANT_BUFFER_SIZE, 16),
-	Align(MAX_IR_CONSTANT_BUFFER_SIZE, 16)
+	Align(MAX_IR_CONSTANT_BUFFER_SIZE, 16),
+	Align(DYNAMIC_LIGHTING_CONSTANT_BUFFER_SIZE, 16)
 };
 
 FD3D11ConstantBuffer::FD3D11ConstantBuffer(FD3D11DynamicRHI* InD3DRHI,UINT InSize,UINT SubBuffers) : 
@@ -174,21 +175,30 @@ void FD3D11DynamicRHI::InitConstantBuffers()
 	CSConstantBuffers.Empty(MAX_CONSTANT_BUFFER_SLOTS);
 	for(INT BufferIndex = 0;BufferIndex < MAX_CONSTANT_BUFFER_SLOTS;BufferIndex++)
 	{
-		UINT Size = GConstantBufferSizes[BufferIndex];
-		UINT SubBuffers = 1;
-		if(BufferIndex == GLOBAL_CONSTANT_BUFFER_INDEX)
+		if(BufferIndex == VS_BONE_CONSTANT_BUFFER_INDEX)
 		{
-			SubBuffers = 5;
+			// BM: Gangland keeps the bone constant buffer VS-only.
+			VSConstantBuffers.AddItem(new FD3D11ConstantBuffer(this,4096,6));
+			PSConstantBuffers.AddItem(NULL);
+			HSConstantBuffers.AddItem(NULL);
+			DSConstantBuffers.AddItem(NULL);
+			GSConstantBuffers.AddItem(NULL);
+			CSConstantBuffers.AddItem(NULL);
 		}
+		else
+		{
+			UINT Size = GConstantBufferSizes[BufferIndex];
+			UINT SubBuffers = BufferIndex == GLOBAL_CONSTANT_BUFFER_INDEX ? 5 : 1;
 
-		// Vertex shader can have subbuffers for index==0.  This is from Epic's original design for the auto-fit of size to
-		//	reduce the update costs of the buffer.
-		VSConstantBuffers.AddItem(new FD3D11ConstantBuffer(this,Size,SubBuffers));
+			// Vertex shader can have subbuffers for index==0.  This is from Epic's original design for the auto-fit of size to
+			//	reduce the update costs of the buffer.
+			VSConstantBuffers.AddItem(new FD3D11ConstantBuffer(this,Size,SubBuffers));
 
-		PSConstantBuffers.AddItem(new FD3D11ConstantBuffer(this,Size));
-		HSConstantBuffers.AddItem(new FD3D11ConstantBuffer(this,Size));
-		DSConstantBuffers.AddItem(new FD3D11ConstantBuffer(this,Size));
-		GSConstantBuffers.AddItem(new FD3D11ConstantBuffer(this,Size));
-		CSConstantBuffers.AddItem(new FD3D11ConstantBuffer(this,Size));
+			PSConstantBuffers.AddItem(new FD3D11ConstantBuffer(this,Size,SubBuffers));
+			HSConstantBuffers.AddItem(new FD3D11ConstantBuffer(this,Size,SubBuffers));
+			DSConstantBuffers.AddItem(new FD3D11ConstantBuffer(this,Size,SubBuffers));
+			GSConstantBuffers.AddItem(new FD3D11ConstantBuffer(this,Size,SubBuffers));
+			CSConstantBuffers.AddItem(new FD3D11ConstantBuffer(this,Size));
+		}
 	}
 }

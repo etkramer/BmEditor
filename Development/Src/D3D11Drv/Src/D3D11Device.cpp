@@ -230,7 +230,7 @@ FD3D11DynamicRHI::FD3D11DynamicRHI(IDXGIFactory* InDXGIFactory,D3D_FEATURE_LEVEL
 
 	GPixelCenterOffset = 0.0f;	// Note that in D3D11, there is no half-texel offset (ala DX9)	
 	GSupportsVertexInstancing = TRUE;
-	GSupportsDepthTextures = TRUE;
+	GSupportsDepthTextures = FALSE; // BM
 	GSupportsHardwarePCF = TRUE;
 	GSupportsFetch4 = FALSE;
 	GSupportsFPFiltering = TRUE;

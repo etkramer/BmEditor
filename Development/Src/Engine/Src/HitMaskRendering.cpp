@@ -14,6 +14,9 @@ public:
 
 	static UBOOL ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
+#if BATMAN
+		return FALSE; // BM: Gangland does not register hit-mask material shaders.
+#endif
 		// Only DefaultEngine material
 		return (Material->IsSpecialEngineMaterial());
 	}
@@ -84,6 +87,9 @@ public:
 
 	static UBOOL ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
+#if BATMAN
+		return FALSE; // BM: Gangland does not register hit-mask material shaders.
+#endif
 		// Only DefaultEngine material
 		return Material->IsSpecialEngineMaterial();
 	}

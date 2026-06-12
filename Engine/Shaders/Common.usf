@@ -289,10 +289,9 @@ half PhongShadingPow(half X, half Y)
 		// Converts projection-space XY coordinates to texture-space UV coordinates
 		float4		ScreenPositionScaleBias		PIXELREGISTER(PSR_ScreenPositionScaleBias);
 		float4	    MinZ_MaxZRatio				PIXELREGISTER(PSR_MinZ_MaxZ_Ratio);
-		float		NvStereoEnabled				PIXELREGISTER(PSR_NvStereoEnabled);
 		float4		DiffuseOverrideParameter	PIXELREGISTER(PSR_DiffuseOverride);
 		float4		SpecularOverrideParameter	PIXELREGISTER(PSR_SpecularOverride);
-		float4		CameraPositionPS			PIXELREGISTER(PSR_ViewOrigin);
+		float		NvStereoEnabled				PIXELREGISTER(PSR_NvStereoEnabled);
 	};
 	#if SM5_PROFILE
 		// Next is b4 as b3 is used in skinning VF (optionally)
@@ -314,25 +313,6 @@ half PhongShadingPow(half X, half Y)
 		// Transform from [-1, 1] screen space to world.
 		// If this is used in a vertex shader, it will have the PreViewTranslation built in, otherwise not.
 		float4x4 ScreenToWorldMatrix;
-
-		/** Parameters bound and set by FDeferredPixelShaderParameters */
-		// Unresolved multisampled GBuffer textures
-		Texture2DMS<float4> WorldNormalGBufferTextureMS;
-		Texture2DMS<float4> WorldReflectionNormalGBufferTextureMS;
-		Texture2DMS<float4> SpecularGBufferTextureMS;
-		Texture2DMS<float4> DiffuseGBufferTextureMS;
-
-		// Resolved GBuffer textures
-		sampler2D WorldNormalGBufferTexture;
-		sampler2D WorldReflectionNormalGBufferTexture;
-		sampler2D SpecularGBufferTexture;
-		sampler2D DiffuseGBufferTexture;
-
-		/** 
-		 * Number of MSAA samples supported by deferred passes in D3D11. 
-		 * This is hardcoded because it allows deferred passes to optimize for the given value (for example, unrolling a loop).
-		 */
-		#define NumMSAASamples 4
 
 	#endif
 #else

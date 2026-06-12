@@ -444,6 +444,26 @@ template<>
 struct TBM2BasePassPixelShaderShouldCache<FSimpleLightMapTexturePolicy, TRUE> : TBM2BasePassPixelShaderNeverCacheSkyLight<FSimpleLightMapTexturePolicy>
 {
 };
+
+template<>
+struct TBM2BasePassPixelShaderShouldCache<FNoLightMapPolicy, FALSE>
+{
+	static UBOOL ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
+	{
+		return FNoLightMapPolicy::ShouldCache(Platform, Material, VertexFactoryType, FALSE);
+	}
+};
+
+template<>
+struct TBM2BasePassPixelShaderShouldCache<FNoLightMapPolicy, TRUE>
+{
+	static UBOOL ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
+	{
+		return Material->GetLightingModel() != MLM_Unlit
+			&& Platform != SP_XBOXD3D
+			&& Platform != SP_PS3;
+	}
+};
 #endif
 
 /** The concrete base pass pixel shader type, parameterized by whether sky lighting is needed. */

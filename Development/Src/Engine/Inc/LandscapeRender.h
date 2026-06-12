@@ -95,6 +95,9 @@ public:
 #if MOBILE
 		return FALSE;
 #endif
+#if BATMAN
+		return FALSE; // BM: Gangland does not register LandscapeVertexFactory.
+#endif
 
 		// only compile landscape materials for landscape vertex factory
 		// The special engine materials must be compiled for the landscape vertex factory because they are used with it for wireframe, etc.

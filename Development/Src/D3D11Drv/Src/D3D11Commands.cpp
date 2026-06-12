@@ -655,10 +655,9 @@ void FD3D11DynamicRHI::SetViewParametersWithOverrides( const FSceneView& View, c
 	FPixelShaderOffsetConstantBufferContents PSCBContents;
 	PSCBContents.ScreenPositionScaleBias = View.ScreenPositionScaleBias;
 	PSCBContents.MinZ_MaxZRatio = View.InvDeviceZToWorldZTransform;
-	PSCBContents.NvStereoEnabled = nv::stereo::IsStereoEnabled() ? 1.0f : 0.0f;
 	PSCBContents.DiffuseOverrideParameter = DiffuseOverride;
 	PSCBContents.SpecularOverrideParameter = SpecularOverride;
-	PSCBContents.ViewOrigin = View.ViewOrigin;
+	PSCBContents.NvStereoEnabled = nv::stereo::IsStereoEnabled() ? 1.0f : 0.0f;
 
 	VSConstantBuffers(VS_VIEW_CONSTANT_BUFFER_INDEX)->UpdateConstant((BYTE*)&VSCBContents,0,sizeof(VSCBContents));
 

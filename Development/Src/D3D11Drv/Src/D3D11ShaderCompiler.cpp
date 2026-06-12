@@ -260,7 +260,7 @@ static UBOOL D3D11CompileShaderThroughDll(
 	FD3D11IncludeEnvironment IncludeEnvironment(Environment);
 
 	FTCHARToANSI AnsiSourceFile(*SourceFile);
-	HRESULT Result = D3DCompile(
+	HRESULT Result = D3DX11CompileFromMemory(
 		(ANSICHAR*)AnsiSourceFile,
 		AnsiSourceFile.Length(),
 		TCHAR_TO_ANSI(SourceFilename),
@@ -270,8 +270,10 @@ static UBOOL D3D11CompileShaderThroughDll(
 		TCHAR_TO_ANSI(ShaderProfile),
 		CompileFlags,
 		0,
+		NULL,
 		Shader.GetInitReference(),
-		Errors.GetInitReference()
+		Errors.GetInitReference(),
+		NULL
 		);
 
 	if (FAILED(Result))
@@ -411,7 +413,7 @@ static UBOOL FinishCompilingD3D11Shader(
 				D3D11_SHADER_BUFFER_DESC CBDesc;
 				ConstantBuffer->GetDesc(&CBDesc);
 
-				if (CBDesc.Size > GConstantBufferSizes[CBIndex])
+				if (CBIndex < MAX_CONSTANT_BUFFER_SLOTS && CBDesc.Size > GConstantBufferSizes[CBIndex])
 				{
 					appErrorf(TEXT("Set GConstantBufferSizes[%d] to >= %d"), CBIndex, CBDesc.Size);
 				}
@@ -758,14 +760,17 @@ UBOOL D3D11BeginCompileShader(
 	ProfileMacro->Definition = appStrcpyANSI(new ANSICHAR[2],2,"1");
 
 	// set SUPPORTS_DEPTH_TEXTURES
-	D3D_SHADER_MACRO* MacroDepthSupport = new(Macros) D3D_SHADER_MACRO;
-	ANSICHAR* tName2 = new ANSICHAR[strlen("SUPPORTS_DEPTH_TEXTURES") + 1];
-	strcpy_s(tName2, strlen("SUPPORTS_DEPTH_TEXTURES") + 1, "SUPPORTS_DEPTH_TEXTURES");
-	MacroDepthSupport->Name = tName2;
+	if (GSupportsDepthTextures)
+	{
+		D3D_SHADER_MACRO* MacroDepthSupport = new(Macros) D3D_SHADER_MACRO;
+		ANSICHAR* tName2 = new ANSICHAR[strlen("SUPPORTS_DEPTH_TEXTURES") + 1];
+		strcpy_s(tName2, strlen("SUPPORTS_DEPTH_TEXTURES") + 1, "SUPPORTS_DEPTH_TEXTURES");
+		MacroDepthSupport->Name = tName2;
 
-	ANSICHAR* tDefinition2 = new ANSICHAR[2];
-	strcpy_s(tDefinition2, 2, "1");
-	MacroDepthSupport->Definition = tDefinition2;
+		ANSICHAR* tDefinition2 = new ANSICHAR[2];
+		strcpy_s(tDefinition2, 2, "1");
+		MacroDepthSupport->Definition = tDefinition2;
+	}
 
 	// @TODO - currently d3d11 uses d3d10 shader compiler flags... update when this changes in DXSDK
 	DWORD CompileFlags = 0;

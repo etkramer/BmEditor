@@ -9,6 +9,9 @@
 /** Size of the image reflection constant buffers. */
 #define MAX_IR_CONSTANT_BUFFER_SIZE			4096
 
+/** Size of the dynamic lighting constant buffer. */
+#define DYNAMIC_LIGHTING_CONSTANT_BUFFER_SIZE	128
+
 /** Size of the bone constant buffer. */
 #define BONE_CONSTANT_BUFFER_SIZE			(75*4*4*3)
 
@@ -25,6 +28,7 @@ enum ED3D11ShaderOffsetBuffer
 	DS_VIEW_CONSTANT_BUFFER_INDEX,
 	IMAGE_REFLECTION_CONSTANT_BUFFER1,
 	IMAGE_REFLECTION_CONSTANT_BUFFER2,
+	DYNAMIC_LIGHTING_CONSTANT_BUFFER_INDEX,
 	MAX_CONSTANT_BUFFER_SLOTS
 };
 
@@ -43,10 +47,9 @@ struct FPixelShaderOffsetConstantBufferContents
 {
 	FVector4 ScreenPositionScaleBias;
 	FVector4 MinZ_MaxZRatio;
-	FLOAT NvStereoEnabled;
 	FVector4 DiffuseOverrideParameter;
 	FVector4 SpecularOverrideParameter;
-	FVector4 ViewOrigin;
+	FLOAT NvStereoEnabled;
 };
 struct FHullShaderOffsetConstantBufferContents
 {

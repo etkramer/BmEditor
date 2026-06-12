@@ -12,15 +12,11 @@ float4x4 ScreenToShadowMatrix;
 /**
 * Entry point for uniform manual PCF that supports lights using modulative shadows.
 */
-#if !BATMAN
-EARLYDEPTHSTENCIL
-#endif
 void Main(
 	in float4 ScreenPosition : TEXCOORD0,
 	out float4 OutColor : COLOR0
 	)
 {
-#if BATMAN
 	// NVCHANGE_BEGIN: Calvin Lin -- 3D Vision Fixes
 #if ALLOW_NVIDIA_STEREO_3D
 	// The stereo driver has shifted Position.x in the vertex shader. To make ScreenPosition correct, we have to
@@ -69,55 +65,12 @@ void Main(
 
 	OutColor = lerp(ShadowedColor,UnshadowedColor,Square(Shadow));
 	// RETURN_COLOR not needed with modulative blending
-#else
-#if SM5_PROFILE
-	OutColor = 1;
-
-	float2 UV = float2(ScreenPosition.xy / ScreenPosition.w * ScreenPositionScaleBias.xy + ScreenPositionScaleBias.wz);
-	float PixelLightingChannel = GetPerPixelLightingChannelMask(UV);
-
-	BRANCH
-	// Only affect pixels specified by the lighting channel mask
-	if ((int)PixelLightingChannel & (int)(LightingChannelMask))
-#endif
-	{
-
-		half SceneW = PreviousDepthForShadows(ScreenPosition);
-
-		float4 ShadowPosition = MulMatrix(ScreenToShadowMatrix,float4(ScreenPosition.xy / ScreenPosition.w * SceneW,SceneW,1));
-		ShadowPosition.xy /= ShadowPosition.w;
-		ShadowPosition.z = min(ShadowPosition.z,0.999);
-
-		half Shadow = ManualPCF(ShadowPosition);
-		
-	#if MODSHADOW_LIGHTTYPE_DIRECTIONAL
-		// no attenuation necessary for directional lights
-		half ShadowAtt = 1;
-	#else
-		// attenuate between shadow color and white based on distance
-		half ShadowAtt = ShadowAttenuation(ScreenPosition,SceneW);
-	#endif
-
-		// add modulated/attenuated shadow color to shadow
-		float4 ShadowedColor = lerp(float4(1,1,1,1),ShadowModulateColor,ShadowAtt);
-		float4 UnshadowedColor = float4(1,1,1,1);
-
-		// allow the alpha channel to supply the emissive mask (when enabled)
-		Shadow = ApplyEmissiveToShadowCoverage(ScreenPosition, Shadow);
-
-		OutColor = lerp(ShadowedColor,UnshadowedColor,Square(Shadow));
-		// RETURN_COLOR not needed with modulative blending
-	}
-#endif
 }
 
 
 /**
 * Entry point for uniform hardware PCF that supports lights using modulative shadows.
 */
-#if !BATMAN
-EARLYDEPTHSTENCIL
-#endif
 void HardwarePCFMain(
 	in float4 ScreenPosition : TEXCOORD0,
 	out half4 OutColor : COLOR0
@@ -176,9 +129,6 @@ void HardwarePCFMain(
 /**
 * Entry point for uniform Fetch4 PCF that supports lights using modulative shadows.
 */
-#if !BATMAN
-EARLYDEPTHSTENCIL
-#endif
 void Fetch4Main(
 	in float4 ScreenPosition : TEXCOORD0,
 	out float4 OutColor : COLOR0

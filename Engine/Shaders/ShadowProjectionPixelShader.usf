@@ -12,7 +12,6 @@ float4x4 ScreenToShadowMatrix;
 /**
 * Entry point for uniform manual PCF that supports lights using normal shadows.
 */
-#if BATMAN
 void Main(
 	in float4 ScreenPosition : TEXCOORD0,
 	out float4 OutColor : COLOR0
@@ -31,62 +30,11 @@ void Main(
 	half FadedShadow = lerp(1.0f, Square(Shadow), ShadowFadeFraction);
 	OutColor = EncodeLightAttenuation(FadedShadow);
 }
-#else
-EARLYDEPTHSTENCIL
-void Main(
-	in float4 ScreenPosition : TEXCOORD0,
-	out float4 OutColor : COLOR0
-	
-#if PER_FRAGMENT
-	,in uint SampleIndex : SV_SampleIndex
-#endif
-	)
-{
-#if SM5_PROFILE
-	OutColor = 1;
-
-	float2 UV = float2(ScreenPosition.xy / ScreenPosition.w * ScreenPositionScaleBias.xy + ScreenPositionScaleBias.wz);
-	#if PER_FRAGMENT
-		float PixelLightingChannel = GetPerSampleLightingChannelMask(UV, SampleIndex);
-	#else
-		float PixelLightingChannel = GetPerPixelLightingChannelMask(UV);
-	#endif
-
-	BRANCH
-	// Only affect pixels specified by the lighting channel mask
-	if ((int)PixelLightingChannel & (int)(LightingChannelMask))
-#endif
-	{
-		#if PER_FRAGMENT
-			// Apply a portion of the shadow filter taps in each sample.
-			float4 SampleScreenPosition = EvaluateAttributeAtSample(ScreenPosition,SampleIndex);
-			float SceneW = PreviousDepthForShadowsMSAA(ScreenPosition,SampleIndex);
-			float4 ShadowPosition = MulMatrix(ScreenToShadowMatrix,float4(SampleScreenPosition.xy / SampleScreenPosition.w * SceneW,SceneW,1));
-		#else
-			half SceneW = PreviousDepthForShadows(ScreenPosition);
-			float4 ShadowPosition = MulMatrix(ScreenToShadowMatrix,float4(ScreenPosition.xy / ScreenPosition.w * SceneW,SceneW,1));
-		#endif
-
-		ShadowPosition.xy /= ShadowPosition.w;
-		ShadowPosition.z = min(ShadowPosition.z,0.999);
-
-		half Shadow = ManualPCF(ShadowPosition);
-
-		// 0 is shadowed, 1 is unshadowed
-		// RETURN_COLOR not needed unless writing to SceneColor;
-		half FadedShadow = lerp(1.0f, Square(Shadow), ShadowFadeFraction);
-		OutColor = EncodeLightAttenuation(FadedShadow);
-	}
-}
-#endif
 
 
 /**
 * Entry point for uniform hardware PCF that supports lights using normal shadows.
 */
-#if !BATMAN
-EARLYDEPTHSTENCIL
-#endif
 void HardwarePCFMain(
 	in float4 ScreenPosition : TEXCOORD0,
 	out float4 OutColor : COLOR0
@@ -109,9 +57,6 @@ void HardwarePCFMain(
 /**
 * Entry point for uniform Fetch4 PCF that supports lights using normal shadows.
 */
-#if !BATMAN
-EARLYDEPTHSTENCIL
-#endif
 void Fetch4Main(
 	in float4 ScreenPosition : TEXCOORD0,
 	out float4 OutColor : COLOR0

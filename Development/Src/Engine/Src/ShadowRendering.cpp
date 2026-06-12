@@ -14,7 +14,12 @@ const UINT SHADOW_BORDER=5;
  * Whether to render whole scene point light shadows in one pass where supported (SM5), 
  * Or to render them using 6 spotlight projections.
  */
-UBOOL GRenderOnePassPointLightShadows = TRUE;
+UBOOL GRenderOnePassPointLightShadows =
+#if BATMAN
+	FALSE;
+#else
+	TRUE;
+#endif
 
 static FLOAT GetShadowDepthBias(const FProjectedShadowInfo* ShadowInfo)
 {
@@ -198,6 +203,12 @@ public:
 
 	static UBOOL ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
+#if BATMAN
+		if (ShaderMode == ShadowDepth_OnePassPointLight)
+		{
+			return FALSE;
+		}
+#endif
 		return FShadowDepthVertexShader::ShouldCache(Platform, Material, VertexFactoryType)
 			// Compile the version that outputs depth to a depth buffer for all platforms,
 			// Only compile the version that outputs depth to color for PC platforms.
@@ -504,6 +515,12 @@ public:
 
 	static UBOOL ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
+#if BATMAN
+		if (ShaderMode == PixelShadowDepth_OnePassPointLight)
+		{
+			return FALSE;
+		}
+#endif
 		return (FShadowDepthPixelShader::ShouldCache(Platform, Material, VertexFactoryType) ||
 			// Only compile the non-screendoor fade version for masked or lit translucent materials
 			!bUseScreenDoorFade && (Material->IsMasked() || Material->CastLitTranslucencyShadowAsMasked()))
@@ -2103,6 +2120,7 @@ void FProjectedShadowInfo::RenderProjection(INT ViewIndex, const FViewInfo* View
 		else
 		{
 			// On SM5 hardware, run a per-sample shader on pixels with significantly different depth samples.
+#if !BATMAN
 			if (GRHIShaderPlatform == SP_PCD3D_SM5 && GSystemSettings.UsesMSAA())
 			{
 				SCOPED_DRAW_EVENT(EventRenderPerSample)(DEC_SCENE_ITEMS,TEXT("PerSample Shadow"));
@@ -2190,6 +2208,7 @@ void FProjectedShadowInfo::RenderProjection(INT ViewIndex, const FViewInfo* View
 						>::GetRHI());
 				}
 			}
+#endif
 
 			FShadowProjectionPixelShaderInterface * PixelShader = GetProjPixelShaderRef(LightSceneInfo->ShadowFilterQuality,FALSE);
 			PixelShader->SetParameters(ViewIndex,*View,this);

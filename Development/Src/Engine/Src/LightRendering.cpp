@@ -29,7 +29,11 @@ public:
 
 	static UBOOL ShouldCache(EShaderPlatform Platform)
 	{
+#if BATMAN
+		return FALSE;
+#else
 		return Platform == SP_PCD3D_SM5;
+#endif
 	}
 
 	TDeferredLightVertexShader()	{}
@@ -69,7 +73,11 @@ public:
 
 	static UBOOL ShouldCache(EShaderPlatform Platform)
 	{
+#if BATMAN
+		return FALSE;
+#else
 		return Platform == SP_PCD3D_SM5;
+#endif
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -190,7 +198,11 @@ public:
 
 	static UBOOL ShouldCache(EShaderPlatform Platform)
 	{
+#if BATMAN
+		return FALSE;
+#else
 		return Platform == SP_PCD3D_SM5;
+#endif
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)

@@ -4,52 +4,227 @@
 =============================================================================*/
 
 #include "D3D11DrvPrivate.h"
+#include "D3Dcompiler.h"
+
+#if BATMAN
+static const DWORD BM_DXBC_MAGIC = 0x43425844;
+
+static INT BMDecompressShaderLZ4(const BYTE* Source, BYTE* Dest, INT DestSize)
+{
+	const BYTE* SourceStart = Source;
+	BYTE* DestEnd = Dest + DestSize;
+
+	for (;;)
+	{
+		BYTE Token = *Source++;
+		INT LiteralLength = Token >> 4;
+		if (LiteralLength == 15)
+		{
+			BYTE LengthByte;
+			do
+			{
+				LengthByte = *Source++;
+				LiteralLength += LengthByte;
+			}
+			while (LengthByte == 255);
+		}
+
+		if (Dest + LiteralLength > DestEnd)
+		{
+			return -1;
+		}
+		appMemcpy(Dest, Source, LiteralLength);
+		Source += LiteralLength;
+		Dest += LiteralLength;
+
+		if (Dest >= DestEnd)
+		{
+			return Source - SourceStart;
+		}
+
+		INT Offset = Source[0] | (Source[1] << 8);
+		Source += 2;
+		BYTE* Match = Dest - Offset;
+
+		INT MatchLength = Token & 15;
+		if (MatchLength == 15)
+		{
+			BYTE LengthByte;
+			do
+			{
+				LengthByte = *Source++;
+				MatchLength += LengthByte;
+			}
+			while (LengthByte == 255);
+		}
+		MatchLength += 4;
+
+		if (Dest + MatchLength > DestEnd)
+		{
+			return -1;
+		}
+		while (MatchLength-- > 0)
+		{
+			*Dest++ = *Match++;
+		}
+	}
+}
+#endif
+
+static HRESULT TryDecompressShaderByteCode(const TArray<BYTE>& Code, TRefCountPtr<ID3DBlob>& DecompressedShader, TArray<BYTE>& ExpandedShader, const void*& pByteCode, SIZE_T& CodeSize)
+{
+#if BATMAN
+	if (Code.Num() >= 4)
+	{
+		DWORD ExpandedSize = *(DWORD*)&Code(0);
+		if (ExpandedSize == BM_DXBC_MAGIC)
+		{
+			pByteCode = &Code(0);
+			CodeSize = Code.Num();
+			return S_OK;
+		}
+
+		const BYTE* Payload = &Code(0) + 4;
+		INT PayloadSize = Code.Num() - 4;
+
+		if (ExpandedSize == 0)
+		{
+			pByteCode = Payload;
+			CodeSize = PayloadSize;
+			return S_OK;
+		}
+
+		if (PayloadSize >= 4)
+		{
+			if (*(DWORD*)Payload == 0x00B00B1E)
+			{
+				ExpandedShader.Empty((INT)ExpandedSize);
+				ExpandedShader.Add((INT)ExpandedSize);
+				INT DecompressedBytes = BMDecompressShaderLZ4(Payload + 4, &ExpandedShader(0), (INT)ExpandedSize);
+				if (DecompressedBytes > 0)
+				{
+					pByteCode = &ExpandedShader(0);
+					CodeSize = ExpandedSize;
+					return S_OK;
+				}
+				ExpandedShader.Empty();
+			}
+			else if (*(WORD*)Payload == 0x9C78)
+			{
+				ExpandedShader.Empty((INT)ExpandedSize);
+				ExpandedShader.Add((INT)ExpandedSize);
+				if (appUncompressMemory(COMPRESS_ZLIB, &ExpandedShader(0), (INT)ExpandedSize, Payload, PayloadSize))
+				{
+					pByteCode = &ExpandedShader(0);
+					CodeSize = ExpandedSize;
+					return S_OK;
+				}
+				ExpandedShader.Empty();
+			}
+		}
+	}
+#endif
+	UINT ShaderIndex = 0;
+	UINT TotalShaders = 0;
+	HRESULT DecompressResult = D3DDecompressShaders(&Code(0), Code.Num(), 1, 0, &ShaderIndex, 0, DecompressedShader.GetInitReference(), &TotalShaders);
+
+	if (FAILED(DecompressResult))
+	{
+		pByteCode = &Code(0);
+		CodeSize = Code.Num();
+	}
+	else
+	{
+		pByteCode = DecompressedShader->GetBufferPointer();
+		CodeSize = DecompressedShader->GetBufferSize();
+	}
+	return DecompressResult;
+}
 
 FVertexShaderRHIRef FD3D11DynamicRHI::CreateVertexShader(const TArray<BYTE>& Code)
 {
 	check(Code.Num());
+	const void* pByteCode = NULL;
+	SIZE_T CodeSize = 0;
+	TRefCountPtr<ID3DBlob> DecompressedShader;
+	TArray<BYTE> ExpandedShader;
+	TryDecompressShaderByteCode(Code, DecompressedShader, ExpandedShader, pByteCode, CodeSize);
+	TArray<BYTE> VertexShaderCode;
+	const TArray<BYTE>* StoredCode = &Code;
+	if (pByteCode != &Code(0) || CodeSize != (SIZE_T)Code.Num())
+	{
+		VertexShaderCode.Empty((INT)CodeSize);
+		VertexShaderCode.Add((INT)CodeSize);
+		appMemcpy(&VertexShaderCode(0), pByteCode, CodeSize);
+		StoredCode = &VertexShaderCode;
+	}
 	TRefCountPtr<ID3D11VertexShader> VertexShader;
-	VERIFYD3D11RESULT(Direct3DDevice->CreateVertexShader((DWORD*)&Code(0),Code.Num(),NULL,VertexShader.GetInitReference()));
-	return new FD3D11VertexShader(VertexShader,Code);
+	VERIFYD3D11RESULT(Direct3DDevice->CreateVertexShader(pByteCode,CodeSize,NULL,VertexShader.GetInitReference()));
+	return new FD3D11VertexShader(VertexShader,*StoredCode);
 }
 
 FPixelShaderRHIRef FD3D11DynamicRHI::CreatePixelShader(const TArray<BYTE>& Code)
 {
 	check(Code.Num());
+	const void* pByteCode = NULL;
+	SIZE_T CodeSize = 0;
+	TRefCountPtr<ID3DBlob> DecompressedShader;
+	TArray<BYTE> ExpandedShader;
+	TryDecompressShaderByteCode(Code, DecompressedShader, ExpandedShader, pByteCode, CodeSize);
 	TRefCountPtr<FD3D11PixelShader> PixelShader;
-	VERIFYD3D11RESULT(Direct3DDevice->CreatePixelShader((DWORD*)&Code(0),Code.Num(),NULL,(ID3D11PixelShader**)PixelShader.GetInitReference()));
+	VERIFYD3D11RESULT(Direct3DDevice->CreatePixelShader(pByteCode,CodeSize,NULL,(ID3D11PixelShader**)PixelShader.GetInitReference()));
 	return PixelShader.GetReference();
 }
 
 FHullShaderRHIRef FD3D11DynamicRHI::CreateHullShader(const TArray<BYTE>& Code) 
 { 
 	check(Code.Num());
+	const void* pByteCode = NULL;
+	SIZE_T CodeSize = 0;
+	TRefCountPtr<ID3DBlob> DecompressedShader;
+	TArray<BYTE> ExpandedShader;
+	TryDecompressShaderByteCode(Code, DecompressedShader, ExpandedShader, pByteCode, CodeSize);
 	TRefCountPtr<FD3D11HullShader> HullShader;
-	VERIFYD3D11RESULT(Direct3DDevice->CreateHullShader((DWORD*)&Code(0),Code.Num(),NULL,(ID3D11HullShader**)HullShader.GetInitReference()));
+	VERIFYD3D11RESULT(Direct3DDevice->CreateHullShader(pByteCode,CodeSize,NULL,(ID3D11HullShader**)HullShader.GetInitReference()));
 	return HullShader.GetReference();
 }
 
 FDomainShaderRHIRef FD3D11DynamicRHI::CreateDomainShader(const TArray<BYTE>& Code) 
 { 
 	check(Code.Num());
+	const void* pByteCode = NULL;
+	SIZE_T CodeSize = 0;
+	TRefCountPtr<ID3DBlob> DecompressedShader;
+	TArray<BYTE> ExpandedShader;
+	TryDecompressShaderByteCode(Code, DecompressedShader, ExpandedShader, pByteCode, CodeSize);
 	TRefCountPtr<FD3D11DomainShader> DomainShader;
-	VERIFYD3D11RESULT(Direct3DDevice->CreateDomainShader((DWORD*)&Code(0),Code.Num(),NULL,(ID3D11DomainShader**)DomainShader.GetInitReference()));
+	VERIFYD3D11RESULT(Direct3DDevice->CreateDomainShader(pByteCode,CodeSize,NULL,(ID3D11DomainShader**)DomainShader.GetInitReference()));
 	return DomainShader.GetReference();
 }
 
 FGeometryShaderRHIRef FD3D11DynamicRHI::CreateGeometryShader(const TArray<BYTE>& Code) 
 { 
 	check(Code.Num());
+	const void* pByteCode = NULL;
+	SIZE_T CodeSize = 0;
+	TRefCountPtr<ID3DBlob> DecompressedShader;
+	TArray<BYTE> ExpandedShader;
+	TryDecompressShaderByteCode(Code, DecompressedShader, ExpandedShader, pByteCode, CodeSize);
 	TRefCountPtr<FD3D11GeometryShader> Shader;
-	VERIFYD3D11RESULT(Direct3DDevice->CreateGeometryShader((DWORD*)&Code(0),Code.Num(),NULL,(ID3D11GeometryShader**)Shader.GetInitReference()));
+	VERIFYD3D11RESULT(Direct3DDevice->CreateGeometryShader(pByteCode,CodeSize,NULL,(ID3D11GeometryShader**)Shader.GetInitReference()));
 	return Shader.GetReference();
 }
 
 FComputeShaderRHIRef FD3D11DynamicRHI::CreateComputeShader(const TArray<BYTE>& Code) 
 { 
 	check(Code.Num());
+	const void* pByteCode = NULL;
+	SIZE_T CodeSize = 0;
+	TRefCountPtr<ID3DBlob> DecompressedShader;
+	TArray<BYTE> ExpandedShader;
+	TryDecompressShaderByteCode(Code, DecompressedShader, ExpandedShader, pByteCode, CodeSize);
 	TRefCountPtr<FD3D11ComputeShader> Shader;
-	VERIFYD3D11RESULT(Direct3DDevice->CreateComputeShader((DWORD*)&Code(0),Code.Num(),NULL,(ID3D11ComputeShader**)Shader.GetInitReference()));
+	VERIFYD3D11RESULT(Direct3DDevice->CreateComputeShader(pByteCode,CodeSize,NULL,(ID3D11ComputeShader**)Shader.GetInitReference()));
 	return Shader.GetReference();
 }
 

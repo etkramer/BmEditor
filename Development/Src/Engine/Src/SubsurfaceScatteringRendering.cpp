@@ -36,22 +36,15 @@
 
 	IMPLEMENT_SHADER_TYPE(,FSubsurfaceScatteringVertexShader,TEXT("SubsurfaceScatteringVertexShader"),TEXT("Main"),SF_Vertex,0,0);
 
-	enum EMSAAShaderFrequency
-	{
-		MSAASF_NoMSAA,
-		MSAASF_PerFragment,
-		MSAASF_PerPixel
-	};
-
 	/** A pixel shader for subsurface scattering. */
-	template<UINT NumSamplePairs,UINT NumRadialStrata,UINT NumAngularStrata,EMSAAShaderFrequency MSAAShaderFrequency>
-	class TSubsurfaceScatteringPixelShader : public FGlobalShader
+	class FSubsurfaceScatteringPixelShader : public FGlobalShader
 	{
-		DECLARE_SHADER_TYPE(TSubsurfaceScatteringPixelShader,Global)
+		DECLARE_SHADER_TYPE(FSubsurfaceScatteringPixelShader,Global)
 
+		enum { NumSamplePairs = 20 };
 		enum { NumSamples = NumSamplePairs * 2 };
-		
-		checkAtCompileTime(NumSamples == NumRadialStrata * NumAngularStrata,RadialTimesAngleStrataDoesntMatchNumSamples);
+		enum { NumRadialStrata = 4 };
+		enum { NumAngularStrata = 10 };
 
 	public:
 
@@ -64,12 +57,9 @@
 		{
 			FShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
 			OutEnvironment.Definitions.Set(TEXT("NUM_SAMPLES"),*FString::Printf(TEXT("%u"),(UINT)NumSamples));
-			OutEnvironment.Definitions.Set(TEXT("NUM_SAMPLE_PAIRS"),*FString::Printf(TEXT("%u"),NumSamplePairs));
-			OutEnvironment.Definitions.Set(TEXT("MSAA_ENABLED"),MSAAShaderFrequency != MSAASF_NoMSAA ? TEXT("1") : TEXT("0"));
-			OutEnvironment.Definitions.Set(TEXT("PER_FRAGMENT"),MSAAShaderFrequency == MSAASF_PerFragment ? TEXT("1") : TEXT("0"));
 		}
 
-		TSubsurfaceScatteringPixelShader(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		FSubsurfaceScatteringPixelShader(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
 		:	FGlobalShader(Initializer)
 		{
 			SceneTextureParameters.Bind(Initializer.ParameterMap);
@@ -82,7 +72,7 @@
 			NoiseScaleAndOffsetParameter.Bind(Initializer.ParameterMap,TEXT("NoiseScaleAndOffset"),TRUE);
 		}
 
-		TSubsurfaceScatteringPixelShader()
+		FSubsurfaceScatteringPixelShader()
 		{
 		}
 
@@ -177,23 +167,7 @@
 		FShaderParameter NoiseScaleAndOffsetParameter;
 	};
 
-	/**
-	 * Subsurface scattering accumulate pixel shader type implementation.
-	 * The macro allows changing the number of samples to invalidate the compiled shader by embedding the sample count in the name.
-	 */
-	#define IMPLEMENT_SUBSURFACE_SCATTERING_SHADER(NumSamplePairs,NumRadialStrata,NumAngularStrata) \
-		typedef TSubsurfaceScatteringPixelShader<NumSamplePairs,NumRadialStrata,NumAngularStrata,MSAASF_PerPixel> FPerPixelSubsurfaceScatteringPixelShader##NumSamplePairs; \
-		typedef FPerPixelSubsurfaceScatteringPixelShader##NumSamplePairs FPerPixelSubsurfaceScatteringPixelShader; \
-		IMPLEMENT_SHADER_TYPE(template<>,FPerPixelSubsurfaceScatteringPixelShader##NumSamplePairs,TEXT("SubsurfaceScatteringPixelShader"),TEXT("Main"),SF_Pixel,0,0); \
-		typedef TSubsurfaceScatteringPixelShader<NumSamplePairs,NumRadialStrata,NumAngularStrata,MSAASF_PerFragment> FPerFragmentSubsurfaceScatteringPixelShader##NumSamplePairs; \
-		typedef FPerFragmentSubsurfaceScatteringPixelShader##NumSamplePairs FPerFragmentSubsurfaceScatteringPixelShader; \
-		IMPLEMENT_SHADER_TYPE(template<>,FPerFragmentSubsurfaceScatteringPixelShader##NumSamplePairs,TEXT("SubsurfaceScatteringPixelShader"),TEXT("Main"),SF_Pixel,0,0); \
-		typedef TSubsurfaceScatteringPixelShader<NumSamplePairs,NumRadialStrata,NumAngularStrata,MSAASF_NoMSAA> FSubsurfaceScatteringPixelShader##NumSamplePairs; \
-		typedef FSubsurfaceScatteringPixelShader##NumSamplePairs FSubsurfaceScatteringPixelShader; \
-		IMPLEMENT_SHADER_TYPE(template<>,FSubsurfaceScatteringPixelShader##NumSamplePairs,TEXT("SubsurfaceScatteringPixelShader"),TEXT("Main"),SF_Pixel,0,0);
-		
-	IMPLEMENT_SUBSURFACE_SCATTERING_SHADER(9,3,6);
-	#undef IMPLEMENT_SUBSURFACE_SCATTERING_SHADER
+	IMPLEMENT_SHADER_TYPE(,FSubsurfaceScatteringPixelShader,TEXT("SubsurfaceScatteringPixelShader"),TEXT("Main"),SF_Pixel,0,0);
 
 	/** The subsurface scattering vertex declaration resource type. */
 	class FSubsurfaceScatteringVertexDeclaration : public FRenderResource
@@ -222,12 +196,6 @@
 
 	/** The bound shader state for the subsurface scattering shaders without MSAA. */
 	FGlobalBoundShaderState GSubsurfaceScatteringBoundShaderStateNoMSAA;
-
-	/** The bound shader state for the per-pixel subsurface scattering shaders. */
-	FGlobalBoundShaderState GPerPixelSubsurfaceScatteringBoundShaderState;
-
-	/** The bound shader state for the per-sample subsurface scattering shaders. */
-	FGlobalBoundShaderState GPerFragmentSubsurfaceScatteringBoundShaderState;
 #endif
 
 UBOOL FSceneRenderer::RenderSubsurfaceScattering(UINT DPGIndex)
@@ -274,109 +242,29 @@ UBOOL FSceneRenderer::RenderSubsurfaceScattering(UINT DPGIndex)
 					// Use additive blending for color, and keep the destination alpha.
 					RHISetBlendState(TStaticBlendState<BO_Add,BF_One,BF_One,BO_Add,BF_Zero,BF_One>::GetRHI());
 
-					if(GSystemSettings.UsesMSAA())
-					{
-						TShaderMapRef<FSubsurfaceScatteringVertexShader> VertexShader(GetGlobalShaderMap());
+					TShaderMapRef<FSubsurfaceScatteringVertexShader> VertexShader(GetGlobalShaderMap());
+					TShaderMapRef<FSubsurfaceScatteringPixelShader> PixelShader(GetGlobalShaderMap());
+					SetGlobalBoundShaderState(
+						GSubsurfaceScatteringBoundShaderStateNoMSAA,
+						GSubsurfaceScatteringVertexDeclaration.VertexDeclarationRHI,
+						*VertexShader,
+						*PixelShader,
+						sizeof(FVector2D)
+						);
+					VertexShader->SetParameters(View);
+					PixelShader->SetParameters(View);
 
-						{
-							SCOPED_DRAW_EVENT(EventRenderPerSample)(DEC_SCENE_ITEMS,TEXT("PerSample SSS"));
-
-							// Clear the stencil buffer to zero.
-							RHIClear(FALSE,FLinearColor(),FALSE,0,TRUE,0);
-
-							// Set stencil to one.
-							RHISetStencilState(TStaticStencilState<
-								TRUE,CF_Always,SO_Keep,SO_Keep,SO_Replace,
-								FALSE,CF_Always,SO_Keep,SO_Keep,SO_Keep,
-								0xff,0xff,1
-								>::GetRHI());
-
-							// Set the per-pixel subsurface scattering shaders.
-							TShaderMapRef<FPerPixelSubsurfaceScatteringPixelShader> PerPixelPixelShader(GetGlobalShaderMap());
-							SetGlobalBoundShaderState(
-								GPerPixelSubsurfaceScatteringBoundShaderState,
-								GSubsurfaceScatteringVertexDeclaration.VertexDeclarationRHI,
-								*VertexShader,
-								*PerPixelPixelShader,
-								sizeof(FVector2D)
-								);
-							VertexShader->SetParameters(View);
-							PerPixelPixelShader->SetParameters(View);
-
-							// Draw a quad covering the view.
-							RHIDrawIndexedPrimitiveUP(
-								PT_TriangleList,
-								0,
-								ARRAY_COUNT(Vertices),
-								2,
-								Indices,
-								sizeof(Indices[0]),
-								Vertices,
-								sizeof(Vertices[0])
-								);
-						}
-
-						// Set the per-sample subsurface scattering shaders.
-						TShaderMapRef<FPerFragmentSubsurfaceScatteringPixelShader> PerFragmentPixelShader(GetGlobalShaderMap());
-						SetGlobalBoundShaderState(
-							GPerFragmentSubsurfaceScatteringBoundShaderState,
-							GSubsurfaceScatteringVertexDeclaration.VertexDeclarationRHI,
-							*VertexShader,
-							*PerFragmentPixelShader,
-							sizeof(FVector2D)
-							);
-						VertexShader->SetParameters(View);
-						PerFragmentPixelShader->SetParameters(View);
-
-						// Pass if stencil=0
-						RHISetStencilState(TStaticStencilState<
-							TRUE,CF_Equal,SO_Keep,SO_Keep,SO_Keep,
-							FALSE,CF_Always,SO_Keep,SO_Keep,SO_Keep,
-							0xff,0,0
-							>::GetRHI());
-
-						// Draw a quad covering the view.
-						RHIDrawIndexedPrimitiveUP(
-							PT_TriangleList,
-							0,
-							ARRAY_COUNT(Vertices),
-							2,
-							Indices,
-							sizeof(Indices[0]),
-							Vertices,
-							sizeof(Vertices[0])
-							);
-							
-						// Restore default stencil state
-						RHISetStencilState(TStaticStencilState<>::GetRHI());
-					}
-					else
-					{
-						// Set the non-MSAA subsurface scattering shaders.
-						TShaderMapRef<FSubsurfaceScatteringVertexShader> VertexShader(GetGlobalShaderMap());
-						TShaderMapRef<FSubsurfaceScatteringPixelShader> PixelShader(GetGlobalShaderMap());
-						SetGlobalBoundShaderState(
-							GSubsurfaceScatteringBoundShaderStateNoMSAA,
-							GSubsurfaceScatteringVertexDeclaration.VertexDeclarationRHI,
-							*VertexShader,
-							*PixelShader,
-							sizeof(FVector2D)
-							);
-						VertexShader->SetParameters(View);
-						PixelShader->SetParameters(View);
-
-						// Draw a quad covering the view.
-						RHIDrawIndexedPrimitiveUP(
-							PT_TriangleList,
-							0,
-							ARRAY_COUNT(Vertices),
-							2,
-							Indices,
-							sizeof(Indices[0]),
-							Vertices,
-							sizeof(Vertices[0])
-							);
-					}
+					// Draw a quad covering the view.
+					RHIDrawIndexedPrimitiveUP(
+						PT_TriangleList,
+						0,
+						ARRAY_COUNT(Vertices),
+						2,
+						Indices,
+						sizeof(Indices[0]),
+						Vertices,
+						sizeof(Vertices[0])
+						);
 				}
 			}
 			return TRUE;

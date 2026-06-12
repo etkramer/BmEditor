@@ -40,7 +40,20 @@ public:
 
 	static UBOOL ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType,UBOOL bEnableSkyLight=FALSE)
 	{
+#if BATMAN
+		if (Platform != SP_XBOXD3D && Platform != SP_PS3)
+		{
+			return TRUE;
+		}
+
+		return !bEnableSkyLight
+			&& (Material->GetLightingModel() == MLM_Unlit
+				|| Material->IsSpecialEngineMaterial()
+				|| !VertexFactoryType->SupportsStaticLighting()
+				|| !Material->IsUsedWithStaticLighting());
+#else
 		return TRUE;
+#endif
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
