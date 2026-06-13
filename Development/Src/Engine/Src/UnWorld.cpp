@@ -2820,6 +2820,7 @@ void UWorld::BeginPlay(const FURL& InURL, UBOOL bResetTime)
 			GameInfo->SetBandwidthLimit(appAtof(Value));
 		}
 		
+#if !BATMAN
 		// do memory tracking if we are looking at mem
 		if ( GameInfo->MyAutoTestManager != NULL ) 
 		{
@@ -2836,6 +2837,7 @@ void UWorld::BeginPlay(const FURL& InURL, UBOOL bResetTime)
 				}
 			}
 		}
+#endif
 	}
 }
 
@@ -6384,6 +6386,7 @@ UBOOL ULevelStreamingDistance::ShouldBeLoaded( const FVector& ViewLocation )
  */
 UBOOL ULevelStreamingAlwaysLoaded::ShouldBeLoaded( const FVector& ViewLocation )
 {
+#if !BATMAN
 	if( GWorld != NULL )
 	{
 		AGameInfo* GameInfo = GWorld->GetGameInfo();
@@ -6392,6 +6395,7 @@ UBOOL ULevelStreamingAlwaysLoaded::ShouldBeLoaded( const FVector& ViewLocation )
 			return bShouldBeLoaded;
 		}
 	}
+#endif
 
 	return TRUE;
 }

@@ -62,6 +62,8 @@ public:
     BITFIELD bStopCountDown:1;
     BITFIELD bMatchHasBegun:1;
     BITFIELD bMatchIsOver:1;
+    BITFIELD Debug_Draw_Physics_Sounds:1;
+    BITFIELD Debug_Disable_All_Ragdoll_Calming_Measures:1;
     INT RemainingTime;
     INT ElapsedTime;
     INT RemainingMinute;

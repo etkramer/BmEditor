@@ -59,6 +59,28 @@ var bool bHasEndGameHandshakeBegun;
 /** Whether the game expects a fixed player start for profiling. */
 var bool bFixedPlayerStart;
 
+var	bool					  bDoFearCostFallOff;		// If true, FearCost will fall off over time in NavigationPoints.  Reset to false once all reach FearCosts reach 0.
+
+/** perform map travels using SeamlessTravel() which loads in the background and doesn't disconnect clients
+ * @see WorldInfo::SeamlessTravel()
+ */
+var bool bUseSeamlessTravel;
+
+/** Tracks whether the server can travel due to a critical network error or not */
+var bool bHasNetworkError;
+
+/** Whether this game type requires voice to be push to talk or not */
+var const bool bRequiresPushToTalk;
+
+/** Used to determine if checking for standby cheats should occur */
+var config bool bIsStandbyCheckingEnabled;
+
+/** Tracks standby checking status */
+var bool bIsStandbyCheckingOn;
+
+/** Used to determine whether we've already caught a cheat or not */
+var bool bHasStandbyCheatTriggered;
+
 /** The causeevent= string that the game passed in This is separate from automatedPerfTesting which is going to probably spawn bots / effects **/
 var string CauseEventCommand;
 
@@ -109,7 +131,6 @@ var   int					  CurrentID;				// used to assign unique PlayerIDs to each PlayerR
 var localized string	      DefaultPlayerName;
 var localized string	      GameName;
 var float					  FearCostFallOff;			// how fast the FearCost in NavigationPoints falls off
-var	bool					  bDoFearCostFallOff;		// If true, FearCost will fall off over time in NavigationPoints.  Reset to false once all reach FearCosts reach 0.
 
 var config int                GoalScore;                // what score is needed to end the match
 var config int                MaxLives;	                // max number of lives for match, unless overruled by level's GameDetails
@@ -124,14 +145,6 @@ var class<GameMessage>		  GameMessageClass;
 var Mutator BaseMutator;				// linked list of Mutators (for modifying actors as they enter the game)
 var class<AccessControl> AccessControlClass;
 var AccessControl AccessControl;		// AccessControl controls whether players can enter and/or become admins
-var class<BroadcastHandler> BroadcastHandlerClass;
-var BroadcastHandler BroadcastHandler;	// handles message (text and localized) broadcasts
-
-/** Class of automated test manager used by this game class */
-var class<AutoTestManager> AutoTestManagerClass;
-
-/** Instantiated AutoTestManager - only exists if requested by command-line */
-var AutoTestManager	MyAutoTestManager;
 
 var class<PlayerController> PlayerControllerClass;	// type of player controller to spawn for players logging in
 var class<PlayerReplicationInfo> 		PlayerReplicationInfoClass;
@@ -139,9 +152,6 @@ var class<PlayerReplicationInfo> 		PlayerReplicationInfoClass;
 // ReplicationInfo
 var() class<GameReplicationInfo> GameReplicationInfoClass;
 var GameReplicationInfo GameReplicationInfo;
-
-var CrowdPopulationManagerBase PopulationManager;
-var class<CrowdPopulationManagerBase> PopulationManagerClass;
 
 var globalconfig float MaxIdleTime;		// maximum time players are allowed to idle before being kicked
 
@@ -174,20 +184,6 @@ var int LeaderboardId;
 /** The arbitrated leaderboard to write the stats to for skill/scoring */
 var int ArbitratedLeaderboardId;
 
-/** perform map travels using SeamlessTravel() which loads in the background and doesn't disconnect clients
- * @see WorldInfo::SeamlessTravel()
- */
-var bool bUseSeamlessTravel;
-
-/** Base copy of cover changes that need to be replicated to clients on join */
-var protected CoverReplicator CoverReplicatorBase;
-
-/** Tracks whether the server can travel due to a critical network error or not */
-var bool bHasNetworkError;
-
-/** Whether this game type requires voice to be push to talk or not */
-var const bool bRequiresPushToTalk;
-
 /** The class to use when registering dedicated servers with the online service */
 var const class<OnlineGameSettings> OnlineGameSettingsClass;
 
@@ -210,12 +206,6 @@ var globalconfig int MinDynamicBandwidth;
 var globalconfig int MaxDynamicBandwidth;
 
 /** Standby cheat detection vars */
-/** Used to determine if checking for standby cheats should occur */
-var config bool bIsStandbyCheckingEnabled;
-/** Tracks standby checking status */
-var bool bIsStandbyCheckingOn;
-/** Used to determine whether we've already caught a cheat or not */
-var bool bHasStandbyCheatTriggered;
 /** The amount of time without packets before triggering the cheat code */
 var config float StandbyRxCheatTime;
 /** The amount of time without packets before triggering the cheat code */
@@ -273,12 +263,6 @@ var config array<GameTypePrefix>	DefaultMapPrefixes;
 var config array<GameTypePrefix>	CustomMapPrefixes;
 
 
-/** If true, destroy and recreate online sessions at mapchange (required for Steam, which can only update game server stats once per session) */
-var bool bNewOnlineSessionOnTravel;
-
-/** Size of the AnimTree pool. System will keep this number of extra AnimTrees around per Template */
-var config int AnimTreePoolSize;
-
 /**
  *	Retrieve the FGameTypePrefix struct for the given map filename.
  *
@@ -328,16 +312,6 @@ event PreBeginPlay()
 	WorldInfo.GRI = GameReplicationInfo;
 
 	InitGameReplicationInfo();
-	InitCrowdPopulationManager();
-}
-
-function CoverReplicator GetCoverReplicator()
-{
-	if (CoverReplicatorBase == None && WorldInfo.NetMode != NM_Standalone)
-	{
-		CoverReplicatorBase = Spawn(class'CoverReplicator');
-	}
-	return CoverReplicatorBase;
 }
 
 event PostBeginPlay()
@@ -354,6 +328,11 @@ event PostBeginPlay()
 	}
 }
 
+function CoverReplicator GetCoverReplicator()
+{
+	return None;
+}
+
 /**
   *  Use 'ShowGameDebug' console command to show this debug info
   *  Useful to show general debug info not tied to a particular actor physically in the level.
@@ -368,11 +347,6 @@ simulated function DisplayDebug(HUD HUD, out float out_YL, out float out_YPos)
 	Canvas.DrawText("Game:" $GameName );
 	out_YPos += out_YL;
 	Canvas.SetPos(4,out_YPos);
-
-	if ( PopulationManager != None )
-	{
-		PopulationManager.DisplayDebug(HUD, out_YL, out_YPos);
-	}
 }
 
 
@@ -450,8 +424,6 @@ function ResetLevel()
 
 event Timer()
 {
-	BroadcastHandler.UpdateSentText();
-
 	// Update navigation point fear cost fall off.
 	if ( bDoFearCostFallOff )
 	{
@@ -760,8 +732,6 @@ event InitGame( string Options, out string ErrorMessage )
 
 	TimeLimit = Max(0,GetIntOption( Options, "TimeLimit", TimeLimit ));
 
-	BroadcastHandler = spawn(BroadcastHandlerClass);
-
 	InOpt = ParseOption( Options, "AccessControl");
 	if( InOpt != "" )
 	{
@@ -820,15 +790,6 @@ event InitGame( string Options, out string ErrorMessage )
 	bFixedPlayerStart = ( ParseOption( Options, "FixedPlayerStart" ) ~= "1" );
 	CauseEventCommand = ( ParseOption( Options, "causeevent" ) );
 
-	if ( ParseOption( Options, "AutoTests" ) ~= "1" )
-	{
-		if ( MyAutoTestManager == None )
-		{
-			MyAutoTestManager = spawn(AutoTestManagerClass);
-		}
-		MyAutoTestManager.InitializeOptions(Options);
-	}
-
 	BugLocString = ParseOption(Options, "BugLoc");
 	BugRotString = ParseOption(Options, "BugRot");
 
@@ -854,11 +815,6 @@ event InitGame( string Options, out string ErrorMessage )
 			}
 		}
 
-		// If the Steam online subsystem is active, forcibly enable 'bNewOnlineSessionOnTravel'
-		if (OnlineSub != none && OnlineSub.Class.Name == 'OnlineSubsystemSteamworks')
-		{
-			bNewOnlineSessionOnTravel = True;
-		}
 	}
 
 	if ((WorldInfo.IsConsoleBuild(CONSOLE_Any) == false) &&
@@ -1249,11 +1205,6 @@ function StartMatch()
 {
 	local Actor A;
 
-	if ( MyAutoTestManager != None )
-	{
-		MyAutoTestManager.StartMatch();
-	}
-
 	// tell all actors the game is starting
 	ForEach AllActors(class'Actor', A)
 	{
@@ -1581,12 +1532,6 @@ function GenericPlayerInitialization(Controller C)
 		PC.ClientSetHUD(HudType);
 
 		ReplicateStreamingStatus(PC);
-
-		// see if we need to spawn a CoverReplicator for this player
-		if (CoverReplicatorBase != None)
-		{
-			PC.SpawnCoverReplicator();
-		}
 
 		// Set the rich presence strings on the client (has to be done there)
 		PC.ClientSetOnlineStatus();
@@ -2148,10 +2093,6 @@ function bool GetTravelType()
 function RestartGame()
 {
 	local string NextMap;
-	local string TransitionMapCmdLine;
-	local string URLString;
-	local int URLMapLen;
-	local int MapNameLen;
 
 	// If we are using arbitration and haven't done the end game handshaking,
 	// do that process first and then come back here afterward
@@ -2182,46 +2123,11 @@ function RestartGame()
 		// get the next map and start the transition
 		bAlreadyChanged = true;
 
-		if ( (MyAutoTestManager != None) && MyAutoTestManager.bUsingAutomatedTestingMapList)
-		{
-			NextMap = MyAutoTestManager.GetNextAutomatedTestingMap();
-		}
-		else
-		{
-			NextMap = GetNextMap();
-		}
+		NextMap = GetNextMap();
 
 		if (NextMap != "")
 		{
-			if ( (MyAutoTestManager == None) || !MyAutoTestManager.bUsingAutomatedTestingMapList )
-			{
-				WorldInfo.ServerTravel(NextMap,GetTravelType());
-			}
-			else
-			{
-				if ( !MyAutoTestManager.bAutomatedTestingWithOpen )
-				{
-					URLString = WorldInfo.GetLocalURL();
-					URLMapLen = Len(URLString);
-
-					MapNameLen = InStr(URLString, "?");
-					if (MapNameLen != -1)
-					{
-						URLString = Right(URLString, URLMapLen - MapNameLen);
-					}
-
-					// The ENTIRE url needs to be recreated here...
-					TransitionMapCmdLine = NextMap$URLString$"?AutomatedTestingMapIndex="$MyAutoTestManager.AutomatedTestingMapIndex;
-					`log(">>> Issuing server travel on " $ TransitionMapCmdLine);
-					WorldInfo.ServerTravel(TransitionMapCmdLine,GetTravelType());
-				}
-				else
-				{
-					TransitionMapCmdLine = "?AutomatedTestingMapIndex="$MyAutoTestManager.AutomatedTestingMapIndex$"?NumberOfMatchesPlayed="$MyAutoTestManager.NumberOfMatchesPlayed$"?NumMapListCyclesDone="$MyAutoTestManager.NumMapListCyclesDone;
-					`log(">>> Issuing open command on " $ NextMap $ TransitionMapCmdLine);
-					ConsoleCommand( "open " $ NextMap $ TransitionMapCmdLine);
-				}
-			}
+			WorldInfo.ServerTravel(NextMap,GetTravelType());
 			return;
 		}
 	}
@@ -2234,12 +2140,10 @@ function RestartGame()
 
 event Broadcast( Actor Sender, coerce string Msg, optional name Type )
 {
-	BroadcastHandler.Broadcast(Sender,Msg,Type);
 }
 
 function BroadcastTeam( Controller Sender, coerce string Msg, optional name Type )
 {
-	BroadcastHandler.BroadcastTeam(Sender,Msg,Type);
 }
 
 /*
@@ -2249,7 +2153,6 @@ function BroadcastTeam( Controller Sender, coerce string Msg, optional name Type
 */
 event BroadcastLocalized( actor Sender, class<LocalMessage> Message, optional int Switch, optional PlayerReplicationInfo RelatedPRI_1, optional PlayerReplicationInfo RelatedPRI_2, optional Object OptionalObject )
 {
-	BroadcastHandler.AllowBroadcastLocalized(Sender,Message,Switch,RelatedPRI_1,RelatedPRI_2,OptionalObject);
 }
 
 /*
@@ -2259,7 +2162,6 @@ event BroadcastLocalized( actor Sender, class<LocalMessage> Message, optional in
 */
 event BroadcastLocalizedTeam( int TeamIndex, actor Sender, class<LocalMessage> Message, optional int Switch, optional PlayerReplicationInfo RelatedPRI_1, optional PlayerReplicationInfo RelatedPRI_2, optional Object OptionalObject )
 {
-	BroadcastHandler.AllowBroadcastLocalizedTeam(TeamIndex, Sender,Message,Switch,RelatedPRI_1,RelatedPRI_2,OptionalObject);
 }
 
 //==========================================================================
@@ -2794,20 +2696,11 @@ event GetSeamlessTravelActorList(bool bToEntry, out array<Actor> ActorList)
 	{
 		// keep general game state until we transition to the final destination
 		ActorList[ActorList.length] = WorldInfo.GRI;
-		if (BroadcastHandler != None)
-		{
-			ActorList[ActorList.length] = BroadcastHandler;
-		}
 	}
 
 	if (BaseMutator != None)
 	{
 		BaseMutator.GetSeamlessTravelActorList(bToEntry, ActorList);
-	}
-
-	if (MyAutoTestManager != None)
-	{
-		ActorList[ActorList.length] = MyAutoTestManager;
 	}
 }
 
@@ -2825,16 +2718,6 @@ native final function SwapPlayerControllers(PlayerController OldPC, PlayerContro
 event PostSeamlessTravel()
 {
 	local Controller C;
-
-	// If a new online session needs to be setup after seamless travel, destroy the current session and setup the new one
-	// NOTE: The session is destroyed after seamless travel, rather than before, so that a new session can be setup immediately
-	//		after destroying the old one (otherwise the server may not shown on browser for a few seconds at travel)
-	if (bNewOnlineSessionOnTravel && GameInterface != none && !WorldInfo.IsConsoleBuild(CONSOLE_Any) &&
-		WorldInfo.NetMode != NM_Standalone)
-	{
-		GameInterface.AddDestroyOnlineGameCompleteDelegate(OnDestroyOnlineGameComplete);
-		GameInterface.DestroyOnlineGame(PlayerReplicationInfoClass.default.SessionName);
-	}
 
 	// handle players that are already loaded
 	foreach WorldInfo.AllControllers(class'Controller', C)
@@ -3545,11 +3428,6 @@ function TellClientsToTravelToSession(name SessionName,class<OnlineGameSearch> S
 /** function to start the world traveling **/
 exec function DoTravelTheWorld()
 {
-	if ( MyAutoTestManager != None )
-	{
-		GotoState('TravelTheWorld');
-		MyAutoTestManager.DoTravelTheWorld();
-	}
 }
 
 /** Alters the synthetic bandwidth limit for a running game **/
@@ -3565,7 +3443,7 @@ state TravelTheWorld
   */
 function bool IsAutomatedPerfTesting()
 {
-	return (MyAutoTestManager != None) && MyAutoTestManager.bAutomatedPerfTesting;
+	return false;
 }
 
 /**
@@ -3573,7 +3451,7 @@ function bool IsAutomatedPerfTesting()
   */
 function bool IsCheckingForFragmentation()
 {
-	return (MyAutoTestManager != None) && MyAutoTestManager.bCheckingForFragmentation;
+	return false;
 }
 
 /**
@@ -3581,7 +3459,7 @@ function bool IsCheckingForFragmentation()
   */
 function bool IsCheckingForMemLeaks()
 {
-	return (MyAutoTestManager != None) && MyAutoTestManager.bCheckingForMemLeaks;
+	return false;
 }
 
 /**
@@ -3589,7 +3467,7 @@ function bool IsCheckingForMemLeaks()
   */
 function bool IsDoingASentinelRun()
 {
-	return (MyAutoTestManager != None) && MyAutoTestManager.bDoingASentinelRun;
+	return false;
 }
 
 /**
@@ -3597,7 +3475,7 @@ function bool IsDoingASentinelRun()
   */
 function bool ShouldAutoContinueToNextRound()
 {
-	return (MyAutoTestManager != None) && MyAutoTestManager.bAutoContinueToNextRound;
+	return false;
 }
 
 /**
@@ -3607,19 +3485,12 @@ function bool ShouldAutoContinueToNextRound()
   */
 function bool CheckForSentinelRun()
 {
-	return (MyAutoTestManager != None) && MyAutoTestManager.CheckForSentinelRun();
+	return false;
 }
 
 /** This is for the QA team who don't use UFE nor commandline :-( **/
 exec simulated function BeginBVT( optional coerce string TagDesc )
 {
-	if ( MyAutoTestManager == None )
-	{
-		MyAutoTestManager = spawn(AutoTestManagerClass);
-	}
-
-	MyAutoTestManager.BeginSentinelRun( "BVT", "", TagDesc );
-	MyAutoTestManager.SetTimer( 3.0f, TRUE, nameof(MyAutoTestManager.DoTimeBasedSentinelStatGathering) );
 }
 
 
@@ -3659,14 +3530,6 @@ function OnDestroyOnlineGameComplete(name SessionName, bool bWasSuccessful)
  */
 event OnEngineHasLoaded();
 
-function InitCrowdPopulationManager()
-{
-	if( PopulationManagerClass != None )
-	{
-		PopulationManager = Spawn(PopulationManagerClass);
-	}
-}
-
 
 defaultproperties
 {
@@ -3677,15 +3540,13 @@ defaultproperties
 	bDelayedStart=true
 	HUDType=class'Engine.HUD'
 	bWaitingToStartMatch=false
-    bRestartLevel=True
+	bRestartLevel=True
     bPauseable=True
 	AccessControlClass=class'Engine.AccessControl'
-	BroadcastHandlerClass=class'Engine.BroadcastHandler'
 	DeathMessageClass=class'LocalMessage'
 	PlayerControllerClass=class'Engine.PlayerController'
 	GameMessageClass=class'GameMessage'
 	GameReplicationInfoClass=class'GameReplicationInfo'
-	AutoTestManagerClass=class'Engine.AutoTestManager'
     FearCostFalloff=+0.95
 	CurrentID=1
 	PlayerReplicationInfoClass=Class'Engine.PlayerReplicationInfo'
@@ -3697,6 +3558,4 @@ defaultproperties
 	// Defaults for if your game has only one skill leaderboard
 	LeaderboardId=0xFFFE0000
 	ArbitratedLeaderboardId=0xFFFF0000
-
-//	PopulationManagerClass=class'CrowdPopulationManagerBase'
 }

@@ -685,12 +685,14 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 						}
 						if (!OffsetProp)
 						{
+							// Print property layout for debugging
 							warnf(TEXT("%s:"), *GetName());
 							for (UProperty* P = PropertyLink; P; P = P->PropertyLinkNext)
 							{
 								warnf(TEXT("  %s[%d]: %s"), *P->GetOuter()->GetName(), P->Offset, *P->GetName());
 							}
 
+							// Throw so we don't serialize this incorrectly
 							appErrorf(TEXT("BM: no property at offset %u (type %s) in %s (package %s)"),
 								(UINT)Tag.PropertyOffset, *Tag.Type.ToString(), *GetName(), *Ar.GetArchiveName());
 						}

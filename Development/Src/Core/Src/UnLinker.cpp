@@ -3794,10 +3794,12 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 
 #if BATMAN
 		// BM: Skip classes (BmGame.upk needs this for now)
-		// if (IsBmCooked() && (LoadClass->GetName() == "Class"))
 		if (IsBmCooked() && (LoadClass->GetName() == "Class") && (
 			(Export.ObjectName.ToString() != "RSkeletalMeshActor") &&
-			(Export.ObjectName.ToString() != "TODO") // Was RLevelVolume, needs fixing still
+			(Export.ObjectName.ToString() != "RLevelVolume") &&
+			(Export.ObjectName.ToString() != "RGameRI") &&
+			(Export.ObjectName.ToString() != "RGameInfo") &&
+			(Export.ObjectName.ToString() != "RGameInfoBase")
 		))
         {
 			UObject* ExistingClass = StaticFindObject(UClass::StaticClass(), NULL, *GetExportPathName(Index, NULL, TRUE), TRUE);
@@ -3810,9 +3812,6 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 
         // BM: Skip currently unsupported types.
         if (IsBmCooked() && (
-			// Skip functions, as some may override nonexistent bases for now
-			LoadClass->GetName() == "Function" ||
-
 			LoadClass->GetName() == "ActorFactoryEmitter" ||
 
 			LoadClass->GetName() == "Pylon" ||

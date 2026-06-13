@@ -34,7 +34,11 @@ IMPLEMENT_CLASS(AGameCrowdInfoVolume);
 
 static ACrowdPopulationManagerBase* GetWorldPopulationManager(AWorldInfo* WorldInfo)
 {
+#if BATMAN
+	return NULL;
+#else
 	return (WorldInfo != NULL && WorldInfo->Game != NULL) ? WorldInfo->Game->PopulationManager : NULL;
+#endif
 }
 
 // Crowd stats

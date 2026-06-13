@@ -92,6 +92,119 @@ const TCHAR* ReadToken( const TCHAR* Buffer, FString& String, UBOOL DottedNames=
 	UProperty implementation.
 -----------------------------------------------------------------------------*/
 
+#if BATMAN
+/**
+ * BM2 stores property flags in a different layout than standard UE3.
+ * Values are from BM2/X360 runtime flag tests; the remap shape mirrors Gangland's compatibility table.
+ */
+#define BM2_CPF_Const					DECLARE_UINT64(0x0000000000000001)
+#define BM2_CPF_Input					DECLARE_UINT64(0x0000000000000002)
+#define BM2_CPF_ExportObject			DECLARE_UINT64(0x0000000000000004)
+#define BM2_CPF_Parm					DECLARE_UINT64(0x0000000000000008)
+#define BM2_CPF_OptionalParm			DECLARE_UINT64(0x0000000000000010)
+#define BM2_CPF_OutParm					DECLARE_UINT64(0x0000000000000020)
+#define BM2_CPF_SkipParm				DECLARE_UINT64(0x0000000000000040)
+#define BM2_CPF_ReturnParm				DECLARE_UINT64(0x0000000000000080)
+#define BM2_CPF_CoerceParm				DECLARE_UINT64(0x0000000000000100)
+#define BM2_CPF_Native					DECLARE_UINT64(0x0000000000000200)
+#define BM2_CPF_Transient				DECLARE_UINT64(0x0000000000000400)
+#define BM2_CPF_Config					DECLARE_UINT64(0x0000000000000800)
+#define BM2_CPF_Localized				DECLARE_UINT64(0x0000000000001000)
+#define BM2_CPF_GlobalConfig			DECLARE_UINT64(0x0000000000002000)
+#define BM2_CPF_Component				DECLARE_UINT64(0x0000000000004000)
+#define BM2_CPF_DuplicateTransient		DECLARE_UINT64(0x0000000000008000)
+#define BM2_CPF_NeedCtorLink			DECLARE_UINT64(0x0000000000010000)
+#define BM2_CPF_DataBinding				DECLARE_UINT64(0x0000000000100000)
+#define BM2_CPF_NoExport				DECLARE_UINT64(0x0000000000020000)
+#define BM2_CPF_NoImport				DECLARE_UINT64(0x0000000000040000)
+#define BM2_CPF_Deprecated				DECLARE_UINT64(0x0000000000080000)
+#define BM2_CPF_NonTransactional		DECLARE_UINT64(0x0000000000400000)
+#define BM2_CPF_ArchetypeProperty		DECLARE_UINT64(0x0000000000800000)
+#define BM2_CPF_CrossLevelPassive		DECLARE_UINT64(0x0000000001000000)
+#define BM2_CPF_CrossLevelActive		DECLARE_UINT64(0x0000000002000000)
+#define BM2_CPF_Net						DECLARE_UINT64(0x0000000004000000)
+#define BM2_CPF_RepRetry				DECLARE_UINT64(0x0000000008000000)
+#define BM2_CPF_RepNotify				DECLARE_UINT64(0x0000000010000000)
+#define BM2_CPF_Edit					DECLARE_UINT64(0x0000000100000000)
+#define BM2_CPF_EditFixedSize			DECLARE_UINT64(0x0000000200000000)
+#define BM2_CPF_EditConst				DECLARE_UINT64(0x0000000400000000)
+#define BM2_CPF_NoClear					DECLARE_UINT64(0x0000000800000000)
+#define BM2_CPF_EditInline				DECLARE_UINT64(0x0000004000000000)
+#define BM2_CPF_EditInlineUse			DECLARE_UINT64(0x0000008000000000)
+#define BM2_CPF_Interp					DECLARE_UINT64(0x0000010000000000)
+#define BM2_CPF_AlwaysInit				DECLARE_UINT64(0x0000020000000000)
+#define BM2_CPF_EditorOnly				DECLARE_UINT64(0x0000080000000000)
+#define BM2_CPF_SerializeText			DECLARE_UINT64(0x0000040000000000)
+
+struct FBmPropertyFlagRemap
+{
+	QWORD BmFlag;
+	QWORD UeFlag;
+};
+
+static const FBmPropertyFlagRemap BmPropertyFlagRemap[] =
+{
+	{ BM2_CPF_Const,					CPF_Const },
+	{ BM2_CPF_Input,					CPF_Input },
+	{ BM2_CPF_ExportObject,				CPF_ExportObject },
+	{ BM2_CPF_Parm,						CPF_Parm },
+	{ BM2_CPF_OptionalParm,				CPF_OptionalParm },
+	{ BM2_CPF_OutParm,					CPF_OutParm },
+	{ BM2_CPF_SkipParm,					CPF_SkipParm },
+	{ BM2_CPF_ReturnParm,				CPF_ReturnParm },
+	{ BM2_CPF_CoerceParm,				CPF_CoerceParm },
+	{ BM2_CPF_Native,					CPF_Native },
+	{ BM2_CPF_Transient,				CPF_Transient },
+	{ BM2_CPF_Config,					CPF_Config },
+	{ BM2_CPF_Localized,				CPF_Localized },
+	{ BM2_CPF_GlobalConfig,				CPF_GlobalConfig },
+	{ BM2_CPF_Component,				CPF_Component },
+	{ BM2_CPF_DuplicateTransient,		CPF_DuplicateTransient },
+	{ BM2_CPF_NeedCtorLink,				CPF_NeedCtorLink },
+	{ BM2_CPF_DataBinding,				CPF_DataBinding },
+	{ BM2_CPF_NoExport,					CPF_NoExport },
+	{ BM2_CPF_NoImport,					CPF_NoImport },
+	{ BM2_CPF_Deprecated,				CPF_Deprecated },
+	{ BM2_CPF_NonTransactional,			CPF_NonTransactional },
+	{ BM2_CPF_ArchetypeProperty,		CPF_ArchetypeProperty },
+	{ BM2_CPF_CrossLevelPassive,		CPF_CrossLevelPassive },
+	{ BM2_CPF_CrossLevelActive,			CPF_CrossLevelActive },
+	{ BM2_CPF_Net,						CPF_Net },
+	{ BM2_CPF_RepRetry,					CPF_RepRetry },
+	{ BM2_CPF_RepNotify,				CPF_RepNotify },
+	{ BM2_CPF_Edit,						CPF_Edit },
+	{ BM2_CPF_EditFixedSize,			CPF_EditFixedSize },
+	{ BM2_CPF_EditConst,				CPF_EditConst },
+	{ BM2_CPF_NoClear,					CPF_NoClear },
+	{ BM2_CPF_EditInline,				CPF_EditInline },
+	{ BM2_CPF_EditInlineUse,			CPF_EditInlineUse },
+	{ BM2_CPF_Interp,					CPF_Interp },
+	{ BM2_CPF_AlwaysInit,				CPF_AlwaysInit },
+	{ BM2_CPF_EditorOnly,				CPF_EditorOnly },
+	{ BM2_CPF_SerializeText,			CPF_SerializeText },
+};
+
+static void RemapBmPropertyFlags(QWORD& Flags, UBOOL bLoading)
+{
+	QWORD RemappedFlags = 0;
+	QWORD KnownInputFlags = 0;
+
+	for (INT FlagIndex = 0; FlagIndex < ARRAY_COUNT(BmPropertyFlagRemap); FlagIndex++)
+	{
+		const QWORD InputFlag = bLoading ? BmPropertyFlagRemap[FlagIndex].BmFlag : BmPropertyFlagRemap[FlagIndex].UeFlag;
+		const QWORD OutputFlag = bLoading ? BmPropertyFlagRemap[FlagIndex].UeFlag : BmPropertyFlagRemap[FlagIndex].BmFlag;
+		KnownInputFlags |= InputFlag;
+
+		if ((Flags & InputFlag) != 0)
+		{
+			RemappedFlags |= OutputFlag;
+		}
+	}
+
+	Flags = RemappedFlags | (Flags & ~KnownInputFlags);
+}
+#endif
+
 //
 // Constructors.
 //
@@ -151,7 +264,31 @@ void UProperty::Serialize( FArchive& Ar )
 	Super::Serialize( Ar );
 
 	// Archive the basic info.
-	Ar << ArrayDim << PropertyFlags;
+	Ar << ArrayDim;
+#if BATMAN
+	if (Ar.IsBmCooked(TRUE))
+	{
+		QWORD SerializedPropertyFlags = PropertyFlags;
+		if (Ar.IsSaving())
+		{
+			RemapBmPropertyFlags(SerializedPropertyFlags, FALSE);
+		}
+
+		Ar << SerializedPropertyFlags;
+
+		if (Ar.IsLoading())
+		{
+			PropertyFlags = SerializedPropertyFlags;
+			RemapBmPropertyFlags(PropertyFlags, TRUE);
+		}
+	}
+	else
+	{
+		Ar << PropertyFlags;
+	}
+#else
+	Ar << PropertyFlags;
+#endif
 #if !CONSOLE
 	UBOOL const bIsCookedForConsole = IsPackageCookedForConsole(Ar);
 	if ( !bIsCookedForConsole && (!Ar.IsSaving() || !GIsCooking || !(GCookingTarget & UE3::PLATFORM_Console)) )
@@ -5410,12 +5547,3 @@ void FEditPropertyChain::SetListSize( INT NewListSize )
 
 
 // EOL
-
-
-
-
-
-
-
-
-

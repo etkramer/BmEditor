@@ -4360,6 +4360,9 @@ void UAnimTree::CopyMorphNodes(const TArray<class UMorphNodeBase*>& SrcNodes, UO
 
 INT UAnimTree::GetPoolSize(void)
 {
+#if BATMAN
+	return 0;
+#else
 	AWorldInfo *WorldInfo = GWorld->GetWorldInfo();
 	if (WorldInfo && WorldInfo->GRI)
 	{
@@ -4370,6 +4373,7 @@ INT UAnimTree::GetPoolSize(void)
 		}
 	}
 	return 0;
+#endif
 }
 
 void UAnimTree::ReturnToPool(void)

@@ -959,6 +959,7 @@ void UEngine::DumpFPSChart( UBOOL bForceDump )
 	}
 
 	// check to see if we should auto start a sentinel run as there is not one in existence
+#if !BATMAN
 	if( GSentinelRunID == -1 )
 	{
 		UBOOL bAutoStartSentinelRun = FALSE;
@@ -977,6 +978,7 @@ void UEngine::DumpFPSChart( UBOOL bForceDump )
 			}
 		}
 	}
+#endif
 
 	UBOOL bFPSChartIsActive = bForceDump;	
 	if( ParseParam( appCmdLine(), TEXT("CaptureFPSChartInfo") ) || ParseParam( appCmdLine(), TEXT("gCFPSCI") ) )
@@ -1370,7 +1372,6 @@ FString FMemoryChartEntry::ToHTMLString() const
 }
 
 #endif // DO_CHARTING
-
 
 
 

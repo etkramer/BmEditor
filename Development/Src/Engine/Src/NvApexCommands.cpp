@@ -1797,17 +1797,6 @@ public:
 											// do nothing
 											break;
 										default:
-#if BATMAN
-											warnf(NAME_Warning, TEXT("BM APEXVIS assert: Command=%s DebugOff=%d Module=%s Param=%s Long=%s Type=%d Index=%u Count=%u"),
-												ANSI_TO_TCHAR(command),
-												debugOffApex ? 1 : 0,
-												ANSI_TO_TCHAR(moduleName),
-												result.mName ? ANSI_TO_TCHAR(result.mName) : TEXT("<null>"),
-												result.mLongName ? ANSI_TO_TCHAR(result.mLongName) : TEXT("<null>"),
-												(INT)result.mDataType,
-												(UINT)i,
-												(UINT)count);
-#endif
 											PX_ALWAYS_ASSERT();
 											break;
 										}
@@ -1830,17 +1819,6 @@ public:
 											NxParameterized::getParamF32(*debugRenderParams,result.mLongName,vis);
 											break;
 										default:
-#if BATMAN
-											warnf(NAME_Warning, TEXT("BM APEXVIS assert: Command=%s DebugOff=%d Module=%s Param=%s Long=%s Type=%d Index=%u Count=%u"),
-												ANSI_TO_TCHAR(command),
-												debugOffApex ? 1 : 0,
-												ANSI_TO_TCHAR(moduleName),
-												result.mName ? ANSI_TO_TCHAR(result.mName) : TEXT("<null>"),
-												result.mLongName ? ANSI_TO_TCHAR(result.mLongName) : TEXT("<null>"),
-												(INT)result.mDataType,
-												(UINT)i,
-												(UINT)count);
-#endif
 											PX_ALWAYS_ASSERT();
 											break;
 										}
@@ -1868,17 +1846,6 @@ public:
 												// do nothing
 												break;
 											default:
-#if BATMAN
-												warnf(NAME_Warning, TEXT("BM APEXVIS assert: Command=%s DebugOff=%d Module=%s Param=%s Long=%s Type=%d Index=%u Count=%u"),
-													ANSI_TO_TCHAR(command),
-													debugOffApex ? 1 : 0,
-													ANSI_TO_TCHAR(moduleName),
-													result.mName ? ANSI_TO_TCHAR(result.mName) : TEXT("<null>"),
-													result.mLongName ? ANSI_TO_TCHAR(result.mLongName) : TEXT("<null>"),
-													(INT)result.mDataType,
-													(UINT)i,
-													(UINT)count);
-#endif
 												PX_ALWAYS_ASSERT();
 												break;
 										}
@@ -3039,47 +3006,13 @@ UBOOL ApexAsset::LoadFromMemory(const void *data,physx::PxU32 dlen,const char *a
 
 	physx::PxU32 numObj;
 	ApexAssetFormat fmt = GApexCommands->GetApexAssetFormat(data,dlen,numObj);
-#if BATMAN
-	// BM: Temporary diagnostics for BM2 APEX asset load failures.
-	const BYTE* BmBytes = (const BYTE*)data;
-	debugf(NAME_Log, TEXT("BM APEX LoadFromMemory format: Object=%s AssetName=%s OriginalName=%s Bytes=%u Format=%s(%d) NumObj=%u Head=%02X %02X %02X %02X Markers[ClothingParams=%d NxClothing=%d RenderMesh=%d DestructibleParams=%d]"),
-		obj ? *obj->GetPathName() : TEXT("<null>"),
-		assetName ? ANSI_TO_TCHAR(assetName) : TEXT("<null>"),
-		originalName ? ANSI_TO_TCHAR(originalName) : TEXT("<null>"),
-		(UINT)dlen,
-		BmApexFormatName(fmt),
-		(INT)fmt,
-		(UINT)numObj,
-		(dlen > 0 && BmBytes) ? BmBytes[0] : 0,
-		(dlen > 1 && BmBytes) ? BmBytes[1] : 0,
-		(dlen > 2 && BmBytes) ? BmBytes[2] : 0,
-		(dlen > 3 && BmBytes) ? BmBytes[3] : 0,
-		BmApexBufferContains(data,dlen,"ClothingAssetParameters"),
-		BmApexBufferContains(data,dlen,NX_CLOTHING_AUTHORING_TYPE_NAME),
-		BmApexBufferContains(data,dlen,NX_RENDER_MESH_AUTHORING_TYPE_NAME),
-		BmApexBufferContains(data,dlen,"DestructibleAssetParameters"));
-#endif
 	if ( fmt == AAF_LAST )
 	{
-#if BATMAN
-		warnf(NAME_Warning, TEXT("BM APEX LoadFromMemory failed: Format is AAF_LAST for Object=%s AssetName=%s Bytes=%u"),
-			obj ? *obj->GetPathName() : TEXT("<null>"),
-			assetName ? ANSI_TO_TCHAR(assetName) : TEXT("<null>"),
-			(UINT)dlen);
-#endif
 		return FALSE;
 	}
 	PX_ASSERT(numObj ==  1 ); // we should never have more than one apex asset embedded!
 	if ( numObj != 1 )
 	{
-#if BATMAN
-		warnf(NAME_Warning, TEXT("BM APEX LoadFromMemory failed: NumObj=%u for Object=%s AssetName=%s Format=%s(%d)"),
-			(UINT)numObj,
-			obj ? *obj->GetPathName() : TEXT("<null>"),
-			assetName ? ANSI_TO_TCHAR(assetName) : TEXT("<null>"),
-			BmApexFormatName(fmt),
-			(INT)fmt);
-#endif
 		return FALSE;
 	}
 
@@ -3106,11 +3039,6 @@ UBOOL ApexAsset::LoadFromMemory(const void *data,physx::PxU32 dlen,const char *a
 			{
 #if BATMAN
 				warnf(NAME_Warning, TEXT("Legacy APEX Assets are no longer supported by APEX 1.1"));
-				warnf(NAME_Warning, TEXT("BM APEX LoadFromMemory legacy asset rejected: Object=%s AssetName=%s Format=%s(%d)"),
-					obj ? *obj->GetPathName() : TEXT("<null>"),
-					assetName ? ANSI_TO_TCHAR(assetName) : TEXT("<null>"),
-					BmApexFormatName(fmt),
-					(INT)fmt);
 				PX_ALWAYS_ASSERT();
 #else
 				MApexAsset = apexSDK->createAsset(*mrb,assetName);
@@ -3151,40 +3079,15 @@ UBOOL ApexAsset::LoadFromMemory(const void *data,physx::PxU32 dlen,const char *a
 						::NxParameterized::Interface *iface = desData[0];
 						const char *className = iface->className();
 						const char *name = iface->name();
-#if BATMAN
-						// BM: Temporary diagnostics for BM2 APEX asset load failures.
-						debugf(NAME_Log, TEXT("BM APEX LoadFromMemory deserialized: Object=%s AssetName=%s Format=%s(%d) DeserializedCount=%u Class=%s Name=%s Updated=%d"),
-							obj ? *obj->GetPathName() : TEXT("<null>"),
-							assetName ? ANSI_TO_TCHAR(assetName) : TEXT("<null>"),
-							BmApexFormatName(fmt),
-							(INT)fmt,
-							(UINT)desData.size(),
-							className ? ANSI_TO_TCHAR(className) : TEXT("<null>"),
-							name ? ANSI_TO_TCHAR(name) : TEXT("<null>"),
-							bIsUpdated ? 1 : 0);
-#endif
 						if ( name )
 						{
 							setOriginalName(name);
 						}
 						MApexAsset = apexSDK->createAsset(iface,assetName);
-#if BATMAN
-						debugf(NAME_Log, TEXT("BM APEX LoadFromMemory createAsset result: Object=%s AssetName=%s NxAsset=%p"),
-							obj ? *obj->GetPathName() : TEXT("<null>"),
-							assetName ? ANSI_TO_TCHAR(assetName) : TEXT("<null>"),
-							MApexAsset);
-#endif
 						PX_ASSERT(MApexAsset);
 					}
 					else
 					{
-#if BATMAN
-						warnf(NAME_Warning, TEXT("BM APEX LoadFromMemory failed: deserialize produced no objects for Object=%s AssetName=%s Format=%s(%d)"),
-							obj ? *obj->GetPathName() : TEXT("<null>"),
-							assetName ? ANSI_TO_TCHAR(assetName) : TEXT("<null>"),
-							BmApexFormatName(fmt),
-							(INT)fmt);
-#endif
 						PX_ALWAYS_ASSERT();
 					}
 					ser->release();
@@ -3234,33 +3137,6 @@ UBOOL ApexAsset::LoadFromMemory(const void *data,physx::PxU32 dlen,const char *a
 	}
 
 	UBOOL ret = IsValid();
-#if BATMAN
-	// BM: Temporary diagnostics for BM2 APEX asset load failures.
-	const char* BmTypeName = MApexAsset ? MApexAsset->getObjTypeName() : NULL;
-	if (ret)
-	{
-		debugf(NAME_Log, TEXT("BM APEX LoadFromMemory result: Object=%s AssetName=%s OriginalName=%s NxType=%s Type=%s(%d) Valid=%d"),
-			obj ? *obj->GetPathName() : TEXT("<null>"),
-			assetName ? ANSI_TO_TCHAR(assetName) : TEXT("<null>"),
-			GetOriginalApexName() ? ANSI_TO_TCHAR(GetOriginalApexName()) : TEXT("<null>"),
-			BmTypeName ? ANSI_TO_TCHAR(BmTypeName) : TEXT("<null>"),
-			BmApexAssetTypeName(MType),
-			(INT)MType,
-			ret ? 1 : 0);
-	}
-	else
-	{
-		warnf(NAME_Warning, TEXT("BM APEX LoadFromMemory failed: Object=%s AssetName=%s OriginalName=%s NxAsset=%p NxType=%s Type=%s(%d) Valid=%d"),
-			obj ? *obj->GetPathName() : TEXT("<null>"),
-			assetName ? ANSI_TO_TCHAR(assetName) : TEXT("<null>"),
-			GetOriginalApexName() ? ANSI_TO_TCHAR(GetOriginalApexName()) : TEXT("<null>"),
-			MApexAsset,
-			BmTypeName ? ANSI_TO_TCHAR(BmTypeName) : TEXT("<null>"),
-			BmApexAssetTypeName(MType),
-			(INT)MType,
-			ret ? 1 : 0);
-	}
-#endif
 
 	if ( ret )
 	{

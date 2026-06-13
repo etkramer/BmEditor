@@ -58,11 +58,6 @@ function PostBeginPlay()
 
 	Super.PostBeginPlay();
 
-	if( !bDeleteMe )
-	{
-		WorldInfo.Game.PopulationManager = self;
-	}
-
 	if( NavigationHandleClass != None )
 	{
 		NavigationHandle = new(self) NavigationHandleClass;

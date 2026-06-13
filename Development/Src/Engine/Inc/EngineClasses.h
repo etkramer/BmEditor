@@ -10810,7 +10810,6 @@ public:
     BITFIELD bIsStandbyCheckingEnabled:1;
     BITFIELD bIsStandbyCheckingOn:1;
     BITFIELD bHasStandbyCheatTriggered:1;
-    BITFIELD bNewOnlineSessionOnTravel:1;
     FStringNoInit CauseEventCommand;
     FStringNoInit BugLocString;
     FStringNoInit BugRotString;
@@ -10842,16 +10841,10 @@ public:
     class AMutator* BaseMutator;
     class UClass* AccessControlClass;
     class AAccessControl* AccessControl;
-    class UClass* BroadcastHandlerClass;
-    class ABroadcastHandler* BroadcastHandler;
-    class UClass* AutoTestManagerClass;
-    class AAutoTestManager* MyAutoTestManager;
     class UClass* PlayerControllerClass;
     class UClass* PlayerReplicationInfoClass;
     class UClass* GameReplicationInfoClass;
     class AGameReplicationInfo* GameReplicationInfo;
-    class ACrowdPopulationManagerBase* PopulationManager;
-    class UClass* PopulationManagerClass;
     FLOAT MaxIdleTime;
     FLOAT MaxTimeMargin;
     FLOAT TimeMarginSlack;
@@ -10863,7 +10856,6 @@ public:
     class UClass* OnlineStatsWriteClass;
     INT LeaderboardId;
     INT ArbitratedLeaderboardId;
-    class ACoverReplicator* CoverReplicatorBase;
     class UClass* OnlineGameSettingsClass;
     FStringNoInit ServerOptions;
     INT AdjustedNetSpeed;
@@ -10882,7 +10874,6 @@ public:
     FStringNoInit DefaultGameType;
     TArrayNoInit<struct FGameTypePrefix> DefaultMapPrefixes;
     TArrayNoInit<struct FGameTypePrefix> CustomMapPrefixes;
-    INT AnimTreePoolSize;
     FScriptDelegate __CanUnpause__Delegate;
     //## END PROPS GameInfo
 

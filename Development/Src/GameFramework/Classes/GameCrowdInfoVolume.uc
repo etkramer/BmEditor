@@ -15,7 +15,7 @@ simulated function Touch( Actor Other, PrimitiveComponent OtherComp, vector HitL
 	P = Pawn(Other);
 	if( P != None && P.IsHumanControlled() )
 	{
-		PopMgr = GameCrowdPopulationManager(WorldInfo.Game.PopulationManager);
+		PopMgr = None;
 		if( PopMgr != None )
 		{
 			PopMgr.SetCrowdInfoVolume( self );
@@ -33,7 +33,7 @@ simulated function UnTouch( Actor Other )
 	P = Pawn(Other);
 	if( P != None && P.IsHumanControlled() )
 	{
-		PopMgr = GameCrowdPopulationManager(WorldInfo.Game.PopulationManager);
+		PopMgr = None;
 		if( PopMgr != None )
 		{
 			PopMgr.SetCrowdInfoVolume( None );

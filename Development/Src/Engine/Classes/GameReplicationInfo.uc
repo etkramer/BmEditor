@@ -22,6 +22,9 @@ var repnotify bool bMatchHasBegun;
 /** Match is over (replicated) */
 var repnotify bool bMatchIsOver;
 
+var() bool Debug_Draw_Physics_Sounds;
+var() bool Debug_Disable_All_Ragdoll_Calming_Measures;
+
 /** Used for counting down time in time limited games */
 var int  RemainingTime, ElapsedTime, RemainingMinute;
 
