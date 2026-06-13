@@ -252,6 +252,27 @@ void APostProcessVolume::PostLoad()
 		ToOverride.bOverride_##Group##_##Name= TRUE; \
 	}
 
+#define LERP_POSTPROCESS_NAMED(Flag, Name) \
+	if( bOverride_##Flag ) \
+	{ \
+		ToOverride.Name = Lerp(ToOverride.Name, Name, Alpha); \
+		ToOverride.bOverride_##Flag = TRUE; \
+	}
+
+#define LERP_POSTPROCESS_COLOR_NAMED(Flag, Name) \
+	if( bOverride_##Flag ) \
+	{ \
+		ToOverride.Name = Lerp(FLinearColor(ToOverride.Name), FLinearColor(Name), Alpha).ToFColor(TRUE); \
+		ToOverride.bOverride_##Flag = TRUE; \
+	}
+
+#define SET_POSTPROCESS_NAMED(Flag, Name) \
+	if( bOverride_##Flag ) \
+	{ \
+		ToOverride.Name = Name; \
+		ToOverride.bOverride_##Flag = TRUE; \
+	}
+
 /**
  * Blends the settings on this structure marked as override setting onto the given settings
  *
@@ -265,6 +286,10 @@ void FPostProcessSettings::OverrideSettingsFor( FPostProcessSettings& ToOverride
 	{
 		return;
 	}
+
+	SET_POSTPROCESS_NAMED(InterpolateOverDistance, bEnableInterpolateOverDistance)
+	SET_POSTPROCESS_NAMED(InterpolateOverDistanceFade, InterpolateOverDistanceFade)
+	SET_POSTPROCESS_NAMED(bEnableHighQualityDOF, bEnableHighQualityDOF)
 		
 	// BLOOM OVERRIDES
 	if( bOverride_EnableBloom )
@@ -300,6 +325,7 @@ void FPostProcessSettings::OverrideSettingsFor( FPostProcessSettings& ToOverride
 		LERP_POSTPROCESS(DOF, MaxNearBlurAmount)
 		LERP_POSTPROCESS(DOF, MinBlurAmount)
 		LERP_POSTPROCESS(DOF, MaxFarBlurAmount)
+		LERP_POSTPROCESS_COLOR_NAMED(DOF_ModulateBlurColor, DOF_ModulateBlurColor)
 		SET_POSTPROCESS(DOF, FocusType)
 		LERP_POSTPROCESS(DOF, FocusInnerRadius)
 		LERP_POSTPROCESS(DOF, FocusDistance)
@@ -348,10 +374,44 @@ void FPostProcessSettings::OverrideSettingsFor( FPostProcessSettings& ToOverride
 		ToOverride.ColorGrading_LookupTable = ColorGrading_LookupTable;
 		ToOverride.bOverride_Scene_ColorGradingLUT = TRUE;
 	}
+
+	SET_POSTPROCESS_NAMED(EnableAtmosD1, bAtmosD1)
+	SET_POSTPROCESS_NAMED(EnableAtmosD1Col, AtmosD1_Colour)
+	SET_POSTPROCESS_NAMED(EnableAtmosD1Den, AtmosD1_Density)
+	SET_POSTPROCESS_NAMED(EnableAtmosD1Start, AtmosD1_DistanceStart)
+	SET_POSTPROCESS_NAMED(EnableAtmosD1End, AtmosD1_DistanceEnd)
+
+	SET_POSTPROCESS_NAMED(EnableAtmosD2, bAtmosD2)
+	SET_POSTPROCESS_NAMED(EnableAtmosD2Col, AtmosD2_Colour)
+	SET_POSTPROCESS_NAMED(EnableAtmosD2Den, AtmosD2_Density)
+	SET_POSTPROCESS_NAMED(EnableAtmosD2Start, AtmosD2_DistanceStart)
+	SET_POSTPROCESS_NAMED(EnableAtmosD2End, AtmosD2_DistanceEnd)
+
+	SET_POSTPROCESS_NAMED(EnableAtmosH1, bAtmosH1)
+	SET_POSTPROCESS_NAMED(EnableAtmosH1Col, AtmosH1_Colour)
+	SET_POSTPROCESS_NAMED(EnableAtmosH1Den, AtmosH1_Density)
+	SET_POSTPROCESS_NAMED(EnableAtmosH1Size, AtmosH1_GradientSize)
+	SET_POSTPROCESS_NAMED(EnableAtmosH1Pos, AtmosH1_GradientPosition)
+
+	SET_POSTPROCESS_NAMED(EnableAtmosH2, bAtmosH2)
+	SET_POSTPROCESS_NAMED(EnableAtmosH2Col, AtmosH2_Colour)
+	SET_POSTPROCESS_NAMED(EnableAtmosH2Den, AtmosH2_Density)
+	SET_POSTPROCESS_NAMED(EnableAtmosH2Size, AtmosH2_GradientSize)
+	SET_POSTPROCESS_NAMED(EnableAtmosH2Pos, AtmosH2_GradientPosition)
+
+	SET_POSTPROCESS_NAMED(EnableAtmosNoise, AtmosNoise)
+	SET_POSTPROCESS_NAMED(EnableAtmosNoiseWind, AtmosNoiseWind)
+
+	SET_POSTPROCESS_NAMED(EnableAtmosGlobal_Gradient_Colour, AtmosGlobal_Gradient_Colour)
+	SET_POSTPROCESS_NAMED(EnableAtmosGlobal_Gradient_Direction, AtmosGlobal_Gradient_Direction)
+	SET_POSTPROCESS_NAMED(EnableAtmosGlobal_Gradient_Density, AtmosGlobal_Gradient_Density)
 }
 
 #undef LERP_POSTPROCESS
 #undef SET_POSTPROCESS
+#undef LERP_POSTPROCESS_NAMED
+#undef LERP_POSTPROCESS_COLOR_NAMED
+#undef SET_POSTPROCESS_NAMED
 
 /**
  * Enables the override setting for the given post-process setting.

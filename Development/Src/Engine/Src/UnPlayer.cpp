@@ -2899,6 +2899,18 @@ void ULocalPlayer::UpdatePostProcessSettings(const FVector& ViewLocation)
 	PPInfo.LastSettings.Group##_##Name = Lerp(PPInfo.LastSettings.Group##_##Name, NewSettings.Group##_##Name * Multiplier, LerpAmount); \
 	PPInfo.LastSettings.bOverride_##Group##_##Name = NewSettings.bOverride_##Group##_##Name;
 
+#define LERP_POSTPROCESS_NAMED(Flag, Name) \
+	PPInfo.LastSettings.Name = Lerp(PPInfo.LastSettings.Name, NewSettings.Name, LerpAmount); \
+	PPInfo.LastSettings.bOverride_##Flag = NewSettings.bOverride_##Flag;
+
+#define LERP_POSTPROCESS_COLOR_NAMED(Flag, Name) \
+	PPInfo.LastSettings.Name = Lerp<FLinearColor>(FLinearColor(PPInfo.LastSettings.Name), FLinearColor(NewSettings.Name), LerpAmount).ToFColor(TRUE); \
+	PPInfo.LastSettings.bOverride_##Flag = NewSettings.bOverride_##Flag;
+
+#define SET_POSTPROCESS_NAMED(Flag, Name) \
+	PPInfo.LastSettings.Name = NewSettings.Name; \
+	PPInfo.LastSettings.bOverride_##Flag = NewSettings.bOverride_##Flag;
+
 /** Update a specific CurrentPostProcessVolumeInfo with the settings and volume specified 
  *
  *	@param PPInfo - The CurrentPostProcessVolumeInfo struct to update
@@ -2917,6 +2929,10 @@ void ULocalPlayer::UpdatePPSetting(FCurrentPostProcessVolumeInfo& PPInfo, FPostP
 	PPInfo.LastSettings.bEnableMotionBlur = NewSettings.bEnableMotionBlur;
 	PPInfo.LastSettings.bEnableSceneEffect = NewSettings.bEnableSceneEffect;
 	PPInfo.LastSettings.bAllowAmbientOcclusion = NewSettings.bAllowAmbientOcclusion;
+	PPInfo.LastSettings.bEnableInterpolateOverDistance = NewSettings.bEnableInterpolateOverDistance;
+	PPInfo.LastSettings.bEnableHighQualityDOF = NewSettings.bEnableHighQualityDOF;
+	PPInfo.LastSettings.bOverride_InterpolateOverDistance = NewSettings.bOverride_InterpolateOverDistance;
+	PPInfo.LastSettings.bOverride_bEnableHighQualityDOF = NewSettings.bOverride_bEnableHighQualityDOF;
 
 	if (PPInfo.LastSettings.bEnableBloom)
 	{
@@ -2954,6 +2970,7 @@ void ULocalPlayer::UpdatePPSetting(FCurrentPostProcessVolumeInfo& PPInfo, FPostP
 		LERP_POSTPROCESS(DOF, MaxNearBlurAmount)
 		LERP_POSTPROCESS(DOF, MinBlurAmount)
 		LERP_POSTPROCESS(DOF, MaxFarBlurAmount)
+		LERP_POSTPROCESS_COLOR_NAMED(DOF_ModulateBlurColor, DOF_ModulateBlurColor)
 		SET_POSTPROCESS(DOF, FocusType)
 		LERP_POSTPROCESS(DOF, FocusInnerRadius)
 		LERP_POSTPROCESS(DOF, FocusDistance)
@@ -3007,6 +3024,58 @@ void ULocalPlayer::UpdatePPSetting(FCurrentPostProcessVolumeInfo& PPInfo, FPostP
 		LERP_POSTPROCESS(Scene, ImageGrainScale)
 	}
 
+	{
+		FLOAT LerpAmount = 1.f;
+		const FLOAT RemainingSceneBlendTime = Max(NewSettings.Scene_InterpolationDuration - ElapsedBlendTime,0.f);
+		if(RemainingSceneBlendTime > DeltaTime)
+		{
+			LerpAmount = Clamp<FLOAT>(DeltaTime / RemainingSceneBlendTime,0.f,1.f);
+		}
+
+		LERP_POSTPROCESS_NAMED(InterpolateOverDistanceFade, InterpolateOverDistanceFade)
+
+		SET_POSTPROCESS_NAMED(EnableAtmosD1, bAtmosD1)
+		LERP_POSTPROCESS_COLOR_NAMED(EnableAtmosD1Col, AtmosD1_Colour)
+		LERP_POSTPROCESS_NAMED(EnableAtmosD1Den, AtmosD1_Density)
+		LERP_POSTPROCESS_NAMED(EnableAtmosD1Start, AtmosD1_DistanceStart)
+		LERP_POSTPROCESS_NAMED(EnableAtmosD1End, AtmosD1_DistanceEnd)
+
+		SET_POSTPROCESS_NAMED(EnableAtmosD2, bAtmosD2)
+		LERP_POSTPROCESS_COLOR_NAMED(EnableAtmosD2Col, AtmosD2_Colour)
+		LERP_POSTPROCESS_NAMED(EnableAtmosD2Den, AtmosD2_Density)
+		LERP_POSTPROCESS_NAMED(EnableAtmosD2Start, AtmosD2_DistanceStart)
+		LERP_POSTPROCESS_NAMED(EnableAtmosD2End, AtmosD2_DistanceEnd)
+
+		SET_POSTPROCESS_NAMED(EnableAtmosH1, bAtmosH1)
+		LERP_POSTPROCESS_COLOR_NAMED(EnableAtmosH1Col, AtmosH1_Colour)
+		LERP_POSTPROCESS_NAMED(EnableAtmosH1Den, AtmosH1_Density)
+		LERP_POSTPROCESS_NAMED(EnableAtmosH1Size, AtmosH1_GradientSize)
+		LERP_POSTPROCESS_NAMED(EnableAtmosH1Pos, AtmosH1_GradientPosition)
+
+		SET_POSTPROCESS_NAMED(EnableAtmosH2, bAtmosH2)
+		LERP_POSTPROCESS_COLOR_NAMED(EnableAtmosH2Col, AtmosH2_Colour)
+		LERP_POSTPROCESS_NAMED(EnableAtmosH2Den, AtmosH2_Density)
+		LERP_POSTPROCESS_NAMED(EnableAtmosH2Size, AtmosH2_GradientSize)
+		LERP_POSTPROCESS_NAMED(EnableAtmosH2Pos, AtmosH2_GradientPosition)
+
+		SET_POSTPROCESS_NAMED(EnableAtmosNoise, AtmosNoise)
+		LERP_POSTPROCESS_NAMED(EnableAtmosNoiseWind, AtmosNoiseWind)
+		PPInfo.LastSettings.AtmosNoiseOffset += PPInfo.LastSettings.AtmosNoiseWind * DeltaTime;
+		PPInfo.LastSettings.bOverride_EnableAtmosNoiseOffset = NewSettings.bOverride_EnableAtmosNoiseOffset;
+		PPInfo.LastSettings.AtmosNoiseFade = Lerp(PPInfo.LastSettings.AtmosNoiseFade, NewSettings.AtmosNoise ? 1.f : 0.f, LerpAmount);
+		PPInfo.LastSettings.bOverride_EnableAtmosNoiseFade = NewSettings.bOverride_EnableAtmosNoiseFade;
+
+		LERP_POSTPROCESS_COLOR_NAMED(EnableAtmosGlobal_Gradient_Colour, AtmosGlobal_Gradient_Colour)
+		LERP_POSTPROCESS_NAMED(EnableAtmosGlobal_Gradient_Direction, AtmosGlobal_Gradient_Direction)
+		LERP_POSTPROCESS_NAMED(EnableAtmosGlobal_Gradient_Density, AtmosGlobal_Gradient_Density)
+
+		PPInfo.LastSettings.bAtmosD1 = (Abs(PPInfo.LastSettings.AtmosD1_Density) > 0.001f) && (PPInfo.LastSettings.AtmosD1_Colour.A > 0);
+		PPInfo.LastSettings.bAtmosD2 = (Abs(PPInfo.LastSettings.AtmosD2_Density) > 0.001f) && (PPInfo.LastSettings.AtmosD2_Colour.A > 0);
+		PPInfo.LastSettings.bAtmosH1 = (Abs(PPInfo.LastSettings.AtmosH1_Density) > 0.001f) && (PPInfo.LastSettings.AtmosH1_Colour.A > 0);
+		PPInfo.LastSettings.bAtmosH2 = (Abs(PPInfo.LastSettings.AtmosH2_Density) > 0.001f) && (PPInfo.LastSettings.AtmosH2_Colour.A > 0);
+		PPInfo.LastSettings.AtmosNoise = (PPInfo.LastSettings.AtmosNoiseFade > 0.001f);
+	}
+
 	// Update the current settings and timer.
 	PPInfo.LastBlendTime = CurrentWorldTime;
 }
@@ -3014,6 +3083,9 @@ void ULocalPlayer::UpdatePPSetting(FCurrentPostProcessVolumeInfo& PPInfo, FPostP
 #undef LERP_POSTPROCESS
 #undef SET_POSTPROCESS
 #undef LERP_POSTPROCESS_MUL
+#undef LERP_POSTPROCESS_NAMED
+#undef LERP_POSTPROCESS_COLOR_NAMED
+#undef SET_POSTPROCESS_NAMED
 
 /**
  * Begins an override of the current post process settings.
@@ -4020,6 +4092,4 @@ void APlayerController::LogOutBugItAIGoToLogFile( const FString& InScreenShotDes
 
 #endif // ALLOW_DEBUG_FILES
 }
-
-
 

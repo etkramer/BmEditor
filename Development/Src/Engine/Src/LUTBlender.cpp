@@ -139,7 +139,7 @@ public:
 
 			TextureParameter[i].Bind(Initializer.ParameterMap, *Name, TRUE);
 		}
-		WeightsParameter.Bind(Initializer.ParameterMap, TEXT("LUTWeights"), TRUE);
+		WeightsParameter.Bind(Initializer.ParameterMap, TEXT("Weights"), TRUE);
 	}
 	FLUTBlenderPixelShader() {}
 
@@ -208,7 +208,7 @@ public:
 		Ar << GammaParameters;
 		Ar << MaterialParameters;
 
-		WeightsParameter.SetShaderParamName(TEXT("LUTWeights"));
+		WeightsParameter.SetShaderParamName(TEXT("Weights"));
 
 		return bShaderHasOutdatedParameters;
 	}

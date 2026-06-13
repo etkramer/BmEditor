@@ -21,7 +21,25 @@ void MainVS(
 // Texture0 is the neutral one and is computed in the shader
 sampler2D Texture1, Texture2, Texture3, Texture4;
 // 0 is for neutral, 1 for Texture1, 2 for ...
-float LUTWeights[5];
+float Weights[5];
+
+
+// @Rock - JoelS: fix for gamma pipeline...
+//@param InLDRColor needs to be LDR (0..1) and in linear space
+half3 ColorCorrectionHACK(half3 InLDRColor)
+{
+	InLDRColor = pow(InLDRColor,2.2h);
+
+	half3 Color = UnClampedPow(max(saturate(InLDRColor - SceneShadows) * SceneInverseHighLights.rgb, SmallPowConst), SceneMidTones.rgb);
+
+	half3 ScaledLuminance = dot(Color.rgb, SceneScaledLuminanceWeights.rgb);
+
+	half3 MaterialResult = Color * SceneDesaturation + ScaledLuminance;
+
+	half3 LinearColor = MaterialResult.rgb * GammaColorScale.rgb + GammaOverlayColor.rgb;
+
+	return pow(LinearColor * SceneColorize.rgb,1.h / 2.2h);
+}
 
 // todo: Weight[0] should be used for neutral, Texture* name should start with 1, color correction should apply on top of that
 void MainPS(float2 InUV : TEXCOORD0, out float4 OutColor : COLOR0)
@@ -43,31 +61,31 @@ void MainPS(float2 InUV : TEXCOORD0, out float4 OutColor : COLOR0)
 		Neutral = float4(RGB * Scale, 0);
 	}
 
-    OutColor = LUTWeights[0] * Neutral;
+    OutColor = Weights[0] * Neutral;
 
 	// BLENDCOUNT is the number of LUT that are blended together including the neutral one
 
 #if BLENDCOUNT >= 2
-	OutColor += LUTWeights[1] * tex2D(Texture1, InUV);
+	OutColor += Weights[1] * tex2D(Texture1, InUV);
 #endif
 
 #if BLENDCOUNT >= 3
-	OutColor += LUTWeights[2] * tex2D(Texture2, InUV);
+	OutColor += Weights[2] * tex2D(Texture2, InUV);
 #endif
 
 #if BLENDCOUNT >= 4
-	OutColor += LUTWeights[3] * tex2D(Texture3, InUV);
+	OutColor += Weights[3] * tex2D(Texture3, InUV);
 #endif
 
 #if BLENDCOUNT >= 5
-	OutColor += LUTWeights[4] * tex2D(Texture4, InUV);
+	OutColor += Weights[4] * tex2D(Texture4, InUV);
 #endif
 
 	// apply math color correction on top ot texture based solution
 	// (faster than doing it in the full screen pass)
-	OutColor.rgb = ColorCorrection(OutColor.rgb);
+	OutColor.rgb = ColorCorrectionHACK(OutColor.rgb);
 
-	// needed for d3d11 and if custom gamma is specified
+	// needed for d3d10 and if custom gamma is specified
 	// could be integrated into the uberpostprocess but here it is much cheaper
 	// max() clamp to get nice behavior for negative colors (see level sm2test)
 	OutColor = UnClampedPow(max(SmallPowConst, OutColor), 2.2f * GammaInverse);
