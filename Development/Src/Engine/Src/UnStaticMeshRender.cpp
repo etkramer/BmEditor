@@ -1533,7 +1533,11 @@ FLightInteraction FStaticMeshSceneProxy::FDecalLightCache::GetInteraction(const 
 FLOAT FStaticMeshSceneProxy::GetMinLODDist(INT CurrentLevel) const 
 {
 	//Scale LODMaxRange by LODDistanceRatio and then split this range up by the number of LOD's
+#if BATMAN
+	FLOAT MinDist = CurrentLevel * 2000.0f * StaticMesh->LODDistanceRatio / StaticMesh->LODModels.Num();
+#else
 	FLOAT MinDist = CurrentLevel * LODMaxRange * StaticMesh->LODDistanceRatio / StaticMesh->LODModels.Num();
+#endif
 	return MinDist;
 }
 
@@ -1575,7 +1579,11 @@ INT FStaticMeshSceneProxy::GetLOD(const FSceneView* View) const
 	const FVector4 ViewOriginForDistance = View->ViewOrigin.W > 0.0f ? View->ViewOrigin : View->OverrideLODViewOrigin;
 #endif
 
+#if BATMAN
+	const FLOAT DistanceSquared = PrimitiveSceneInfo->CachedSquaredDistanceToViewOrigin;
+#else
 	const FLOAT DistanceSquared = CalculateDistanceSquaredForLOD(PrimitiveSceneInfo->Bounds, ViewOriginForDistance);
+#endif
 
 	for(INT LODIndex = LODs.Num() - 1; LODIndex >= 0; LODIndex--)
 	{

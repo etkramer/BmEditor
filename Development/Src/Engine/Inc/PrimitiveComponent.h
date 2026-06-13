@@ -858,6 +858,9 @@ public:
 	 */
 #if WITH_EDITOR
 	virtual void CheckForErrors();
+#if USE_MASSIVE_LOD
+	void UpdateMassiveLODAttachedPrimitives();
+#endif
 #endif
 
 	/**

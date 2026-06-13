@@ -371,6 +371,9 @@ FSceneView::FSceneView(
 	bUseLDRSceneColor(FALSE),
 	bIsGameView(GIsGame),
 	bForceLowestMassiveLOD(FALSE),
+#if BATMAN
+	MassiveLODFOVScale(1.0f),
+#endif
 	RenderingOverrides(InRenderingOverrides)
 #if !CONSOLE
 	, OverrideLODViewOrigin(InOverrideLODViewOrigin)
@@ -415,6 +418,12 @@ FSceneView::FSceneView(
 		PreViewTranslation = FVector(0,0,0);
 	}
 
+
+#if BATMAN
+	// BM: X360 stores Square(Max(1, ProjectionMatrix.M[1][1] * 0.52515566)) for MassiveLOD culling.
+	const FLOAT MassiveLODProjectionScale = Max(1.0f, ProjectionMatrix.M[1][1] * 0.52515566f);
+	MassiveLODFOVScale = Square(MassiveLODProjectionScale);
+#endif
 
 	// Compute random offset for screen door fades this frame.  We want the same random noise value
 	// to be used for all primitives within the view, but different each frame.

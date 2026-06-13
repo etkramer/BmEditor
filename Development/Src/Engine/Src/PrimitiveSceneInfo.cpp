@@ -233,6 +233,9 @@ FPrimitiveSceneInfo::FPrimitiveSceneInfo(UPrimitiveComponent* InComponent,FPrimi
 	MaxDrawDistance(InComponent->CachedMaxDrawDistance),
 	MinDrawDistance(0.0f),
 	MotionBlurInstanceScale(InComponent->MotionBlurScale),
+#if BATMAN
+	CachedSquaredDistanceToViewOrigin(0.0f),
+#endif
 	LightingChannels(InComponent->LightingChannels),
 	LightEnvironment(
 		(InComponent->LightEnvironment && InComponent->LightEnvironment->IsEnabled()) ?
@@ -306,6 +309,8 @@ FPrimitiveSceneInfo::FPrimitiveSceneInfo(UPrimitiveComponent* InComponent,FPrimi
 #if USE_MASSIVE_LOD
 	// cache the distance where MassiveLOD swaps
 	MassiveLODDistance = InComponent->MassiveLODDistance;
+	MassiveLODAttachedPrimitives = InComponent->MassiveLODAttachedPrimitives;
+	ReplacementMassiveLODDistance = InComponent->ReplacementPrimitive ? InComponent->ReplacementPrimitive->MassiveLODDistance : 0.0f;
 
 	// Cache the replacement primitive pointer for looking up in maps, etc (never dereferenced)
 	ReplacementPrimitiveMapKey = InComponent->ReplacementPrimitive;

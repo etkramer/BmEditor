@@ -1041,6 +1041,35 @@ void UPrimitiveComponent::CheckForErrors()
 		GWarn->MapCheck_Add( MCTYPE_WARNING, Owner, *FString::Printf(TEXT("Actor is in Editor depth priority group") ), MCACTION_NONE, TEXT("BadDepthPriorityGroup") );
 	}
 }
+
+#if USE_MASSIVE_LOD
+void UPrimitiveComponent::UpdateMassiveLODAttachedPrimitives()
+{
+	INT AttachedPrimitives = 0;
+	if( MassiveLODDistance != 0.0f )
+	{
+		for( FActorIterator It; It; ++It )
+		{
+			AStaticMeshActor* StaticMeshActor = Cast<AStaticMeshActor>(*It);
+			if( StaticMeshActor && StaticMeshActor->StaticMeshComponent && StaticMeshActor->StaticMeshComponent->StaticMesh && StaticMeshActor->StaticMeshComponent->ReplacementPrimitive == this )
+			{
+				AttachedPrimitives++;
+			}
+		}
+
+		if( AttachedPrimitives == 0 )
+		{
+			warnf(NAME_Warning, TEXT("%s has MassiveLODDistance set but has nothing attached to it"), *GetFullName());
+		}
+	}
+
+	if( MassiveLODAttachedPrimitives != AttachedPrimitives )
+	{
+		MassiveLODAttachedPrimitives = AttachedPrimitives;
+		BeginDeferredReattach();
+	}
+}
+#endif
 #endif
 
 //
@@ -3028,7 +3057,5 @@ void UDrawQuadComponent::Render( const FSceneView* View, FPrimitiveDrawInterface
 			);
 		TRI->Finish();
 #endif
-	}    
+	}
 }
-
-

@@ -1026,6 +1026,11 @@ void FViewport::UpdateViewportRHI(UBOOL bDestroyed,UINT NewSizeX,UINT NewSizeY,U
 		SizeX = NewSizeX;
 		SizeY = NewSizeY;
 		bIsFullscreen = bNewIsFullscreen;
+#if BATMAN
+		// BM
+		extern FLOAT GMassiveLODDistanceScale;
+		GMassiveLODDistanceScale = (GSystemSettings.DetailMode > 1 && SizeX > 1280) ? 4.0f : 1.0f;
+#endif
 
 		// Release the viewport's resources.
 		BeginReleaseResource(this);
@@ -1339,4 +1344,3 @@ void FInputLatencyTimer::GameThreadTick()
 }
 
 FInputLatencyTimer GInputLatencyTimer( 2.0f );
-

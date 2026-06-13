@@ -305,6 +305,14 @@ public:
 #if USE_MASSIVE_LOD
 	/** The primitive's MassiveLOD high/low swap distance. */
 	FLOAT MassiveLODDistance;
+
+	/** BM: Number of primitives attached to this MassiveLOD parent. */
+	INT MassiveLODAttachedPrimitives;
+#endif
+
+#if BATMAN
+	// BM
+	FLOAT CachedSquaredDistanceToViewOrigin;
 #endif
 
 	/** The hit proxies used by the primitive. */
@@ -381,8 +389,8 @@ public:
 	UPrimitiveComponent* ReplacementPrimitiveMapKey;
 
 #if USE_MASSIVE_LOD
-	/** The min draw distance of the replacement primitive, or -1.0 if the replacement component wasn't attached yet */
-	FLOAT ReplacementPrimitiveMinDrawDistance;
+	/** BM: MassiveLOD distance of the replacement primitive, used for LOD fade. */
+	FLOAT ReplacementMassiveLODDistance;
 
 	/** Global map of primitive components to their Compact primitive info to set up child relationships */
 	static TMap<UPrimitiveComponent*, FPathToCompact> PrimitiveToCompactMap;

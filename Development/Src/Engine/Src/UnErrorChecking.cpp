@@ -339,6 +339,10 @@ void AStaticMeshActor::CheckForErrors()
 
 		Mark.Pop();
 
+#if USE_MASSIVE_LOD
+		// BM
+		StaticMeshComponent->UpdateMassiveLODAttachedPrimitives();
+#endif
 
 		// If this mesh has overridden vertex colors, make sure that it matches up with the original mesh
 		{
@@ -562,4 +566,3 @@ void ATriggerVolume::CheckForErrors()
 	Super::CheckForErrors();
 }
 #endif
-

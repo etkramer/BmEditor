@@ -529,16 +529,10 @@ void FMaterialShaderParameters::SetMeshShader(
 		{
 			FLOAT LODFade = 1.0f;
 #if USE_MASSIVE_LOD
-			const FLOAT MassiveLODDistance = PrimitiveSceneInfo->MassiveLODDistance;
+			const FLOAT MassiveLODDistance = PrimitiveSceneInfo->ReplacementMassiveLODDistance;
 			if (MassiveLODDistance > 0.0f)
 			{
-#if !CONSOLE
-				const FVector4& ViewOriginForDistance = View.ViewOrigin.W > 0.0f ? View.ViewOrigin : View.OverrideLODViewOrigin;
-#else
-				const FVector4& ViewOriginForDistance = View.ViewOrigin;
-#endif
-				const FVector ViewOrigin(ViewOriginForDistance.X, ViewOriginForDistance.Y, ViewOriginForDistance.Z);
-				const FLOAT Distance = appSqrt(PrimitiveSceneInfo->Bounds.GetBox().ComputeSquaredDistanceToPoint(ViewOrigin));
+				const FLOAT Distance = appSqrt(PrimitiveSceneInfo->CachedSquaredDistanceToViewOrigin);
 				FLOAT LinearFade;
 				if (Distance <= MassiveLODDistance * 0.5f)
 				{

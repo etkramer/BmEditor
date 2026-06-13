@@ -1792,6 +1792,11 @@ public:
 	/** TRUE if only the lowest detail massive LODs should be drawn for this view. */
 	UBOOL bForceLowestMassiveLOD;
 
+#if BATMAN
+	/** BM: FOV based multiplier for MassiveLOD distance checks. */
+	FLOAT MassiveLODFOVScale;
+#endif
+
 	/** Allocates channels of the light attenuation texture for dominant light shadows each frame. */
 	FLightChannelAllocator DominantLightChannelAllocator;
 

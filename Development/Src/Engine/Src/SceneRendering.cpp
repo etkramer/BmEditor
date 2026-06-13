@@ -32,6 +32,11 @@
 */
 UBOOL GIgnoreAllOcclusionQueries = FALSE;
 
+#if BATMAN
+// BM
+FLOAT GMassiveLODDistanceScale = 1.0f;
+#endif
+
 /**
 	This debug variable is set by the 'FullMotionBlur [N]' console command.
 	Setting N to -1 or leaving it blank will make the Motion Blur effect use the
@@ -687,7 +692,16 @@ BYTE FSceneRenderer::ProcessPrimitiveCullingInner(const FPrimitiveSceneInfoCompa
 #endif
 				( DistanceSquared < Max( CompactPrimitiveSceneInfo.MinDrawDistanceSquared, MinViewDistanceSquaredOverride ) );
 
+#if BATMAN
+			CompactPrimitiveSceneInfo.PrimitiveSceneInfo->CachedSquaredDistanceToViewOrigin = DistanceSquared;
+#endif
+
 #if USE_MASSIVE_LOD
+			const INT MassiveLODRequiredChildren = Max<INT>(
+				1,
+				appTrunc(CompactPrimitiveSceneInfo.PrimitiveSceneInfo->MassiveLODAttachedPrimitives * 0.95f)
+				);
+
 			// Cull the primitive if it is closer than its MassiveLOD draw distance, and it has children (otherwise always draw it)
 			UBOOL bIsMassiveLODCulled =
 #if !FINAL_RELEASE
@@ -697,8 +711,18 @@ BYTE FSceneRenderer::ProcessPrimitiveCullingInner(const FPrimitiveSceneInfoCompa
 				bPerformMinDistanceChecks && 
 #endif
 				!View.bForceLowestMassiveLOD &&
+#if BATMAN
+				DistanceSquared < CompactPrimitiveSceneInfo.MassiveLODDistanceSquared * GMassiveLODDistanceScale * View.MassiveLODFOVScale &&
+#else
 				DistanceSquared < CompactPrimitiveSceneInfo.MassiveLODDistanceSquared &&
-				CompactPrimitiveSceneInfo.ChildPrimitives.Num();
+#endif
+				(
+#if BATMAN && !CONSOLE
+				// BM: Gangland editor culls MassiveLOD parents as soon as any child is present.
+				(GIsEditor && CompactPrimitiveSceneInfo.ChildPrimitives.Num() > 0) ||
+#endif
+				CompactPrimitiveSceneInfo.ChildPrimitives.Num() >= MassiveLODRequiredChildren
+				);
 #endif // MASSIVE_LOD
 
 			// Determine if the primitive should be visible based on a variety of factors

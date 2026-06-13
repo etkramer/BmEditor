@@ -5185,6 +5185,14 @@ void UEditorEngine::AssignReplacementComponentsByActors(TArray<AActor*>& ActorsT
 			}
 		}
 	}
+
+#if USE_MASSIVE_LOD
+	if( ReplacementComponent )
+	{
+		// BM
+		ReplacementComponent->UpdateMassiveLODAttachedPrimitives();
+	}
+#endif
 }
 
 
@@ -5694,6 +5702,10 @@ UBOOL UEditorEngine::Exec( const TCHAR* Stream, FOutputDevice& Ar )
 				}
 			}
 		}
+#if USE_MASSIVE_LOD
+		// BM
+		ReplacementComponent->UpdateMassiveLODAttachedPrimitives();
+#endif
 	}
 	//------------------------------------------------------------------------------------
 	// Other handlers.
