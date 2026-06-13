@@ -734,12 +734,6 @@ public:
 			case BLEND_Translucent:
 				{
 					UBOOL bInvOpacityInAlpha = bRenderingToLowResTranslucency;
-#if !CONSOLE
-					if(GSystemSettings.bAllowSeparateTranslucency && GRHIShaderPlatform == SP_PCD3D_SM5)
-					{
-						bInvOpacityInAlpha = TRUE;
-					}
-#endif
 					RHISetBlendState(
 						bInvOpacityInAlpha ?
 							// Accumulate added color in rgb, accumulate inverse opacity in alpha.
@@ -759,11 +753,6 @@ public:
 				}
 				break;
 			case BLEND_Additive:
-				if(GRHIShaderPlatform == SP_PCD3D_SM5 && GSystemSettings.bAllowSeparateTranslucency)
-				{
-					RHISetBlendState(TStaticBlendState<BO_Add,BF_One,BF_One,BO_Add,BF_Zero,BF_InverseSourceAlpha>::GetRHI());
-				}
-				else
 				{
 					// Add to the existing scene color, preserve destination alpha.
 					RHISetBlendState(TStaticBlendState<BO_Add,BF_One,BF_One,BO_Add,BF_Zero,BF_One>::GetRHI());

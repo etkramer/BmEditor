@@ -1489,9 +1489,6 @@ static void TearDownGWorld(const TCHAR* CleanseText)
 	GEditor->Cleanse( TRUE, 0, CleanseText );
 
 	// Ensure that previous world is fully cleaned up at this point.
-#if BATMAN
-	// TODO: Fix the root cause. For now, we can keep it as keeping embedded map assets loaded might be desired
-#else
 	for( TObjectIterator<UWorld> It; It; ++It )
 	{
 		UWorld* RemainingWorld = *It;
@@ -1505,7 +1502,6 @@ static void TearDownGWorld(const TCHAR* CleanseText)
 			appErrorf(TEXT("%s still around trying to load %s") LINE_TERMINATOR TEXT("%s"),*RemainingWorld->GetPathName(),TempFname,*ErrorString);
 		}
 	}
-#endif
 }
 
 } // namespace 

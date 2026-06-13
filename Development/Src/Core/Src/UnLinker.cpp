@@ -3796,9 +3796,8 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 		// BM: Skip classes (BmGame.upk needs this for now)
 		// if (IsBmCooked() && (LoadClass->GetName() == "Class"))
 		if (IsBmCooked() && (LoadClass->GetName() == "Class") && (
-			(Export.ObjectName.ToString() != "RSkeletalMeshActor") ||
-			(Export.ObjectName.ToString() != "RLevelVolume") ||
-			(Export.ObjectName.ToString() != "RLevelVolume")
+			(Export.ObjectName.ToString() != "RSkeletalMeshActor") &&
+			(Export.ObjectName.ToString() != "TODO") // Was RLevelVolume, needs fixing still
 		))
         {
 			UObject* ExistingClass = StaticFindObject(UClass::StaticClass(), NULL, *GetExportPathName(Index, NULL, TRUE), TRUE);
