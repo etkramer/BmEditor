@@ -321,6 +321,9 @@ enum ELightMapInteractionType
 	LMIT_None,
 	LMIT_Vertex,
 	LMIT_Texture,
+#if BATMAN
+	LMIT_SDFShadow,
+#endif
 };
 
 /** The number of coefficients that are stored for each light sample. */ 
@@ -418,6 +421,27 @@ public:
 		Result.CoordinateBias = InCoordinateBias;
 		return Result;
 	}
+#if BATMAN
+	static FLightMapInteraction SDFShadow(
+		const class ULightMapTexture2D* const* InTextures,
+		const FVector4* InCoefficientScales,
+		const FVector2D& InCoordinateScale,
+		const FVector2D& InCoordinateBias,
+		const class UShadowMapTexture2D* InShadowTexture,
+		const FVector2D& InShadowCoordinateScale,
+		const FVector2D& InShadowCoordinateBias)
+	{
+		FLightMapInteraction Result = Texture(InTextures, InCoefficientScales, InCoordinateScale, InCoordinateBias, TRUE);
+		if (Result.Type == LMIT_Texture)
+		{
+			Result.Type = LMIT_SDFShadow;
+			Result.ShadowTexture = InShadowTexture;
+			Result.ShadowCoordinateScale = InShadowCoordinateScale;
+			Result.ShadowCoordinateBias = InShadowCoordinateBias;
+		}
+		return Result;
+	}
+#endif
 	static FLightMapInteraction Vertex(const FVertexBuffer* InVertexBuffer,const FVector4* InCoefficientScales,UBOOL bAllowDirectionalLightMaps)
 	{
 		FLightMapInteraction Result;
@@ -484,7 +508,11 @@ public:
 	
 	const ULightMapTexture2D* GetTexture(INT TextureIndex) const
 	{
+#if BATMAN
+		check(Type == LMIT_Texture || Type == LMIT_SDFShadow);
+#else
 		check(Type == LMIT_Texture);
+#endif
 #if ALLOW_SIMPLE_LIGHTMAPS && ALLOW_DIRECTIONAL_LIGHTMAPS
 		return bAllowDirectionalLightMaps ? DirectionalTextures[TextureIndex] : SimpleTextures[TextureIndex];
 #elif ALLOW_DIRECTIONAL_LIGHTMAPS
@@ -506,14 +534,40 @@ public:
 	
 	const FVector2D& GetCoordinateScale() const
 	{
+#if BATMAN
+		check(Type == LMIT_Texture || Type == LMIT_SDFShadow);
+#else
 		check(Type == LMIT_Texture);
+#endif
 		return CoordinateScale;
 	}
 	const FVector2D& GetCoordinateBias() const
 	{
+#if BATMAN
+		check(Type == LMIT_Texture || Type == LMIT_SDFShadow);
+#else
 		check(Type == LMIT_Texture);
+#endif
 		return CoordinateBias;
 	}
+
+#if BATMAN
+	const class UShadowMapTexture2D* GetShadowMapTexture() const
+	{
+		check(Type == LMIT_SDFShadow);
+		return ShadowTexture;
+	}
+	const FVector2D& GetShadowMapCoordinateScale() const
+	{
+		check(Type == LMIT_SDFShadow);
+		return ShadowCoordinateScale;
+	}
+	const FVector2D& GetShadowMapCoordinateBias() const
+	{
+		check(Type == LMIT_SDFShadow);
+		return ShadowCoordinateBias;
+	}
+#endif
 
 	UINT GetNumLightmapCoefficients() const
 	{
@@ -591,6 +645,11 @@ private:
 
 	FVector2D CoordinateScale;
 	FVector2D CoordinateBias;
+#if BATMAN
+	const class UShadowMapTexture2D* ShadowTexture;
+	FVector2D ShadowCoordinateScale;
+	FVector2D ShadowCoordinateBias;
+#endif
 };
 
 /**

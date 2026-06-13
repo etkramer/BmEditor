@@ -224,6 +224,7 @@ class FDOFAndBloomBlendPixelShader : public FGlobalShader
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment);
 
+protected:
 	/** Default constructor. */
 	FDOFAndBloomBlendPixelShader() {}
 

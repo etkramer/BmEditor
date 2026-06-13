@@ -9,7 +9,10 @@ enum EFogVolumeDensityFunction
 	FVDF_ConstantHeight,
 	FVDF_LinearHalfspace,
 	FVDF_Sphere,
-	FVDF_Cone
+	FVDF_Cone,
+#if BATMAN
+	FVDF_RockAtmos
+#endif
 };
 
 /*-----------------------------------------------------------------------------
@@ -147,6 +150,47 @@ public:
 
 	virtual EFogVolumeDensityFunction GetDensityFunctionType() const = 0;
 };
+
+#if BATMAN
+class FRockAtmosDensitySceneInfo : public FFogVolumeDensitySceneInfo
+{
+public:
+	FRockAtmosDensitySceneInfo() :
+		FFogVolumeDensitySceneInfo(NULL, FBox(0), SDPG_World)
+	{}
+
+	virtual UBOOL DrawDynamicMesh(
+		const FViewInfo& View,
+		const FMeshElement& Mesh,
+		UBOOL bBackFace,
+		UBOOL bPreFog,
+		const FPrimitiveSceneInfo* PrimitiveSceneInfo,
+		FHitProxyId HitProxyId)
+	{
+		return FALSE;
+	}
+
+	virtual UINT GetNumIntegralShaderInstructions(const FMaterial* MaterialResource, const FVertexFactory* InVertexFactory) const
+	{
+		return 0;
+	}
+
+	virtual FVector4 GetFirstDensityFunctionParameters(const FSceneView& View) const
+	{
+		return FVector4(0.0f, 0.0f, 0.0f, 0.0f);
+	}
+
+	virtual FLOAT GetMaxIntegral() const
+	{
+		return 1.0f;
+	}
+
+	virtual EFogVolumeDensityFunction GetDensityFunctionType() const
+	{
+		return FVDF_RockAtmos;
+	}
+};
+#endif
 
 /**
 * Constant density fog

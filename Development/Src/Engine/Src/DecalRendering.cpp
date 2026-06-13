@@ -43,6 +43,9 @@ UBOOL FSceneRenderer::RenderDecals(const FViewInfo& View, UINT DPGIndex, UBOOL b
 	bDirty |= Scene->DPGs[DPGIndex].BasePassShadowedDynamicLightDirectionalVertexLightMapDrawList[DrawType].DrawVisible(View,View.DecalStaticMeshVisibilityMap);
 	bDirty |= Scene->DPGs[DPGIndex].BasePassDirectionalLightMapTextureDrawList[DrawType].DrawVisible(View,View.DecalStaticMeshVisibilityMap);
 	bDirty |= Scene->DPGs[DPGIndex].BasePassSimpleLightMapTextureDrawList[DrawType].DrawVisible(View,View.DecalStaticMeshVisibilityMap);
+#if BATMAN
+	bDirty |= Scene->DPGs[DPGIndex].BasePassDirectionalLightMapModulatedSDFShadowMapTextureDrawList[DrawType].DrawVisible(View,View.DecalStaticMeshVisibilityMap);
+#endif
 	bDirty |= Scene->DPGs[DPGIndex].BasePassShadowedDynamicLightDirectionalLightMapTextureDrawList[DrawType].DrawVisible(View,View.DecalStaticMeshVisibilityMap);
 	bDirty |= Scene->DPGs[DPGIndex].BasePassDistanceFieldShadowedDynamicLightDirectionalLightMapTextureDrawList[DrawType].DrawVisible(View,View.DecalStaticMeshVisibilityMap);
 	bDirty |= Scene->DPGs[DPGIndex].BasePassDynamicallyShadowedDynamicLightDrawList[DrawType].DrawVisible(View,View.DecalStaticMeshVisibilityMap);
@@ -142,4 +145,3 @@ UBOOL FSceneRenderer::RenderDecals(const FViewInfo& View, UINT DPGIndex, UBOOL b
 
 	return bDirty;
 }
-

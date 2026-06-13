@@ -2467,9 +2467,14 @@ protected:
 		virtual FLightMapInteraction GetLightMapInteraction() const
 		{
 			const FLightMap* LightMap = Component->LODData.LightMap;
-			return LightMap ?
-				LightMap->GetInteraction() :
-				FLightMapInteraction();
+#if BATMAN
+			UShadowMap2D* ShadowMap = Component->LODData.ShadowMaps.ShadowMap;
+			if (LightMap && Component->bRecieveStaticModulatedShadows && ShadowMap && ShadowMap->IsValid() && !ShadowMap->IsShadowFactorTexture())
+			{
+				return LightMap->GetInteractionWithShadowmap(ShadowMap->GetTexture(), ShadowMap->GetCoordinateScale(), ShadowMap->GetCoordinateBias());
+			}
+#endif
+			return LightMap ? LightMap->GetInteraction() : FLightMapInteraction();
 		}
 
 	private:

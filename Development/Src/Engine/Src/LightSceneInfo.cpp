@@ -66,6 +66,9 @@ FLightSceneInfo::FLightSceneInfo(const ULightComponent* Component)
 	, bAllowPreShadow(Component->bAllowPreShadow)
 	, bOnlyAffectSameAndSpecifiedLevels(Component->bOnlyAffectSameAndSpecifiedLevels)
 	, bUseVolumes(Component->bUseVolumes)
+#if BATMAN
+	, bCheapLight(Component->bCheapLight)
+#endif
 	, bOwnerSelected(Component->IsOwnerSelected())
 	, bPrecomputedLightingIsValid(Component->bPrecomputedLightingIsValid)
 	, bExplicitlyAssignedLight(Component->bExplicitlyAssignedLight)

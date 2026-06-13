@@ -1283,6 +1283,11 @@ UBOOL FMaterialResource::IsUsedWithStaticLighting() const
 }
 
 #if BATMAN
+UBOOL FMaterialResource::IsUsedWithStaticModulatedShadows() const
+{
+	return Material->bUsedWithStaticModulatedShadows;
+}
+
 UBOOL FMaterialResource::IsUsedWithVertexLighting() const
 {
 	return Material->bUsedWithVertexLighting;
@@ -1297,6 +1302,21 @@ UBOOL FMaterialResource::IsUsedWithPerVertexRockAtmosFog() const
 {
 	// BM: Gangland requires the material to allow fog before requesting RockAtmos fog shaders.
 	return Material->bUsedWithPerVertexRockAtmosFog && Material->bAllowFog;
+}
+
+UBOOL FMaterialResource::RecievesDynamicDirectionalLights() const
+{
+	return Material->bRecievesDynamicDirectionalLights;
+}
+
+UBOOL FMaterialResource::RecievesDynamicSpotLights() const
+{
+	return Material->bRecievesDynamicSpotLights;
+}
+
+UBOOL FMaterialResource::RecievesDynamicPointLights() const
+{
+	return Material->bRecievesDynamicPointLights;
 }
 #endif
 

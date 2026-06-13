@@ -830,6 +830,10 @@ public:
 	TStaticMeshDrawList<TBasePassDrawingPolicy<FDirectionalLightMapTexturePolicy,FNoDensityPolicy> > BasePassDirectionalLightMapTextureDrawList[EBasePass_MAX];
 	/** Base pass draw list - simple texture light maps */
 	TStaticMeshDrawList<TBasePassDrawingPolicy<FSimpleLightMapTexturePolicy,FNoDensityPolicy> > BasePassSimpleLightMapTextureDrawList[EBasePass_MAX];
+#if BATMAN
+	/** Base pass draw list - directional texture light maps with modulated signed distance field shadows */
+	TStaticMeshDrawList<TBasePassDrawingPolicy<FDirectionalLightMapModulatedSDFShadowMapTexturePolicy,FNoDensityPolicy> > BasePassDirectionalLightMapModulatedSDFShadowMapTextureDrawList[EBasePass_MAX];
+#endif
 	/** Base pass draw list - directional light only */
 	TStaticMeshDrawList<TBasePassDrawingPolicy<FDirectionalLightLightMapPolicy,FNoDensityPolicy> > BasePassDirectionalLightDrawList[EBasePass_MAX];
 	/** Base pass draw list - SH light + directional light */

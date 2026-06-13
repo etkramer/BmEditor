@@ -780,9 +780,13 @@ public:
 	virtual UBOOL IsUsedWithParticleSubUV() const { return FALSE; }
 	virtual UBOOL IsUsedWithStaticLighting() const { return FALSE; }
 #if BATMAN
+	virtual UBOOL IsUsedWithStaticModulatedShadows() const { return FALSE; }
 	virtual UBOOL IsUsedWithVertexLighting() const { return FALSE; }
 	virtual UBOOL IsUsedWithStaticMesh() const { return FALSE; }
 	virtual UBOOL IsUsedWithPerVertexRockAtmosFog() const { return FALSE; }
+	virtual UBOOL RecievesDynamicDirectionalLights() const { return FALSE; }
+	virtual UBOOL RecievesDynamicSpotLights() const { return FALSE; }
+	virtual UBOOL RecievesDynamicPointLights() const { return FALSE; }
 #endif
 	virtual UBOOL IsUsedWithLensFlare() const { return FALSE; }
 	virtual UBOOL IsUsedWithGammaCorrection() const { return FALSE; }
@@ -1393,8 +1397,12 @@ public:
 	virtual UBOOL IsUsedWithParticleSubUV() const;
 	virtual UBOOL IsUsedWithStaticLighting() const;
 #if BATMAN
+	virtual UBOOL IsUsedWithStaticModulatedShadows() const;
 	virtual UBOOL IsUsedWithVertexLighting() const;
 	virtual UBOOL IsUsedWithStaticMesh() const;
+	virtual UBOOL RecievesDynamicDirectionalLights() const;
+	virtual UBOOL RecievesDynamicSpotLights() const;
+	virtual UBOOL RecievesDynamicPointLights() const;
 #endif
 	virtual UBOOL IsUsedWithLensFlare() const;
 	virtual UBOOL IsUsedWithGammaCorrection() const;

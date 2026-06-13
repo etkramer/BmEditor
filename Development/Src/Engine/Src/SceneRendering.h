@@ -349,6 +349,10 @@ private:
 
 	/** list of lit translucent primitives that need a post-render depth pass sorted back to front*/
 	TArray<FDepthSortedPrim,SceneRenderingAllocator> SoftMaskedSortedPrims;
+
+#if BATMAN
+	FRockAtmosDensitySceneInfo DummySceneInfo;
+#endif
 };
 
 /** MotionBlur parameters */

@@ -1122,6 +1122,27 @@ UBOOL DrawLitDynamicMesh(
 	}
 	const UBOOL bOverrideDynamicShadowsOnTranslucency = bTranslucent && !PrimitiveSceneInfo->bAllowDynamicShadowsOnTranslucency && PrimitiveSceneInfo->bTranslucencyShadowed;
 
+#if BATMAN
+	if (CachedInteraction.GetType() != LIT_Uncached)
+	{
+		return FALSE;
+	}
+	if (Mesh.VertexFactory->GetType()->SupportsDynamicLighting())
+	{
+		const FMaterial* Material = Mesh.MaterialRenderProxy->GetMaterial();
+		const UBOOL bRecievesDynamicLight =
+			(LightSceneInfo->LightType == LightType_Directional && Material->RecievesDynamicDirectionalLights()) ||
+			(LightSceneInfo->LightType == LightType_Point && Material->RecievesDynamicPointLights()) ||
+			(LightSceneInfo->LightType == LightType_Spot && Material->RecievesDynamicSpotLights()) ||
+			(LightSceneInfo->LightType != LightType_Directional && LightSceneInfo->LightType != LightType_Point && LightSceneInfo->LightType != LightType_Spot);
+
+		if (!bRecievesDynamicLight)
+		{
+			return FALSE;
+		}
+	}
+#endif
+
 	// Add the mesh to the appropriate draw list for the cached shadow data type.
 	switch(CachedInteraction.GetType())
 	{
@@ -1266,6 +1287,34 @@ public:
 		// When bUseAsOccluder == TRUE, to emulate the behavior when doing one pass dominant lighting, and when bAcceptsDynamicDominantLightShadows == TRUE.
 		const UBOOL bReceiveDynamicShadows = !IsDominantLightType(LightSceneInfo->LightType) 
 			|| (Mesh->PrimitiveSceneInfo ? Mesh->PrimitiveSceneInfo->bUseAsOccluder && Mesh->PrimitiveSceneInfo->bAcceptsDynamicDominantLightShadows : FALSE);
+
+#if BATMAN
+		if (CachedInteraction.GetType() == LIT_Uncached)
+		{
+			const FMaterial* Material = Mesh->MaterialRenderProxy->GetMaterial();
+			const UBOOL bRecievesDynamicLight =
+				(LightSceneInfo->LightType == LightType_Directional && Material->RecievesDynamicDirectionalLights()) ||
+				(LightSceneInfo->LightType == LightType_Point && Material->RecievesDynamicPointLights()) ||
+				(LightSceneInfo->LightType == LightType_Spot && Material->RecievesDynamicSpotLights()) ||
+				(LightSceneInfo->LightType != LightType_Directional && LightSceneInfo->LightType != LightType_Point && LightSceneInfo->LightType != LightType_Spot);
+
+			if (bRecievesDynamicLight)
+			{
+				NoStaticShadowingDrawList[DrawType].AddMesh(
+					Mesh,
+					FNoStaticShadowingPolicy::ElementDataType(),
+					TMeshLightingDrawingPolicy<FNoStaticShadowingPolicy,LightPolicyType>(
+						Mesh->VertexFactory,
+						Mesh->MaterialRenderProxy,
+						(typename LightPolicyType::SceneInfoType*)LightSceneInfo,
+						FNoStaticShadowingPolicy(),
+						bReceiveDynamicShadows
+						)
+					);
+			}
+		}
+		return CachedInteraction.GetType();
+#endif
 
 		// Add the mesh to the appropriate draw list for the cached shadow data type.
 		switch(CachedInteraction.GetType())

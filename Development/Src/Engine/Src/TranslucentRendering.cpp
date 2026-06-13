@@ -1094,25 +1094,35 @@ void FTranslucentPrimSet::AddScenePrimitive(
 		PrimitiveSceneInfo->FogVolumeSceneInfo = NULL;
 		INT DPGIndex = PrimitiveSceneInfo->Proxy->GetDepthPriorityGroup(&ViewInfo);
 		FLOAT LargestFogVolumeRadius = 0.0f;
-		//find the largest fog volume this translucent object is intersecting with
-		for( TMap<const UPrimitiveComponent*, FFogVolumeDensitySceneInfo*>::TIterator FogVolumeIt(PrimitiveSceneInfo->Scene->FogVolumes); FogVolumeIt; ++FogVolumeIt )
+#if BATMAN
+		const UStaticMeshComponent* StaticMeshComponent = ConstCast<UStaticMeshComponent>(PrimitiveSceneInfo->Component);
+		if (StaticMeshComponent && StaticMeshComponent->bPerVertexRockAtmosFog)
 		{
-			const UPrimitiveComponent* FogVolumePrimComponent = FogVolumeIt.Key();
-			FFogVolumeDensitySceneInfo* FogVolumeDensityInfo = FogVolumeIt.Value();
-			if (FogVolumePrimComponent 
-				&& FogVolumeDensityInfo 
-				&& FogVolumeDensityInfo->bAffectsTranslucency
-				&& FogVolumeDensityInfo->DPGIndex == DPGIndex)
+			PrimitiveSceneInfo->FogVolumeSceneInfo = &DummySceneInfo;
+		}
+#endif
+		if (!PrimitiveSceneInfo->FogVolumeSceneInfo)
+		{
+			//find the largest fog volume this translucent object is intersecting with
+			for( TMap<const UPrimitiveComponent*, FFogVolumeDensitySceneInfo*>::TIterator FogVolumeIt(PrimitiveSceneInfo->Scene->FogVolumes); FogVolumeIt; ++FogVolumeIt )
 			{
-				const FLOAT FogVolumeRadius = FogVolumePrimComponent->Bounds.SphereRadius;
-				const FLOAT TranslucentObjectRadius = PrimitiveSceneInfo->Bounds.SphereRadius;
-				if (FogVolumeRadius > LargestFogVolumeRadius)
+				const UPrimitiveComponent* FogVolumePrimComponent = FogVolumeIt.Key();
+				FFogVolumeDensitySceneInfo* FogVolumeDensityInfo = FogVolumeIt.Value();
+				if (FogVolumePrimComponent
+					&& FogVolumeDensityInfo
+					&& FogVolumeDensityInfo->bAffectsTranslucency
+					&& FogVolumeDensityInfo->DPGIndex == DPGIndex)
 				{
-					const FLOAT DistSquared = (FogVolumePrimComponent->Bounds.Origin - PrimitiveSceneInfo->Bounds.Origin).SizeSquared();
-					if (DistSquared < FogVolumeRadius * FogVolumeRadius + TranslucentObjectRadius * TranslucentObjectRadius)
+					const FLOAT FogVolumeRadius = FogVolumePrimComponent->Bounds.SphereRadius;
+					const FLOAT TranslucentObjectRadius = PrimitiveSceneInfo->Bounds.SphereRadius;
+					if (FogVolumeRadius > LargestFogVolumeRadius)
 					{
-						LargestFogVolumeRadius = FogVolumeRadius;
-						PrimitiveSceneInfo->FogVolumeSceneInfo = FogVolumeDensityInfo;
+						const FLOAT DistSquared = (FogVolumePrimComponent->Bounds.Origin - PrimitiveSceneInfo->Bounds.Origin).SizeSquared();
+						if (DistSquared < FogVolumeRadius * FogVolumeRadius + TranslucentObjectRadius * TranslucentObjectRadius)
+						{
+							LargestFogVolumeRadius = FogVolumeRadius;
+							PrimitiveSceneInfo->FogVolumeSceneInfo = FogVolumeDensityInfo;
+						}
 					}
 				}
 			}

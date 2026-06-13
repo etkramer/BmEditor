@@ -15,6 +15,7 @@ IMPLEMENT_CLASS(UParticleLightEnvironmentComponent);
 EDLEC_Mode GDLEC_Mode = DLEC_APlus3D;
 FLOAT GDirectionalAmbientRatio = 0.15000001f;
 UBOOL bDoWeightedShadowAmbient = TRUE;
+extern FLinearColor GModulatedShadowsColor;
 #endif
 
 DECLARE_STATS_GROUP(TEXT("DLE"),STATGROUP_DLE);
@@ -1773,6 +1774,9 @@ void FDynamicLightEnvironmentState::CreateEnvironmentLightList(ULightComponent* 
 			}
 
 			CurrentRepresentativeShadowLight->ModShadowColor = DominantShadowIntensityRatio;
+#if BATMAN
+			GModulatedShadowsColor = CurrentRepresentativeShadowLight->ModShadowColor;
+#endif
 
 			// If the shadow light is already attached, do a lightweight update of ModShadowColor
 			if (CurrentRepresentativeShadowLight->IsAttached())

@@ -35,6 +35,10 @@ UBOOL MeshSupportsDeferredLighting(const FMaterial* Material, const FPrimitiveSc
 UBOOL GVisualizeMipLevels = FALSE;
 
 #if BATMAN
+FLinearColor GModulatedShadowsColor(0.2f,0.2f,0.2f,1.0f);
+#endif
+
+#if BATMAN
 #define BASEPASS_VERTEX_SHADER_VERSION 796
 #define BASEPASS_VERTEX_SHADER_LICENSEE_VERSION 93
 #define BASEPASS_PIXEL_SHADER_VERSION 796
@@ -128,6 +132,8 @@ IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE(FShadowedDynamicLightDirectionalVerte
 IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE(FShadowedDynamicLightDirectionalLightMapTexturePolicy); 
 IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE(FDistanceFieldShadowedDynamicLightDirectionalLightMapTexturePolicy);
 #if BATMAN
+IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE(FDirectionalLightMapModulatedSDFShadowMapTexturePolicy);
+
 #include "AmbientPlus3DirectionalLightSceneInfo.h"
 
 IMPLEMENT_BM2_APLUS_BASEPASS_SHADER_TYPE();

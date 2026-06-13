@@ -201,6 +201,10 @@ public:
 	/** True if the light's exclusion and inclusion volumes should be used to determine primitive relevance. */
 	const BITFIELD bUseVolumes : 1;
 
+#if BATMAN
+	const BITFIELD bCheapLight : 1;
+#endif
+
 	/** Whether the light's owner is selected in the editor. */
 	BITFIELD bOwnerSelected : 1;
 

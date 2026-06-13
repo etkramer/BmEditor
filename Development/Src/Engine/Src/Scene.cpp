@@ -5,6 +5,10 @@
 
 #include "EnginePrivate.h"
 #include "ScenePrivate.h"
+
+#if BATMAN
+extern FLinearColor GModulatedShadowsColor;
+#endif
 #include "EngineFogVolumeClasses.h"
 #include "EngineMeshClasses.h"
 #include "EngineFluidClasses.h"
@@ -1101,11 +1105,18 @@ void FScene::UpdateLightColorAndBrightness(ULightComponent* Light)
 	{
 		FLinearColor NewColor;
 		FLinearColor NewModShadowColor;
+		UBOOL bUpdatesModulatedShadowColor;
 	};
 
 	FUpdateLightColorParameters NewParameters;
 	NewParameters.NewColor = FLinearColor(Light->LightColor) * Light->Brightness;
 	NewParameters.NewModShadowColor = Light->ModShadowColor;
+	NewParameters.bUpdatesModulatedShadowColor =
+#if BATMAN
+		Light->LightShadowMode == LightShadow_Modulate || Light->LightShadowMode == LightShadow_ModulateBetter;
+#else
+		FALSE;
+#endif
 	
 	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
 		UpdateLightColorAndBrightness,
@@ -1117,6 +1128,10 @@ void FScene::UpdateLightColorAndBrightness(ULightComponent* Light)
 			{
 				LightSceneInfo->Color = Parameters.NewColor;
 				LightSceneInfo->ModShadowColor = Parameters.NewModShadowColor;
+				if (Parameters.bUpdatesModulatedShadowColor)
+				{
+					GModulatedShadowsColor = Parameters.NewModShadowColor;
+				}
 
 				// Also update the LightSceneInfoCompact
 				if( LightSceneInfo->Id != INDEX_NONE )
@@ -2389,6 +2404,14 @@ TStaticMeshDrawList<TBasePassDrawingPolicy<FSimpleLightMapTexturePolicy,FNoDensi
 {
 	return BasePassSimpleLightMapTextureDrawList[DrawType];
 }
+
+#if BATMAN
+template<>
+TStaticMeshDrawList<TBasePassDrawingPolicy<FDirectionalLightMapModulatedSDFShadowMapTexturePolicy,FNoDensityPolicy> >& FDepthPriorityGroup::GetBasePassDrawList<FDirectionalLightMapModulatedSDFShadowMapTexturePolicy>(EBasePassDrawListType DrawType)
+{
+	return BasePassDirectionalLightMapModulatedSDFShadowMapTextureDrawList[DrawType];
+}
+#endif
 
 template<>
 TStaticMeshDrawList<TBasePassDrawingPolicy<FDirectionalLightLightMapPolicy,FNoDensityPolicy> >& FDepthPriorityGroup::GetBasePassDrawList<FDirectionalLightLightMapPolicy>(EBasePassDrawListType DrawType)

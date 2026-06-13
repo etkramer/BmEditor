@@ -441,6 +441,11 @@ struct TBM2BasePassPixelShaderShouldCache<FDirectionalLightMapTexturePolicy, TRU
 };
 
 template<>
+struct TBM2BasePassPixelShaderShouldCache<FDirectionalLightMapModulatedSDFShadowMapTexturePolicy, TRUE> : TBM2BasePassPixelShaderNeverCacheSkyLight<FDirectionalLightMapModulatedSDFShadowMapTexturePolicy>
+{
+};
+
+template<>
 struct TBM2BasePassPixelShaderShouldCache<FSimpleLightMapTexturePolicy, TRUE> : TBM2BasePassPixelShaderNeverCacheSkyLight<FSimpleLightMapTexturePolicy>
 {
 };
@@ -1240,6 +1245,26 @@ void ProcessBasePassMesh(
 		{
 			HANDLE_LIGHTMAP_TYPE(LMIT_Vertex,FDirectionalVertexLightMapPolicy,FSimpleVertexLightMapPolicy,(),LightMapInteraction);
 			HANDLE_LIGHTMAP_TYPE(LMIT_Texture,FDirectionalLightMapTexturePolicy,FSimpleLightMapTexturePolicy,(),LightMapInteraction);
+#if BATMAN
+			case LMIT_SDFShadow:
+				if (bAllowDirectionalLightMaps)
+				{
+					ProcessBasePassMesh_LightMapped<ProcessActionType,FDirectionalLightMapModulatedSDFShadowMapTexturePolicy>(
+						Parameters,
+						Action,
+						FDirectionalLightMapModulatedSDFShadowMapTexturePolicy(),
+						LightMapInteraction);
+				}
+				else
+				{
+					ProcessBasePassMesh_LightMapped<ProcessActionType,FSimpleLightMapTexturePolicy>(
+						Parameters,
+						Action,
+						FSimpleLightMapTexturePolicy(),
+						LightMapInteraction);
+				}
+				break;
+#endif
 			default:
 				{
 					// Check if we should use a directional light in the base pass

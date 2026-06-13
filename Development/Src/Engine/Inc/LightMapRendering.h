@@ -11,6 +11,9 @@ extern INT GMipColorTextureMipLevels;
 extern UBOOL GShowDebugSelectedLightmap;
 extern FLightMap2D* GDebugSelectedLightmap;
 extern UBOOL GVisualizeMipLevels;
+#if BATMAN
+extern FLinearColor GModulatedShadowsColor;
+#endif
 
 /**
  */
@@ -575,6 +578,140 @@ public:
 		return 0;
 	}
 };
+
+#if BATMAN
+class FDirectionalLightMapModulatedSDFShadowMapTexturePolicy : public FDirectionalLightMapTexturePolicy
+{
+	typedef FDirectionalLightMapTexturePolicy Super;
+public:
+	class VertexParametersType : public Super::VertexParametersType
+	{
+	public:
+		void Bind(const FShaderParameterMap& ParameterMap)
+		{
+			ShadowCoordinateScaleBiasParameter.Bind(ParameterMap,TEXT("ShadowmapCoordinateScaleBias"),TRUE);
+			Super::VertexParametersType::Bind(ParameterMap);
+		}
+		void SetMesh(FShader* VertexShader,const FVector2D& ShadowCoordinateScale) const
+		{
+			SetVertexShaderValue(VertexShader->GetVertexShader(),ShadowCoordinateScaleBiasParameter,FVector4(
+				ShadowCoordinateScale.X,
+				ShadowCoordinateScale.Y,
+				0.0f,
+				0.0f
+				));
+		}
+		void Serialize(FArchive& Ar)
+		{
+			Ar << ShadowCoordinateScaleBiasParameter;
+			Super::VertexParametersType::Serialize(Ar);
+		}
+	private:
+		FShaderParameter ShadowCoordinateScaleBiasParameter;
+	};
+
+	class PixelParametersType : public Super::PixelParametersType
+	{
+	public:
+		void Bind(const FShaderParameterMap& ParameterMap)
+		{
+			ShadowCoordinateScaleBiasParameter.Bind(ParameterMap,TEXT("ShadowmapCoordinateScaleBias"),TRUE);
+			ModShadowColorParameter.Bind(ParameterMap,TEXT("ModShadowColor"),TRUE);
+			DistanceFieldParameters.Bind(ParameterMap,TEXT("DistanceFieldParameters"),TRUE);
+			ShadowTextureParameter.Bind(ParameterMap,TEXT("ShadowTexture"),TRUE);
+			Super::PixelParametersType::Bind(ParameterMap);
+		}
+		void SetMesh(FShader* PixelShader,
+			const FTexture* ShadowTexture,
+			const FVector2D& LightmapCoordinateScale,
+			const FVector2D& LightmapCoordinateBias,
+			const FVector2D& ShadowCoordinateScale,
+			const FVector2D& ShadowCoordinateBias) const
+		{
+			checkSlow(LightmapCoordinateScale.X > 0.0f && LightmapCoordinateScale.Y > 0.0f);
+			SetPixelShaderValue(PixelShader->GetPixelShader(),ShadowCoordinateScaleBiasParameter,FVector4(
+				ShadowCoordinateScale.X / LightmapCoordinateScale.X,
+				ShadowCoordinateScale.Y / LightmapCoordinateScale.Y,
+				-LightmapCoordinateBias.X * ShadowCoordinateScale.X / LightmapCoordinateScale.X + ShadowCoordinateBias.X,
+				-LightmapCoordinateBias.Y * ShadowCoordinateScale.Y / LightmapCoordinateScale.Y + ShadowCoordinateBias.Y
+				));
+			SetPixelShaderValue(PixelShader->GetPixelShader(),ModShadowColorParameter,GModulatedShadowsColor);
+			SetPixelShaderValue(PixelShader->GetPixelShader(),DistanceFieldParameters,FVector(-0.475f,20.0f,2.0f));
+
+			UBOOL bShowMipLevels = FALSE;
+#if !FINAL_RELEASE
+			bShowMipLevels = GVisualizeMipLevels;
+#endif
+			const FLOAT MipBias = ShadowTexture->MipBiasFade.CalcMipBias();
+			SetTextureParameter(PixelShader->GetPixelShader(),ShadowTextureParameter,bShowMipLevels ? GBlackTexture : ShadowTexture,0,MipBias);
+		}
+		void Serialize(FArchive& Ar)
+		{
+			Ar << ShadowCoordinateScaleBiasParameter;
+			Ar << ModShadowColorParameter;
+			Ar << DistanceFieldParameters;
+			Ar << ShadowTextureParameter;
+			Super::PixelParametersType::Serialize(Ar);
+		}
+	private:
+		FShaderParameter ShadowCoordinateScaleBiasParameter;
+		FShaderParameter ModShadowColorParameter;
+		FShaderParameter DistanceFieldParameters;
+		FShaderResourceParameter ShadowTextureParameter;
+	};
+
+	static UBOOL ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType,UBOOL bEnableSkyLight=FALSE)
+	{
+		return (Material->IsUsedWithStaticModulatedShadows() || Material->IsSpecialEngineMaterial())
+			&& Super::ShouldCache(Platform,Material,VertexFactoryType,bEnableSkyLight);
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		OutEnvironment.Definitions.Set(TEXT("STATICLIGHTING_TEXTUREMASK"),TEXT("1"));
+		OutEnvironment.Definitions.Set(TEXT("STATICLIGHTING_SIGNEDDISTANCEFIELD"),TEXT("1"));
+		Super::ModifyCompilationEnvironment(Platform,OutEnvironment);
+	}
+
+	void SetMesh(
+		const FSceneView& View,
+		const FPrimitiveSceneInfo* PrimitiveSceneInfo,
+		const VertexParametersType* VertexShaderParameters,
+		const PixelParametersType* PixelShaderParameters,
+		FShader* VertexShader,
+		FShader* PixelShader,
+		const FVertexFactory* VertexFactory,
+		const FMaterialRenderProxy* MaterialRenderProxy,
+		const FLightMapInteraction& LightMapInteraction
+		) const
+	{
+		if (VertexShaderParameters)
+		{
+			VertexShaderParameters->SetMesh(VertexShader,LightMapInteraction.GetShadowMapCoordinateScale());
+		}
+		if (PixelShaderParameters)
+		{
+			PixelShaderParameters->SetMesh(PixelShader,
+				LightMapInteraction.GetShadowMapTexture()->Resource,
+				LightMapInteraction.GetCoordinateScale(),
+				LightMapInteraction.GetCoordinateBias(),
+				LightMapInteraction.GetShadowMapCoordinateScale(),
+				LightMapInteraction.GetShadowMapCoordinateBias());
+		}
+		Super::SetMesh(View,PrimitiveSceneInfo,VertexShaderParameters,PixelShaderParameters,VertexShader,PixelShader,VertexFactory,MaterialRenderProxy,LightMapInteraction);
+	}
+
+	friend UBOOL operator==(const FDirectionalLightMapModulatedSDFShadowMapTexturePolicy A,const FDirectionalLightMapModulatedSDFShadowMapTexturePolicy B)
+	{
+		return TRUE;
+	}
+
+	friend INT Compare(const FDirectionalLightMapModulatedSDFShadowMapTexturePolicy& A,const FDirectionalLightMapModulatedSDFShadowMapTexturePolicy& B)
+	{
+		return 0;
+	}
+};
+#endif
 
 /**
  * Policy for simple texture lightmaps, where lighting is only stored along the surface normal.

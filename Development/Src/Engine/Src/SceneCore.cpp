@@ -176,6 +176,12 @@ void FLightPrimitiveInteraction::Destroy(FLightPrimitiveInteraction* LightPrimit
 UBOOL FLightPrimitiveInteraction::ShouldAddStaticMeshesToLightingDrawLists() const
 {
 	const UBOOL bIsDominantLight = IsDominantLightType(LightSceneInfo->LightType);
+#if BATMAN
+	return !LightSceneInfo->bCheapLight
+		&& !bIsDominantLight
+		&& LightSceneInfo->LightType != LightType_AmbientPlus3Directional
+		&& PrimitiveSceneInfo->DynamicLightSceneInfo != LightSceneInfo;
+#else
 	return bIsDominantLight 
 		// Don't add the primitive to the light's static draw lists if the dominant light will be applied in the base pass
 		&& !GOnePassDominantLight
@@ -184,6 +190,7 @@ UBOOL FLightPrimitiveInteraction::ShouldAddStaticMeshesToLightingDrawLists() con
 		// Don't render a separate pass for non-dominant lights that will be merged into the base pass
 		// This happens if a light environment is applied to a static mesh, because the DLE directional light is set as DynamicLightSceneInfo
 		|| !bIsDominantLight && PrimitiveSceneInfo->DynamicLightSceneInfo != LightSceneInfo;
+#endif
 }
 
 #if !FINAL_RELEASE

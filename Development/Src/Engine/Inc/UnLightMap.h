@@ -87,6 +87,9 @@ public:
 	virtual void Serialize(FArchive& Ar);
 	virtual void InitResources() {}
 	virtual FLightMapInteraction GetInteraction() const = 0;
+#if BATMAN
+	virtual FLightMapInteraction GetInteractionWithShadowmap(const class UShadowMapTexture2D* ShadowTexture, const FVector2D& ShadowCoordinateScale, const FVector2D& ShadowCoordinateBias) const { return FLightMapInteraction::None(); }
+#endif
 
 	// Runtime type casting.
 	virtual class FLightMap1D* GetLightMap1D() { return NULL; }
@@ -343,6 +346,9 @@ public:
 
 	virtual void Serialize(FArchive& Ar);
 	virtual FLightMapInteraction GetInteraction() const;
+#if BATMAN
+	virtual FLightMapInteraction GetInteractionWithShadowmap(const class UShadowMapTexture2D* ShadowTexture, const FVector2D& ShadowCoordinateScale, const FVector2D& ShadowCoordinateBias) const;
+#endif
 
 	// Runtime type casting.
 	virtual const FLightMap2D* GetLightMap2D() const { return this; }

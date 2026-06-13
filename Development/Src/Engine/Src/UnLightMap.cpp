@@ -1818,6 +1818,25 @@ FLightMapInteraction FLightMap2D::GetInteraction() const
 	return FLightMapInteraction::None();
 }
 
+#if BATMAN
+FLightMapInteraction FLightMap2D::GetInteractionWithShadowmap(const UShadowMapTexture2D* ShadowTexture, const FVector2D& ShadowCoordinateScale, const FVector2D& ShadowCoordinateBias) const
+{
+	if (bAllowDirectionalLightMaps && ShadowTexture)
+	{
+		UBOOL bValidTextures = TRUE;
+		for (INT TextureIndex = 0; TextureIndex < NUM_DIRECTIONAL_LIGHTMAP_COEF; TextureIndex++)
+		{
+			bValidTextures = bValidTextures && Textures[TextureIndex];
+		}
+		if (bValidTextures)
+		{
+			return FLightMapInteraction::SDFShadow(Textures, ScaleVectors, CoordinateScale, CoordinateBias, ShadowTexture, ShadowCoordinateScale, ShadowCoordinateBias);
+		}
+	}
+	return FLightMapInteraction::None();
+}
+#endif
+
 
 
 /*-----------------------------------------------------------------------------

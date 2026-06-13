@@ -1590,6 +1590,9 @@ UBOOL FSceneRenderer::RenderDPGBasePassStaticDataMasked(UINT DPGIndex, FViewInfo
 			SCOPED_DRAW_EVENT(EventStaticMaskedTextureLightmap)(DEC_SCENE_ITEMS,TEXT("StaticMaskedTextureLightmapped"));
 			bDirty |= Scene->DPGs[DPGIndex].BasePassDirectionalLightMapTextureDrawList[MaskedDrawType].DrawVisible(View,View.StaticMeshVisibilityMap);
 			bDirty |= Scene->DPGs[DPGIndex].BasePassSimpleLightMapTextureDrawList[MaskedDrawType].DrawVisible(View,View.StaticMeshVisibilityMap);
+#if BATMAN
+			bDirty |= Scene->DPGs[DPGIndex].BasePassDirectionalLightMapModulatedSDFShadowMapTextureDrawList[MaskedDrawType].DrawVisible(View,View.StaticMeshVisibilityMap);
+#endif
 		}
 		{
 			SCOPED_DRAW_EVENT(EventStaticMaskedShadowedDynamicLightTextureLightmap)(DEC_SCENE_ITEMS,TEXT("StaticMaskedShadowedDLTextureLightmap"));
@@ -1645,6 +1648,9 @@ UBOOL FSceneRenderer::RenderDPGBasePassStaticDataDefault(UINT DPGIndex, FViewInf
 			SCOPED_DRAW_EVENT(EventStaticTextureLightmapped)(DEC_SCENE_ITEMS,TEXT("StaticOpaqueTextureLightmapped"));
 			bDirty |= Scene->DPGs[DPGIndex].BasePassDirectionalLightMapTextureDrawList[OpaqueDrawType].DrawVisible(View,View.StaticMeshVisibilityMap);
 			bDirty |= Scene->DPGs[DPGIndex].BasePassSimpleLightMapTextureDrawList[OpaqueDrawType].DrawVisible(View,View.StaticMeshVisibilityMap);
+#if BATMAN
+			bDirty |= Scene->DPGs[DPGIndex].BasePassDirectionalLightMapModulatedSDFShadowMapTextureDrawList[OpaqueDrawType].DrawVisible(View,View.StaticMeshVisibilityMap);
+#endif
 		}
 		{
 			SCOPED_DRAW_EVENT(EventStaticShadowedDynamicLightTextureLightmap)(DEC_SCENE_ITEMS,TEXT("StaticOpaqueShadowedDLTextureLightmap"));
