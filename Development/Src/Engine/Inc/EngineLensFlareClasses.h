@@ -86,6 +86,16 @@ struct FLensFlareElement
     FName ElementName;
     FLOAT RayDistance;
     BITFIELD bIsEnabled:1;
+    BITFIELD bOcclusionPercentageInVertAlpha:1;
+    BITFIELD bIntensityInVertAlpha:1;
+    BITFIELD bSourceDistanceInVertAlpha:1;
+    BITFIELD bRayDistanceInVertAlpha:1;
+    BITFIELD bRadialDistanceInVertAlpha:1;
+    BITFIELD bInvertOcclusionPercentage:1;
+    BITFIELD bInvertIntensity:1;
+    BITFIELD bInvertSourceDistance:1;
+    BITFIELD bInvertRayDistance:1;
+    BITFIELD bInvertRadialDistance:1;
     BITFIELD bUseSourceDistance:1;
     BITFIELD bNormalizeRadialDistance:1;
     BITFIELD bModulateColorBySource:1;
@@ -190,7 +200,6 @@ public:
     BITFIELD bHasUnlitTranslucency:1;
     BITFIELD bHasUnlitDistortion:1;
     BITFIELD bUsesSceneColor:1;
-    BITFIELD bHasSeparateTranslucency:1;
     BITFIELD bVisibleForMobile:1;
     FLOAT OuterCone;
     FLOAT InnerCone;

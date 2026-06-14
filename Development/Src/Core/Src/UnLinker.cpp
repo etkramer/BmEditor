@@ -3805,7 +3805,13 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 			(Export.ObjectName.ToString() != "RHidePoint_Gargoyle") &&
 			(Export.ObjectName.ToString() != "RPawn") &&
 			(Export.ObjectName.ToString() != "RPawnCharacter") &&
+			(Export.ObjectName.ToString() != "RPawnCombat") &&
 			(Export.ObjectName.ToString() != "RPawnPlayer") &&
+			(Export.ObjectName.ToString() != "RPawnPlayerAnim") &&
+			(Export.ObjectName.ToString() != "RPawnPlayerCombat") &&
+			(Export.ObjectName.ToString() != "RBMScreenShakeModifier") &&
+			(Export.ObjectName.ToString() != "RConfig") &&
+			(Export.ObjectName.ToString() != "RMirrorConfig") &&
 			(Export.ObjectName.ToString() != "RSnapToPositionActor") &&
 			(Export.ObjectName.ToString() != "RSeqAct_SetFaceFXRegister") &&
 			(Export.ObjectName.ToString() != "RAnimUtil_PosePlayer") &&
@@ -3820,6 +3826,19 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 			(Export.ObjectName.ToString() != "RAnimNode_Pose") &&
 			(Export.ObjectName.ToString() != "RAnimConfig") &&
 			(Export.ObjectName.ToString() != "RPoseConfig") &&
+			(Export.ObjectName.ToString() != "RDisruptableObjectBase") &&
+			(Export.ObjectName.ToString() != "RDisruptableControlBox") &&
+			(Export.ObjectName.ToString() != "RSpecialMoveEnvironmentObject") &&
+			(Export.ObjectName.ToString() != "RTunnelGrateBase") &&
+			(Export.ObjectName.ToString() != "RTunnelGrateShared") &&
+			(Export.ObjectName.ToString() != "RTunnelGrate") &&
+			(Export.ObjectName.ToString() != "RLadder") &&
+			(Export.ObjectName.ToString() != "RLadder_384") &&
+			(Export.ObjectName.ToString() != "RLadder_512") &&
+			(Export.ObjectName.ToString() != "PersistentDebugData") &&
+			(Export.ObjectName.ToString() != "RPersistentDebugData") &&
+			(Export.ObjectName.ToString() != "RFractureWall") &&
+			(Export.ObjectName.ToString() != "RFractureWallBase") &&
 			(Export.ObjectName.ToString() != "AkWwise") &&
 			(Export.ObjectName.ToString() != "RGrapplePoint")
 		))

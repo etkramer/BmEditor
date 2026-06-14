@@ -39,6 +39,18 @@ struct native LensFlareElement
 	 */
 	var()	bool								bIsEnabled;
 
+	// BM
+	var(RockOptions) bool						bOcclusionPercentageInVertAlpha;
+	var(RockOptions) bool						bIntensityInVertAlpha;
+	var(RockOptions) bool						bSourceDistanceInVertAlpha;
+	var(RockOptions) bool						bRayDistanceInVertAlpha;
+	var(RockOptions) bool						bRadialDistanceInVertAlpha;
+	var(RockOptions) bool						bInvertOcclusionPercentage;
+	var(RockOptions) bool						bInvertIntensity;
+	var(RockOptions) bool						bInvertSourceDistance;
+	var(RockOptions) bool						bInvertRayDistance;
+	var(RockOptions) bool						bInvertRadialDistance;
+
 	/**
 	 *	Whether the element value look ups should use the radial distance
 	 *	from the center to the edge of the screen or the ratio of the distance
@@ -180,10 +192,10 @@ var(Source)								StaticMesh					SourceMesh;
 /** The scene depth priority group to draw the source primitive in. */
 var					const				ESceneDepthPriorityGroup	SourceDPG;
 
-/** The individual reflection elements of the lens flare */
-var					editinline	export	array<LensFlareElement>		Reflections;
 /** The scene depth priority group to draw the reflection primitive(s) in. */
 var(Reflections)	const				ESceneDepthPriorityGroup	ReflectionsDPG;
+/** The individual reflection elements of the lens flare */
+var					editinline	export	array<LensFlareElement>		Reflections;
 
 /** Viewing cone angles. */
 var(Visibility)							float						OuterCone;
@@ -204,11 +216,15 @@ var(Occlusion)							rawdistributionfloat		ScreenPercentageMap;
  *	If FALSE and no static mesh is set, it will use the default bounds (likely not a good thing).
  */
 var(Bounds)								bool						bUseFixedRelativeBoundingBox;
-/** The fixed bounding box to use when bUseFixedRelativeBoundingBox is TRUE */
-var(Bounds)								box							FixedRelativeBoundingBox;
 
 /** Debugging helpers */
 var(Debug)								bool						bRenderDebugLines;
+
+/** Internal: Indicates the thumbnail image is out of date						*/
+var										bool						ThumbnailImageOutOfDate;
+
+/** The fixed bounding box to use when bUseFixedRelativeBoundingBox is TRUE */
+var(Bounds)								box							FixedRelativeBoundingBox;
 
 /** Used for curve editor to remember curve-editing setup.						*/
 var					export				InterpCurveEdSetup			CurveEdSetup;
@@ -222,8 +238,6 @@ var										rotator						ThumbnailAngle;
 /** The distance to place the system when rendering the thumbnail image			*/
 var										float						ThumbnailDistance;
 
-/** Internal: Indicates the thumbnail image is out of date						*/
-var										bool						ThumbnailImageOutOfDate;
 /** Internal: The thumbnail image												*/
 var										Texture2D					ThumbnailImage;
 

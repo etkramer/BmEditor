@@ -28,7 +28,9 @@ var	transient						bool					bHasTranslucency;
 var	transient						bool					bHasUnlitTranslucency;
 var	transient						bool					bHasUnlitDistortion;
 var	transient						bool					bUsesSceneColor;
-var	transient						bool					bHasSeparateTranslucency;
+
+/** Storage for mobile as to whether this lens flare was visible based on a line check on previous check*/
+var bool bVisibleForMobile;
 
 /** Viewing cone angles. */
 var transient						float					OuterCone;
@@ -38,9 +40,6 @@ var transient						float					Radius;
 
 /** The color of the source	*/
 var(Rendering)						linearcolor				SourceColor;
-
-/** Storage for mobile as to whether this lens flare was visible based on a line check on previous check*/
-var bool bVisibleForMobile;
 
 struct native LensFlareElementMaterials
 {
