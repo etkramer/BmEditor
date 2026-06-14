@@ -9,15 +9,39 @@ class FracturedStaticMeshActor extends Actor
 	native(Mesh)
 	placeable;
 
+enum EFractureMeshExplosionType
+{
+	FMET_SinglePart,
+	FMET_PartsInRadius,
+	FMET_AllParts
+};
+
+enum EFractureMeshExplosionBlastType
+{
+	FMEBT_Constant,
+	FMEBT_Radial,
+	FMEBT_Explode
+};
 
 /** Maximum number of rigid body parts to spawn off per actor, per frame */
 var() int MaxPartsToSpawnAtOnce;
+
+var() bool bShouldTakeDamageWhenPunched;
+var() bool UseLightingChannelFix;
+var transient bool bHasShownMissingSoundWarning;
+var() bool bBreakChunksOnActorTouch;
+var() bool bAllowDisableTick;
+var() bool bSpawnExplosionChunks;
+var() bool bAllowFracturedPartCollisions;
+var() bool bIsForceFullDestroyOnDamage;
+var() bool IsForceFullDestroyOnDamageIncludesRootFragments;
+var bool bIgnoreBulletFracture;
 
 /** Info about a fracture part that should be spawned in an upcoming Tick */
 struct native DeferredPartToSpawn
 {
 	/** Index of the chunk to spawn */
-	var int ChunkIndex;
+	var array<int> ChunkIndex;
 
 	/** Exit velocity for this chunk */
 	var vector InitialVel;
@@ -32,6 +56,37 @@ struct native DeferredPartToSpawn
 	var bool bExplosion;
 };
 
+struct native BreakOffPartsData
+{
+	var bool bWantPhysChunksAndParticles;
+	var bool bAllowDamagedEventFiring;
+	var EFractureMeshExplosionType ExplosionType;
+	var vector ExplodePosition;
+	var float ExplodeRadius;
+	var int PartIndex;
+	var EFractureMeshExplosionBlastType BlastType;
+	var vector BlastOriginOffset;
+	var float BlastOriginRadiusOverride;
+	var float ExplodeForce;
+	var vector ExplodeVelocity;
+	var vector ExplodeAngularVelocity;
+	var bool bUseCoreBlastPositionIfPossible;
+	var bool bIncludeSupportChunks;
+	var bool bSupressStateSaving;
+	var int NumPartsPerChunk;
+
+	structdefaultproperties
+	{
+		bWantPhysChunksAndParticles=true
+		bAllowDamagedEventFiring=true
+		ExplosionType=FMET_AllParts
+		BlastType=FMEBT_Constant
+		BlastOriginRadiusOverride=-1.0
+		bUseCoreBlastPositionIfPossible=true
+		NumPartsPerChunk=1
+	}
+};
+
 
 var() const editconst FracturedStaticMeshComponent	FracturedStaticMeshComponent;
 
@@ -40,12 +95,6 @@ var transient const FracturedSkinnedMeshComponent  SkinnedComponent;
 
 /** Current health of each chunk */
 var array<int> ChunkHealth;
-
-/** Used so we only display the 'missing sound' warning once */
-var transient bool bHasShownMissingSoundWarning;
-
-/** If true, detach parts when an Actor with bCanCauseFractureOnTouch contacts them. Actor must not be blocked by this FSMA. */
-var()	bool	bBreakChunksOnActorTouch;
 
 /** Set of damage types that can cause pieces to break off this FSAM. If empty, all damage types can do this. */
 var() array< class<DamageType> > FracturedByDamageType;
@@ -62,19 +111,29 @@ var()	float	FractureCullMinDistance;
 /** Maximum distance from player where actor will be allowed to fracture (scaled by global settings.) */
 var()	float	FractureCullMaxDistance;
 
+var() ERBCollisionChannel FracturePartRBChannel;
+var() RBCollisionChannelContainer FracturePartRBPartCollideWithChannels;
+
 /** Array of parts that are waiting to be spawned in an upcoming tick */
 var transient array< DeferredPartToSpawn > DeferredPartsToSpawn;
+
+var(Investigate) vector InvestigateOffset;
 
 /** Cached info for part impacts */
 var		PhysEffectInfo	PartImpactEffect;
 
 /** Cached sound for large fractures. */
-var		SoundCue		ExplosionFractureSound;
+var(Audio)	Object			ExplosionFractureSound; // BM: AkEvent
 /** Cached sound for single chunk fractures. */
-var		SoundCue		SingleChunkFractureSound;
+var(Audio)	Object			SingleChunkFractureSound; // BM: AkEvent
+var(Audio)	int				NumChunksForExplosionSound;
+var		ParticleSystem	ExplosionFractureEffect;
+var()	DynamicLightEnvironmentComponent FracturePartLightEnv;
+var()	LightingChannelContainer FracturePartLightingChannels;
 
 /** This is the material that was set on this FracuredStaticMeshActor before we overrode it with LoseChunkOutsideMaterial **/
 var transient MaterialInterface MI_LoseChunkPreviousMaterial;
+var Actor LastBreakInstigator;
 
 cpptext
 {
@@ -94,6 +153,8 @@ simulated native final function FracturedStaticMeshPart SpawnPartMulti(array<int
 simulated event PostBeginPlay()
 {
 	local PhysicalMaterial PhysMat;
+	local SoundCue LargeFractureSound;
+	local SoundCue ChunkFractureSound;
 
 	super.PostBeginPlay();
 	ResetHealth();
@@ -106,7 +167,9 @@ simulated event PostBeginPlay()
 	PhysMat = FracturedStaticMeshComponent.GetFracturedMeshPhysMaterial();
 	PartImpactEffect = PhysMat.FindPhysEffectInfo(EPMET_Impact);
 
-	PhysMat.FindFractureSounds(ExplosionFractureSound, SingleChunkFractureSound);
+	PhysMat.FindFractureSounds(LargeFractureSound, ChunkFractureSound);
+	ExplosionFractureSound = LargeFractureSound;
+	SingleChunkFractureSound = ChunkFractureSound;
 
 	ResetVisibility();
 }

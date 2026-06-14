@@ -121,9 +121,7 @@ void UFracturedStaticMesh::StaticConstructor()
 void UFracturedStaticMesh::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
-#if BATMAN
-	if (!Ar.IsBmCooked(TRUE, FALSE))
-#endif
+	if (!Ar.IsPersistent())
 	{
 		Ar << SourceStaticMesh;
 	}
@@ -2275,7 +2273,7 @@ UBOOL AFracturedStaticMeshActor::SpawnDeferredParts()
 			//   help hide that the part was missing for a frame or two
 
 			AFracturedStaticMeshPart* FracPart =
-				SpawnPart(
+				SpawnPartMulti(
 					CurDeferredPart.ChunkIndex,
 					CurDeferredPart.InitialVel,
 					CurDeferredPart.InitialAngVel,
@@ -2383,7 +2381,7 @@ void AFracturedStaticMeshActor::BreakOffPartsInRadius(FVector Origin, FLOAT Radi
 					{
 						// Add this part to the list of deferred parts to spawn
 						FDeferredPartToSpawn& DeferredPartToSpawn = DeferredPartsToSpawn( DeferredPartsToSpawn.Add() );
-						DeferredPartToSpawn.ChunkIndex = i;
+						DeferredPartToSpawn.ChunkIndex.AddItem(i);
 						DeferredPartToSpawn.InitialVel = PartVel;
 						DeferredPartToSpawn.InitialAngVel = PartAngVel;
 						DeferredPartToSpawn.RelativeScale = PartScale;
@@ -2466,9 +2464,9 @@ void AFracturedStaticMeshActor::BreakOffPartsInRadius(FVector Origin, FLOAT Radi
 	FracturedStaticMeshComponent->SetVisibleFragments(FragmentVis);
 
 	// If we broke a few pieces off - play the sound
-	if(ExplosionFractureSound && IgnoreFrags.Num() > 3)
+	if(Cast<USoundCue>(ExplosionFractureSound) && IgnoreFrags.Num() > 3)
 	{
-		PlaySound(ExplosionFractureSound, TRUE, TRUE, TRUE, &Origin, TRUE);
+		PlaySound(Cast<USoundCue>(ExplosionFractureSound), TRUE, TRUE, TRUE, &Origin, TRUE);
 	}
 
 	// If this is a physical part - reset physics state, to take notice of new hidden parts.
@@ -2671,9 +2669,9 @@ AFracturedStaticMeshPart* AFracturedStaticMeshActor::SpawnPartMulti(const TArray
 		}
 
 		// Play fracture-off sound if present.
-		if(SingleChunkFractureSound && !bExplosion)
+		if(Cast<USoundCue>(SingleChunkFractureSound) && !bExplosion)
 		{
-			PlaySound(SingleChunkFractureSound, TRUE, TRUE, TRUE, &ChunkCenter, TRUE);
+			PlaySound(Cast<USoundCue>(SingleChunkFractureSound), TRUE, TRUE, TRUE, &ChunkCenter, TRUE);
 		}
 	}
 

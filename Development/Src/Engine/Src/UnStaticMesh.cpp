@@ -1774,6 +1774,9 @@ void UStaticMesh::AddReferencedObjects( TArray<UObject*>& ObjectArray )
 		for( INT ElementIndex=0; ElementIndex<LODRenderData.Elements.Num(); ElementIndex++ ) 
 		{
 			AddReferencedObject( ObjectArray, LODRenderData.Elements(ElementIndex).Material );
+#if BATMAN
+			AddReferencedObject( ObjectArray, LODRenderData.Elements(ElementIndex).XRayMaterial );
+#endif
 		}
 	}
 }

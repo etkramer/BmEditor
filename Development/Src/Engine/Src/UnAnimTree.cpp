@@ -1199,6 +1199,9 @@ UBOOL UAnimNode::IsChildOf_Internal(UAnimNode* Node)
 /** Don't load editor only anim nodes */
 UBOOL UAnimNode::NeedsLoadForClient() const
 {
+#if BATMAN
+	return Super::NeedsLoadForClient();
+#else
 	if( bEditorOnly )
 	{
 		return 0;
@@ -1207,11 +1210,15 @@ UBOOL UAnimNode::NeedsLoadForClient() const
 	{
 		return Super::NeedsLoadForClient();
 	}
+#endif
 }
 
 /** Don't load editor only anim nodes */
 UBOOL UAnimNode::NeedsLoadForServer() const
 {
+#if BATMAN
+	return Super::NeedsLoadForServer();
+#else
 	if( bEditorOnly )
 	{
 		return 0;
@@ -1220,6 +1227,7 @@ UBOOL UAnimNode::NeedsLoadForServer() const
 	{
 		return Super::NeedsLoadForServer();
 	}
+#endif
 }
 
 void UAnimNode::PlayAnim(UBOOL bLoop, FLOAT Rate, FLOAT StartTime)

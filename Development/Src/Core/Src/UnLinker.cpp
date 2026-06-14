@@ -3799,7 +3799,29 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 			(Export.ObjectName.ToString() != "RLevelVolume") &&
 			(Export.ObjectName.ToString() != "RGameRI") &&
 			(Export.ObjectName.ToString() != "RGameInfo") &&
-			(Export.ObjectName.ToString() != "RGameInfoBase")
+			(Export.ObjectName.ToString() != "RGameInfoBase") &&
+			(Export.ObjectName.ToString() != "RHidePoint") &&
+			(Export.ObjectName.ToString() != "RHidePoint_Mesh") &&
+			(Export.ObjectName.ToString() != "RHidePoint_Gargoyle") &&
+			(Export.ObjectName.ToString() != "RPawn") &&
+			(Export.ObjectName.ToString() != "RPawnCharacter") &&
+			(Export.ObjectName.ToString() != "RPawnPlayer") &&
+			(Export.ObjectName.ToString() != "RSnapToPositionActor") &&
+			(Export.ObjectName.ToString() != "RSeqAct_SetFaceFXRegister") &&
+			(Export.ObjectName.ToString() != "RAnimUtil_PosePlayer") &&
+			(Export.ObjectName.ToString() != "RAnimUtil_OverlayPlayer") &&
+			(Export.ObjectName.ToString() != "RAnimUtil_MovementPlayer") &&
+			(Export.ObjectName.ToString() != "RAnimUtil_AnimOutput") &&
+			(Export.ObjectName.ToString() != "RAnimUtil_AdditiveAnimOutput") &&
+			(Export.ObjectName.ToString() != "RAnimUtil_AimingOutput") &&
+			(Export.ObjectName.ToString() != "RAnimUtil_MovementOutput") &&
+			(Export.ObjectName.ToString() != "RAnimUtil_Layers") &&
+			(Export.ObjectName.ToString() != "RAnimUtil") &&
+			(Export.ObjectName.ToString() != "RAnimNode_Pose") &&
+			(Export.ObjectName.ToString() != "RAnimConfig") &&
+			(Export.ObjectName.ToString() != "RPoseConfig") &&
+			(Export.ObjectName.ToString() != "AkWwise") &&
+			(Export.ObjectName.ToString() != "RGrapplePoint")
 		))
         {
 			UObject* ExistingClass = StaticFindObject(UClass::StaticClass(), NULL, *GetExportPathName(Index, NULL, TRUE), TRUE);
@@ -3818,8 +3840,6 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 			LoadClass->GetName() == "DynamicPylon" ||
 			LoadClass->GetName() == "SceneCapture2DActor" ||
 			LoadClass->GetName() == "FractureMaterial" ||
-			LoadClass->GetName() == "FracturedStaticMeshActor" ||
-			LoadClass->GetName() == "FracturedStaticMeshComponent" ||
 			LoadClass->GetName() == "ParticleSystemComponent" ||
 
 			// "TypeIndex out of range" messages with most SequenceObjects

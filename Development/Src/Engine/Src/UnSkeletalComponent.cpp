@@ -3646,6 +3646,7 @@ void USkeletalMeshComponent::ProcessRootMotion( FLOAT DeltaTime, FBoneAtom& Extr
 			PreviousRMM = RootMotionMode;
 
 			// If switching from ShouldBypassSimulatedClientPhysics to not, force a location & velocity update for replication.
+#if !BATMAN
 			if( Owner->Role != ROLE_SimulatedProxy 
 				&& PawnOwner && PawnOwner->bPrevBypassSimulatedClientPhysics && !PawnOwner->ShouldBypassSimulatedClientPhysics())
 			{
@@ -3661,12 +3662,15 @@ void USkeletalMeshComponent::ProcessRootMotion( FLOAT DeltaTime, FBoneAtom& Extr
 				// Restore Base we lost by doing a set location.
 				Owner->SetBase(OldBase, OldFloor, 0, OldBaseSkelComponent, OldBaseBoneName);
 			}
+#endif
 		}
 
+#if !BATMAN
 		if( PawnOwner )
 		{
 			PawnOwner->bPrevBypassSimulatedClientPhysics = PawnOwner->ShouldBypassSimulatedClientPhysics();
 		}
+#endif
 
 	}
 

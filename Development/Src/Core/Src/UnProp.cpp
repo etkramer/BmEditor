@@ -3096,7 +3096,10 @@ void UInterfaceProperty::Serialize( FArchive& Ar )
 	Ar << InterfaceClass;
 	if ( !HasAnyFlags(RF_ClassDefaultObject) )
 	{
+#if BATMAN
+#else
 		checkSlow(InterfaceClass);
+#endif
 	}
 }
 IMPLEMENT_CLASS(UInterfaceProperty);

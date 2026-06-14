@@ -338,6 +338,10 @@ class FStaticMeshElement
 public:
 
 	UMaterialInterface*		Material;
+#if BATMAN
+	// BM
+	UMaterialInterface*		XRayMaterial;
+#endif
 	/** A work area to hold the imported name during ASE importing (transient, should not be serialized) */
 	FString					Name;			
 
@@ -366,6 +370,9 @@ public:
 	/** Constructor. */
 	FStaticMeshElement():
 		Material(NULL),
+#if BATMAN
+		XRayMaterial(NULL),
+#endif
 		EnableCollision(FALSE),
 		OldEnableCollision(FALSE),
 		bEnableShadowCasting(TRUE),
@@ -375,6 +382,9 @@ public:
 
 	FStaticMeshElement(UMaterialInterface* InMaterial,UINT InMaterialIndex):
 		Material(InMaterial),
+#if BATMAN
+		XRayMaterial(NULL),
+#endif
 		EnableCollision(TRUE),
 		OldEnableCollision(TRUE),
 		bEnableShadowCasting(TRUE),
@@ -415,8 +425,7 @@ public:
 #if BATMAN
 		if (Ar.IsBmCooked(TRUE))
 		{
-			UMaterialInstance* XRayMaterial = NULL;
-			Ar << XRayMaterial;
+			Ar << E.XRayMaterial;
 		}
 #endif
 

@@ -342,6 +342,7 @@ public:
     BITFIELD bPushesRigidBodies:1;
     BITFIELD bForceFloorCheck:1;
     BITFIELD bForceKeepAnchor:1;
+    BITFIELD bRootMotionOverridesFallingXY:1;
     BITFIELD bCanMantle:1;
     BITFIELD bCanClimbUp:1;
     BITFIELD bCanClimbCeilings:1;
@@ -361,7 +362,6 @@ public:
     BITFIELD bModifyReachSpecCost:1;
     BITFIELD bModifyNavPointDest:1;
     BITFIELD bPathfindsAsVehicle:1;
-    BITFIELD bPrevBypassSimulatedClientPhysics:1;
     BITFIELD bRunPhysicsWithNoController:1;
     BITFIELD bForceMaxAccel:1;
     BITFIELD bLimitFallAccel:1;
@@ -374,9 +374,14 @@ private:
     BITFIELD bLockDesiredRotation:1;
     BITFIELD bUnlockWhenReached:1;
 public:
+    BITFIELD bCanTraverse:1;
+    BITFIELD bUseSimplePhysWalking:1;
+    BITFIELD bUseComplexStepUpCode:1;
+    BITFIELD bIsBatman:1;
     BITFIELD bNeedsBaseTickedFirst:1;
     BITFIELD bRootMotionFromInterpCurve:1;
     BITFIELD bDebugShowCameraLocation:1;
+    BITFIELD bAllowSlideOffEdges:1;
     SCRIPT_ALIGN;
     BYTE WalkingPhysics;
     BYTE PathSearchType;
@@ -480,9 +485,10 @@ public:
     class UPrimitiveComponent* PreRagdollCollisionComponent;
     class URB_BodyInstance* PhysicsPushBody;
     INT FailedLandingCount;
+    FVector walkFailPoint;
+    class AActor* LinkedCullPawn;
     TArrayNoInit<class UAnimNodeSlot*> SlotNodes;
     TArrayNoInit<class UInterpGroup*> InterpGroupList;
-    class UAudioComponent* FacialAudioComp;
     class UMaterialInstanceConstant* MIC_PawnMat;
     class UMaterialInstanceConstant* MIC_PawnHair;
     TArrayNoInit<struct FScalarParameterInterpStruct> ScalarParameterInterpArray;

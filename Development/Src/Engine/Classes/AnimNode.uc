@@ -31,8 +31,12 @@ var	transient const bool				bRelevant;
 var transient const bool				bJustBecameRelevant;
 /** If TRUE, this node will be ticked, even if bPauseAnims is TRUE on the SkelMeshComp. */
 var(Performance) bool					bTickDuringPausedAnims;
-/** This node is editor only and used for something like placement preview */
-var const bool                          bEditorOnly;
+/** Temporarily disable caching when calling Super::GetBoneAtoms so it's not done multiple times. */
+var const transient bool bDisableCaching;
+/** Flags to control if Script Events should be called. Note that those will affect performance, so be careful! */
+var() bool bCallScriptEventOnInit;
+var() bool bCallScriptEventOnBecomeRelevant;
+var() bool bCallScriptEventOnCeaseRelevant;
 
 /** Used to avoid ticking a node twice if it has multiple parents. */
 var	transient const int					NodeTickTag;
@@ -52,8 +56,6 @@ var duplicatetransient Array<AnimNodeBlendBase> ParentNodes;
 /** This is the name used to find an AnimNode by name from a tree. */
 var() name								NodeName;
 
-/** Temporarily disable caching when calling Super::GetBoneAtoms so it's not done multiple times. */
-var const transient bool bDisableCaching;
 /** If a node is linked to more than once in the graph, this is a cache of the results, to avoid re-evaluating the results. */
 var	transient array<BoneAtom>			CachedBoneAtoms;
 /** Num Desired Bones used in CachedBoneAtoms. If we request something different, CachedBoneAtoms array is not going to be valid. */
@@ -70,11 +72,6 @@ var const transient int SearchTag;
 
 /** Array of blended curve key for editor only **/
 var(Morph)	editoronly editconst transient array<CurveKey>	LastUpdatedAnimMorphKeys;
-
-/** Flags to control if Script Events should be called. Note that those will affect performance, so be careful! */
-var() bool bCallScriptEventOnInit;
-var() bool bCallScriptEventOnBecomeRelevant;
-var() bool bCallScriptEventOnCeaseRelevant;
 
 cpptext
 {
@@ -279,4 +276,3 @@ native function PlayAnim(bool bLoop = false, float Rate = 1.0f, float StartTime 
 native function StopAnim();
 // calls PlayAnim with the current settings
 native function ReplayAnim();	
-

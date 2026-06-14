@@ -18,6 +18,39 @@
 #ifndef INCLUDED_ENGINE_MESH_ENUMS
 #define INCLUDED_ENGINE_MESH_ENUMS 1
 
+enum ESimpleCollisionUsageType
+{
+    SCUT_Inherit            =0,
+    SCUT_Simple             =1,
+    SCUT_Complex            =2,
+    SCUT_MAX                =3,
+};
+#define FOREACH_ENUM_ESIMPLECOLLISIONUSAGETYPE(op) \
+    op(SCUT_Inherit) \
+    op(SCUT_Simple) \
+    op(SCUT_Complex) 
+enum EFractureMeshExplosionBlastType
+{
+    FMEBT_Constant          =0,
+    FMEBT_Radial            =1,
+    FMEBT_Explode           =2,
+    FMEBT_MAX               =3,
+};
+#define FOREACH_ENUM_EFRACTUREMESHEXPLOSIONBLASTTYPE(op) \
+    op(FMEBT_Constant) \
+    op(FMEBT_Radial) \
+    op(FMEBT_Explode) 
+enum EFractureMeshExplosionType
+{
+    FMET_SinglePart         =0,
+    FMET_PartsInRadius      =1,
+    FMET_AllParts           =2,
+    FMET_MAX                =3,
+};
+#define FOREACH_ENUM_EFRACTUREMESHEXPLOSIONTYPE(op) \
+    op(FMET_SinglePart) \
+    op(FMET_PartsInRadius) \
+    op(FMET_AllParts) 
 
 #endif // !INCLUDED_ENGINE_MESH_ENUMS
 #endif // !NO_ENUMS
@@ -386,6 +419,9 @@ protected:
     BITFIELD bUseDynamicIBWithHiddenFragments:1;
 private:
     INT NumResourceIndices;
+public:
+    BYTE BoxCollisionType;
+    BYTE LineCollisionType;
 protected:
     INT bResetStaticMesh;
 public:
@@ -500,6 +536,8 @@ struct FFragmentGroup
     }
 };
 
+#define UCONST_MAXMATS 10
+
 class UFracturedStaticMeshComponent : public UFracturedBaseComponent
 {
 public:
@@ -512,11 +550,14 @@ public:
     BITFIELD bUseVisibleVertsForBounds:1;
     BITFIELD bTopFragmentsRootNonDestroyable:1;
     BITFIELD bBottomFragmentsRootNonDestroyable:1;
+    BITFIELD bCopyParentMaterialInstancesOnAttach:1;
+    BITFIELD XRaySet:1;
     FLOAT TopBottomFragmentDistThreshold;
     class UMaterialInterface* LoseChunkOutsideMaterialOverride;
     FLOAT FragmentBoundsMaxZ;
     FLOAT FragmentBoundsMinZ;
     class UFracturedSkinnedMeshComponent* SkinnedComponent;
+    class UMaterialInterface* OldMaterial[10];
     //## END PROPS FracturedStaticMeshComponent
 
     void SetVisibleFragments(const TArray<BYTE>& VisibilityFactors);
@@ -662,7 +703,7 @@ protected:
 
 struct FDeferredPartToSpawn
 {
-    INT ChunkIndex;
+    TArrayNoInit<INT> ChunkIndex;
     FVector InitialVel;
     FVector InitialAngVel;
     FLOAT RelativeScale;
@@ -674,6 +715,36 @@ struct FDeferredPartToSpawn
     FDeferredPartToSpawn(EEventParm)
     {
         appMemzero(this, sizeof(FDeferredPartToSpawn));
+    }
+};
+
+struct FBreakOffPartsData
+{
+    BITFIELD bWantPhysChunksAndParticles:1;
+    BITFIELD bAllowDamagedEventFiring:1;
+    SCRIPT_ALIGN;
+    BYTE ExplosionType;
+    SCRIPT_ALIGN;
+    FVector ExplodePosition;
+    FLOAT ExplodeRadius;
+    INT PartIndex;
+    BYTE BlastType;
+    SCRIPT_ALIGN;
+    FVector BlastOriginOffset;
+    FLOAT BlastOriginRadiusOverride;
+    FLOAT ExplodeForce;
+    FVector ExplodeVelocity;
+    FVector ExplodeAngularVelocity;
+    BITFIELD bUseCoreBlastPositionIfPossible:1;
+    BITFIELD bIncludeSupportChunks:1;
+    BITFIELD bSupressStateSaving:1;
+    INT NumPartsPerChunk;
+
+    /** Constructors */
+    FBreakOffPartsData() {}
+    FBreakOffPartsData(EEventParm)
+    {
+        appMemzero(this, sizeof(FBreakOffPartsData));
     }
 };
 
@@ -740,21 +811,38 @@ class AFracturedStaticMeshActor : public AActor
 public:
     //## BEGIN PROPS FracturedStaticMeshActor
     INT MaxPartsToSpawnAtOnce;
+    BITFIELD bShouldTakeDamageWhenPunched:1;
+    BITFIELD UseLightingChannelFix:1;
+    BITFIELD bHasShownMissingSoundWarning:1;
+    BITFIELD bBreakChunksOnActorTouch:1;
+    BITFIELD bAllowDisableTick:1;
+    BITFIELD bSpawnExplosionChunks:1;
+    BITFIELD bAllowFracturedPartCollisions:1;
+    BITFIELD bIsForceFullDestroyOnDamage:1;
+    BITFIELD IsForceFullDestroyOnDamageIncludesRootFragments:1;
+    BITFIELD bIgnoreBulletFracture:1;
     class UFracturedStaticMeshComponent* FracturedStaticMeshComponent;
     class UFracturedSkinnedMeshComponent* SkinnedComponent;
     TArrayNoInit<INT> ChunkHealth;
-    BITFIELD bHasShownMissingSoundWarning:1;
-    BITFIELD bBreakChunksOnActorTouch:1;
     TArrayNoInit<class UClass*> FracturedByDamageType;
     FLOAT ChunkHealthScale;
     TArrayNoInit<class UParticleSystem*> OverrideFragmentDestroyEffects;
     FLOAT FractureCullMinDistance;
     FLOAT FractureCullMaxDistance;
+    BYTE FracturePartRBChannel;
+    SCRIPT_ALIGN;
+    FRBCollisionChannelContainer FracturePartRBPartCollideWithChannels;
     TArrayNoInit<struct FDeferredPartToSpawn> DeferredPartsToSpawn;
+    FVector InvestigateOffset;
     struct FPhysEffectInfo PartImpactEffect;
-    class USoundCue* ExplosionFractureSound;
-    class USoundCue* SingleChunkFractureSound;
+    class UObject* ExplosionFractureSound;
+    class UObject* SingleChunkFractureSound;
+    INT NumChunksForExplosionSound;
+    class UParticleSystem* ExplosionFractureEffect;
+    class UDynamicLightEnvironmentComponent* FracturePartLightEnv;
+    FLightingChannelContainer FracturePartLightingChannels;
     class UMaterialInterface* MI_LoseChunkPreviousMaterial;
+    class AActor* LastBreakInstigator;
     //## END PROPS FracturedStaticMeshActor
 
     class AFracturedStaticMeshPart* SpawnPart(INT ChunkIndex,FVector InitialVel,FVector InitialAngVel,FLOAT RelativeScale,UBOOL bExplosion);
@@ -2010,7 +2098,7 @@ VERIFY_CLASS_OFFSET_NODIE(AApexDestructibleActor,ApexDestructibleActor,LightEnvi
 VERIFY_CLASS_OFFSET_NODIE(AApexDestructibleActor,ApexDestructibleActor,FractureParticleEffects)
 VERIFY_CLASS_SIZE_NODIE(AApexDestructibleActor)
 VERIFY_CLASS_OFFSET_NODIE(AFracturedStaticMeshActor,FracturedStaticMeshActor,MaxPartsToSpawnAtOnce)
-VERIFY_CLASS_OFFSET_NODIE(AFracturedStaticMeshActor,FracturedStaticMeshActor,MI_LoseChunkPreviousMaterial)
+VERIFY_CLASS_OFFSET_NODIE(AFracturedStaticMeshActor,FracturedStaticMeshActor,LastBreakInstigator)
 VERIFY_CLASS_SIZE_NODIE(AFracturedStaticMeshActor)
 VERIFY_CLASS_OFFSET_NODIE(AFracturedStaticMeshPart,FracturedStaticMeshPart,DestroyPartRadiusFactor)
 VERIFY_CLASS_OFFSET_NODIE(AFracturedStaticMeshPart,FracturedStaticMeshPart,LastImpactSoundTime)
@@ -2095,7 +2183,7 @@ VERIFY_CLASS_OFFSET_NODIE(UFracturedSkinnedMeshComponent,FracturedSkinnedMeshCom
 VERIFY_CLASS_OFFSET_NODIE(UFracturedSkinnedMeshComponent,FracturedSkinnedMeshComponent,DependentComponents)
 VERIFY_CLASS_SIZE_NODIE(UFracturedSkinnedMeshComponent)
 VERIFY_CLASS_OFFSET_NODIE(UFracturedStaticMeshComponent,FracturedStaticMeshComponent,FragmentNeighborsVisible)
-VERIFY_CLASS_OFFSET_NODIE(UFracturedStaticMeshComponent,FracturedStaticMeshComponent,SkinnedComponent)
+VERIFY_CLASS_OFFSET_NODIE(UFracturedStaticMeshComponent,FracturedStaticMeshComponent,OldMaterial)
 VERIFY_CLASS_SIZE_NODIE(UFracturedStaticMeshComponent)
 VERIFY_CLASS_OFFSET_NODIE(UImageBasedReflectionComponent,ImageBasedReflectionComponent,ReflectionTexture)
 VERIFY_CLASS_OFFSET_NODIE(UImageBasedReflectionComponent,ImageBasedReflectionComponent,ReflectionColor)

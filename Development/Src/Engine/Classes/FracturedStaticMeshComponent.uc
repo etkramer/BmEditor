@@ -4,6 +4,8 @@
 class FracturedStaticMeshComponent extends FracturedBaseComponent
 	native(Mesh);
 
+const MAXMATS = 10;
+
 /** Stores non-zero for each fragment whose neighbors are all visible, and 0 otherwise. */
 var protected{protected} transient const array<byte> FragmentNeighborsVisible;
 
@@ -30,6 +32,8 @@ var()	bool	bTopFragmentsRootNonDestroyable;
  *	Marks chunks at bottom of mesh as 'root' and 'non destroyable'.
  */
 var()	bool	bBottomFragmentsRootNonDestroyable;
+var()	bool	bCopyParentMaterialInstancesOnAttach;
+var		bool	XRaySet;
 
 /** Threshold distance of fragment box from top/bottom of mesh to be considered for bTop/BottomFragmentsRootNonDestroyable */
 var()	float	TopBottomFragmentDistThreshold;
@@ -45,6 +49,8 @@ var		float	FragmentBoundsMinZ;
 
 /** Component which handles rendering if bUseSkinnedRendering is true. */
 var transient FracturedSkinnedMeshComponent SkinnedComponent;
+
+var MaterialInterface OldMaterial[MAXMATS];
 
 /**  */
 struct native FragmentGroup
@@ -163,5 +169,6 @@ defaultproperties
 {
 	OverriddenLightMapRes=64
 	TopBottomFragmentDistThreshold=0.1
+	bCopyParentMaterialInstancesOnAttach=TRUE
 	bUsePrecomputedShadows=TRUE
 }

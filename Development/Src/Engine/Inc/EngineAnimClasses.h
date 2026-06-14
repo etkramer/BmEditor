@@ -2101,7 +2101,6 @@ public:
     BITFIELD bRelevant:1;
     BITFIELD bJustBecameRelevant:1;
     BITFIELD bTickDuringPausedAnims:1;
-    BITFIELD bEditorOnly:1;
     BITFIELD bDisableCaching:1;
     BITFIELD bCallScriptEventOnInit:1;
     BITFIELD bCallScriptEventOnBecomeRelevant:1;

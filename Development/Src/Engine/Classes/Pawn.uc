@@ -17,6 +17,26 @@ class Pawn extends Actor
 	nativereplication
 	implements(Interface_Speaker);
 
+enum EPathSearchType
+{
+	PST_Default,
+	PST_Breadth,
+	PST_NewBestPathTo,
+	PST_Constraint,
+};
+
+struct native ScalarParameterInterpStruct
+{
+	/** Name of parameter to change */
+	var() name ParameterName;
+	/** Desired Parameter Value */
+	var() float ParameterValue;
+	/** Desired Interpolation Time */
+	var() float InterpTime;
+	/** Time before interpolation starts */
+	var() float WarmupTime;
+};
+
 var const float			MaxStepHeight,
 						MaxJumpHeight;
 var const float			WalkableFloorZ;		/** minimum z value for floor normal (if less, not a walkable floor for this pawn) */
@@ -43,18 +63,11 @@ var bool bScriptTickSpecial;
 var bool		bUpAndOut;			// used by swimming
 var bool		bIsWalking;			// currently walking (can't jump, affects animations)
 
-/** Physics to use when walking. Typically set to PHYS_Walking or PHYS_NavMeshWalking */
-var(Movement) EPhysics  WalkingPhysics;
-
 // Crouching
 var				bool	bWantsToCrouch;		// if true crouched (physics will automatically reduce collision height to CrouchHeight)
 var		const	bool	bIsCrouched;		// set by physics to specify that pawn is currently crouched
 var		const	bool	bTryToUncrouch;		// when auto-crouch during movement, continually try to uncrouch
 var()			bool	bCanCrouch;			// if true, this pawn is capable of crouching
-var		const	float	UncrouchTime;		// when auto-crouch during movement, continually try to uncrouch once this decrements to zero
-var				float	CrouchHeight;		// CollisionHeight when crouching
-var				float	CrouchRadius;		// CollisionRadius when crouching
-var		const	int		FullHeight;			// cached for pathfinding
 
 var bool		bCrawler;			// crawling - pitch and roll based on surface pawn is on
 
@@ -81,6 +94,7 @@ var bool		bDirectHitWall;		// always call pawn hitwall directly (no controller n
 var const bool	bPushesRigidBodies;	// Will do a check to find nearby PHYS_RigidBody actors and will give them a 'soft' push.
 var	bool		bForceFloorCheck;	// force the pawn in PHYS_Walking to do a check for a valid floor even if he hasn't moved.	Cleared after next floor check.
 var bool		bForceKeepAnchor;	// Force ValidAnchor function to accept any non-NULL anchor as valid (used to override when we want to set anchor for path finding)
+var bool		bRootMotionOverridesFallingXY;
 
 var config bool bCanMantle;			// can this pawn mantle over cover
 var config bool bCanClimbUp;		// can this pawn climb up cover wall
@@ -108,21 +122,55 @@ var		bool	bModifyReachSpecCost;	// pawn should call virtual function to modify r
 var		bool	bModifyNavPointDest;	// pawn should call virtual function to modify destination location when moving to nav point
 /** set if Pawn counts as a vehicle for pathfinding checks (so don't use bBlockedForVehicles nodes, etc) */
 var bool bPathfindsAsVehicle;
+var	bool	bRunPhysicsWithNoController;	// When there is no Controller, Walking Physics abort and force a velocity and acceleration of 0. Set this to TRUE to override.
+var bool	bForceMaxAccel;	// ignores Acceleration component, and forces max AccelRate to drive Pawn at full velocity.
+var bool	bLimitFallAccel; // should acceleration be limited (by a factor of GroundSpeed and AirControl) when in PHYS_Falling?
+var bool bReplicateHealthToAll; /** if true, replicate this Pawn's health to all clients; otherwise, only if owned by or ViewTarget of a client */
+/** this flag forces APawn::CalcVelocity() to just use RMVelocity directly */
+var bool bForceRMVelocity;
+/** this flag forces APawn::CalcVelocity() to never use root motion derived velocity */
+var bool bForceRegularVelocity;
+var bool				bPlayedDeath;			// set when death animation has been played (used in network games)
+/** DesiredRotation is set by somebody - Pawn's default behavior (using direction for desiredrotation) does not work **/
+var				const private{private} bool		bDesiredRotationSet;
+/** Do not overwrite current DesiredRotation **/
+var				const private{private} bool		bLockDesiredRotation;
+/** Unlock DesiredRotation when Reached to the destination
+  * This is used when bLockDesiredRotation=TRUE
+  * This will set bLockDesiredRotation = FALSE when reached to DesiredRotation
+  */
+var				const private{private} bool		bUnlockWhenReached;
+var bool		bCanTraverse;
+var bool		bUseSimplePhysWalking;
+var bool		bUseComplexStepUpCode;
+var bool		bIsBatman;
+/** Controls whether the pawn needs the base ticked before this one can be ticked */
+var bool bNeedsBaseTickedFirst;
+/** Whether root motion should be extracted from the interp curve or not */
+/** NOTE: Currently assumes blending isn't altering the root bone */
+var bool					bRootMotionFromInterpCurve;
+//debug
+var(Debug) bool bDebugShowCameraLocation;
+var bool		bAllowSlideOffEdges;
+
+/** Physics to use when walking. Typically set to PHYS_Walking or PHYS_NavMeshWalking */
+var(Movement) EPhysics  WalkingPhysics;
+
+var EPathSearchType	PathSearchType;
+
+/** replicated to we can see where remote clients are looking */
+var		const	byte	RemoteViewPitch;
+/** increased when weapon fires. 0 = not firing. 1 - 255 = firing */
+var repnotify	byte	FlashCount;
+/** firing mode used when firing */
+var	repnotify	byte	FiringMode;
+
+var		const	float	UncrouchTime;		// when auto-crouch during movement, continually try to uncrouch once this decrements to zero
+var				float	CrouchHeight;		// CollisionHeight when crouching
+var				float	CrouchRadius;		// CollisionRadius when crouching
+var		const	int		FullHeight;			// cached for pathfinding
 /** Pawn multiplies cost of NavigationPoints that don't have bPreferredVehiclePath set by this number */
 var float NonPreferredVehiclePathMultiplier;
-
-/** Previously used ShouldBypassSimulatedClientPhysics flag **/
-var bool bPrevBypassSimulatedClientPhysics;
-
-// AI basics.
-enum EPathSearchType
-{
-	PST_Default,
-	PST_Breadth,
-	PST_NewBestPathTo,
-	PST_Constraint,
-};
-var EPathSearchType	PathSearchType;
 
 /** List of search constraints for pathing */
 var PathConstraint		PathConstraintList;
@@ -152,8 +200,6 @@ var		float	SpawnTime;			// worldinfo time when this pawn was spawned
 var		int		MaxPitchLimit;		// limit on view pitching
 
 // Movement.
-var	bool	bRunPhysicsWithNoController;	// When there is no Controller, Walking Physics abort and force a velocity and acceleration of 0. Set this to TRUE to override.
-var bool	bForceMaxAccel;	// ignores Acceleration component, and forces max AccelRate to drive Pawn at full velocity.
 var float	GroundSpeed;	// The maximum ground speed.
 var float	WaterSpeed;		// The maximum swimming speed.
 var float	AirSpeed;		// The maximum flying speed.
@@ -162,7 +208,6 @@ var float	AccelRate;		// max acceleration rate
 var float	JumpZ;			// vertical acceleration w/ jump
 var float	OutofWaterZ;	/** z velocity applied when pawn tries to get out of water */
 var float	MaxOutOfWaterStepHeight;	/** Maximum step height for getting out of water */
-var bool	bLimitFallAccel; // should acceleration be limited (by a factor of GroundSpeed and AirControl) when in PHYS_Falling?
 var float	AirControl;		// amount of AirControl available to the pawn
 var float	WalkingPct;		// pct. of running speed that walking speed is
 var float	MovementSpeedModifier; // a modifier that can be used to override the movement speed.
@@ -179,7 +224,6 @@ var float			SplashTime;		// time of last splash
 var transient PhysicsVolume HeadVolume;		// physics volume of head
 var() int Health;		/** amount of health this Pawn has */
 var() int HealthMax;		/** normal maximum health of Pawn - defaults to default.Health unless explicitly set otherwise */
-var bool bReplicateHealthToAll; /** if true, replicate this Pawn's health to all clients; otherwise, only if owned by or ViewTarget of a client */
 var	float			BreathTime;		// used for getting BreathTimer() messages (for no air, etc.)
 var float			UnderWaterTime; // how much time pawn can go without air (in seconds)
 var	float			LastPainTime;	// last time pawn played a takehit animation (updated in PlayHit())
@@ -187,12 +231,6 @@ var float           KismetDeathDelayTime;
 
 /** RootMotion derived velocity calculated by APawn::CalcVelocity() (used when replaying client moves in net games (since can't rely on animation when replaying moves)) */
 var vector RMVelocity;
-
-/** this flag forces APawn::CalcVelocity() to just use RMVelocity directly */
-var bool bForceRMVelocity;
-
-/** this flag forces APawn::CalcVelocity() to never use root motion derived velocity */
-var bool bForceRegularVelocity;
 
 // Sound and noise management
 // remember location and position of last noises propagated
@@ -225,8 +263,6 @@ var float LastStartTime;
 var vector				TakeHitLocation;		// location of last hit (for playing hit/death anims)
 var class<DamageType>	HitDamageType;			// damage type of last hit (for playing hit/death anims)
 var vector				TearOffMomentum;		// momentum to apply when torn off (bTearOff == true)
-var bool				bPlayedDeath;			// set when death animation has been played (used in network games)
-
 var() SkeletalMeshComponent	Mesh;
 
 var	CylinderComponent		CylinderComponent;
@@ -237,9 +273,6 @@ var()	float				RBPushStrength;
 var	repnotify	Vehicle DrivenVehicle;
 
 var float AlwaysRelevantDistanceSquared;	// always relevant to other clients if closer than this distance to viewer, and have controller
-
-/** replicated to we can see where remote clients are looking */
-var		const	byte	RemoteViewPitch;
 
 /** Radius that is checked for nearby vehicles when pressing use */
 var() float	VehicleCheckRadius;
@@ -254,15 +287,6 @@ var		int		AllowedYawError;
 /** Desired Target Rotation : Physics will smoothly rotate actor to this rotation **/
 /** In future I will uncomment this change. Currently Actor has the variable.**/
 var(Movement)	const rotator     DesiredRotation;
-/** DesiredRotation is set by somebody - Pawn's default behavior (using direction for desiredrotation) does not work **/
-var				const private{private} bool		bDesiredRotationSet;
-/** Do not overwrite current DesiredRotation **/
-var				const private{private} bool		bLockDesiredRotation;
-/** Unlock DesiredRotation when Reached to the destination
-  * This is used when bLockDesiredRotation=TRUE
-  * This will set bLockDesiredRotation = FALSE when reached to DesiredRotation
-  */
-var				const private{private} bool		bUnlockWhenReached;
 /** Inventory Manager */
 var class<InventoryManager>		InventoryManagerClass;
 var repnotify InventoryManager			InvManager;
@@ -283,10 +307,6 @@ var repnotify	vector	FlashLocation;
  * so that if a client missed the clear due to low net update rate, it still gets the new firing location
  */
 var vector LastFiringFlashLocation;
-/** increased when weapon fires. 0 = not firing. 1 - 255 = firing */
-var repnotify	byte	FlashCount;
-/** firing mode used when firing */
-var	repnotify	byte	FiringMode;
 /** tracks the number of consecutive shots. Note that this is not replicated, so it's not correct on remote clients. It's only updated when the pawn is relevant. */
 var				int		ShotCount;
 
@@ -301,44 +321,24 @@ var	RB_BodyInstance		PhysicsPushBody;
  */
 var int FailedLandingCount;
 
-/** Controls whether the pawn needs the base ticked before this one can be ticked */
-var bool bNeedsBaseTickedFirst;
+var Vector walkFailPoint;
+var Actor LinkedCullPawn;
 
 /** Array of Slots */
 var transient Array<AnimNodeSlot>	SlotNodes;
 /** List of Matinee InterpGroup controlling this actor. */
 var transient Array<InterpGroup>	InterpGroupList;
 
-/** AudioComponent used by FaceFX */
-var	transient protected AudioComponent				FacialAudioComp;
-
 /** General material used to control common pawn material parameters (e.g. burning) */
 var protected transient MaterialInstanceConstant MIC_PawnMat;
 var protected transient MaterialInstanceConstant MIC_PawnHair;
 
-struct native ScalarParameterInterpStruct
-{
-	/** Name of parameter to change */
-	var() Name ParameterName;
-	/** Desired Parameter Value */
-	var() float ParameterValue;
-	/** Desired Interpolation Time */
-	var() float InterpTime;
-	/** Time before interpolation starts */
-	var() float WarmUpTime;
-};
 var() Array<ScalarParameterInterpStruct> ScalarParameterInterpArray;
 
-/** Whether root motion should be extracted from the interp curve or not */
-/** NOTE: Currently assumes blending isn't altering the root bone */
-var bool					bRootMotionFromInterpCurve;
 var RootMotionCurve			RootMotionInterpCurve;
 var float					RootMotionInterpRate;
 var float					RootMotionInterpCurrentTime;
 var Vector					RootMotionInterpCurveLastValue;
-
-//debug
-var(Debug) bool bDebugShowCameraLocation;
 
 cpptext
 {
@@ -796,12 +796,6 @@ event StopActorFaceFXAnim()
 	Mesh.StopFaceFXAnim();
 }
 
-/** Used to let FaceFX know what component to play dialogue audio on. */
-simulated event AudioComponent GetFaceFXAudioComponent()
-{
-	return FacialAudioComp;
-}
-
 /**
  * Returns TRUE if Actor is playing a FaceFX anim.
  * Implement in sub-class.
@@ -825,13 +819,6 @@ simulated function OnPlayFaceFXAnim(SeqAct_PlayFaceFXAnim inAction)
 {
 	//`log("Play FaceFX animation from KismetAction for" @ Self @ "GroupName:" @ inAction.FaceFXGroupName @ "AnimName:" @ inAction.FaceFXAnimName);
 	Mesh.PlayFaceFXAnim(inAction.FaceFXAnimSetRef, inAction.FaceFXAnimName, inAction.FaceFXGroupName, inAction.SoundCueToPlay);
-}
-
-/**
- * Called via delegate when FacialAudioComp is finished.
- */
-simulated function FaceFXAudioFinished(AudioComponent AC)
-{
 }
 
 /** Used by Matinee in-game to mount FaceFXAnimSets before playing animations. */
@@ -2182,11 +2169,6 @@ event PostBeginPlay()
 	if ( WorldInfo.bStartup && (Health > 0) && !bDontPossess )
 	{
 		SpawnDefaultController();
-	}
-
-	if( FacialAudioComp != None )
-	{
-		FacialAudioComp.OnAudioFinished = FaceFXAudioFinished;
 	}
 
 	// Spawn Inventory Container

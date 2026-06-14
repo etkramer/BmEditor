@@ -6,6 +6,13 @@ class FracturedBaseComponent extends StaticMeshComponent
 	native(Mesh)
 	abstract;
 
+enum ESimpleCollisionUsageType
+{
+	SCUT_Inherit,
+	SCUT_Simple,
+	SCUT_Complex
+};
+
 /** This component's index buffer, used for rendering when bUseDynamicIndexBuffer is true. */
 var protected{protected} const native transient pointer ComponentBaseResources{class FFracturedBaseResources};
 
@@ -41,6 +48,9 @@ var protected{protected} const bool bUseDynamicIBWithHiddenFragments;
  * Used to detect when the resource's index buffer has changed and the component's index buffer should be rebuilt.
  */
 var private{private} const int NumResourceIndices;
+
+var(Collision) ESimpleCollisionUsageType BoxCollisionType;
+var(Collision) ESimpleCollisionUsageType LineCollisionType;
 
 /** TRUE whenever the static mesh is being reset during Reattach */
 var protected{protected} transient const int bResetStaticMesh;
