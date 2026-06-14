@@ -15,16 +15,7 @@ class PhysicsVolume extends Volume
 var()		interp vector		ZoneVelocity;
 
 var()		bool				bVelocityAffectsWalking;	// Will the zone velocity affect walking?
-var()		float				GroundFriction;				// This property allows you to control how much friction you will have as you move across the ground while within the volume. This can be used to simulate slippery surfaces such as ice or oil
-var()		float				TerminalVelocity;			// Terminal velocity
-var()		float				DamagePerSec;				// This property allows a volume to damage a player as long as they are within it. Using a negative value will allow the volume to have a regenerative effect. NB. bPainCausing must be set to TRUE to activate this
-var()		class<DamageType>	DamageType<AllowAbstract>;	// When damage is applied to an object, it is done so using a specific DamageType. Each available DamageType has a KDamageImpulse property which controls the magnitude of the impulse to be applied along the momentum vector. Runtime users should be aware that due to the lack of default weapons and the limited number of damage types, this property will not be extremely useful.
-var()		int					Priority;					// This property determines which PhysicsVolume takes precedence if they overlap
-var()		float				FluidFriction;				// This property controls the amount of friction applied by the volume as you move through it. The higher this value, the harder it will feel to move through
-
 var()		bool				bPainCausing;				// This property activates the ability to cause damage. Used in conjunction with DamagePerSecond and PainInterval
-
-var()		float				PainInterval;				// Amount of time, in seconds, between damage applications. NB. bPainCausing must be set to TRUE to activate this
 var()		bool				bAIShouldIgnorePain;		// If this property is TRUE AI should not treat paths inside this volume differently even if the volume causes pain
 var()		bool				bEntryPain;					// This property describes whether or not pain should be caused when something enters the volume - this is in addition to damage per second. NB. bPainCausing must be set to TRUE to activate this
 var			bool				BACKUP_bPainCausing;
@@ -36,16 +27,29 @@ var()		bool				bNeutralZone;				// Players can't take damage in this zone
 
 var()		bool				bCrowdAgentsPlayDeathAnim;	// If TRUE, crowd agents entering this volume play their death animation
 var()		bool				bPhysicsOnContact;			// By default, the origin of an Actor must be inside a PhysicsVolume for it to affect it. If this flag is true though, if this Actor touches the volume at all, it will affect it
-var()		float				RigidBodyDamping;			// This controls the force that will be applied to PHYS_RigidBody objects in this volume to get them to match the ZoneVelocity
+var			bool				bWaterVolume;				// If set to TRUE, this volume becomes a water volume - applying FluidFriction and allowing sound effects etc as the player enters and exits the water
+// BM
+var			bool				bWindVolume;
+var			bool				bPerformTorque;
 
+var()		float				GroundFriction;				// This property allows you to control how much friction you will have as you move across the ground while within the volume. This can be used to simulate slippery surfaces such as ice or oil
+var()		float				TerminalVelocity;			// Terminal velocity
+var()		float				DamagePerSec;				// This property allows a volume to damage a player as long as they are within it. Using a negative value will allow the volume to have a regenerative effect. NB. bPainCausing must be set to TRUE to activate this
+var()		class<DamageType>	DamageType<AllowAbstract>;	// When damage is applied to an object, it is done so using a specific DamageType. Each available DamageType has a KDamageImpulse property which controls the magnitude of the impulse to be applied along the momentum vector. Runtime users should be aware that due to the lack of default weapons and the limited number of damage types, this property will not be extremely useful.
+var()		int					Priority;					// This property determines which PhysicsVolume takes precedence if they overlap
+var()		float				FluidFriction;				// This property controls the amount of friction applied by the volume as you move through it. The higher this value, the harder it will feel to move through
+var()		float				PainInterval;				// Amount of time, in seconds, between damage applications. NB. bPainCausing must be set to TRUE to activate this
+var()		float				RigidBodyDamping;			// This controls the force that will be applied to PHYS_RigidBody objects in this volume to get them to match the ZoneVelocity
 var()		float				MaxDampingForce;			// Applies a cap on the maximum damping force that is applied to objects
 
-var			bool				bWaterVolume;				// If set to TRUE, this volume becomes a water volume - applying FluidFriction and allowing sound effects etc as the player enters and exits the water
 var			Info				PainTimer;
 
 var			Controller			DamageInstigator;			// Controller that gets credit for any damage caused by this volume
 
 var			PhysicsVolume		NextPhysicsVolume;
+// BM
+var			vector				ZoneTorque;
+var			vector				BACKUP_ZoneVelocity;
 
 struct CheckpointRecord
 {

@@ -367,10 +367,10 @@ public:
     BITFIELD bLOSflag:1;
     BITFIELD bSkipExtraLOSChecks:1;
     BITFIELD bNotifyFallingHitWall:1;
-    BITFIELD bEarlyOutOfSighTestsForSameType:1;
     BITFIELD bPreciseDestination:1;
     BITFIELD bSeeFriendly:1;
     BITFIELD bUsingPathLanes:1;
+    BITFIELD bEarlyOutOfSighTestsForSameType:1;
     SCRIPT_ALIGN;
     BYTE bFire;
     BYTE bAltFire;
@@ -1126,6 +1126,21 @@ struct FDebugTextInfo
     }
 };
 
+struct FAmbientSoundStruct
+{
+    INT AmbientSound_ReferenceNumber;
+    class USoundCue* AmbientSound_Cue;
+    INT AmbientSound_Priority;
+    FLOAT AmbientSound_Time;
+
+    /** Constructors */
+    FAmbientSoundStruct() {}
+    FAmbientSoundStruct(EEventParm)
+    {
+        appMemzero(this, sizeof(FAmbientSoundStruct));
+    }
+};
+
 #define UCONST_MAXCLIENTUPDATEINTERVAL 0.25
 #define UCONST_CLIENTADJUSTUPDATECOST 180.0
 #define UCONST_MAXVEHICLEPOSITIONERRORSQUARED 900.0
@@ -1702,6 +1717,7 @@ public:
     class UPlayer* Player;
     class ACamera* PlayerCamera;
     class UClass* CameraClass;
+    class UForceFeedbackWaveform* simpleFFWaveform;
     BITFIELD bFrozen:1;
     BITFIELD bPressedJump:1;
     BITFIELD bDoubleJump:1;
@@ -1715,7 +1731,6 @@ public:
     BITFIELD bWasSpeedHack:1;
     BITFIELD bWasSaturated:1;
     BITFIELD bAimingHelp:1;
-    BITFIELD bCameraCut:1;
     BITFIELD bClientSimulatingViewTarget:1;
     BITFIELD bHasVoiceHandshakeCompleted:1;
     BITFIELD bCinematicMode:1;
@@ -1731,7 +1746,10 @@ public:
     BITFIELD bBlockCameraAnimsFromOverridingPostProcess:1;
     BITFIELD bLogHearSoundOverflow:1;
     BITFIELD bCheckRelevancyThroughPortals:1;
+    BITFIELD bControllerWasDisconnected:1;
+    BITFIELD bDidLoseFocusDeferPause:1;
     BITFIELD bDebugClientAdjustPosition:1;
+    BITFIELD bCameraCut:1;
     FLOAT MaxResponseTime;
     FLOAT WaitDelay;
     class APawn* AcknowledgedPawn;
@@ -1794,7 +1812,6 @@ public:
     FLOAT LastBroadcastTime;
     FStringNoInit LastBroadcastString[4];
     TArrayNoInit<FName> PendingMapChangeLevelNames;
-    class ACoverReplicator* MyCoverReplicator;
     TArrayNoInit<struct FDebugTextInfo> DebugTextList;
     FLOAT SpectatorCameraSpeed;
     class UNetConnection* PendingSwapConnection;
@@ -1803,7 +1820,12 @@ public:
     TArrayNoInit<class UAudioComponent*> HearSoundActiveComponents;
     TArrayNoInit<class UAudioComponent*> HearSoundPoolComponents;
     TArrayNoInit<class AActor*> HiddenActors;
+    TArrayNoInit<struct FAmbientSoundStruct> AmbientSoundStack;
+    class UAudioComponent* AmbCurrentSoundPtr;
+    class UAudioComponent* AmbOtherSoundPtr;
     FLOAT LastSpectatorStateSynchTime;
+    class USeqAct_Latent* ActiveDialogueOptions;
+    class ACoverReplicator* MyCoverReplicator;
     FScriptDelegate __OnMissingPeersUnregistered__Delegate;
     FScriptDelegate __CanUnpause__Delegate;
     FScriptDelegate __InputMatchDelegate__Delegate;

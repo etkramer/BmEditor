@@ -17,6 +17,8 @@ class PlayerController extends Controller
 var const				Player		Player;						// Player info
 var(Camera) editinline	Camera		PlayerCamera;				// Camera associated with this Player Controller
 var const class<Camera>				CameraClass;				// Camera class to use for the PlayerCamera
+// BM
+var ForceFeedbackWaveform simpleFFWaveform;
 
 // Player control flags
 var					bool			bFrozen;					// Set when game ends or player dies to temporarily prevent player from restarting (until cleared by timer)
@@ -33,20 +35,58 @@ var const bool	bPendingDestroy;		// when true, playercontroller is being destroy
 var bool bWasSpeedHack;
 var const bool bWasSaturated;		// used by servers to identify saturated client connections
 var globalconfig bool bAimingHelp;
+/** True if clients are handling setting their own viewtarget and the server should not replicate it (e.g. during certain matinees) */
+var bool							bClientSimulatingViewTarget;
+/** Indicates that the server and client */
+var bool bHasVoiceHandshakeCompleted;
+/** Is this player currently in cinematic mode?  Prevents rotation/movement/firing/etc */
+var		bool		bCinematicMode;
+/** The state of the inputs from cinematic mode */
+var bool bCinemaDisableInputMove, bCinemaDisableInputLook;
+/** Whether to ignore network error messages from now on */
+var bool bIgnoreNetworkMessages;
+var bool	bReplicateAllPawns;			// if true, all pawns will be considered relevant
+/** Whether this controller is using streaming volumes  **/
+var bool bIsUsingStreamingVolumes;
+/** True if there is externally controlled UI that should pause the game */
+var bool bIsExternalUIOpen;
+/** True if the controller is connected for this player */
+var bool bIsControllerConnected;
+/** If true, do a trace to check if sound is occluded, and reduce the effective sound radius if so */
+var bool bCheckSoundOcclusion;
+/** Whether to print the list of current camera anims to the screen */
+var bool bDebugCameraAnims;
+/** Whether camera anims should be blocked from overriding post process */
+var bool bBlockCameraAnimsFromOverridingPostProcess;
+/** option to print out list of sounds when MaxConcurrentHearSounds is exceeded */
+var globalconfig bool bLogHearSoundOverflow;
+/** if true, check relevancy of Actors through portals listed in VisiblePortals array */
+var globalconfig bool bCheckRelevancyThroughPortals;
+// BM
+var transient bool bControllerWasDisconnected;
+var transient bool bDidLoseFocusDeferPause;
+//debug
+var(Debug) bool bDebugClientAdjustPosition;
 
 var float MaxResponseTime;		 // how long server will wait for client move update before setting position
 var					float			WaitDelay;					// Delay time until can restart
 var					pawn			AcknowledgedPawn;			// Used in net games so client can acknowledge it possessed a pawn
 
 var					eDoubleClickDir	DoubleClickDir;				// direction of movement key double click (for special moves)
+/** Ignores movement input. Stacked state storage, Use accessor function IgnoreMoveInput() */
+var byte	bIgnoreMoveInput;
+/** Ignores look input. Stacked state storage, use accessor function IgnoreLookInput(). */
+var byte	bIgnoreLookInput;
+var input byte bRun, bDuck;
+/** index identifying players using the same base connection (splitscreen clients)
+ * Used by netcode to match replicated PlayerControllers to the correct splitscreen viewport and child connection
+ * replicated via special internal code, not through normal variable replication
+ */
+var const duplicatetransient byte NetPlayerIndex;
 
 // Camera info.
 var const			actor			ViewTarget;
 var PlayerReplicationInfo			RealViewTarget;
-var transient bool					bCameraCut;					// Whether we did a camera cut this frame. Automatically reset to FALSE every frame.
-
-/** True if clients are handling setting their own viewtarget and the server should not replicate it (e.g. during certain matinees) */
-var bool							bClientSimulatingViewTarget;
 
 /** Director track that's currently possessing this player controller, or none if not possessed. */
 var transient InterpTrackInstDirector ControllingDirTrackInst;
@@ -148,9 +188,6 @@ var transient ForceFeedbackManager ForceFeedbackManager;
 // Interactions.
 var	transient			array<interaction>		Interactions;
 
-/** Indicates that the server and client */
-var bool bHasVoiceHandshakeCompleted;
-
 /** List of players that are explicitly muted (outside of gameplay) */
 var array<UniqueNetId> VoiceMuteList;
 
@@ -186,26 +223,11 @@ var OnlineVoiceInterface VoiceInterface;
 /** The data store that holds any online player data */
 var UIDataStore_OnlinePlayerData OnlinePlayerData;
 
-/** Ignores movement input. Stacked state storage, Use accessor function IgnoreMoveInput() */
-var byte	bIgnoreMoveInput;
-
-/** Ignores look input. Stacked state storage, use accessor function IgnoreLookInput(). */
-var byte	bIgnoreLookInput;
-
 /** Maximum distance to search for interactable actors */
 var config float InteractDistance;
 
-/** Is this player currently in cinematic mode?  Prevents rotation/movement/firing/etc */
-var		bool		bCinematicMode;
-
-/** The state of the inputs from cinematic mode */
-var bool bCinemaDisableInputMove, bCinemaDisableInputLook;
-
 /** Used to cache the session name to join until the timer fires */
 var name DelayedJoinSessionName;
-
-/** Whether to ignore network error messages from now on */
-var bool bIgnoreNetworkMessages;
 
 // PLAYER INPUT MATCHING =============================================================
 
@@ -272,30 +294,11 @@ var array<InputMatchRequest> InputRequests;
 
 // MISC VARIABLES ====================================================================
 
-var input byte bRun, bDuck;
-
 var float LastBroadcastTime;
 var string LastBroadcastString[4];
 
-var bool	bReplicateAllPawns;			// if true, all pawns will be considered relevant
-
 /** list of names of levels the server is in the middle of sending us for a PrepareMapChange() call */
 var array<name> PendingMapChangeLevelNames;
-
-/** Whether this controller is using streaming volumes  **/
-var bool bIsUsingStreamingVolumes;
-
-/** True if there is externally controlled UI that should pause the game */
-var bool bIsExternalUIOpen;
-
-/** True if the controller is connected for this player */
-var bool bIsControllerConnected;
-
-/** If true, do a trace to check if sound is occluded, and reduce the effective sound radius if so */
-var bool bCheckSoundOcclusion;
-
-/** handles copying and replicating old cover changes from WorldInfo.CoverReplicatorBase on creation as well as replicating new changes */
-var CoverReplicator MyCoverReplicator;
 
 /** List of actors and debug text to draw, @see AddDebugText(), RemoveDebugText(), and DrawDebugTextList() */
 struct native DebugTextInfo
@@ -325,20 +328,17 @@ struct native DebugTextInfo
 };
 var private array<DebugTextInfo> DebugTextList;
 
-/** Whether to print the list of current camera anims to the screen */
-var bool bDebugCameraAnims;
-
-/** Whether camera anims should be blocked from overriding post process */
-var bool bBlockCameraAnimsFromOverridingPostProcess;
+// BM
+struct native AmbientSoundStruct
+{
+	var int AmbientSound_ReferenceNumber;
+	var SoundCue AmbientSound_Cue;
+	var int AmbientSound_Priority;
+	var float AmbientSound_Time;
+};
 
 /** How fast spectator camera is allowed to move */
 var float SpectatorCameraSpeed;
-
-/** index identifying players using the same base connection (splitscreen clients)
- * Used by netcode to match replicated PlayerControllers to the correct splitscreen viewport and child connection
- * replicated via special internal code, not through normal variable replication
- */
-var const duplicatetransient byte NetPlayerIndex;
 
 /** this is set on the OLD PlayerController when performing a swap over a network connection
  * so we know what connection we're waiting on acknowledgement from to finish destroying this PC
@@ -355,14 +355,13 @@ var globalconfig int MaxConcurrentHearSounds;
 var array<AudioComponent> HearSoundActiveComponents;
 var array<AudioComponent> HearSoundPoolComponents;
 
-/** option to print out list of sounds when MaxConcurrentHearSounds is exceeded */
-var globalconfig bool bLogHearSoundOverflow;
-
 /** the actors which the camera shouldn't see - e.g. used to hide actors which the camera penetrates */
 var array<Actor> HiddenActors;
 
-/** if true, check relevancy of Actors through portals listed in VisiblePortals array */
-var globalconfig bool bCheckRelevancyThroughPortals;
+// BM
+var array<AmbientSoundStruct> AmbientSoundStack;
+var AudioComponent AmbCurrentSoundPtr;
+var AudioComponent AmbOtherSoundPtr;
 
 /** Different types of progress messages */
 enum EProgressMessageType
@@ -399,8 +398,12 @@ enum EProgressMessageType
 /** Used to make sure the client is kept synchronized when in a spectator state */
 var float LastSpectatorStateSynchTime;
 
-//debug
-var(Debug) bool bDebugClientAdjustPosition;
+// BM
+var SeqAct_Latent ActiveDialogueOptions;
+
+var transient bool					bCameraCut;					// Whether we did a camera cut this frame. Automatically reset to FALSE every frame.
+/** handles copying and replicating old cover changes from WorldInfo.CoverReplicatorBase on creation as well as replicating new changes */
+var CoverReplicator MyCoverReplicator;
 
 cpptext
 {

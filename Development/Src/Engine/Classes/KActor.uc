@@ -27,26 +27,58 @@ cpptext
 	virtual void TickSpecial(FLOAT DeltaSeconds);
 }
 
+// BM
+struct native AkSoundHandle_Mirror
+{
+	var int EventInstanceID;
+	var int OriginalEventID;
+	var int SourceID;
+};
+
+// BM
+struct native AkSoundLoop_Mirror
+{
+	var object SoundEvent;
+	var AkSoundHandle_Mirror SoundHandle;
+};
+
 var()	bool	bDamageAppliesImpulse;
 var() repnotify bool bWakeOnLevelStart;
 
+var				bool						bCurrentSlide;
+var				bool						bSlideActive;
+// BM
+var()	bool	bDontBlockActors;
+/** Enable 'Stay upright' torque, that tries to keep Z axis of KActor pointing along world Z */
+var(StayUprightSpring)	bool		bEnableStayUprightSpring;
+/** If TRUE limit the maximum speed this object can move. */
+var()	bool	bLimitMaxPhysicsVelocity;
+/** whether we need to replicate RBState - used to avoid it for bNoDelete KActors that haven't moved or been awakened yet
+ * as in that case the client should already have the same data
+ */
+var transient bool	bNeedsRBStateReplication;
+/**
+ * Set TRUE to disable collisions with Pawn rigid bodies on clients.  Set this to true if using optimizations that
+ * could cause the server to miss or ignore contacts that the client might dtect with this KActor, which could cause
+ * vibration, rubberbanding, and general visual badness.
+ */
+var bool			bDisableClientSidePawnInteractions;
+
 // Impact effects
 var				ParticleSystemComponent		ImpactEffectComponent;
-var				AudioComponent				ImpactSoundComponent;
-var				AudioComponent				ImpactSoundComponent2; // @TODO: This could be turned into a dynamic array; but for the moment just 2 will do.
+// BM
+var				object						ImpactSoundEvent;
 var				float						LastImpactTime;
 var				PhysEffectInfo				ImpactEffectInfo;
+// BM
+var				object						ImpactForceComponent;
 
 // Slide effects
 var				ParticleSystemComponent		SlideEffectComponent;
-var				AudioComponent				SlideSoundComponent;
-var				bool						bCurrentSlide;
-var				bool						bSlideActive;
+// BM
+var				AkSoundLoop_Mirror			SlideSoundLoop;
 var				float						LastSlideTime;
 var				PhysEffectInfo				SlideEffectInfo;
-
-/** Enable 'Stay upright' torque, that tries to keep Z axis of KActor pointing along world Z */
-var(StayUprightSpring)	bool		bEnableStayUprightSpring;
 
 /** Torque applied to try and keep KActor horizontal. */
 var(StayUprightSpring)	float		StayUprightTorqueFactor;
@@ -54,8 +86,6 @@ var(StayUprightSpring)	float		StayUprightTorqueFactor;
 /** Max torque that can be applied to try and keep KActor horizontal */
 var(StayUprightSpring)	float		StayUprightMaxTorque;
 
-/** If TRUE limit the maximum speed this object can move. */
-var()	bool	bLimitMaxPhysicsVelocity;
 /** If bLimitMaxPhysicsVelocity is TRUE, this is how fast the object can move. */
 var()	float	MaxPhysicsVelocity;
 
@@ -66,18 +96,6 @@ var repnotify vector ReplicatedDrawScale3D;
 
 var transient vector InitialLocation;
 var transient rotator InitialRotation;
-
-/** whether we need to replicate RBState - used to avoid it for bNoDelete KActors that haven't moved or been awakened yet
- * as in that case the client should already have the same data
- */
-var transient bool	bNeedsRBStateReplication;
-
-/**
- * Set TRUE to disable collisions with Pawn rigid bodies on clients.  Set this to true if using optimizations that
- * could cause the server to miss or ignore contacts that the client might dtect with this KActor, which could cause
- * vibration, rubberbanding, and general visual badness.
- */
-var bool			bDisableClientSidePawnInteractions;
 
 replication
 {
@@ -134,25 +152,6 @@ simulated event FellOutOfWorld(class<DamageType> dmgType)
 
 simulated event Destroyed()
 {
- 	// Let the components play out normally
- 	if( ImpactEffectInfo.Sound != None )
- 	{
-		if( ImpactSoundComponent != none )
-		{
-			ImpactSoundComponent.bAutoDestroy = TRUE;
-		}
-
-		if( ImpactSoundComponent2 != none )
-		{
-			ImpactSoundComponent2.bAutoDestroy = TRUE;
-		}
-	}
-
- 	if( SlideEffectInfo.Sound != None )
- 	{
- 		SlideSoundComponent.bAutoDestroy = TRUE;
- 	}
-
  	Super.Destroyed();
  }
 
@@ -174,13 +173,7 @@ simulated function SetPhysicalCollisionProperties()
 
 	if(ImpactEffectInfo.Sound != None)
 	{
-		ImpactSoundComponent = new(self) class'AudioComponent';
-		AttachComponent(ImpactSoundComponent);
-		ImpactSoundComponent.SoundCue = SoundCue(ImpactEffectInfo.Sound);
-
-		ImpactSoundComponent2 = new(self) class'AudioComponent';
-		AttachComponent(ImpactSoundComponent2);
-		ImpactSoundComponent2.SoundCue = SoundCue(ImpactEffectInfo.Sound);
+		ImpactSoundEvent = ImpactEffectInfo.Sound;
 	}
 
 	if(SlideEffectInfo.Effect != None)
@@ -193,9 +186,7 @@ simulated function SetPhysicalCollisionProperties()
 
 	if(SlideEffectInfo.Sound != None)
 	{
-		SlideSoundComponent = new(self) class'AudioComponent';
-		AttachComponent(SlideSoundComponent);
-		SlideSoundComponent.SoundCue = SoundCue(SlideEffectInfo.Sound);
+		SlideSoundLoop.SoundEvent = SlideEffectInfo.Sound;
 	}
 }
 

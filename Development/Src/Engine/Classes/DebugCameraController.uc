@@ -26,9 +26,9 @@ var globalconfig name UnselectKey;
 /** Whether to show information about the selected actor on the debug camera HUD. */
 var globalconfig bool bShowSelectedInfo;
 
+var bool                    bIsFrozenRendering;
 var PlayerController        OryginalControllerRef;
 var Player                  OryginalPlayer;
-var bool                    bIsFrozenRendering;
 var	DrawFrustumComponent	DrawFrustum;
 var Actor					SelectedActor;
 var PrimitiveComponent		SelectedComponent;

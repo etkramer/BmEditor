@@ -107,12 +107,15 @@ struct FViewTargetTransitionParams
     BYTE BlendFunction;
     FLOAT BlendExp;
     BITFIELD bLockOutgoing:1;
+    BITFIELD bResetCameraBehindPlayer:1;
+    BITFIELD bKeepBatmanOnScreen:1;
+    BITFIELD bDisableCamerCollisionDuringBlend:1;
     SCRIPT_ALIGN;
 
 		FViewTargetTransitionParams()
 		{}
 		FViewTargetTransitionParams(EEventParm)
-		: BlendTime(0.f), BlendFunction(VTBlend_Cubic), BlendExp(2.f), bLockOutgoing(FALSE)
+		: BlendTime(0.f), BlendFunction(VTBlend_Cubic), BlendExp(2.f), bLockOutgoing(FALSE), bResetCameraBehindPlayer(TRUE), bKeepBatmanOnScreen(FALSE), bDisableCamerCollisionDuringBlend(FALSE)
 		{}
 	
 };
@@ -136,6 +139,13 @@ public:
     BITFIELD bLockedFOV:1;
     BITFIELD bConstrainAspectRatio:1;
     BITFIELD bEnableFading:1;
+    BITFIELD bEnableAudioFading:1;
+    BITFIELD bOverrideDOF:1;
+    BITFIELD bOverrideMotionBlur:1;
+    BITFIELD bOverrideBloom:1;
+    BITFIELD bOverrideScene:1;
+    BITFIELD bOverrideAtmospherics:1;
+    BITFIELD bZoomed:1;
     BITFIELD bEnableColorScaling:1;
     BITFIELD bEnableColorScaleInterp:1;
     BITFIELD bUseClientSideCameraUpdates:1;
@@ -150,12 +160,14 @@ public:
     FLOAT FadeAmount;
     FLOAT CamOverridePostProcessAlpha;
     struct FPostProcessSettings CamPostProcessSettings;
-    struct FRenderingPerformanceOverrides RenderingOverrides;
     FVector ColorScale;
     FVector DesiredColorScale;
     FVector OriginalColorScale;
     FLOAT ColorScaleInterpDuration;
     FLOAT ColorScaleInterpStartTime;
+    FLOAT SoundFadeAmount;
+    FLOAT StereoConvergenceDepth;
+    FLOAT FarCullDistance;
     struct FTCameraCache CameraCache;
     struct FTCameraCache LastFrameCameraCache;
     struct FTViewTarget ViewTarget;
@@ -175,6 +187,7 @@ public:
     TArrayNoInit<class UCameraAnimInst*> ActiveAnims;
     TArrayNoInit<class UCameraAnimInst*> FreeAnims;
     class ADynamicCameraActor* AnimCameraActor;
+    struct FRenderingPerformanceOverrides RenderingOverrides;
     //## END PROPS Camera
 
     virtual void ApplyCameraModifiers(FLOAT DeltaTime,FTPOV& OutPOV);
@@ -690,7 +703,7 @@ FNativeFunctionLookup GEngineUCameraModifier_CameraShakeNatives[] =
 
 #ifdef VERIFY_CLASS_SIZES
 VERIFY_CLASS_OFFSET_NODIE(ACamera,Camera,PCOwner)
-VERIFY_CLASS_OFFSET_NODIE(ACamera,Camera,AnimCameraActor)
+VERIFY_CLASS_OFFSET_NODIE(ACamera,Camera,RenderingOverrides)
 VERIFY_CLASS_SIZE_NODIE(ACamera)
 VERIFY_CLASS_OFFSET_NODIE(ACameraActor,CameraActor,AspectRatio)
 VERIFY_CLASS_OFFSET_NODIE(ACameraActor,CameraActor,MeshComp)

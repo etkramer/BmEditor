@@ -21,6 +21,11 @@ var repnotify transient SkeletalMesh ReplicatedMesh;
 /** Used to replicate physics asset to clients */
 var repnotify transient PhysicsAsset ReplicatedPhysAsset;
 
+// BM
+var			object		ImpactSoundEvent;
+var			float		LastImpactTime;
+var			object		ImpactForceComponent;
+
 replication
 {
 	if ( Role == ROLE_Authority)

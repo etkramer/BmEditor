@@ -56,6 +56,9 @@ cpptext
 /** class to spawn during gameplay; only used if NewActorClass is left at the default */
 var class<Actor> GameplayActorClass;
 
+// BM
+var name 			GameplayActorClassName;
+
 /** Name used as basis for 'New Actor' menu. */
 var string			MenuName;
 
@@ -68,8 +71,14 @@ var deprecated int	AlternateMenuPriority;
 /** Actor subclass this ActorFactory creates. */
 var	class<Actor>	NewActorClass;
 
+// BM
+var name 			NewActorClassName;
+
 /** Whether to appear on menu (or this Factory only used through scripts etc.) */
 var bool			bPlaceable;
+
+// BM
+var bool 			UseActorSelection;
 
 /** Whether to appear in the editor add actor quick menu */
 var bool			bShowInEditorQuickMenu;

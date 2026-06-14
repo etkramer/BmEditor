@@ -38,6 +38,30 @@ var		bool							bGodMode;		   				// cheat - when true, can't be killed or hurt
 var		bool		bSoaking;			// pause and focus on pawn controlled by this controller if it encounters a problem
 var		bool		bSlowerZAcquire;	// AI acquires targets above or below more slowly than at same height
 
+var		bool							bNotifyPostLanded;				// if true, event NotifyPostLanded() after pawn lands after falling.
+var		bool							bNotifyApex;					// if true, event NotifyJumpApex() when at apex of jump
+/** Override search start position for navhandle path cache info */
+var     bool                            bOverrideSearchStart;
+var		bool							bAdvancedTactics;				// serpentine movement between pathnodes
+var		bool							bCanDoSpecial;					// are we able to traverse R_SPECIAL reach specs?
+var		bool							bAdjusting;						// adjusting around obstacle
+var		bool							bPreparingMove;					// set true while pawn sets up for a latent move
+
+/** Used by AI, set true to force AI to use serpentine/strafing movement when possible. */
+var		bool							bForceStrafe;
+var const bool							bLOSflag;						// used for alternating LineOfSight traces
+var		bool							bSkipExtraLOSChecks;			// Skip viewport nudging checks for LOS
+var		bool							bNotifyFallingHitWall;			// If true, controller gets NotifyFallingHitWall() when pawn hits wall while falling
+/** Forces all velocity to be directed towards reaching Destination */
+var bool bPreciseDestination;
+/** Do visibility checks, call SeePlayer events() for pawns on same team as self.  Setting to true will result in a lot more AI visibility line checks. */
+var bool bSeeFriendly;
+/** indicates that the AI is within a lane in its CurrentPath (like a road)
+ * to avoid ramming other Pawns also using that path
+ * set by MoveToward() when it detects multiple AI pawns using the same path
+ * when this is true, serpentine movement and cutting corners are disabled
+ */
+var bool bUsingPathLanes;
 
 // Input buttons.
 var input byte							bFire;
@@ -48,8 +72,6 @@ var input byte							bAltFire;
 //=============================================================================
 // PHYSICS VARIABLES
 
-var		bool							bNotifyPostLanded;				// if true, event NotifyPostLanded() after pawn lands after falling.
-var		bool							bNotifyApex;					// if true, event NotifyJumpApex() when at apex of jump
 var	 	float							MinHitWall;						// Minimum HitNormal dot Velocity.Normal to get a HitWall event from the physics
 
 
@@ -59,17 +81,7 @@ var	 	float							MinHitWall;						// Minimum HitNormal dot Velocity.Normal to g
 /** Navigation handle used for pathing when using NavMesh */
 var     class<NavigationHandle>         NavigationHandleClass;
 var     editinline NavigationHandle     NavigationHandle;
-/** Override search start position for navhandle path cache info */
-var     bool                            bOverrideSearchStart;
 var     Vector                          OverrideSearchStart;
-
-var		bool							bAdvancedTactics;				// serpentine movement between pathnodes
-var		bool							bCanDoSpecial;					// are we able to traverse R_SPECIAL reach specs?
-var		bool							bAdjusting;						// adjusting around obstacle
-var		bool							bPreparingMove;					// set true while pawn sets up for a latent move
-
-/** Used by AI, set true to force AI to use serpentine/strafing movement when possible. */
-var		bool							bForceStrafe;
 
 var 	float							MoveTimer;						// internal timer for latent moves, useful for setting a max duration
 var 	Actor							MoveTarget;						// actor being moved toward
@@ -108,12 +120,8 @@ const LATENT_MOVETOWARD = 503; // LatentAction number for Movetoward() latent fu
 //=============================================================================
 // AI VARIABLES
 
-var const bool							bLOSflag;						// used for alternating LineOfSight traces
-var		bool							bSkipExtraLOSChecks;			// Skip viewport nudging checks for LOS
-var		bool							bNotifyFallingHitWall;			// If true, controller gets NotifyFallingHitWall() when pawn hits wall while falling
 var		float							SightCounter;					// Used to keep track of when to check player visibility
 var		float							SightCounterInterval;			// how often player visibility is checked
-var     bool                            bEarlyOutOfSighTestsForSameType;// when an AI already has an enemy of this type, early out from sight tests to me
 /** multiplier to cost of NavigationPoints that another Pawn is currently anchored to */
 var float InUseNodeCostMultiplier;
 
@@ -125,12 +133,6 @@ var float MaxMoveTowardPawnTargetTime;
 
 // Enemy information
 var	 	Pawn					    	Enemy;
-
-/** Forces all velocity to be directed towards reaching Destination */
-var bool bPreciseDestination;
-
-/** Do visibility checks, call SeePlayer events() for pawns on same team as self.  Setting to true will result in a lot more AI visibility line checks. */
-var bool bSeeFriendly;
 
 /** List of destinations whose source portals are visible to this Controller */
 struct native VisiblePortalInfo
@@ -160,13 +162,6 @@ struct native VisiblePortalInfo
 };
 var array<VisiblePortalInfo> VisiblePortals;
 
-/** indicates that the AI is within a lane in its CurrentPath (like a road)
- * to avoid ramming other Pawns also using that path
- * set by MoveToward() when it detects multiple AI pawns using the same path
- * when this is true, serpentine movement and cutting corners are disabled
- */
-var bool bUsingPathLanes;
-
 /** the offset from the center of CurrentPath to the center of the lane in use (the Pawn's CollisionRadius defines the extent)
  * positive values are to the Pawn's right, negative to the Pawn's left
  */
@@ -177,6 +172,8 @@ var const rotator OldBasedRotation;
 
 /** allows easy modification of the search extent provided by setuppathfindingparams() */
 var vector NavMeshPath_SearchExtent_Modifier;
+
+var     bool                            bEarlyOutOfSighTestsForSameType;// when an AI already has an enemy of this type, early out from sight tests to me
 
 cpptext
 {

@@ -5093,6 +5093,8 @@ public:
     BITFIELD bCrowdAgentsPlayDeathAnim:1;
     BITFIELD bPhysicsOnContact:1;
     BITFIELD bWaterVolume:1;
+    BITFIELD bWindVolume:1;
+    BITFIELD bPerformTorque:1;
     FLOAT GroundFriction;
     FLOAT TerminalVelocity;
     FLOAT DamagePerSec;
@@ -5105,6 +5107,8 @@ public:
     class AInfo* PainTimer;
     class AController* DamageInstigator;
     class APhysicsVolume* NextPhysicsVolume;
+    FVector ZoneTorque;
+    FVector BACKUP_ZoneVelocity;
     //## END PROPS PhysicsVolume
 
     virtual FLOAT GetGravityZ();
@@ -12050,6 +12054,14 @@ class AStaticMeshActorBase : public AActor
 {
 public:
     //## BEGIN PROPS StaticMeshActorBase
+    BITFIELD bRailing:1;
+    BITFIELD bSpikeyRailing:1;
+    BITFIELD bUseBoundingBoxForClimbing:1;
+    BITFIELD bClimbableSlopedRailing:1;
+    BITFIELD bDontAdjustCameraForSlope:1;
+    BITFIELD bNeverUseBracedShimmy:1;
+    BITFIELD bAllowWideRailings:1;
+    SCRIPT_ALIGN;
     //## END PROPS StaticMeshActorBase
 
     DECLARE_ABSTRACT_CLASS(AStaticMeshActorBase,AActor,0,Engine)
@@ -12721,11 +12733,14 @@ class UActorFactory : public UObject
 public:
     //## BEGIN PROPS ActorFactory
     class UClass* GameplayActorClass;
+    FName GameplayActorClassName;
     FStringNoInit MenuName;
     INT MenuPriority;
     INT AlternateMenuPriority_DEPRECATED;
     class UClass* NewActorClass;
+    FName NewActorClassName;
     BITFIELD bPlaceable:1;
+    BITFIELD UseActorSelection:1;
     BITFIELD bShowInEditorQuickMenu:1;
     SCRIPT_ALIGN;
     //## END PROPS ActorFactory
@@ -13170,6 +13185,7 @@ class UActorFactoryLight : public UActorFactory
 {
 public:
     //## BEGIN PROPS ActorFactoryLight
+    class UPointLightComponent* LightComponent;
     //## END PROPS ActorFactoryLight
 
     DECLARE_CLASS(UActorFactoryLight,UActorFactory,0|CLASS_Config,Engine)
@@ -21546,7 +21562,7 @@ VERIFY_CLASS_SIZE_NODIE(ALightmassImportanceVolume)
 VERIFY_CLASS_SIZE_NODIE(AMassiveLODOverrideVolume)
 VERIFY_CLASS_SIZE_NODIE(APathBlockingVolume)
 VERIFY_CLASS_OFFSET_NODIE(APhysicsVolume,PhysicsVolume,ZoneVelocity)
-VERIFY_CLASS_OFFSET_NODIE(APhysicsVolume,PhysicsVolume,NextPhysicsVolume)
+VERIFY_CLASS_OFFSET_NODIE(APhysicsVolume,PhysicsVolume,BACKUP_ZoneVelocity)
 VERIFY_CLASS_SIZE_NODIE(APhysicsVolume)
 VERIFY_CLASS_SIZE_NODIE(ADefaultPhysicsVolume)
 VERIFY_CLASS_OFFSET_NODIE(AGravityVolume,GravityVolume,GravityZ)
@@ -21856,7 +21872,7 @@ VERIFY_CLASS_OFFSET_NODIE(UWindPointSourceComponent,WindPointSourceComponent,Pre
 VERIFY_CLASS_OFFSET_NODIE(UWindPointSourceComponent,WindPointSourceComponent,Radius)
 VERIFY_CLASS_SIZE_NODIE(UWindPointSourceComponent)
 VERIFY_CLASS_OFFSET_NODIE(UActorFactory,ActorFactory,GameplayActorClass)
-VERIFY_CLASS_OFFSET_NODIE(UActorFactory,ActorFactory,NewActorClass)
+VERIFY_CLASS_OFFSET_NODIE(UActorFactory,ActorFactory,NewActorClassName)
 VERIFY_CLASS_SIZE_NODIE(UActorFactory)
 VERIFY_CLASS_OFFSET_NODIE(UActorFactoryActor,ActorFactoryActor,ActorClass)
 VERIFY_CLASS_SIZE_NODIE(UActorFactoryActor)
@@ -21893,6 +21909,7 @@ VERIFY_CLASS_OFFSET_NODIE(UActorFactoryFracturedStaticMesh,ActorFactoryFractured
 VERIFY_CLASS_SIZE_NODIE(UActorFactoryFracturedStaticMesh)
 VERIFY_CLASS_OFFSET_NODIE(UActorFactoryLensFlare,ActorFactoryLensFlare,LensFlareObject)
 VERIFY_CLASS_SIZE_NODIE(UActorFactoryLensFlare)
+VERIFY_CLASS_OFFSET_NODIE(UActorFactoryLight,ActorFactoryLight,LightComponent)
 VERIFY_CLASS_SIZE_NODIE(UActorFactoryLight)
 VERIFY_CLASS_SIZE_NODIE(UActorFactoryPathNode)
 VERIFY_CLASS_OFFSET_NODIE(UActorFactoryPhysicsAsset,ActorFactoryPhysicsAsset,PhysicsAsset)

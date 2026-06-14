@@ -84,6 +84,33 @@ enum EWheelSide
 #include "UnObjBas.h"
 #undef ENABLE_DECLARECLASS_MACRO
 
+struct FAkSoundHandle_Mirror
+{
+    INT EventInstanceID;
+    INT OriginalEventID;
+    INT SourceID;
+
+    /** Constructors */
+    FAkSoundHandle_Mirror() {}
+    FAkSoundHandle_Mirror(EEventParm)
+    {
+        appMemzero(this, sizeof(FAkSoundHandle_Mirror));
+    }
+};
+
+struct FAkSoundLoop_Mirror
+{
+    class UObject* SoundEvent;
+    struct FAkSoundHandle_Mirror SoundHandle;
+
+    /** Constructors */
+    FAkSoundLoop_Mirror() {}
+    FAkSoundLoop_Mirror(EEventParm)
+    {
+        appMemzero(this, sizeof(FAkSoundLoop_Mirror));
+    }
+};
+
 struct KActor_eventApplyImpulse_Parms
 {
     FVector ImpulseDir;
@@ -103,17 +130,18 @@ public:
     BITFIELD bWakeOnLevelStart:1;
     BITFIELD bCurrentSlide:1;
     BITFIELD bSlideActive:1;
+    BITFIELD bDontBlockActors:1;
     BITFIELD bEnableStayUprightSpring:1;
     BITFIELD bLimitMaxPhysicsVelocity:1;
     BITFIELD bNeedsRBStateReplication:1;
     BITFIELD bDisableClientSidePawnInteractions:1;
     class UParticleSystemComponent* ImpactEffectComponent;
-    class UAudioComponent* ImpactSoundComponent;
-    class UAudioComponent* ImpactSoundComponent2;
+    class UObject* ImpactSoundEvent;
     FLOAT LastImpactTime;
     struct FPhysEffectInfo ImpactEffectInfo;
+    class UObject* ImpactForceComponent;
     class UParticleSystemComponent* SlideEffectComponent;
-    class UAudioComponent* SlideSoundComponent;
+    struct FAkSoundLoop_Mirror SlideSoundLoop;
     FLOAT LastSlideTime;
     struct FPhysEffectInfo SlideEffectInfo;
     FLOAT StayUprightTorqueFactor;
@@ -237,6 +265,9 @@ public:
     BITFIELD bBlockPawns:1;
     class USkeletalMesh* ReplicatedMesh;
     class UPhysicsAsset* ReplicatedPhysAsset;
+    class UObject* ImpactSoundEvent;
+    FLOAT LastImpactTime;
+    class UObject* ImpactForceComponent;
     //## END PROPS KAsset
 
     DECLARE_CLASS(AKAsset,AActor,0|CLASS_NativeReplication,Engine)
@@ -2173,7 +2204,7 @@ VERIFY_CLASS_OFFSET_NODIE(AKActorFromStatic,KActorFromStatic,MaxImpulseSpeed)
 VERIFY_CLASS_SIZE_NODIE(AKActorFromStatic)
 VERIFY_CLASS_SIZE_NODIE(AKActorSpawnable)
 VERIFY_CLASS_OFFSET_NODIE(AKAsset,KAsset,SkeletalMeshComponent)
-VERIFY_CLASS_OFFSET_NODIE(AKAsset,KAsset,ReplicatedPhysAsset)
+VERIFY_CLASS_OFFSET_NODIE(AKAsset,KAsset,ImpactForceComponent)
 VERIFY_CLASS_SIZE_NODIE(AKAsset)
 VERIFY_CLASS_OFFSET_NODIE(ASVehicle,SVehicle,SimObj)
 VERIFY_CLASS_OFFSET_NODIE(ASVehicle,SVehicle,RadialImpulseScaling)

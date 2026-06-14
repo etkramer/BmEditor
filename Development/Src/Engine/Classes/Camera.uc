@@ -17,11 +17,29 @@ var		Name 	CameraStyle;
 var		float	DefaultFOV;
 /** true if FOV is locked to a constant value*/
 var		bool	bLockedFOV;
-/** value FOV is locked at */
-var		float	LockedFOV;
 
 /** If we should insert black areas when rendering the scene to ensure an aspect ratio of ConstrainedAspectRatio */
 var		bool	bConstrainAspectRatio;
+
+/** If we should apply FadeColor/FadeAmount to the screen. */
+var		bool	bEnableFading;
+
+// BM
+var		bool	bEnableAudioFading;
+var()	bool	bOverrideDOF;
+var()	bool	bOverrideMotionBlur;
+var()	bool	bOverrideBloom;
+var()	bool	bOverrideScene;
+var()	bool	bOverrideAtmospherics;
+var		transient bool bZoomed;
+
+/** Turn on scaling of color channels in final image using ColorScale property. */
+var		bool	bEnableColorScaling;
+/** Should interpolate color scale values */
+var		bool	bEnableColorScaleInterp;
+
+/** value FOV is locked at */
+var		float	LockedFOV;
 /** If bConstrainAspectRatio is true, add black regions to ensure aspect ratio is this. Ratio is horizontal/vertical. */
 var		float	ConstrainedAspectRatio;
 /** Default aspect ratio */
@@ -33,8 +51,6 @@ var		float	OffAxisYawAngle;
 /** Off-axis pitch angle offset */
 var		float	OffAxisPitchAngle;
 
-/** If we should apply FadeColor/FadeAmount to the screen. */
-var		bool	bEnableFading;
 /** Color to fade to. */
 var		color	FadeColor;
 /** Amount of fading to apply. */
@@ -46,15 +62,8 @@ var		float				CamOverridePostProcessAlpha;
 /** Post-process settings to use if bCamOverridePostProcess is TRUE. */
 var		PostProcessSettings	CamPostProcessSettings;
 
-/** Rendering overrides that are active on this camera. */
-var		RenderingPerformanceOverrides	RenderingOverrides;
-
-/** Turn on scaling of color channels in final image using ColorScale property. */
-var		bool	bEnableColorScaling;
 /** Allows control over scaling individual color channels in the final image. */
 var		vector	ColorScale;
-/** Should interpolate color scale values */
-var		bool	bEnableColorScaleInterp;
 /** Desired color scale which ColorScale will interpolate to */
 var		vector	DesiredColorScale;
 /** Color scale value at start of interpolation */
@@ -63,6 +72,11 @@ var		vector	OriginalColorScale;
 var		float	ColorScaleInterpDuration;
 /** Time at which interpolation started */
 var		float	ColorScaleInterpStartTime;
+
+// BM
+var		float	SoundFadeAmount;
+var		float	StereoConvergenceDepth;
+var		float	FarCullDistance;
 
 /** The actors which the camera shouldn't see. Used to hide actors which the camera penetrates. */
 //var array<Actor> HiddenActors;
@@ -130,12 +144,19 @@ struct native ViewTargetTransitionParams
 	/** If TRUE, lock outgoing viewtarget to last frame's camera position for the remainder of the blend.
 	 *  This is useful if you plan to teleport the viewtarget, but want to keep the camera motion smooth. */
 	var() bool                      bLockOutgoing;
+	// BM
+	var() bool						bResetCameraBehindPlayer;
+	var() bool						bKeepBatmanOnScreen;
+	var() bool						bDisableCamerCollisionDuringBlend;
 
 	structdefaultproperties
 	{
 		BlendFunction=VTBlend_Cubic
 		BlendExp=2.f
 		bLockOutgoing=FALSE
+		bResetCameraBehindPlayer=TRUE
+		bKeepBatmanOnScreen=FALSE
+		bDisableCamerCollisionDuringBlend=FALSE
 	}
 
 	// providing the constructor by hand here, because we pass this as an optional parameter
@@ -145,7 +166,7 @@ struct native ViewTargetTransitionParams
 		FViewTargetTransitionParams()
 		{}
 		FViewTargetTransitionParams(EEventParm)
-		: BlendTime(0.f), BlendFunction(VTBlend_Cubic), BlendExp(2.f), bLockOutgoing(FALSE)
+		: BlendTime(0.f), BlendFunction(VTBlend_Cubic), BlendExp(2.f), bLockOutgoing(FALSE), bResetCameraBehindPlayer(TRUE), bKeepBatmanOnScreen(FALSE), bDisableCamerCollisionDuringBlend(FALSE)
 		{}
 	}
 };
@@ -207,6 +228,9 @@ var protected array<CameraAnimInst>		FreeAnims;
 
 /** Internal.  Receives the output of individual camera animations. */
 var protected transient DynamicCameraActor AnimCameraActor;
+
+/** Rendering overrides that are active on this camera. */
+var		RenderingPerformanceOverrides	RenderingOverrides;
 
 /** if true, server will use camera positions replicated from the client instead of calculating locally. */
 var bool bUseClientSideCameraUpdates;

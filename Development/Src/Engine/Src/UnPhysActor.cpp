@@ -1083,11 +1083,6 @@ void AKActor::physRigidBody(FLOAT DeltaTime)
 			SlideEffectComponent->DeactivateSystem();
 		}
 
-		if(SlideSoundComponent)
-		{
-			SlideSoundComponent->FadeOut(0.4f,0.0f);
-		}
-
 		LastSlideTime = GWorld->GetTimeSeconds();
 		bSlideActive = FALSE;
 	}
@@ -1185,7 +1180,6 @@ UPhysicalMaterial* AKActor::GetKActorPhysMaterial()
 
 void AKActor::OnRigidBodyCollision(const FRigidBodyCollisionInfo& MyInfo, const FRigidBodyCollisionInfo& OtherInfo, const FCollisionImpactData& RigidCollisionData)
 {
-	const FLOAT SlideFadeInTime=0.5f;
 	Super::OnRigidBodyCollision(MyInfo, OtherInfo, RigidCollisionData);
 
 	// Find relative velocity.
@@ -1274,23 +1268,6 @@ void AKActor::OnRigidBodyCollision(const FRigidBodyCollisionInfo& MyInfo, const 
 			ImpactEffectComponent->ActivateSystem();
 		}
 
-		if(ImpactSoundComponent && ImpactSoundComponent2)
-		{
-			static UBOOL bImpactSoundOdd = TRUE; // @todo this needs to be per instance
-			if(bImpactSoundOdd)
-			{
-				ImpactSoundComponent->SetFloatParameter(NAME_ImpactVel, ImpactVelMag);
-				ImpactSoundComponent->Play();
-				bImpactSoundOdd = FALSE;
-			}
-			else
-			{
-				ImpactSoundComponent2->SetFloatParameter(NAME_ImpactVel, ImpactVelMag);
-				ImpactSoundComponent2->Play();
-				bImpactSoundOdd = TRUE;
-			}
-		}
-
 		bDidImpact = TRUE;
 		LastImpactTime = GWorld->GetTimeSeconds();
 	}
@@ -1308,12 +1285,6 @@ void AKActor::OnRigidBodyCollision(const FRigidBodyCollisionInfo& MyInfo, const 
 			SlideEffectComponent->ActivateSystem();
 		}
 
-		if(SlideSoundComponent)
-		{
-			SlideSoundComponent->SetFloatParameter(NAME_SlideVel, SlideVelMag);
-			SlideSoundComponent->FadeIn(SlideFadeInTime,1.0f);
-		}
-
 		bSlideActive = TRUE;
 	}
 
@@ -1328,10 +1299,6 @@ void AKActor::OnRigidBodyCollision(const FRigidBodyCollisionInfo& MyInfo, const 
 			SlideEffectComponent->BeginDeferredUpdateTransform();
 		}
 
-		if(SlideSoundComponent)
-		{
-			SlideSoundComponent->SetFloatParameter(NAME_SlideVel, SlideVelMag);
-		}
 	}
 
 	// Turning off sliding effects is handled in physRigidBody - this function does not get called when not in contact
@@ -1351,14 +1318,10 @@ void AKActorSpawnable::ResetComponents()
 	//AKActor
 	DetachComponent(ImpactEffectComponent);
     ImpactEffectComponent = NULL;
-	DetachComponent(ImpactSoundComponent);
-    ImpactSoundComponent = NULL;
-	DetachComponent(ImpactSoundComponent2);
-    ImpactSoundComponent2 = NULL;
+    ImpactSoundEvent = NULL;
+    ImpactForceComponent = NULL;
 	DetachComponent(SlideEffectComponent);
     SlideEffectComponent = NULL;
-	DetachComponent(SlideSoundComponent);
-    SlideSoundComponent = NULL;
 }
 
 /**

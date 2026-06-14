@@ -7,6 +7,8 @@ class ActorFactoryLight extends ActorFactory
 	hidecategories(Object)
 	native;
 
+var editoronly export PointLightComponent LightComponent;
+
 defaultproperties
 {
 	MenuName="Add Light (Point)"

@@ -8,6 +8,14 @@ class StaticMeshActorBase extends Actor
 	native
 	abstract;
 
+var(Collision) const bool bRailing;
+var(Collision) const bool bSpikeyRailing;
+var(Collision) const bool bUseBoundingBoxForClimbing;
+var(Collision) const bool bClimbableSlopedRailing;
+var(Collision) const bool bDontAdjustCameraForSlope;
+var(Collision) const bool bNeverUseBracedShimmy;
+var(Advanced) const bool bAllowWideRailings;
+
 cpptext
 {
 	/**
