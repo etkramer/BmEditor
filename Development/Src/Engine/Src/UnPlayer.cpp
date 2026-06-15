@@ -3255,7 +3255,7 @@ FSceneView* ULocalPlayer::CalcSceneView( FSceneViewFamily* ViewFamily, FVector& 
 	}
 
 	// Set up the rendering overrides.
-	FRenderingPerformanceOverrides RenderingOverrides = Actor->PlayerCamera ? Actor->PlayerCamera->RenderingOverrides : FRenderingPerformanceOverrides(E_ForceInit);	
+	FRenderingPerformanceOverrides RenderingOverrides = FRenderingPerformanceOverrides(E_ForceInit);
 
 	// If temporal AA is disabled in the WorldInfo, propagate that to the rendering overrides.
 	if(!GWorld->GetWorldInfo()->GetAllowTemporalAA())

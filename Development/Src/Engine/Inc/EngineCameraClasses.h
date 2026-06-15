@@ -148,9 +148,6 @@ public:
     BITFIELD bZoomed:1;
     BITFIELD bEnableColorScaling:1;
     BITFIELD bEnableColorScaleInterp:1;
-    BITFIELD bUseClientSideCameraUpdates:1;
-    BITFIELD bDebugClientSideCamera:1;
-    BITFIELD bShouldSendClientSideCameraUpdate:1;
     FLOAT LockedFOV;
     FLOAT ConstrainedAspectRatio;
     FLOAT DefaultAspectRatio;
@@ -187,7 +184,6 @@ public:
     TArrayNoInit<class UCameraAnimInst*> ActiveAnims;
     TArrayNoInit<class UCameraAnimInst*> FreeAnims;
     class ADynamicCameraActor* AnimCameraActor;
-    struct FRenderingPerformanceOverrides RenderingOverrides;
     //## END PROPS Camera
 
     virtual void ApplyCameraModifiers(FLOAT DeltaTime,FTPOV& OutPOV);
@@ -703,7 +699,7 @@ FNativeFunctionLookup GEngineUCameraModifier_CameraShakeNatives[] =
 
 #ifdef VERIFY_CLASS_SIZES
 VERIFY_CLASS_OFFSET_NODIE(ACamera,Camera,PCOwner)
-VERIFY_CLASS_OFFSET_NODIE(ACamera,Camera,RenderingOverrides)
+VERIFY_CLASS_OFFSET_NODIE(ACamera,Camera,AnimCameraActor)
 VERIFY_CLASS_SIZE_NODIE(ACamera)
 VERIFY_CLASS_OFFSET_NODIE(ACameraActor,CameraActor,AspectRatio)
 VERIFY_CLASS_OFFSET_NODIE(ACameraActor,CameraActor,MeshComp)

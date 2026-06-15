@@ -89,6 +89,29 @@ enum GFxTimingMode
 #define FOREACH_ENUM_GFXTIMINGMODE(op) \
     op(TM_Game) \
     op(TM_Real) 
+enum GFxDPGBias
+{
+    DPGB_BackMost           =0,
+    DPGB_UnderHUD           =1,
+    DPGB_HUD                =2,
+    DPGB_OverHUD            =3,
+    DPGB_Default            =4,
+    DPGB_UI                 =5,
+    DPGB_FrontMost          =6,
+    DPGB_Error              =7,
+    DPGB_NoController       =8,
+    DPGB_MAX                =9,
+};
+#define FOREACH_ENUM_GFXDPGBIAS(op) \
+    op(DPGB_BackMost) \
+    op(DPGB_UnderHUD) \
+    op(DPGB_HUD) \
+    op(DPGB_OverHUD) \
+    op(DPGB_Default) \
+    op(DPGB_UI) \
+    op(DPGB_FrontMost) \
+    op(DPGB_Error) \
+    op(DPGB_NoController) 
 enum FlashTextureRescale
 {
     FlashTextureScale_High  =0,
@@ -483,12 +506,15 @@ public:
     INT NextASUObject;
     class USwfMovie* MovieInfo;
     BITFIELD bMovieIsOpen:1;
+    BITFIELD bDepthTested:1;
+    BITFIELD bWorldRendered:1;
     BITFIELD bDisplayWithHudOff:1;
     BITFIELD bEnableGammaCorrection:1;
     BITFIELD bWidgetsInitializedThisFrame:1;
     BITFIELD bLogUnhandedWidgetInitializations:1;
     BITFIELD bAllowInput:1;
     BITFIELD bAllowFocus:1;
+    BITFIELD bAlwaysReceiveMouseInput:1;
     BITFIELD bAutoPlay:1;
     BITFIELD bPauseGameWhileActive:1;
     BITFIELD bCloseOnLevelChange:1;
@@ -504,14 +530,18 @@ public:
     BITFIELD bIgnoreBlurEffect:1;
     class UTextureRenderTarget2D* RenderTexture;
     INT LocalPlayerOwnerIndex;
+    FPointer OwnerAction;
+    FMatrix ViewMatrix;
     class UObject* ExternalInterface;
     TArrayNoInit<FName> CaptureKeys;
     TArrayNoInit<FName> FocusIgnoreKeys;
-    TArrayNoInit<struct FExternalTexture> ExternalTextures;
-    TArrayNoInit<struct FSoundThemeBinding> SoundThemes;
+    BYTE SceneDPG;
     BYTE TimingMode;
     BYTE RenderTextureMode;
     BYTE Priority;
+    TArrayNoInit<struct FExternalTexture> ExternalTextures;
+    TArrayNoInit<struct FSoundThemeBinding> SoundThemes;
+    INT ViewportSplitscreenIndex;
     TArrayNoInit<struct FGFxDataStoreBinding> DataStoreBindings;
     class UGFxDataStoreSubscriber* DataStoreSubscriber;
     TArrayNoInit<struct FGFxWidgetBinding> WidgetBindings;

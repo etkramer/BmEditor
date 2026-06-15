@@ -301,12 +301,6 @@ native protected function PlayerUpdateCamera(Pawn P, GamePlayerCamera CameraActo
  */
 function BeginTurn(int StartAngle, int EndAngle, float TimeSec, optional float DelaySec, optional bool bAlignTargetWhenFinished)
 {
-	// We're not updating the camera on the server, bDoingACameraTurn will prevent firing
-	if (PlayerCamera.bUseClientSideCameraUpdates && !PlayerCamera.PCOwner.IsLocalPlayerController())
-	{
-		return;
-	}
-
 	bDoingACameraTurn = TRUE;
 	TurnTotalTime = TimeSec;
 	TurnDelay = DelaySec;
@@ -657,4 +651,3 @@ defaultproperties
 
 	ThirdPersonCamDefaultClass=class'GameThirdPersonCameraMode_Default'
 }
-

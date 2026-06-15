@@ -38,11 +38,69 @@ var SwfMovie MovieInfo;
 /** TRUE after Start() is called, FALSE after Close() is called. */
 var const bool bMovieIsOpen;
 
+// BM
+var bool bDepthTested;
+
+// BM
+var bool bWorldRendered;
+
+/** If TRUE, this movie player will render even if bShowHud is FALSE.  Usually set to TRUE for menus, and FALSE for HUDs */
+var bool bDisplayWithHudOff;
+
+/** Whether to gamma correct this movie before writing to the destination surface. */
+var public bool bEnableGammaCorrection;
+
+/** If TRUE, a widget within this movie player was initialized this frame.  This will cause the PostWidgetInit event to be fired after the Advance() of the movie is complete  */
+var const transient bool    bWidgetsInitializedThisFrame;
+
+/** If TRUE, widgets that have an initialization callback that are NOT handled by WidgetInitialized() will log out a notification for debugging */
+var bool bLogUnhandedWidgetInitializations;
+
+/** If TRUE, this movie player will be allowed to accept input events.  Defaults to TRUE */
+var bool bAllowInput;
+
+/** If TRUE, this movie player will be allowed to accept focus events.  Defaults to TRUE */
+var bool bAllowFocus;
+
+// BM
+var bool bAlwaysReceiveMouseInput;
+
+/** If TRUE, MovieToLoad will be played immediately after loading */
+var bool        bAutoPlay;
+
+/** If TRUE, the game will pause while this scene is up */
+var bool        bPauseGameWhileActive;
+
+/** If TRUE, the movie will be closed on a level change
+ *  NOTE: ONLY TIMINGMODE TM_REAL movies can stay open during level change
+ */
+var bool        bCloseOnLevelChange;
+
+/** If TRUE, only the LocalPlayerOwner's input can be directed here */
+var bool        bOnlyOwnerFocusable;
+
+/** If TRUE, any input received from a LocalPlayer that is not the owner of this movieplayer will be discarded and not acted upon
+ *  This should be used in conjunction with bOnlyOwnerFocusable to make movieplayers that only respond to one player, but consume all input from the other players
+ */
+var bool        bDiscardNonOwnerInput;
+
+/** If TRUE, this movie player will capture input */
+var bool        bCaptureInput;
+
+/** IF TRUE, this movie player will ignore mouse input */
+var bool        bIgnoreMouseInput;
+
 /** Texture that the movie should be rendered to.  If NULL, the movie will be rendered to the frame buffer. */
 var() TextureRenderTarget2D RenderTexture;
 
 /** Index into the GamePlayers array for the LocalPlayer who owns this movie */
 var public transient int LocalPlayerOwnerIndex;
+
+// BM
+var native pointer OwnerAction;
+
+// BM
+var Matrix ViewMatrix;
 
 /** Object that should receive ExternalInterface calls from ActionScript.  If unspecified, all ExternalInterface calls will be routed through the movie player itself */
 var public Object ExternalInterface;
@@ -51,8 +109,8 @@ var array<name> CaptureKeys;
 /** If this is a focus movie, all input will be sent to the movie EXCEPT these keys */
 var array<name> FocusIgnoreKeys;
 
-/** If TRUE, this movie player will render even if bShowHud is FALSE.  Usually set to TRUE for menus, and FALSE for HUDs */
-var bool bDisplayWithHudOff;
+// BM
+var() ESceneDepthPriorityGroup SceneDPG;
 
 /**
  *  Stores a mapping between a movie's image resource ("Linkage" identifier on an image resource in the movie) and an Unreal texture resource.  This allows
@@ -63,8 +121,6 @@ struct native ExternalTexture
   var() string  Resource;
   var() Texture Texture;
 };
-/** Array of ExternalTexture bindings that will automatically replaced when the movie player loads a new movie */
-var array<ExternalTexture> ExternalTextures;
 
 /** 
  *  Structure that binds a sound theme name to an actual UISoundTheme to handle sound events from objects in this movie.  Sound events can be fired by
@@ -78,8 +134,21 @@ struct native SoundThemeBinding
 	/** Corresponding sound theme to handle sound events for this ThemeName */
 	var() UISoundTheme  Theme;
 };
-/** Stores an array of bindings between sound theme names and actual UISoundThemes */
-var() array<SoundThemeBinding> SoundThemes;
+
+// BM
+enum GFxDPGBias
+{
+	DPGB_BackMost,
+	DPGB_UnderHUD,
+	DPGB_HUD,
+	DPGB_OverHUD,
+	DPGB_Default,
+	DPGB_UI,
+	DPGB_FrontMost,
+	DPGB_Error,
+	DPGB_NoController,
+	DPGB_MAX
+};
 
 /** 
  *  Timing modes for playback of the movie
@@ -107,8 +176,17 @@ enum GFxRenderTextureMode
 };
 var public GFxRenderTextureMode RenderTextureMode;
 
-/** Whether to gamma correct this movie before writing to the destination surface. */
-var public bool bEnableGammaCorrection;
+/** The priority of this movie player. Used to determine render and focus order when multiple movie players are open simultaneously */
+var private GFxDPGBias Priority;
+
+/** Array of ExternalTexture bindings that will automatically replaced when the movie player loads a new movie */
+var array<ExternalTexture> ExternalTextures;
+
+/** Stores an array of bindings between sound theme names and actual UISoundThemes */
+var() array<SoundThemeBinding> SoundThemes;
+
+// BM
+var native int ViewportSplitscreenIndex;
 
 struct native GFxDataStoreBinding
 {
@@ -150,46 +228,6 @@ var array<GFxWidgetBinding> WidgetBindings;
  *  the widget binding mapping using SetWidgetPathBinding() 
  */
 var const native map{FName,UGFxObject*}   WidgetPathBindings;
-
-/** If TRUE, a widget within this movie player was initialized this frame.  This will cause the PostWidgetInit event to be fired after the Advance() of the movie is complete  */
-var const transient bool    bWidgetsInitializedThisFrame;
-
-/** If TRUE, widgets that have an initialization callback that are NOT handled by WidgetInitialized() will log out a notification for debugging */
-var bool bLogUnhandedWidgetInitializations;
-
-/** If TRUE, this movie player will be allowed to accept input events.  Defaults to TRUE */
-var bool bAllowInput;
-
-/** If TRUE, this movie player will be allowed to accept focus events.  Defaults to TRUE */
-var bool bAllowFocus;
-
-/** The priority of this movie player. Used to determine render and focus order when multiple movie players are open simultaneously */
-var private byte Priority;
-
-/** If TRUE, MovieToLoad will be played immediately after loading */
-var bool        bAutoPlay;
-
-/** If TRUE, the game will pause while this scene is up */
-var bool        bPauseGameWhileActive;
-
-/** If TRUE, the movie will be closed on a level change 
- *  NOTE: ONLY TIMINGMODE TM_REAL movies can stay open during level change
- */
-var bool        bCloseOnLevelChange;
-
-/** If TRUE, only the LocalPlayerOwner's input can be directed here */
-var bool        bOnlyOwnerFocusable;
-
-/** If TRUE, any input received from a LocalPlayer that is not the owner of this movieplayer will be discarded and not acted upon 
- *  This should be used in conjunction with bOnlyOwnerFocusable to make movieplayers that only respond to one player, but consume all input from the other players  
- */
-var bool        bDiscardNonOwnerInput;
-
-/** If TRUE, this movie player will capture input */
-var bool        bCaptureInput;
-
-/** IF TRUE, this movie player will ignore mouse input */
-var bool        bIgnoreMouseInput;
 
 /** All GFxObjects created during the lifetime of GFxMoviePlayer */
 var array<GFxObject> ObjectValues;
@@ -709,5 +747,7 @@ defaultproperties
 
 	bCloseOnLevelChange=TRUE
 
-	Priority=1
+	SceneDPG=SDPG_PostProcess
+
+	Priority=DPGB_Default
 }

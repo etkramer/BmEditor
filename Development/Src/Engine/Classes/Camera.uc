@@ -229,18 +229,6 @@ var protected array<CameraAnimInst>		FreeAnims;
 /** Internal.  Receives the output of individual camera animations. */
 var protected transient DynamicCameraActor AnimCameraActor;
 
-/** Rendering overrides that are active on this camera. */
-var		RenderingPerformanceOverrides	RenderingOverrides;
-
-/** if true, server will use camera positions replicated from the client instead of calculating locally. */
-var bool bUseClientSideCameraUpdates;
-
-/** If true, replicate the client side camera position but don't use it, and draw the positions on the server */
-var bool bDebugClientSideCamera;
-
-/** if true, send a camera update to the server on next update */
-var bool bShouldSendClientSideCameraUpdate;
-
 cpptext
 {
 protected:
@@ -424,23 +412,8 @@ simulated function SetDesiredColorScale(vector NewColorScale, float InterpTime)
 /**
  * Performs camera update.
  * Called once per frame after all actors have been ticked.
- * Non-local players replicate the POV if bUseClientSideCameraUpdates is true
  */
 simulated event UpdateCamera(float DeltaTime)
-{
-	if ( PCOwner.IsLocalPlayerController() || !bUseClientSideCameraUpdates || bDebugClientSideCamera )
-	{
-		DoUpdateCamera(DeltaTime);
-
-		if (WorldInfo.NetMode == NM_Client && bShouldSendClientSideCameraUpdate)
-		{
-			PCOwner.ServerUpdateCamera(CameraCache.POV.Location, (CameraCache.POV.Rotation.Pitch & 65535) + ((CameraCache.POV.Rotation.Yaw & 65535) << 16));
-			bShouldSendClientSideCameraUpdate = FALSE;
-		}
-	}
-}
-
-simulated function DoUpdateCamera(float DeltaTime)
 {
 	local TPOV		NewPOV;
 	local float		DurationPct, BlendPct;
@@ -967,8 +940,6 @@ defaultproperties
 	bHidden=TRUE
 	RemoteRole=ROLE_None
 	FreeCamDistance=256.f
-	bUseClientSideCameraUpdates=TRUE
-	bDebugClientSideCamera=FALSE
 
 	CameraShakeCamModClass=class'CameraModifier_CameraShake'
 }

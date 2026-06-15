@@ -66,6 +66,30 @@ function ReplicateInitialCoverInfo()
 	}
 }
 
+/** finds the per-player replicator, spawning it when missing to copy initial cover state */
+function CoverReplicator GetPlayerCoverReplicator(PlayerController PC)
+{
+	local CoverReplicator PlayerCoverReplicator;
+
+	foreach DynamicActors(class'CoverReplicator', PlayerCoverReplicator)
+	{
+		if (PlayerCoverReplicator.Owner == PC)
+		{
+			return PlayerCoverReplicator;
+		}
+	}
+
+	if (PC.Role == ROLE_Authority && LocalPlayer(PC.Player) == None)
+	{
+		PlayerCoverReplicator = Spawn(class'CoverReplicator', PC);
+		if (PlayerCoverReplicator != None)
+		{
+			PlayerCoverReplicator.ReplicateInitialCoverInfo();
+		}
+	}
+	return None;
+}
+
 //@HACK: bSkipActorPropertyReplication prevents Owner from being replicated. Should fix that eventually, but for now, force it by RPC
 reliable client function ClientSetOwner(PlayerController PC)
 {
@@ -248,6 +272,7 @@ function NotifyEnabledSlots(CoverLink Link, const out array<int> SlotIndices)
 	local int Index, SlotIndex;
 	local int i;
 	local PlayerController PC;
+	local CoverReplicator PlayerCoverReplicator;
 
 	Index = CoverReplicationData.Find('Link', Link);
 	if (Index == INDEX_NONE)
@@ -284,13 +309,10 @@ function NotifyEnabledSlots(CoverLink Link, const out array<int> SlotIndices)
 		// we are the base info; inform players of the change now
 		foreach WorldInfo.AllControllers(class'PlayerController', PC)
 		{
-			if (PC.MyCoverReplicator == None)
+			PlayerCoverReplicator = GetPlayerCoverReplicator(PC);
+			if (PlayerCoverReplicator != None)
 			{
-				PC.SpawnCoverReplicator();
-			}
-			else
-			{
-				PC.MyCoverReplicator.NotifyEnabledSlots(Link, SlotIndices);
+				PlayerCoverReplicator.NotifyEnabledSlots(Link, SlotIndices);
 			}
 		}
 	}
@@ -366,6 +388,7 @@ function NotifyDisabledSlots(CoverLink Link, const out array<int> SlotIndices)
 	local int Index, SlotIndex;
 	local int i;
 	local PlayerController PC;
+	local CoverReplicator PlayerCoverReplicator;
 
 	Index = CoverReplicationData.Find('Link', Link);
 	if (Index == INDEX_NONE)
@@ -402,13 +425,10 @@ function NotifyDisabledSlots(CoverLink Link, const out array<int> SlotIndices)
 		// we are the base info; inform players of the change now
 		foreach WorldInfo.AllControllers(class'PlayerController', PC)
 		{
-			if (PC.MyCoverReplicator == None)
+			PlayerCoverReplicator = GetPlayerCoverReplicator(PC);
+			if (PlayerCoverReplicator != None)
 			{
-				PC.SpawnCoverReplicator();
-			}
-			else
-			{
-				PC.MyCoverReplicator.NotifyDisabledSlots(Link, SlotIndices);
+				PlayerCoverReplicator.NotifyDisabledSlots(Link, SlotIndices);
 			}
 		}
 	}
@@ -484,6 +504,7 @@ function NotifyAutoAdjustSlots(CoverLink Link, const out array<int> SlotIndices)
 	local int Index, SlotIndex;
 	local int i;
 	local PlayerController PC;
+	local CoverReplicator PlayerCoverReplicator;
 
 	Index = CoverReplicationData.Find('Link', Link);
 	if (Index == INDEX_NONE)
@@ -520,13 +541,10 @@ function NotifyAutoAdjustSlots(CoverLink Link, const out array<int> SlotIndices)
 		// we are the base info; inform players of the change now
 		foreach WorldInfo.AllControllers(class'PlayerController', PC)
 		{
-			if (PC.MyCoverReplicator == None)
+			PlayerCoverReplicator = GetPlayerCoverReplicator(PC);
+			if (PlayerCoverReplicator != None)
 			{
-				PC.SpawnCoverReplicator();
-			}
-			else
-			{
-				PC.MyCoverReplicator.NotifyAutoAdjustSlots(Link, SlotIndices);
+				PlayerCoverReplicator.NotifyAutoAdjustSlots(Link, SlotIndices);
 			}
 		}
 	}
@@ -605,6 +623,7 @@ function NotifySetManualCoverTypeForSlots(CoverLink Link, const out array<int> S
 	local int Index, SlotIndex;
 	local int i;
 	local PlayerController PC;
+	local CoverReplicator PlayerCoverReplicator;
 
 	Index = CoverReplicationData.Find('Link', Link);
 	if (Index == INDEX_NONE)
@@ -646,13 +665,10 @@ function NotifySetManualCoverTypeForSlots(CoverLink Link, const out array<int> S
 		// we are the base info; inform players of the change now
 		foreach WorldInfo.AllControllers(class'PlayerController', PC)
 		{
-			if (PC.MyCoverReplicator == None)
+			PlayerCoverReplicator = GetPlayerCoverReplicator(PC);
+			if (PlayerCoverReplicator != None)
 			{
-				PC.SpawnCoverReplicator();
-			}
-			else
-			{
-				PC.MyCoverReplicator.NotifySetManualCoverTypeForSlots(Link, SlotIndices, NewCoverType);
+				PlayerCoverReplicator.NotifySetManualCoverTypeForSlots(Link, SlotIndices, NewCoverType);
 			}
 		}
 	}
@@ -732,6 +748,7 @@ function NotifyLinkDisabledStateChange(CoverLink Link)
 {
 	local int Index;
 	local PlayerController PC;
+	local CoverReplicator PlayerCoverReplicator;
 
 	Index = CoverReplicationData.Find('Link', Link);
 	if (Index == INDEX_NONE)
@@ -746,13 +763,10 @@ function NotifyLinkDisabledStateChange(CoverLink Link)
 		// we are the base info; inform players of the change now
 		foreach WorldInfo.AllControllers(class'PlayerController', PC)
 		{
-			if (PC.MyCoverReplicator == None)
+			PlayerCoverReplicator = GetPlayerCoverReplicator(PC);
+			if (PlayerCoverReplicator != None)
 			{
-				PC.SpawnCoverReplicator();
-			}
-			else
-			{
-				PC.MyCoverReplicator.NotifyLinkDisabledStateChange(Link);
+				PlayerCoverReplicator.NotifyLinkDisabledStateChange(Link);
 			}
 		}
 	}

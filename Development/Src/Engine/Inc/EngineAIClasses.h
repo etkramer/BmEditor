@@ -663,12 +663,7 @@ class AAIController : public AController
 public:
     //## BEGIN PROPS AIController
     BITFIELD bAdjustFromWalls:1;
-    BITFIELD bReverseScriptedRoute:1;
     FLOAT Skill;
-    class AActor* ScriptedMoveTarget;
-    class ARoute* ScriptedRoute;
-    INT ScriptedRouteIndex;
-    class AActor* ScriptedFocus;
     //## END PROPS AIController
 
     void eventSetTeam(INT inTeamIdx)
@@ -3106,7 +3101,6 @@ FNativeFunctionLookup GEngineUPath_AvoidInEscapableNodesNatives[] =
 VERIFY_CLASS_SIZE_NODIE(AEnvironmentVolume)
 VERIFY_CLASS_SIZE_NODIE(ATestSplittingVolume)
 VERIFY_CLASS_OFFSET_NODIE(AAIController,AIController,Skill)
-VERIFY_CLASS_OFFSET_NODIE(AAIController,AIController,ScriptedFocus)
 VERIFY_CLASS_SIZE_NODIE(AAIController)
 VERIFY_CLASS_SIZE_NODIE(ACrowdAgentBase)
 VERIFY_CLASS_SIZE_NODIE(ACrowdPopulationManagerBase)

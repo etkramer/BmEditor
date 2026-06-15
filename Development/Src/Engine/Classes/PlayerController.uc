@@ -402,8 +402,6 @@ var float LastSpectatorStateSynchTime;
 var SeqAct_Latent ActiveDialogueOptions;
 
 var transient bool					bCameraCut;					// Whether we did a camera cut this frame. Automatically reset to FALSE every frame.
-/** handles copying and replicating old cover changes from WorldInfo.CoverReplicatorBase on creation as well as replicating new changes */
-var CoverReplicator MyCoverReplicator;
 
 cpptext
 {
@@ -581,17 +579,6 @@ function OnControllerChanged(int ControllerId,bool bIsConnected)
 function bool CanUnpauseControllerConnected()
 {
 	return bIsControllerConnected;
-}
-
-/** spawns MyCoverReplicator and tells it to replicate any changes that have already occurred */
-function CoverReplicator SpawnCoverReplicator()
-{
-	if (MyCoverReplicator == None && Role == ROLE_Authority && LocalPlayer(Player) == None)
-	{
-		MyCoverReplicator = Spawn(class'CoverReplicator', self);
-		MyCoverReplicator.ReplicateInitialCoverInfo();
-	}
-	return MyCoverReplicator;
 }
 
 simulated event PostBeginPlay()
@@ -868,9 +855,6 @@ simulated function NotifyHostMigrationStarted();
  */
 function GetRegisteredPlayersInSession(name SessionName, out array<UniqueNetId> OutRegisteredPlayers);
 
-/** Called on completion of unregistering missing peers */
-delegate OnMissingPeersUnregistered(name SessionName,UniqueNetId PlayerId,bool bWasSuccessful);
-
 /**
  * Find all players in the session that is about to be migrated. Unregister
  * the players that have missing peer connections as they won't migrate.
@@ -879,7 +863,7 @@ delegate OnMissingPeersUnregistered(name SessionName,UniqueNetId PlayerId,bool b
  * @param SessionName name of session to be migrated
  * @return TRUE if there were still players to remove, FALSE if done
  */
-function bool RemoveMissingPeersFromSession(name SessionName,delegate<OnMissingPeersUnregistered> UnregisterDelegate)
+function bool RemoveMissingPeersFromSession(name SessionName,bool bMigrateAsHost)
 {
 	local array<UniqueNetId> RegisteredPlayers;
 	local UniqueNetId ZeroId;
@@ -909,7 +893,14 @@ function bool RemoveMissingPeersFromSession(name SessionName,delegate<OnMissingP
 		if (RegisteredPlayers.Length > 0)
 		{
 			// Add delegate for unregister player completion
-			OnlineSub.GameInterface.AddUnregisterPlayerCompleteDelegate(UnregisterDelegate);
+			if (bMigrateAsHost)
+			{
+				OnlineSub.GameInterface.AddUnregisterPlayerCompleteDelegate(OnUnregisterPlayerCompleteForHostMigrate);
+			}
+			else
+			{
+				OnlineSub.GameInterface.AddUnregisterPlayerCompleteDelegate(OnUnregisterPlayerCompleteForJoinMigrate);
+			}
 			// Unregister a player that is not a peer
 			OnlineSub.GameInterface.UnregisterPlayer(SessionName,RegisteredPlayers[0]);
 			// signal that players were removed and delegate will be called
@@ -932,7 +923,7 @@ function OnUnregisterPlayerCompleteForHostMigrate(name SessionName,UniqueNetId P
 	OnlineSub.GameInterface.ClearUnregisterPlayerCompleteDelegate(OnUnregisterPlayerCompleteForHostMigrate);
 
 	// Continue unregistering missing peers until none are left
-	if (!RemoveMissingPeersFromSession(SessionName,OnUnregisterPlayerCompleteForHostMigrate))
+	if (!RemoveMissingPeersFromSession(SessionName,true))
 	{
 		// Travel host with the migrated session
 		PeerDesignatedAsHost(SessionName);		
@@ -952,7 +943,7 @@ function OnHostMigratedOnlineGame(name SessionName,bool bWasSuccessful)
 	if (bWasSuccessful)
 	{
 		// Remove all non-peers from session and migrate as host once that completes
-		if (!RemoveMissingPeersFromSession(SessionName,OnUnregisterPlayerCompleteForHostMigrate))
+		if (!RemoveMissingPeersFromSession(SessionName,true))
 		{
 			// if nobody to remove just travel as host			
 			PeerDesignatedAsHost(SessionName);
@@ -1121,7 +1112,7 @@ function OnUnregisterPlayerCompleteForJoinMigrate(name SessionName,UniqueNetId P
 	OnlineSub.GameInterface.ClearUnregisterPlayerCompleteDelegate(OnUnregisterPlayerCompleteForJoinMigrate);
 
 	// Continue unregistering missing peers until none are left
-	if (!RemoveMissingPeersFromSession(SessionName,OnUnregisterPlayerCompleteForJoinMigrate))
+	if (!RemoveMissingPeersFromSession(SessionName,false))
 	{
 		PeerDesignatedAsClient(SessionName);
 	}
@@ -1174,7 +1165,7 @@ function OnJoinMigratedGame(name SessionName,bool bWasSuccessful)
 	if (bWasSuccessful)
 	{
 		// Remove all non-peers from session and join once that completes
-		if (!RemoveMissingPeersFromSession(SessionName,OnUnregisterPlayerCompleteForJoinMigrate))
+		if (!RemoveMissingPeersFromSession(SessionName,false))
 		{
 			PeerDesignatedAsClient(SessionName);
 		}
@@ -3872,36 +3863,6 @@ function CallServerMove
 		ClientRoll,
 	    View
 		);
-	}
-	
-	if (PlayerCamera != None && PlayerCamera.bUseClientSideCameraUpdates)
-	{
-		PlayerCamera.bShouldSendClientSideCameraUpdate = TRUE;
-	}
-}
-
-/** If PlayerCamera.bUseClientSideCameraUpdates is set, client will replicate camera positions to the server. */
-// @TODO - combine pitch/yaw into one int, maybe also send location compressed
-unreliable server function ServerUpdateCamera(vector CamLoc, int CamPitchAndYaw)
-{
-	local TPOV		NewPOV;
-
-	NewPOV.Location = CamLoc;
-
-	NewPOV.Rotation.Yaw = (CamPitchAndYaw >> 16) & 65535;
-	NewPOV.Rotation.Pitch = CamPitchAndYaw & 65535;
-
-	if ( PlayerCamera.bDebugClientSideCamera )
-	{
-		// show differences (on server) between local and replicated camera
-	  DrawDebugSphere( PlayerCamera.CameraCache.POV.Location, 10, 10, 0, 255, 0 );
-	  DrawDebugSphere(NewPOV.Location, 10, 10, 255, 255, 0 );
-	  DrawDebugLine(PlayerCamera.CameraCache.POV.Location, PlayerCamera.CameraCache.POV.Location + 100*vector(PlayerCamera.CameraCache.POV.Rotation), 0, 255, 0);
-	  DrawDebugLine(NewPOV.Location, NewPOV.Location + 100*vector(NewPOV.Rotation), 255, 255, 0);
-	}
-	else
-	{
-		PlayerCamera.FillCameraCache(NewPOV);
 	}
 }
 

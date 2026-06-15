@@ -1640,15 +1640,6 @@ struct PlayerController_eventPeerReceivedMigratedSession_Parms
     {
     }
 };
-struct PlayerController_eventOnMissingPeersUnregistered_Parms
-{
-    FName SessionName;
-    struct FUniqueNetId PlayerID;
-    UBOOL bWasSuccessful;
-    PlayerController_eventOnMissingPeersUnregistered_Parms(EEventParm)
-    {
-    }
-};
 struct PlayerController_eventMigrateNewHost_Parms
 {
     UBOOL ReturnValue;
@@ -1825,8 +1816,6 @@ public:
     class UAudioComponent* AmbOtherSoundPtr;
     FLOAT LastSpectatorStateSynchTime;
     class USeqAct_Latent* ActiveDialogueOptions;
-    class ACoverReplicator* MyCoverReplicator;
-    FScriptDelegate __OnMissingPeersUnregistered__Delegate;
     FScriptDelegate __CanUnpause__Delegate;
     FScriptDelegate __InputMatchDelegate__Delegate;
     //## END PROPS PlayerController
@@ -2570,14 +2559,6 @@ public:
         Parms.SearchClass=SearchClass;
         appMemcpy(Parms.PlatformSpecificInfo,PlatformSpecificInfo,sizeof(Parms.PlatformSpecificInfo));
         ProcessEvent(FindFunctionChecked(ENGINE_PeerReceivedMigratedSession),&Parms);
-    }
-    void delegateOnMissingPeersUnregistered(FName SessionName,struct FUniqueNetId PlayerID,UBOOL bWasSuccessful)
-    {
-        PlayerController_eventOnMissingPeersUnregistered_Parms Parms(EC_EventParm);
-        Parms.SessionName=SessionName;
-        Parms.PlayerID=PlayerID;
-        Parms.bWasSuccessful=bWasSuccessful ? FIRST_BITFIELD : FALSE;
-        ProcessDelegate(ENGINE_OnMissingPeersUnregistered,&__OnMissingPeersUnregistered__Delegate,&Parms);
     }
     UBOOL eventMigrateNewHost()
     {

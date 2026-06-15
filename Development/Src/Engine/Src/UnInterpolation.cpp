@@ -7629,22 +7629,6 @@ const FString	UInterpTrackDirector::GetEdHelperClassName() const
 
 void UInterpTrackInstDirector::InitTrackInst(UInterpTrack* Track)
 {
-	UInterpGroupInst* GrInst = CastChecked<UInterpGroupInst>(GetOuter());
-	APlayerController* PC = Cast<APlayerController>(GrInst->GetGroupActor());
-	USeqAct_Interp* Seq = CastChecked<USeqAct_Interp>( GrInst->GetOuter() );
-	if (PC && PC->PlayerCamera && Seq)
-	{
-		UInterpGroupDirector* DirGroup = Cast<UInterpGroupDirector>(GrInst->Group);
-		if (DirGroup)
-		{
-			UInterpTrackDirector* DirTrack = DirGroup->GetDirectorTrack();
-			if (DirTrack && DirTrack->CutTrack.Num() > 0)
-			{
-				// Apply the matinee's rendering overrides
-				PC->PlayerCamera->RenderingOverrides = Seq->RenderingOverrides;
-			}
-		}
-	}
 	Super::InitTrackInst(Track);
 }
 

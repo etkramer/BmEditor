@@ -300,7 +300,7 @@ var bool bCanBeAdheredTo;
 var bool bCanBeFrictionedTo;
 
 
-struct native BlockingVolumeTypesContainer
+struct native immutablewhencooked BlockingVolumeTypesContainer
 {
 	var() bool AllActors;
 	var() bool Player;
