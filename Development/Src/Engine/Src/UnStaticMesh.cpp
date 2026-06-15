@@ -2096,7 +2096,7 @@ void UStaticMesh::Serialize(FArchive& Ar)
 	}
 
 #if BATMAN
-	if (Ar.IsBmCooked(TRUE) && !GUseSeekFreeLoading && (!GCookingTarget || !Ar.IsSaving()) && InternalVersion >= 19)
+	if (!Ar.IsBmCooked(TRUE) && (!GCookingTarget || !Ar.IsSaving()) && InternalVersion >= 19)
 	{
 		Ar << MaterialOverrides;
 	}

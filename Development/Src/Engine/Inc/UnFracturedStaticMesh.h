@@ -306,6 +306,11 @@ public:
 	/** If set, this will be set as Material[OutsideMaterialIndex] on the base mesh as soon as a part is broken off. */
 	UMaterialInterface*	LoseChunkOutsideMaterial;
 
+	// BM: AkEvent stubs.
+	UObject* BreakSound;
+	UObject* BreakSoundChunk;
+	UINT BreakSoundExplosionThreshold;
+
 	/** The material index which corresponds to the 'outside' of the mesh. */
 	INT OutsideMaterialIndex;
 

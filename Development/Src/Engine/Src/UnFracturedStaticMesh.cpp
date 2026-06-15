@@ -66,6 +66,7 @@ void UFracturedStaticMesh::InitializeIntrinsicPropertyValues()
 	ExplosionPhysicsChunkScaleMax=1.0f;
 	InfluenceVertexBuffer = NULL;
 	bSliceUsingCoreCollision = TRUE;
+	BreakSoundExplosionThreshold = 3;
 }
 
 
@@ -104,6 +105,9 @@ void UFracturedStaticMesh::StaticConstructor()
 
 	new(GetClass(),TEXT("DynamicOutsideMaterial"),RF_Public)UObjectProperty(CPP_PROPERTY(DynamicOutsideMaterial),TEXT(""),CPF_Edit,UMaterialInterface::StaticClass());
 	new(GetClass(),TEXT("LoseChunkOutsideMaterial"),RF_Public)UObjectProperty(CPP_PROPERTY(LoseChunkOutsideMaterial),TEXT(""),CPF_Edit,UMaterialInterface::StaticClass());
+	new(GetClass(),TEXT("BreakSound"),RF_Public)UObjectProperty(CPP_PROPERTY(BreakSound),TEXT(""),CPF_Edit,UObject::StaticClass());
+	new(GetClass(),TEXT("BreakSoundChunk"),RF_Public)UObjectProperty(CPP_PROPERTY(BreakSoundChunk),TEXT(""),CPF_Edit,UObject::StaticClass());
+	new(GetClass(),TEXT("BreakSoundExplosionThreshold"),RF_Public)UIntProperty(CPP_PROPERTY(BreakSoundExplosionThreshold), TEXT(""), CPF_Edit);
 	new(GetClass(),TEXT("OutsideMaterialIndex"),RF_Public)UIntProperty(CPP_PROPERTY(OutsideMaterialIndex), TEXT(""), CPF_Edit);
 
 
@@ -113,6 +117,8 @@ void UFracturedStaticMesh::StaticConstructor()
 	TheClass->EmitObjectReference( STRUCT_OFFSET( UFracturedStaticMesh, SourceCoreMesh ) );
 	TheClass->EmitObjectReference( STRUCT_OFFSET( UFracturedStaticMesh, DynamicOutsideMaterial ) );
 	TheClass->EmitObjectReference( STRUCT_OFFSET( UFracturedStaticMesh, LoseChunkOutsideMaterial ) );
+	TheClass->EmitObjectReference( STRUCT_OFFSET( UFracturedStaticMesh, BreakSound ) );
+	TheClass->EmitObjectReference( STRUCT_OFFSET( UFracturedStaticMesh, BreakSoundChunk ) );
 	
 	TheClass->EmitObjectReference( STRUCT_OFFSET( UFracturedStaticMesh, FragmentDestroyEffect ) );
 	TheClass->EmitObjectArrayReference( STRUCT_OFFSET( UFracturedStaticMesh, FragmentDestroyEffects ) );
@@ -121,10 +127,7 @@ void UFracturedStaticMesh::StaticConstructor()
 void UFracturedStaticMesh::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
-	if (!Ar.IsPersistent())
-	{
-		Ar << SourceStaticMesh;
-	}
+	Ar << SourceStaticMesh;
 	Ar << Fragments;
 	Ar << CoreFragmentIndex;
 
