@@ -14,7 +14,7 @@ IMPLEMENT_CLASS(UInterface_RVO);
 
 void ACrowdAgentBase::SetupPathfindingParams( FNavMeshPathParams& out_ParamCache )
 {
-	VERIFY_NAVMESH_PARAMS(9);
+	VERIFY_NAVMESH_PARAMS(11);
 
 	out_ParamCache.bAbleToSearch=TRUE;
 	out_ParamCache.SearchExtent=FVector(1,1,1);
@@ -23,6 +23,8 @@ void ACrowdAgentBase::SetupPathfindingParams( FNavMeshPathParams& out_ParamCache
 	out_ParamCache.MaxDropHeight=0.f;
 	out_ParamCache.bCanMantle=FALSE;
 	out_ParamCache.bNeedsMantleValidityTest = FALSE;
+	out_ParamCache.bCanUseLadders = TRUE; // BM
+	out_ParamCache.bUseCheapSupportCheck = FALSE; // BM
 	out_ParamCache.MinWalkableZ = 0.7f;
 	out_ParamCache.MaxHoverDistance = -1.f;
 }

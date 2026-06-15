@@ -65,6 +65,17 @@ struct native PathStore
 	var const native array<EdgePointer>	EdgeList;
 };
 
+struct native NavMeshPathSessionData
+{
+	var bool IsSearching;
+	var native pointer OpenList{FNavMeshPolyBase};
+	var native pointer GeneratedGoal{FNavMeshPolyBase};
+	var int MaxPathVisits;
+	var int PathSessionID;
+	var int NumVisits;
+	var native map{FNavMeshPolyBase*,FNavMeshPolyBase::SavedPathSessionData*} NodeToPathSessionDataMap;
+};
+
 var PathStore PathCache;
 
 /**
@@ -87,10 +98,6 @@ var bool bSkipRouteCacheUpdates;
 
 const LINECHECK_GRANULARITY = 768.f;
 
-/** List of search constraints for pathing */
-var NavMeshPathConstraint		PathConstraintList;
-var NavMeshPathGoalEvaluator	PathGoalList;
-
 /** when this is TRUE the goal evaluator chain will be treated as an OR chain instead of an AND chain */
 var bool bUseORforEvaluateGoal;
 
@@ -99,7 +106,7 @@ var bool bUseORforEvaluateGoal;
  *  number of params in existence at the time of writing the function, so if the number of params changes and the implementations
  *  are not updated an assert will fire
  */
-const NUM_PATHFINDING_PARAMS = 9;
+const NUM_PATHFINDING_PARAMS = 11;
 
 // this struct is where all the non-volatile pathing params are cached at the beginning of a path search.
 // Populated from Interface_NavigationHandle::SetupPathfindingParams()
@@ -116,6 +123,12 @@ struct native NavMeshPathParams
 
 	/**  is this entity valid to pathfind (does it have a pawn, etc..) */
 	var bool bAbleToSearch;
+
+	/** can this entity use ladders? */
+	var bool bCanUseLadders;
+
+	/** should we use the cheaper edge support check? */
+	var bool bUseCheapSupportCheck;
 
 	/** the size of the entity looking for a path */
 	/* @NOTE: this will use the LARGEST of the X/Y dimensions.  Pathfinding extents must be symmetrical, so if the extent is not,
@@ -136,10 +149,10 @@ struct native NavMeshPathParams
 
 	/** max hover distance -- the maximum distance this entity can hover above the surface of a polygon.  (-1 means arbitrarily high) */
 	var float MaxHoverDistance;
-};
 
-// the cached path params for the current search
-var NavMeshPathParams CachedPathParams;
+	/** data for the currently active path search */
+	var native pointer PathSessionData{FNavMeshPathSessionData};
+};
 
 /** when this bool is TRUE, statistics about which constraints are doing what will be printed following
  *  path searches
@@ -155,6 +168,18 @@ var(PathDebug) bool bDebugConstraintsAndGoalEvals;
  * (e.g. all edges traversed in the first step will be of the same color, second step a different color etc..
  */
 var(PathDebug) bool bUltraVerbosePathDebugging;
+
+/** draw breadcrumb debug info? */
+var() bool bDebug_Breadcrumbs;
+
+/** List of search constraints for pathing */
+var NavMeshPathConstraint		PathConstraintList;
+var NavMeshPathGoalEvaluator	PathGoalList;
+
+// the cached path params for the current search
+var NavMeshPathParams CachedPathParams;
+
+var transient native NavMeshPathSessionData PathSessionData;
 
 /** 
  *  Relevant error code set by FindPath when a path search fails. 
@@ -173,8 +198,6 @@ var vector Breadcrumbs[NumBreadCrumbs];
 var int BreadCrumbMostRecentIdx;
 /** bread crumb interval (how far we need to move before laying a new breadcrumb) */
 var float BreadCrumbDistanceInterval;
-/** draw breadcrumb debug info? */
-var() bool bDebug_Breadcrumbs;
 
 cpptext
 {

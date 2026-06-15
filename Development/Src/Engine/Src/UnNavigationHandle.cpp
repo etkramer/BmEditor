@@ -4386,6 +4386,7 @@ UBOOL UNavigationHandle::PopulatePathfindingParamCache()
 	// populate path finding parameters
 	Interface->SetupPathfindingParams(CachedPathParams);
 	CachedPathParams.Interface = Interface;
+	CachedPathParams.PathSessionData = &PathSessionData; // BM
 	return TRUE;
 }
 

@@ -276,6 +276,12 @@ public:
     //## BEGIN PROPS CameraActor
     BITFIELD bConstrainAspectRatio:1;
     BITFIELD bCamOverridePostProcess_DEPRECATED:1;
+    BITFIELD bOverrideDOF:1;
+    BITFIELD bOverrideMotionBlur:1;
+    BITFIELD bOverrideBloom:1;
+    BITFIELD bOverrideScene:1;
+    BITFIELD bOverrideAtmospherics:1;
+    BITFIELD bCamActorSoundStillAtPlayer:1;
     FLOAT AspectRatio;
     FLOAT FOVAngle;
     FLOAT CamOverridePostProcessAlpha;

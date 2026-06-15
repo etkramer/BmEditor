@@ -3187,7 +3187,7 @@ FLOAT AController::GetMaxDropHeight()
 
 void AController::SetupPathfindingParams( FNavMeshPathParams& out_ParamCache )
 {
-	VERIFY_NAVMESH_PARAMS(9);
+	VERIFY_NAVMESH_PARAMS(11);
 	if(Pawn != NULL)
 	{
 		out_ParamCache.bAbleToSearch = TRUE;
@@ -3196,6 +3196,8 @@ void AController::SetupPathfindingParams( FNavMeshPathParams& out_ParamCache )
 		out_ParamCache.SearchStart = Pawn->Location;
 		out_ParamCache.bCanMantle = Pawn->bCanMantle;
 		out_ParamCache.bNeedsMantleValidityTest = FALSE;
+		out_ParamCache.bCanUseLadders = TRUE; // BM
+		out_ParamCache.bUseCheapSupportCheck = FALSE; // BM
 		out_ParamCache.MaxDropHeight = GetMaxDropHeight();
 		out_ParamCache.MinWalkableZ = Pawn->WalkableFloorZ;
 		if( Pawn->WalkableFloorZ >= 0.6f || Pawn->bCanFly )
@@ -3215,6 +3217,8 @@ void AController::SetupPathfindingParams( FNavMeshPathParams& out_ParamCache )
 		out_ParamCache.SearchStart = Location;
 		out_ParamCache.bCanMantle = FALSE;
 		out_ParamCache.bNeedsMantleValidityTest = FALSE;
+		out_ParamCache.bCanUseLadders = TRUE; // BM
+		out_ParamCache.bUseCheapSupportCheck = FALSE; // BM
 		out_ParamCache.MaxDropHeight = 0.f;
 		out_ParamCache.MinWalkableZ=0.7f;
 		out_ParamCache.MaxHoverDistance = 0.f;

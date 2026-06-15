@@ -3793,64 +3793,6 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 #endif
 
 #if BATMAN
-		// BM: Skip classes (BmGame.upk needs this for now)
-		if (IsBmCooked() && (LoadClass->GetName() == "Class") && (
-			(Export.ObjectName.ToString() != "RSkeletalMeshActor") &&
-			(Export.ObjectName.ToString() != "RLevelVolume") &&
-			(Export.ObjectName.ToString() != "RGameRI") &&
-			(Export.ObjectName.ToString() != "RGameInfo") &&
-			(Export.ObjectName.ToString() != "RGameInfoBase") &&
-			(Export.ObjectName.ToString() != "RHidePoint") &&
-			(Export.ObjectName.ToString() != "RHidePoint_Mesh") &&
-			(Export.ObjectName.ToString() != "RHidePoint_Gargoyle") &&
-			(Export.ObjectName.ToString() != "RPawn") &&
-			(Export.ObjectName.ToString() != "RPawnCharacter") &&
-			(Export.ObjectName.ToString() != "RPawnCombat") &&
-			(Export.ObjectName.ToString() != "RPawnPlayer") &&
-			(Export.ObjectName.ToString() != "RPawnPlayerAnim") &&
-			(Export.ObjectName.ToString() != "RPawnPlayerCombat") &&
-			(Export.ObjectName.ToString() != "RBMScreenShakeModifier") &&
-			(Export.ObjectName.ToString() != "RConfig") &&
-			(Export.ObjectName.ToString() != "RMirrorConfig") &&
-			(Export.ObjectName.ToString() != "RSnapToPositionActor") &&
-			(Export.ObjectName.ToString() != "RSeqAct_SetFaceFXRegister") &&
-			(Export.ObjectName.ToString() != "RAnimUtil_PosePlayer") &&
-			(Export.ObjectName.ToString() != "RAnimUtil_OverlayPlayer") &&
-			(Export.ObjectName.ToString() != "RAnimUtil_MovementPlayer") &&
-			(Export.ObjectName.ToString() != "RAnimUtil_AnimOutput") &&
-			(Export.ObjectName.ToString() != "RAnimUtil_AdditiveAnimOutput") &&
-			(Export.ObjectName.ToString() != "RAnimUtil_AimingOutput") &&
-			(Export.ObjectName.ToString() != "RAnimUtil_MovementOutput") &&
-			(Export.ObjectName.ToString() != "RAnimUtil_Layers") &&
-			(Export.ObjectName.ToString() != "RAnimUtil") &&
-			(Export.ObjectName.ToString() != "RAnimNode_Pose") &&
-			(Export.ObjectName.ToString() != "RAnimConfig") &&
-			(Export.ObjectName.ToString() != "RPoseConfig") &&
-			(Export.ObjectName.ToString() != "RDisruptableObjectBase") &&
-			(Export.ObjectName.ToString() != "RDisruptableControlBox") &&
-			(Export.ObjectName.ToString() != "RSpecialMoveEnvironmentObject") &&
-			(Export.ObjectName.ToString() != "RTunnelGrateBase") &&
-			(Export.ObjectName.ToString() != "RTunnelGrateShared") &&
-			(Export.ObjectName.ToString() != "RTunnelGrate") &&
-			(Export.ObjectName.ToString() != "RLadder") &&
-			(Export.ObjectName.ToString() != "RLadder_384") &&
-			(Export.ObjectName.ToString() != "RLadder_512") &&
-			(Export.ObjectName.ToString() != "PersistentDebugData") &&
-			(Export.ObjectName.ToString() != "RPersistentDebugData") &&
-			(Export.ObjectName.ToString() != "RFractureWall") &&
-			(Export.ObjectName.ToString() != "RFractureWallBase") &&
-			(Export.ObjectName.ToString() != "AkWwise") &&
-			(Export.ObjectName.ToString() != "RGrapplePoint")
-		))
-        {
-			UObject* ExistingClass = StaticFindObject(UClass::StaticClass(), NULL, *GetExportPathName(Index, NULL, TRUE), TRUE);
-			if (ExistingClass)
-			{
-				return ExistingClass;
-			}
-            return NULL;
-        }
-
         // BM: Skip currently unsupported types.
         if (IsBmCooked() && (
 			LoadClass->GetName() == "ActorFactoryEmitter" ||

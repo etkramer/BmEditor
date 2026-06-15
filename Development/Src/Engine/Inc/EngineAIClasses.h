@@ -1255,12 +1255,33 @@ struct FPathStore
 	
 };
 
+struct FNavMeshPathSessionData
+{
+    BITFIELD IsSearching:1;
+    SCRIPT_ALIGN;
+    FNavMeshPolyBase* OpenList;
+    FNavMeshPolyBase* GeneratedGoal;
+    INT MaxPathVisits;
+    INT PathSessionID;
+    INT NumVisits;
+    TMap< FNavMeshPolyBase*,FNavMeshPolyBase::SavedPathSessionData* > NodeToPathSessionDataMap;
+
+    /** Constructors */
+    FNavMeshPathSessionData() {}
+    FNavMeshPathSessionData(EEventParm)
+    {
+        appMemzero(this, sizeof(FNavMeshPathSessionData));
+    }
+};
+
 struct FNavMeshPathParams
 {
     IInterface_NavigationHandle* Interface;
     BITFIELD bCanMantle:1;
     BITFIELD bNeedsMantleValidityTest:1;
     BITFIELD bAbleToSearch:1;
+    BITFIELD bCanUseLadders:1;
+    BITFIELD bUseCheapSupportCheck:1;
     SCRIPT_ALIGN;
     FVector SearchExtent;
     FLOAT SearchLaneMultiplier;
@@ -1268,6 +1289,7 @@ struct FNavMeshPathParams
     FLOAT MaxDropHeight;
     FLOAT MinWalkableZ;
     FLOAT MaxHoverDistance;
+    FNavMeshPathSessionData* PathSessionData;
 
     /** Constructors */
     FNavMeshPathParams() {}
@@ -1278,7 +1300,7 @@ struct FNavMeshPathParams
 };
 
 #define UCONST_NumBreadCrumbs 10
-#define UCONST_NUM_PATHFINDING_PARAMS 9
+#define UCONST_NUM_PATHFINDING_PARAMS 11
 #define UCONST_LINECHECK_GRANULARITY 768.f
 
 class UNavigationHandle : public UObject
@@ -1300,6 +1322,7 @@ public:
     class UNavMeshPathConstraint* PathConstraintList;
     class UNavMeshPathGoalEvaluator* PathGoalList;
     struct FNavMeshPathParams CachedPathParams;
+    struct FNavMeshPathSessionData PathSessionData;
     BYTE LastPathError;
     FLOAT LastPathFailTime;
     FVector Breadcrumbs[10];

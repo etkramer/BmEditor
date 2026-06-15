@@ -16,6 +16,12 @@ var()	interp	float			AspectRatio;
 var()	interp	float			FOVAngle;
 
 var deprecated	bool					bCamOverridePostProcess;
+var				bool					bOverrideDOF;
+var				bool					bOverrideMotionBlur;
+var				bool					bOverrideBloom;
+var				bool					bOverrideScene;
+var				bool					bOverrideAtmospherics;
+var				bool					bCamActorSoundStillAtPlayer;
 /** Blend value for CamOverridePostProcess.  0.f means it's ignored, 1.f means use it exclusively.  */
 var()	interp	float					CamOverridePostProcessAlpha<ClampMin=0.0 | ClampMax=1.0>;
 var()	interp	PostProcessSettings		CamOverridePostProcess;
@@ -88,23 +94,14 @@ defaultproperties
 	bConstrainAspectRatio=TRUE
 	AspectRatio=AspectRatio16x9
 
-	Begin Object Class=StaticMeshComponent Name=CamMesh0
-		HiddenGame=TRUE
-		CollideActors=FALSE
-		BlockRigidBody=FALSE
-		CastShadow=FALSE
-		AlwaysLoadOnClient=FALSE
-		AlwaysLoadOnServer=FALSE
-	End Object
-	MeshComp=CamMesh0
-	Components.Add(CamMesh0)
+	bOverrideDOF=TRUE
+	bOverrideMotionBlur=TRUE
+	bOverrideBloom=TRUE
+	bOverrideScene=TRUE
+	bOverrideAtmospherics=TRUE
 
-	Begin Object Class=DrawFrustumComponent Name=DrawFrust0
-		AlwaysLoadOnClient=FALSE
-		AlwaysLoadOnServer=FALSE
-	End Object
-	DrawFrustum=DrawFrust0
-	Components.Add(DrawFrust0)
+	Components[0]=None
+	Components[1]=None
 
 	
 	RemoteRole=ROLE_None

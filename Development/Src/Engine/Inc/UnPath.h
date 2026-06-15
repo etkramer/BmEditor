@@ -1884,6 +1884,8 @@ struct FNavMeshPathObjectEdge : public FNavMeshCrossPylonEdge
 typedef TDoubleLinkedList<FNavMeshPolyBase*> PolyList;
 struct FNavMeshPolyBase : public FNavMeshObject
 {
+	struct SavedPathSessionData; // BM
+
 	/** Index into NavMesh poly array - only valid after fixup */
 	WORD Item;
 	/** Vert indices */

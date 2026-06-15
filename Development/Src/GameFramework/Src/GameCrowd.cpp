@@ -1649,7 +1649,7 @@ UBOOL USeqAct_PlayAgentAnimation::UpdateOp(FLOAT DeltaTime)
 /** AGameCrowdPopulationManager IMPLEMENT Interface_NavigationHandle */
 void AGameCrowdPopulationManager::SetupPathfindingParams( FNavMeshPathParams& out_ParamCache )
 {
-	VERIFY_NAVMESH_PARAMS(9)
+	VERIFY_NAVMESH_PARAMS(11)
 	if(QueryingAgent != NULL)
 	{
 		out_ParamCache.bAbleToSearch = TRUE;
@@ -1665,6 +1665,8 @@ void AGameCrowdPopulationManager::SetupPathfindingParams( FNavMeshPathParams& ou
 	out_ParamCache.SearchLaneMultiplier = 0.f;
 	out_ParamCache.bCanMantle = FALSE;
 	out_ParamCache.bNeedsMantleValidityTest = FALSE;
+	out_ParamCache.bCanUseLadders = TRUE; // BM
+	out_ParamCache.bUseCheapSupportCheck = FALSE; // BM
 	out_ParamCache.MaxDropHeight = 0.f;
 	out_ParamCache.MinWalkableZ = 0.7f;
 	out_ParamCache.MaxHoverDistance = -1.f;
@@ -1689,13 +1691,15 @@ void AGameCrowdAgent::InitForPathfinding()
 
 void AGameCrowdAgent::SetupPathfindingParams( FNavMeshPathParams& out_ParamCache )
 {
-	VERIFY_NAVMESH_PARAMS(9)
+	VERIFY_NAVMESH_PARAMS(11)
 	out_ParamCache.bAbleToSearch = TRUE;
 	out_ParamCache.SearchExtent = SearchExtent;
 	out_ParamCache.SearchLaneMultiplier = CurrentPathLaneValue; 
 	out_ParamCache.SearchStart = Location;
 	out_ParamCache.bCanMantle = FALSE;
 	out_ParamCache.bNeedsMantleValidityTest = FALSE;
+	out_ParamCache.bCanUseLadders = TRUE; // BM
+	out_ParamCache.bUseCheapSupportCheck = FALSE; // BM
 	out_ParamCache.MaxDropHeight = 0.f;
 	out_ParamCache.MinWalkableZ = 0.7f;
 	out_ParamCache.MaxHoverDistance = -1.f;
