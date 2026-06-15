@@ -1019,13 +1019,17 @@ void ANavigationPoint::ClearForPathFinding()
 
 	// Figure out total cost of movement to this node
 	Cost =	ExtraCost + 
-			TransientCost + 
-			FearCost;
+			TransientCost;
+#if !BATMAN
+	Cost += FearCost;
+#endif
 
 	CostArray.Empty();
 	DEBUGREGISTERCOST( this, TEXT("Extra"), ExtraCost );
 	DEBUGREGISTERCOST( this, TEXT("Transient"), TransientCost );
+#if !BATMAN
 	DEBUGREGISTERCOST( this, TEXT("Fear"), FearCost );
+#endif
 	
 	TransientCost = 0;
 	bAlreadyVisited = FALSE;

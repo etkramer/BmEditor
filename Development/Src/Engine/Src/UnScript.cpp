@@ -3122,6 +3122,9 @@ UBOOL AGameInfo::GetMapCommonPackageName(const FString& InFilename,FString& OutC
 /** Update navigation point fear cost fall off. */
 void AGameInfo::DoNavFearCostFallOff()
 {
+#if BATMAN
+	bDoFearCostFallOff = FALSE;
+#else
 	INT TotalFear = 0;
 	for( ANavigationPoint* Nav = GWorld->GetWorldInfo()->NavigationPointList; Nav != NULL; Nav = Nav->nextNavigationPoint )
 	{
@@ -3132,6 +3135,7 @@ void AGameInfo::DoNavFearCostFallOff()
 		}
 	}
 	bDoFearCostFallOff = (TotalFear > 0);
+#endif
 }
 
 

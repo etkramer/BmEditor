@@ -7026,7 +7026,6 @@ public:
     BITFIELD bBlocked:1;
     BITFIELD bOneWayPath:1;
     BITFIELD bNeverUseStrafing:1;
-    BITFIELD bAlwaysUseStrafing:1;
     BITFIELD bForceNoStrafing:1;
     BITFIELD bAutoBuilt:1;
     BITFIELD bSpecialMove:1;
@@ -7049,6 +7048,7 @@ public:
     BITFIELD bBlockedForVehicles:1;
     BITFIELD bPreferredVehiclePath:1;
     BITFIELD bHasCrossLevelPaths:1;
+    BITFIELD bSkipPathBuilding:1;
     BITFIELD bShouldSaveForCheckpoint:1;
     SCRIPT_ALIGN;
     struct FNavigationOctreeObject NavOctreeObject;
@@ -7065,7 +7065,6 @@ public:
     INT Cost;
     INT ExtraCost;
     INT TransientCost;
-    INT FearCost;
     TArrayNoInit<struct FDebugNavCost> CostArray;
     class ADroppedPickup* InventoryCache;
     FLOAT InventoryDist;

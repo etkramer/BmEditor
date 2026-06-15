@@ -86,7 +86,6 @@ var native transient const NavigationOctreeObject NavOctreeObject;
 var() bool bBlocked;			// this node is currently unuseable
 var() bool bOneWayPath;			// reachspecs from this path only in the direction the path is facing (180 degrees)
 var	bool bNeverUseStrafing;	// shouldn't use bAdvancedTactics going to this point
-var bool bAlwaysUseStrafing;	// shouldn't use bAdvancedTactics going to this point
 var const bool bForceNoStrafing;// override any LD changes to bNeverUseStrafing
 var const bool bAutoBuilt;		// placed during execution of "PATHS BUILD"
 var	bool bSpecialMove;			// if true, pawn will call SuggestMovePreparation() when moving toward this node
@@ -112,6 +111,9 @@ var bool bBuildLongPaths;
 var(VehicleUsage) bool bBlockedForVehicles;
 /** vehicles with bUsePreferredVehiclePaths set (large vehicles, usually) will prioritize using these nodes */
 var(VehicleUsage) bool bPreferredVehiclePath;
+/** Does this nav point point to others in separate levels? */
+var const bool bHasCrossLevelPaths;
+var bool bSkipPathBuilding;
 
 var() editinline const editconst duplicatetransient array<ReachSpec> PathList; //index of reachspecs (used by C++ Navigation code)
 /** List of navigation points to prevent paths being built to */
@@ -129,7 +131,6 @@ var const NavigationPoint previousPath;
 var int Cost;					// added cost to visit this pathnode
 var() int ExtraCost;			// Extra weight added by level designer
 var transient int TransientCost;	// added right before a path finding attempt, cleared afterward.
-var	transient int FearCost;		// extra weight diminishing over time (used for example, to mark path where bot died)
 
 /** Mapping of Cost/Description for costs of this node */
 struct native DebugNavCost
@@ -169,9 +170,6 @@ var() editconst const duplicatetransient guid NavGuid;
 var const transient SpriteComponent GoodSprite;
 /** Used to draw bad collision intersection in editor */
 var const transient SpriteComponent BadSprite;
-
-/** Does this nav point point to others in separate levels? */
-var const bool bHasCrossLevelPaths;
 
 /** Which navigation network does this navigation point connect to? */
 var() editconst const int NetworkID;
