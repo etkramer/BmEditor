@@ -12,6 +12,9 @@ class BlockingVolume extends Volume
 /** GameCameras ignore BlockingVolumes with bBlockCamera=false */
 var() bool bBlockCamera;
 
+// BM
+var Color DebugRenderingColor;
+
 cpptext
 {
 	UBOOL IgnoreBlockingBy( const AActor *Other ) const;

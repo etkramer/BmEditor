@@ -1227,6 +1227,8 @@ void WxLevelViewportToolBar::OnOptionsMenu( wxCommandEvent& In )
 		// Get sorted array of volume classes then create a menu item for each one
 		TArray< UClass* > VolumeClasses;
 
+		ViewportClient->EnsureVolumeActorVisibilitySize();
+
 		VolumeMenu->AppendCheckItem( IDM_VolumeActorVisibilityShowAll, *LocalizeUnrealEd( TEXT("ShowAll") ) );
 		VolumeMenu->AppendCheckItem( IDM_VolumeActorVisibilityHideAll, *LocalizeUnrealEd( TEXT("HideAll") ) );
 
@@ -1664,6 +1666,8 @@ void WxLevelViewportToolBar::OnChangeVolumeVisibility( wxCommandEvent& In )
 	// Get a sorted list of volume classes.
 	TArray< UClass *> VolumeClasses;
 	GApp->EditorFrame->GetSortedVolumeClasses( &VolumeClasses );
+
+	ViewportClient->EnsureVolumeActorVisibilitySize();
 
 	// Get the corresponding volume class for the clicked menu item.
 	UClass *SelectedVolumeClass = VolumeClasses( VolumeID );

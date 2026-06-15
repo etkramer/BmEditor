@@ -1388,6 +1388,7 @@ void UUnrealEdEngine::UpdateVolumeActorVisibility( const UClass* InVolumeActorCl
 				if (ViewClient.bEditorFrameClient)
 				{
 					// Only update the editor frame clients as those are the only viewports right now that show volumes.
+					ViewClient.EnsureVolumeActorVisibilitySize();
 					InternalUpdateVolumeActorVisibility( ActorsToUpdate, ViewClient, ActorsThatChanged );
 					if( ActorsThatChanged.Num() )
 					{
@@ -1402,6 +1403,7 @@ void UUnrealEdEngine::UpdateVolumeActorVisibility( const UClass* InVolumeActorCl
 			if ( InViewport->bEditorFrameClient )
 			{
 				// Only update the editor frame clients as those are the only viewports right now that show volumes.
+				InViewport->EnsureVolumeActorVisibilitySize();
 				InternalUpdateVolumeActorVisibility( ActorsToUpdate, *InViewport, ActorsThatChanged );
 				if( ActorsThatChanged.Num() )
 				{	

@@ -509,6 +509,7 @@ public:
 	 * @param VolumeActor	The volume to check
 	 */
 	UBOOL IsVolumeVisibleInViewport( const AActor& VolumeActor ) const;
+	void EnsureVolumeActorVisibilitySize();
 
 	/**
 	 * Invalidates this viewport and optionally child views.

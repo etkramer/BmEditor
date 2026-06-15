@@ -5656,25 +5656,30 @@ static UINT GetVolumeActorVisiblityId( const AActor& InActor )
 {
 	UClass* Class = InActor.GetClass();
 
-	static TMap<UClass*, UINT > ActorToIdMap;
-	if( ActorToIdMap.Num() == 0 )
+	TArray< UClass *> VolumeClasses;
+	GApp->EditorFrame->GetSortedVolumeClasses( &VolumeClasses );
+	for( INT VolumeIdx = 0; VolumeIdx < VolumeClasses.Num(); ++VolumeIdx )
 	{
-		// Build a mapping of volume classes to ID's.  Do this only once
-		TArray< UClass *> VolumeClasses;
-		GApp->EditorFrame->GetSortedVolumeClasses( &VolumeClasses );
-		for( INT VolumeIdx = 0; VolumeIdx < VolumeClasses.Num(); ++VolumeIdx )
+		if( VolumeClasses(VolumeIdx) == Class )
 		{
-			// An actors flag is just the index of the actor in the stored volume array shifted left to represent a unique bit.
-			ActorToIdMap.Set( VolumeClasses(VolumeIdx), VolumeIdx );
+			return VolumeIdx;
 		}
 	}
 
-	UINT* ActorID =  ActorToIdMap.Find( Class );
-
-	// return 0 if the actor flag was not found, otherwise return the actual flag.  
-	return ActorID ? *ActorID : 0;
+	// return 0 if the actor flag was not found, otherwise return the actual flag.
+	return 0;
 }
 
+void FEditorLevelViewportClient::EnsureVolumeActorVisibilitySize()
+{
+	TArray< UClass* > VolumeClasses;
+	GApp->EditorFrame->GetSortedVolumeClasses( &VolumeClasses );
+	while( VolumeActorVisibility.Num() < VolumeClasses.Num() )
+	{
+		// BM: New script packages can add volume classes after editor viewports are constructed.
+		VolumeActorVisibility.AddItem( TRUE );
+	}
+}
 
 /** 
  * Returns TRUE if the passed in volume is visible in the viewport (due to volume actor visibility flags)
@@ -5688,6 +5693,11 @@ UBOOL FEditorLevelViewportClient::IsVolumeVisibleInViewport( const AActor& Volum
 	check( VolumeActor.IsAVolume() );
 
 	UINT VolumeId = GetVolumeActorVisiblityId( VolumeActor );
+	if( VolumeId >= (UINT)VolumeActorVisibility.Num() )
+	{
+		// BM: Treat late-loaded volume classes as visible until the viewport visibility array is synced.
+		return TRUE;
+	}
 	return VolumeActorVisibility( VolumeId );
 }
 

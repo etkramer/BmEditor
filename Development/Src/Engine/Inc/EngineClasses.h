@@ -4659,6 +4659,7 @@ public:
     //## BEGIN PROPS BlockingVolume
     BITFIELD bBlockCamera:1;
     SCRIPT_ALIGN;
+    FColor DebugRenderingColor;
     //## END PROPS BlockingVolume
 
     DECLARE_CLASS(ABlockingVolume,AVolume,0,Engine)
@@ -21546,6 +21547,7 @@ VERIFY_CLASS_SIZE_NODIE(ABrush)
 VERIFY_CLASS_SIZE_NODIE(ABrushShape)
 VERIFY_CLASS_OFFSET_NODIE(AVolume,Volume,PhysicalMaterialOverrideForCollisionComponent)
 VERIFY_CLASS_SIZE_NODIE(AVolume)
+VERIFY_CLASS_OFFSET_NODIE(ABlockingVolume,BlockingVolume,DebugRenderingColor)
 VERIFY_CLASS_SIZE_NODIE(ABlockingVolume)
 VERIFY_CLASS_SIZE_NODIE(ADynamicBlockingVolume)
 VERIFY_CLASS_OFFSET_NODIE(ACullDistanceVolume,CullDistanceVolume,CullDistances)
