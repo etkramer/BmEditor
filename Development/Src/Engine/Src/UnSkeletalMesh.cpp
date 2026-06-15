@@ -4171,6 +4171,14 @@ void USkeletalMeshComponent::UpdateMorphMaterialUsageOnProxy()
 void USkeletalMeshComponent::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
+
+#if BATMAN
+	if (Ar.IsBmCooked(TRUE))
+	{
+		Ar << XRayMaterials;
+		Ar << ThermalMaterials;
+	}
+#endif
 		 	
 	if(Ar.IsCountingMemory())
  	{
