@@ -112,11 +112,7 @@ UBOOL FGPUSkinVertexFactory::SharedShouldCache(EShaderPlatform Platform, const c
 
 UBOOL FGPUSkinVertexFactory::ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const FShaderType* ShaderType)
 {
-#if BATMAN
-	return SharedShouldCache(Platform, Material, ShaderType) && !Material->IsUsedWithStaticLighting();
-#else
 	return SharedShouldCache(Platform, Material, ShaderType) && !Material->IsUsedWithDecals();
-#endif
 }
 
 void FGPUSkinVertexFactory::ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -447,11 +443,7 @@ UBOOL FGPUSkinMorphVertexFactory::SharedShouldCache(EShaderPlatform Platform, co
 */
 UBOOL FGPUSkinMorphVertexFactory::ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
 {
-#if BATMAN
-	return SharedShouldCache(Platform, Material, ShaderType) && !Material->IsUsedWithStaticLighting();
-#else
 	return SharedShouldCache(Platform, Material, ShaderType) && !Material->IsUsedWithDecals();
-#endif
 }
 
 /**

@@ -411,7 +411,31 @@ public:
 		}
 		void SetLightMapScale(FShader* PixelShader,const FLightMapInteraction& LightMapInteraction) const
 		{
-			SetPixelShaderValues(PixelShader->GetPixelShader(),LightMapScaleParameter,LightMapInteraction.GetScaleArray(),LightMapInteraction.GetNumLightmapCoefficients());
+			if (LightMapInteraction.GetType() == LMIT_None)
+			{
+				const FVector4 DummyScaleArray[NUM_DIRECTIONAL_LIGHTMAP_COEF] =
+				{
+					FVector4(1.0f,1.0f,1.0f,1.0f),
+					FVector4(1.0f,1.0f,1.0f,1.0f)
+				};
+				SetPixelShaderValues(PixelShader->GetPixelShader(),LightMapScaleParameter,DummyScaleArray,NUM_DIRECTIONAL_LIGHTMAP_COEF);
+			}
+			else
+			{
+				SetPixelShaderValues(PixelShader->GetPixelShader(),LightMapScaleParameter,LightMapInteraction.GetScaleArray(),LightMapInteraction.GetNumLightmapCoefficients());
+			}
+		}
+		void SetDummyLightmapTexture(FShader* PixelShader, UINT NumLightmapTextures) const
+		{
+			for (UINT CoefficientIndex = 0; CoefficientIndex < NumLightmapTextures; CoefficientIndex++)
+			{
+				SetTextureParameter(
+					PixelShader->GetPixelShader(),
+					LightMapTexturesParameter,
+					GWhiteTexture,
+					CoefficientIndex
+					);
+			}
 		}
 		void Serialize(FArchive& Ar)
 		{
@@ -483,10 +507,11 @@ public:
 		const FLightMapInteraction& LightMapInteraction
 		) const
 	{
+		const FVector2D ZeroCoordinate(0.0f,0.0f);
 		VertexShaderParameters->SetCoordinateTransform(
 			VertexShader,
-			LightMapInteraction.GetCoordinateScale(),
-			LightMapInteraction.GetCoordinateBias()
+			LightMapInteraction.GetType() == LMIT_None ? ZeroCoordinate : LightMapInteraction.GetCoordinateScale(),
+			LightMapInteraction.GetType() == LMIT_None ? ZeroCoordinate : LightMapInteraction.GetCoordinateBias()
 			);
 		if(PixelShaderParameters)
 		{
@@ -553,12 +578,19 @@ public:
 	{
 		if(PixelShaderParameters)
 		{
-			const UTexture2D* LightMapTextures[NUM_DIRECTIONAL_LIGHTMAP_COEF];
-			for(UINT CoefficientIndex = 0;CoefficientIndex < NUM_DIRECTIONAL_LIGHTMAP_COEF;CoefficientIndex++)
+			if (LightMapInteraction.GetType() != LMIT_None)
 			{
-				LightMapTextures[CoefficientIndex] = LightMapInteraction.GetTexture(CoefficientIndex);
+				const UTexture2D* LightMapTextures[NUM_DIRECTIONAL_LIGHTMAP_COEF];
+				for(UINT CoefficientIndex = 0;CoefficientIndex < NUM_DIRECTIONAL_LIGHTMAP_COEF;CoefficientIndex++)
+				{
+					LightMapTextures[CoefficientIndex] = LightMapInteraction.GetTexture(CoefficientIndex);
+				}
+				PixelShaderParameters->SetLightMapTextures(PixelShader,LightMapTextures,NUM_DIRECTIONAL_LIGHTMAP_COEF);
 			}
-			PixelShaderParameters->SetLightMapTextures(PixelShader,LightMapTextures,NUM_DIRECTIONAL_LIGHTMAP_COEF);
+			else
+			{
+				PixelShaderParameters->SetDummyLightmapTexture(PixelShader,NUM_DIRECTIONAL_LIGHTMAP_COEF);
+			}
 		}
 
 		FLightMapTexturePolicy::SetMesh(View, PrimitiveSceneInfo, VertexShaderParameters, PixelShaderParameters, VertexShader, PixelShader, VertexFactory, MaterialRenderProxy, LightMapInteraction);

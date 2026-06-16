@@ -1090,16 +1090,23 @@ void BM2ProcessNoLightCompatibleBasePassMesh(
 	const ProcessActionType& Action
 	)
 {
-	if (BM2HasCookedBasePassNoSkyLightShaders<FNoLightMapPolicy>(Parameters.Material, Parameters.Mesh.VertexFactory->GetType()))
+	if (Parameters.LightingModel != MLM_Unlit
+		&& Parameters.Mesh.VertexFactory->GetType()->SupportsStaticLighting()
+		&& (Parameters.Material->IsUsedWithStaticLighting() || Parameters.Material->IsSpecialEngineMaterial()))
+	{
+		ProcessBasePassMesh_LightMapped<ProcessActionType, FDirectionalLightMapTexturePolicy>(
+			Parameters,
+			Action,
+			FDirectionalLightMapTexturePolicy(),
+			FLightMapInteraction());
+	}
+	else
 	{
 		ProcessBasePassMesh_LightMapped<ProcessActionType, FNoLightMapPolicy>(
 			Parameters,
 			Action,
 			FNoLightMapPolicy(),
 			FNoLightMapPolicy::ElementDataType());
-	}
-	else
-	{
 	}
 }
 #endif

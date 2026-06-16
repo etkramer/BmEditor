@@ -69,6 +69,49 @@ var() bool bUseBooleanEnvironmentShadowing;
 /** Whether the light environment should be shadowed by the static environment. */
 var bool bShadowFromEnvironment;
 
+/** Whether the light environment should be dynamically updated. */
+var() bool bDynamic;
+
+/** Whether a directional light should be used to synthesize the dominant lighting in the environment. */
+var() bool bSynthesizeDirectionalLight;
+
+/**
+ * Whether a SH light should be used to synthesize all light not accounted for by the synthesized directional light.
+ * If not, a sky light is used instead.  Using an SH light gives higher quality secondary lighting, but at a steeper performance cost.
+ */
+var() bool bSynthesizeSHLight;
+
+/** 
+ * This is to allow individual DLEs to force override and get and SH light.  We need this for levels which have their
+ * worldinfo's bAllowLightEnvSphericalHarmonicLights set to FALSE but then have cinematic levels added which were lit needing SH lights
+ * to look good.
+ **/
+var bool bForceAllowLightEnvSphericalHarmonicLights;
+
+/** Whether this is an actor that can't tolerate latency in lighting updates; a full lighting update is done every frame. */
+var bool bRequiresNonLatentUpdates;
+
+/* 
+ * Whether to do visibility traces from the closest point on the bounds to the light, or just from the center of the bounds. 
+ * This is useful when using a DLE on an object that is likely embedded in shadow casting objects (ie fractured meshes).
+ */
+var bool bTraceFromClosestBoundsPoint;
+
+/** 
+ * Whether this light environment is being applied to a character 
+ * And should be affected by character specific lighting like WorldInfo's CharacterLightingContrastFactor. 
+ */
+var bool bIsCharacterLightEnvironment;
+
+/* Whether to override the lighting channels of the owner with OverriddenLightingChannels. */
+var bool bOverrideOwnerLightingChannels;
+
+var bool RestrictInterpolationWhenSlow;
+var bool bIsPlayerCharacterLightEnvironment;
+var() bool bScaleShadowDistanceWhenAboveCamera;
+var() bool bRecieveStaticModulatedShadows;
+var transient bool WaitingForDeferredReset;
+
 /** Time since the caster was last visible at which the mod shadow will fade out completely.  */
 var float ModShadowFadeoutTime;
 
@@ -113,52 +156,8 @@ var int ShadowFadeResolution;
 /** Quality of shadow buffer filtering to use on the light environment */
 var EShadowFilterQuality ShadowFilterQuality;
 
-/** Whether the light environment should be dynamically updated. */
-var() bool bDynamic;
-
-/** Whether a directional light should be used to synthesize the dominant lighting in the environment. */
-var bool bSynthesizeDirectionalLight;
-
-/**
- * Whether a SH light should be used to synthesize all light not accounted for by the synthesized directional light.
- * If not, a sky light is used instead.  Using an SH light gives higher quality secondary lighting, but at a steeper performance cost.
- */
-var() bool bSynthesizeSHLight;
-
-/** 
- * This is to allow individual DLEs to force override and get and SH light.  We need this for levels which have their
- * worldinfo's bAllowLightEnvSphericalHarmonicLights set to FALSE but then have cinematic levels added which were lit needing SH lights
- * to look good.
- **/
-var bool bForceAllowLightEnvSphericalHarmonicLights;
-
-
 /** The type of shadowing to use for the environment's shadow. */
 var ELightShadowMode LightShadowMode;
-
-/** The intensity of the simulated bounced light, as a fraction of the LightComponent's bounced lighting settings. */
-var float BouncedLightingFactor;
-
-/**
- * The minimum angle to allow between the shadow direction and horizontal.  An angle > 0 constrains the shadow to never be cast from a light
- * below horizontal.
- */
-var float MinShadowAngle;
-
-/** Whether this is an actor that can't tolerate latency in lighting updates; a full lighting update is done every frame. */
-var bool bRequiresNonLatentUpdates;
-
-/* 
- * Whether to do visibility traces from the closest point on the bounds to the light, or just from the center of the bounds. 
- * This is useful when using a DLE on an object that is likely embedded in shadow casting objects (ie fractured meshes).
- */
-var bool bTraceFromClosestBoundsPoint;
-
-/** 
- * Whether this light environment is being applied to a character 
- * And should be affected by character specific lighting like WorldInfo's CharacterLightingContrastFactor. 
- */
-var bool bIsCharacterLightEnvironment;
 
 /** 
  * Methods used to calculate the bounds that this light environment will use as a representation of what it is lighting.
@@ -180,17 +179,27 @@ enum EDynamicLightEnvironmentBoundsMethod
 
 var EDynamicLightEnvironmentBoundsMethod BoundsMethod;
 
+var float ShadowFalloffExponent;
+
+/** The intensity of the simulated bounced light, as a fraction of the LightComponent's bounced lighting settings. */
+var float BouncedLightingFactor;
+
+/**
+ * The minimum angle to allow between the shadow direction and horizontal.  An angle > 0 constrains the shadow to never be cast from a light
+ * below horizontal.
+ */
+var float MinShadowAngle;
+
 /* The bounds to use for visibility calculations if BoundsMethod==DLEB_ManualOverride. */
 var BoxSphereBounds OverriddenBounds;
-
-/* Whether to override the lighting channels of the owner with OverriddenLightingChannels. */
-var bool bOverrideOwnerLightingChannels;
 
 /* The lighting channels to use if bOverrideOwnerLightingChannels is enabled. */
 var LightingChannelContainer OverriddenLightingChannels;
 
 /** Light components which override lights in GWorld, useful for rendering light environments in preview scenes. */
 var const array<LightComponent> OverriddenLightComponents;
+
+var transient int StaticLightingTimestamp;
 
 cpptext
 {
@@ -242,7 +251,8 @@ defaultproperties
 	// Cheap default
 	bUseBooleanEnvironmentShadowing=TRUE
 	bShadowFromEnvironment=TRUE
-	ModShadowFadeoutExponent=3.0
+	bDynamic=TRUE
+	ModShadowFadeoutTime=3.0
     MaxModulatedShadowColor=(R=0.5,G=0.5,B=0.5)
     DominantShadowTransitionStartDistance=100
     DominantShadowTransitionEndDistance=10
@@ -250,11 +260,9 @@ defaultproperties
 	MaxShadowResolution=0
 	ShadowFadeResolution=0
 	ShadowFilterQuality=SFQ_Low
-	bDynamic=TRUE
 	LightShadowMode=LightShadow_Modulate
-	bSynthesizeDirectionalLight=TRUE
-	bSynthesizeSHLight=FALSE
+	ShadowFalloffExponent=1.0
 	BouncedLightingFactor=1.0
-	MinShadowAngle=25.0
+	MinShadowAngle=60.0
 	BoundsMethod=DLEB_OwnerComponents
 }

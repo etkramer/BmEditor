@@ -27,6 +27,9 @@ void FLightSceneInfoCompact::Init(FLightSceneInfo* InLightSceneInfo)
 	bStaticLighting = InLightSceneInfo->bStaticLighting;
 	bCastCompositeShadow = InLightSceneInfo->bCastCompositeShadow;
 	bModulateBetterShadows = InLightSceneInfo->LightShadowMode == LightShadow_ModulateBetter;
+#if BATMAN
+	bCheapLight = InLightSceneInfo->bCheapLight;
+#endif
 }
 
 FLinearColor FLightSceneInfo::GetDirectIntensity(const FVector& Point) const
@@ -65,6 +68,7 @@ FLightSceneInfo::FLightSceneInfo(const ULightComponent* Component)
 	, bSelfShadowOnly(Component->bSelfShadowOnly)
 	, bAllowPreShadow(Component->bAllowPreShadow)
 	, bOnlyAffectSameAndSpecifiedLevels(Component->bOnlyAffectSameAndSpecifiedLevels)
+	, bCanAffectDynamicPrimitivesOutsideDynamicChannel(Component->bCanAffectDynamicPrimitivesOutsideDynamicChannel)
 	, bUseVolumes(Component->bUseVolumes)
 #if BATMAN
 	, bCheapLight(Component->bCheapLight)
@@ -413,6 +417,24 @@ UBOOL FLightSceneInfoCompact::AffectsPrimitive(const FPrimitiveSceneInfoCompact&
 	const FPrimitiveSceneInfo* PrimitiveSceneInfo = CompactPrimitiveSceneInfo.PrimitiveSceneInfo;
 	PREFETCH(PrimitiveSceneInfo);
 	PREFETCH(LightSceneInfo);
+
+#if BATMAN
+	if (bCheapLight)
+	{
+		if (CompactPrimitiveSceneInfo.bCastStaticModulatedShadows ||
+			!CompactPrimitiveSceneInfo.bCastDynamicShadow && !PrimitiveSceneInfo->bCastHiddenShadow)
+		{
+			return FALSE;
+		}
+
+		if (PrimitiveSceneInfo->LightEnvironment)
+		{
+			return FALSE;
+		}
+
+		return LightSceneInfo->AffectsBounds(CompactPrimitiveSceneInfo.Bounds);
+	}
+#endif
 
 	// Dynamic lights that affect the default light environment will also affect primitives in other light environments,
 	// unless they're being composited into the light environments.

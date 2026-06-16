@@ -92,6 +92,18 @@ void FLightPrimitiveInteraction::Create(FLightSceneInfo* LightSceneInfo,FPrimiti
 		bRelevant = FALSE;
 	}
 
+#if BATMAN
+	if (LightSceneInfo->bCanAffectDynamicPrimitivesOutsideDynamicChannel && !PrimitiveSceneInfo->LightEnvironment)
+	{
+		bRelevant = FALSE;
+	}
+
+	if (LightSceneInfo->bCheapLight)
+	{
+		bRelevant = bDynamic;
+	}
+#endif
+
 	if( bRelevant )
 	{
 		// Create the light interaction.

@@ -369,12 +369,21 @@ struct FLightingChannelContainer
 	 */
 	UBOOL OverlapsWith( const FLightingChannelContainer& Other ) const
 	{
+#if BATMAN
+		const DWORD BmSpecificChannels = 0x3F860000;
+		if( Other.Bitfield & BmSpecificChannels )
+		{
+			return (Other.Bitfield & Bitfield & BmSpecificChannels) ? TRUE : FALSE;
+		}
+		return (Bitfield & Other.Bitfield & 0xFFFFFFFE) ? TRUE : FALSE;
+#else
 		// We need to mask out bInitialized when determining overlap.
 		FLightingChannelContainer Mask;
 		Mask.Bitfield		= 0;
 		Mask.bInitialized	= TRUE;
 		DWORD BitfieldMask	= ~Mask.Bitfield;
 		return Bitfield & Other.Bitfield & BitfieldMask ? TRUE : FALSE;
+#endif
 	}
 
 	/**
@@ -773,6 +782,13 @@ public:
 	 * Returns True if a light's parameters as well as its position is static during gameplay, and can thus use static lighting.
 	 */
 	UBOOL HasStaticLighting() const;
+
+#if BATMAN
+	/**
+	 * Returns TRUE if the light is only used for precomputed/static lighting.
+	 */
+	UBOOL IsUsedForStaticLightingOnly() const;
+#endif
 
 	/**
 	 * Returns whether static lighting, aka lightmaps, is being used for primitive/ light

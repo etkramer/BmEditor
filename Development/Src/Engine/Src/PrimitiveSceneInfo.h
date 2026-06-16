@@ -39,6 +39,9 @@ public:
 	BITFIELD bHasViewDependentDPG : 1;
 	BITFIELD bShouldCullModulatedShadows : 1;
 	BITFIELD bCastDynamicShadow : 1;
+#if BATMAN
+	BITFIELD bCastStaticModulatedShadows : 1;
+#endif
 	BITFIELD bLightEnvironmentForceNonCompositeDynamicLights : 1;
 	BITFIELD bIgnoreNearPlaneIntersection : 1;
 	BITFIELD StaticDepthPriorityGroup : UCONST_SDPG_NumBits;
@@ -202,6 +205,10 @@ public:
 
 	/** True if the primitive casts shadows even when hidden. */
 	BITFIELD bCastHiddenShadow : 1;
+
+#if BATMAN
+	BITFIELD bCastStaticModulatedShadows : 1;
+#endif
 
 	/** Whether this primitive should cast dynamic shadows as if it were a two sided material. */
 	BITFIELD bCastShadowAsTwoSided : 1;

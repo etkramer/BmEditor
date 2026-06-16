@@ -1551,7 +1551,7 @@ void FDynamicLightEnvironmentState::CreateEnvironmentLightList(ULightComponent* 
 	const FLOAT LightError = GetSquaredDifferenceIntegral(CompositeLightEnvironment,CurrentRepresentativeLightEnvironment);
 	const FLOAT NonShadowedLightError = GetSquaredDifferenceIntegral(CompositeNonShadowedLightEnvironment,CurrentRepresentativeNonShadowedLightEnvironment);
 	if(	LightError > ErrorThreshold ||
-		NonShadowedLightError > ErrorThreshold || 
+		NonShadowedLightError > ErrorThreshold ||
 		// Update if the transition fade has changed by 1%
 		Abs(NewDominantShadowTransitionDistance - CurrentDominantShadowTransitionDistance) > Component->DominantShadowTransitionStartDistance * .01f ||
 		NewAffectingDominantLight != Component->AffectingDominantLight ||
@@ -1955,11 +1955,27 @@ LightType* FDynamicLightEnvironmentState::AllocateLight() const
 
 UBOOL FDynamicLightEnvironmentState::DoesLightAffectOwner(const ULightComponent* Light,const FVector& OwnerPosition) const
 {
-	// Skip disabled lights.
-	if(!Light->bEnabled)
+	if(!Light->bEnabled || Light->BypassLightEnvironment)
 	{
 		return FALSE;
 	}
+
+#if BATMAN
+	if(Light->bCheapLight)
+	{
+		if(!Light->AffectsBounds(FBoxSphereBounds(OwnerPosition,OwnerBounds.BoxExtent,OwnerBounds.SphereRadius)))
+		{
+			return FALSE;
+		}
+
+		return Light->GetOwner() != Component->GetOwner();
+	}
+
+	if(Light->ForceDynamicShadows)
+	{
+		return FALSE;
+	}
+#endif
 
 	// Use the CompositeDynamic lighting channel as the Dynamic lighting channel. 
 	FLightingChannelContainer ConvertedLightingChannels = Light->LightingChannels;
@@ -1976,14 +1992,21 @@ UBOOL FDynamicLightEnvironmentState::DoesLightAffectOwner(const ULightComponent*
 		return FALSE;
 	}
 
-	// Skip lights which don't affect the owner's level.
-	if(OwnerPackage && !Light->AffectsLevel(OwnerPackage))
+#if BATMAN
+	if(!Light->GetOutermost()->IsBmCooked(TRUE) && Light->IsUsedForStaticLightingOnly())
+	{
+		return FALSE;
+	}
+#endif
+
+	// Skip lights which don't affect the owner's predicted bounds.
+	if(!Light->AffectsBounds(FBoxSphereBounds(OwnerPosition,OwnerBounds.BoxExtent,OwnerBounds.SphereRadius)))
 	{
 		return FALSE;
 	}
 
-	// Skip lights which don't affect the owner's predicted bounds.
-	if(!Light->AffectsBounds(FBoxSphereBounds(OwnerPosition,OwnerBounds.BoxExtent,OwnerBounds.SphereRadius)))
+	// Skip lights which don't affect the owner's level.
+	if(OwnerPackage && !Light->AffectsLevel(OwnerPackage))
 	{
 		return FALSE;
 	}

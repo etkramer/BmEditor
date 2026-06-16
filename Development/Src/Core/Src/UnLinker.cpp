@@ -3801,7 +3801,6 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 			LoadClass->GetName() == "DynamicPylon" ||
 			LoadClass->GetName() == "SceneCapture2DActor" ||
 			LoadClass->GetName() == "FractureMaterial" ||
-			LoadClass->GetName() == "ParticleSystemComponent" ||
 
 			// "TypeIndex out of range" messages with most SequenceObjects
 			LoadClass->GetName() == "Sequence" ||

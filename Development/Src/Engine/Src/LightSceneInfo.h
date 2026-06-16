@@ -76,6 +76,9 @@ public:
 	BITFIELD bModulateBetterShadows : 1;
 	BITFIELD bStaticLighting : 1;
 	BITFIELD bCastCompositeShadow : 1;
+#if BATMAN
+	BITFIELD bCheapLight : 1;
+#endif
 
 
 	/** Initializes the compact scene info from the light's full scene info. */
@@ -197,6 +200,9 @@ public:
 
 	/** Whether to only affect primitives that are in the same level/ share the same  GetOutermost() or are in the set of additionally specified ones. */
 	const BITFIELD bOnlyAffectSameAndSpecifiedLevels : 1;
+
+	/** Whether the light can affect dynamic primitives even though the light is not affecting the dynamic channel. */
+	const BITFIELD bCanAffectDynamicPrimitivesOutsideDynamicChannel : 1;
 
 	/** True if the light's exclusion and inclusion volumes should be used to determine primitive relevance. */
 	const BITFIELD bUseVolumes : 1;

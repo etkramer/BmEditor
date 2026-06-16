@@ -805,6 +805,11 @@ public:
     BITFIELD bTraceFromClosestBoundsPoint:1;
     BITFIELD bIsCharacterLightEnvironment:1;
     BITFIELD bOverrideOwnerLightingChannels:1;
+    BITFIELD RestrictInterpolationWhenSlow:1;
+    BITFIELD bIsPlayerCharacterLightEnvironment:1;
+    BITFIELD bScaleShadowDistanceWhenAboveCamera:1;
+    BITFIELD bRecieveStaticModulatedShadows:1;
+    BITFIELD WaitingForDeferredReset:1;
     FLOAT ModShadowFadeoutTime;
     FLOAT ModShadowFadeoutExponent;
     FLinearColor MaxModulatedShadowColor;
@@ -816,11 +821,13 @@ public:
     BYTE ShadowFilterQuality;
     BYTE LightShadowMode;
     BYTE BoundsMethod;
+    FLOAT ShadowFalloffExponent;
     FLOAT BouncedLightingFactor;
     FLOAT MinShadowAngle;
     FBoxSphereBounds OverriddenBounds;
     FLightingChannelContainer OverriddenLightingChannels;
     TArrayNoInit<class ULightComponent*> OverriddenLightComponents;
+    INT StaticLightingTimestamp;
     //## END PROPS DynamicLightEnvironmentComponent
 
     void ResetEnvironment();
@@ -1113,7 +1120,7 @@ VERIFY_CLASS_OFFSET_NODIE(ULightEnvironmentComponent,LightEnvironmentComponent,D
 VERIFY_CLASS_OFFSET_NODIE(ULightEnvironmentComponent,LightEnvironmentComponent,AffectedComponents)
 VERIFY_CLASS_SIZE_NODIE(ULightEnvironmentComponent)
 VERIFY_CLASS_OFFSET_NODIE(UDynamicLightEnvironmentComponent,DynamicLightEnvironmentComponent,State)
-VERIFY_CLASS_OFFSET_NODIE(UDynamicLightEnvironmentComponent,DynamicLightEnvironmentComponent,OverriddenLightComponents)
+VERIFY_CLASS_OFFSET_NODIE(UDynamicLightEnvironmentComponent,DynamicLightEnvironmentComponent,StaticLightingTimestamp)
 VERIFY_CLASS_SIZE_NODIE(UDynamicLightEnvironmentComponent)
 VERIFY_CLASS_OFFSET_NODIE(UParticleLightEnvironmentComponent,ParticleLightEnvironmentComponent,ReferenceCount)
 VERIFY_CLASS_OFFSET_NODIE(UParticleLightEnvironmentComponent,ParticleLightEnvironmentComponent,SharedParticleSystem)

@@ -198,6 +198,39 @@ UBOOL ULightComponent::HasStaticLighting() const
 	return (!Owner || Owner->IsStatic()) && !Function && !bForceDynamicLight && !LightEnvironment;
 }
 
+#if BATMAN
+UBOOL ULightComponent::IsUsedForStaticLightingOnly() const
+{
+	if(!HasStaticLighting() || bCheapLight)
+	{
+		return FALSE;
+	}
+
+	const DWORD ConvertedLightingChannels = LightingChannels.Bitfield & ~0x10;
+	if((LightingChannels.Bitfield & 0x200007) != ConvertedLightingChannels)
+	{
+		const DWORD StaticOnlyChannelMasks[] =
+		{
+			65,
+			129,
+			257
+		};
+
+		for(INT MaskIndex = 0; MaskIndex < ARRAY_COUNT(StaticOnlyChannelMasks); MaskIndex++)
+		{
+			if((ConvertedLightingChannels & StaticOnlyChannelMasks[MaskIndex]) == ConvertedLightingChannels)
+			{
+				return TRUE;
+			}
+		}
+
+		return FALSE;
+	}
+
+	return TRUE;
+}
+#endif
+
 /**
  * Returns whether static lighting, aka lightmaps, is being used for primitive/ light
  * interaction.

@@ -100,6 +100,9 @@ void FPrimitiveSceneInfoCompact::Init(FPrimitiveSceneInfo* InPrimitiveSceneInfo)
 	bHasViewDependentDPG = Proxy->HasViewDependentDPG();
 	bShouldCullModulatedShadows = Component->ShouldCullModulatedShadows();
 	bCastDynamicShadow = PrimitiveSceneInfo->bCastDynamicShadow;
+#if BATMAN
+	bCastStaticModulatedShadows = PrimitiveSceneInfo->bCastStaticModulatedShadows;
+#endif
 	bLightEnvironmentForceNonCompositeDynamicLights = PrimitiveSceneInfo->bLightEnvironmentForceNonCompositeDynamicLights;
 	bIgnoreNearPlaneIntersection = PrimitiveSceneInfo->bIgnoreNearPlaneIntersection;
 	
@@ -196,6 +199,9 @@ FPrimitiveSceneInfo::FPrimitiveSceneInfo(UPrimitiveComponent* InComponent,FPrimi
 	bAcceptsDynamicDominantLightShadows(InComponent->bAcceptsDynamicDominantLightShadows),
 	bCastStaticShadow(InComponent->CastShadow),
 	bCastHiddenShadow(InComponent->bCastHiddenShadow),
+#if BATMAN
+	bCastStaticModulatedShadows(InComponent->bCastStaticModulatedShadows),
+#endif
 	bCastShadowAsTwoSided(InComponent->bCastShadowAsTwoSided),
 	bAllowPreShadow((InComponent->LightEnvironment && InComponent->LightEnvironment->IsEnabled()) ?
 		InComponent->LightEnvironment->AllowPreShadow() :
