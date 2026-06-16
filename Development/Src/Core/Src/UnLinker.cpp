@@ -3785,14 +3785,6 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 		}
 
 #if BATMAN
-		// BM: Skip classes with missing supers.
-		if (IsBmCooked() && !LoadClass->GetSuperClass())
-		{
-			return NULL;
-		}
-#endif
-
-#if BATMAN
         // BM: Skip currently unsupported types.
         if (IsBmCooked() && (
 			LoadClass->GetName() == "ActorFactoryEmitter" ||
