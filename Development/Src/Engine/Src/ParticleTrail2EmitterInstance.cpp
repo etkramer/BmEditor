@@ -390,7 +390,7 @@ void FParticleTrail2EmitterInstance::UpdateBoundingBox(FLOAT DeltaTime)
 	SCOPE_CYCLE_COUNTER(STAT_ParticleUpdateBounds);
 	if (Component)
 	{
-		UBOOL bUpdateBox = ((Component->bWarmingUp == FALSE) && (Component->bSkipBoundsUpdate == FALSE));
+		UBOOL bUpdateBox = (Component->bWarmingUp == FALSE);
 		// Handle local space usage
 		check(SpriteTemplate->LODLevels.Num() > 0);
 		UParticleLODLevel* LODLevel = SpriteTemplate->LODLevels(0);
@@ -1688,7 +1688,7 @@ void FParticleTrailsEmitterInstance_Base::UpdateBoundingBox(FLOAT DeltaTime)
 	SCOPE_CYCLE_COUNTER(STAT_ParticleUpdateBounds);
 	if (Component)
 	{
-		UBOOL bUpdateBox = ((Component->bWarmingUp == FALSE) && (Component->bSkipBoundsUpdate == FALSE));
+		UBOOL bUpdateBox = (Component->bWarmingUp == FALSE);
 		// Handle local space usage
 		check(SpriteTemplate->LODLevels.Num() > 0);
 		UParticleLODLevel* LODLevel = SpriteTemplate->LODLevels(0);

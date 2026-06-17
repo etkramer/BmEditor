@@ -900,7 +900,7 @@ void FParticleEmitterInstance::UpdateBoundingBox(FLOAT DeltaTime)
 	SCOPE_CYCLE_COUNTER(STAT_ParticleUpdateBounds);
 	if (Component)
 	{
-		UBOOL bUpdateBox = ((Component->bWarmingUp == FALSE) && (Component->bSkipBoundsUpdate == FALSE));
+		UBOOL bUpdateBox = (Component->bWarmingUp == FALSE);
 
 		// Take component scale into account
 		FVector Scale = FVector(1.0f, 1.0f, 1.0f);
@@ -3375,7 +3375,7 @@ void FParticleMeshEmitterInstance::UpdateBoundingBox(FLOAT DeltaTime)
 	// Currently, just 'forcing' the mesh size to be taken into account.
 	if (Component)
 	{
-		UBOOL bUpdateBox = ((Component->bWarmingUp == FALSE) && (Component->bSkipBoundsUpdate == FALSE));
+		UBOOL bUpdateBox = (Component->bWarmingUp == FALSE);
 
 		// Take scale into account
 		FVector Scale = FVector(1.0f, 1.0f, 1.0f);

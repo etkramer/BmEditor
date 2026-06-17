@@ -190,9 +190,11 @@ UBOOL FLightPrimitiveInteraction::ShouldAddStaticMeshesToLightingDrawLists() con
 	const UBOOL bIsDominantLight = IsDominantLightType(LightSceneInfo->LightType);
 #if BATMAN
 	return !LightSceneInfo->bCheapLight
-		&& !bIsDominantLight
 		&& LightSceneInfo->LightType != LightType_AmbientPlus3Directional
-		&& PrimitiveSceneInfo->DynamicLightSceneInfo != LightSceneInfo;
+		&& (bIsDominantLight
+			&& !GOnePassDominantLight
+			&& (!PrimitiveSceneInfo->BrightestDominantLightSceneInfo || PrimitiveSceneInfo->BrightestDominantLightSceneInfo == LightSceneInfo)
+			|| !bIsDominantLight && PrimitiveSceneInfo->DynamicLightSceneInfo != LightSceneInfo);
 #else
 	return bIsDominantLight 
 		// Don't add the primitive to the light's static draw lists if the dominant light will be applied in the base pass

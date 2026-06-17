@@ -2175,8 +2175,6 @@ void AEmitterPool::ReturnToPool(UParticleSystemComponent* PSC)
 		PSC->DetachFromAny();
 		OBJ_SET_DELEGATE(PSC, OnSystemFinished, NULL, NAME_None);
 
-		PSC->LightEnvironmentSharedInstigator = NULL;
-
 		if (PSC->LightEnvironment)
 		{
 			UParticleLightEnvironmentComponent* ParticleDLE = CastChecked<UParticleLightEnvironmentComponent>(PSC->LightEnvironment);

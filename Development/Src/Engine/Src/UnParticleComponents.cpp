@@ -4071,12 +4071,8 @@ void UParticleSystemComponent::Attach()
 							&& PotentialDLE->bAllowDLESharing
 							// Reuse this particle DLE if we're not from the emitter pool,
 							&& (!bIsInEmitterPool 
-								// Or if we are from the emitter pool and from the same template and instigator
-								|| PotentialDLE->SharedParticleSystem == Template 
-								&& PotentialDLE->SharedInstigator == LightEnvironmentSharedInstigator
-								// And if the particle DLE has not be reused by too many particle components
-								// This limit allows us to control particle lighting rate for things like lit footstep effects, and lit smoke hit effects
-								&& PotentialDLE->NumPooledReuses <= MaxLightEnvironmentPooledReuses))
+								// Or if we are from the emitter pool and from the same template
+								|| PotentialDLE->SharedParticleSystem == Template))
 						{
 							SetLightEnvironment(PotentialDLE);
 							// Add a reference to the shared particle light environment
@@ -4093,7 +4089,6 @@ void UParticleSystemComponent::Attach()
 					// Create a particle light environment using LightEnvironmentClass to allow base classes to easily override the type
 					UParticleLightEnvironmentComponent* DLE = ConstructObject<UParticleLightEnvironmentComponent>(LightEnvironmentClass, Owner);
 					DLE->SharedParticleSystem = Template;
-					DLE->SharedInstigator = LightEnvironmentSharedInstigator;
 					SetLightEnvironment(DLE);
 					// Mark the light environment as needing attached
 					bAttachLightEnvToOwner = TRUE;
@@ -4787,7 +4782,6 @@ void UParticleSystemComponent::PostEditChangeChainProperty(FPropertyChangedChain
 
 void UParticleSystemComponent::UpdateBounds()
 {
-	if (bSkipBoundsUpdate == FALSE)
 	{
 		FBox BoundingBox;
 		BoundingBox.Init();
@@ -7268,7 +7262,6 @@ UBOOL UParticleSystemComponent::GetSkipUpdateDynamicDataDuringTick()
  */
 void UParticleSystemComponent::SetSkipBoundsUpdate(UBOOL bInSkipBoundsUpdate)
 {
-	bSkipBoundsUpdate = bInSkipBoundsUpdate;
 }
 
 /**
@@ -7276,7 +7269,7 @@ void UParticleSystemComponent::SetSkipBoundsUpdate(UBOOL bInSkipBoundsUpdate)
  */
 UBOOL UParticleSystemComponent::GetSkipBoundsUpdate()
 {
-	return bSkipBoundsUpdate;
+	return FALSE;
 }
 
 /**

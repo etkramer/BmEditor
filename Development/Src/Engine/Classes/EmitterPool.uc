@@ -188,18 +188,6 @@ function ParticleSystemComponent SpawnEmitter(ParticleSystem EmitterTemplate, ve
 			}
 		}
 
-		// Setup properties needed for particle light environment sharing before attaching
-		Result.LightEnvironmentSharedInstigator = InInstigator;
-
-		if (MaxDLEPooledReuses > 0)
-		{
-			Result.MaxLightEnvironmentPooledReuses = MaxDLEPooledReuses;
-		}
-		else
-		{
-			Result.MaxLightEnvironmentPooledReuses = Result.default.MaxLightEnvironmentPooledReuses;
-		}
-		
 //		Result.ResetParticles();
 		Result.KillParticlesForced();
 		Result.SetTranslation(SpawnLocation);

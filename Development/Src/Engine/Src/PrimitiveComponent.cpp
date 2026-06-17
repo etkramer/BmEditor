@@ -746,7 +746,7 @@ void UPrimitiveComponent::Attach()
 {
 	FLightingChannelContainer AllChannels;
 	AllChannels.SetAllChannels();
-	if( !LightingChannels.bInitialized || bAcceptsLights && !LightingChannels.OverlapsWith(AllChannels) )
+	if( !LightingChannels.bInitialized || bAcceptsLights && !AllChannels.OverlapsWith(LightingChannels) )
 	{
 		UBOOL bHasStaticShadowing		= HasStaticShadowing();
 		LightingChannels.Static			= bHasStaticShadowing;
@@ -1031,7 +1031,7 @@ void UPrimitiveComponent::CheckForErrors()
 
 	FLightingChannelContainer AllChannels;
 	AllChannels.SetAllChannels();
-	if( Owner && IsValidComponent() && !LightingChannels.OverlapsWith( AllChannels ) && bAcceptsLights )
+	if( Owner && IsValidComponent() && !AllChannels.OverlapsWith( LightingChannels ) && bAcceptsLights )
 	{
 		GWarn->MapCheck_Add( MCTYPE_WARNING, Owner, *FString::Printf(TEXT("Actor has bAcceptsLights set but is in no lighting channels") ), MCACTION_NONE, TEXT("NoLightingChannels") );
 	}

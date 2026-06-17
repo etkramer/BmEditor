@@ -85,7 +85,8 @@ enum EParticleSysParamType
     PSPT_Color              =5,
     PSPT_Actor              =6,
     PSPT_Material           =7,
-    PSPT_MAX                =8,
+    PSPT_VectorArray        =8,
+    PSPT_MAX                =9,
 };
 #define FOREACH_ENUM_EPARTICLESYSPARAMTYPE(op) \
     op(PSPT_None) \
@@ -95,7 +96,8 @@ enum EParticleSysParamType
     op(PSPT_VectorRand) \
     op(PSPT_Color) \
     op(PSPT_Actor) \
-    op(PSPT_Material) 
+    op(PSPT_Material) \
+    op(PSPT_VectorArray) 
 enum EEmitterRenderMode
 {
     ERM_Normal              =0,
@@ -897,6 +899,7 @@ struct FParticleSysParam
     FColor Color;
     class AActor* Actor;
     class UMaterialInterface* Material;
+    FPointer VectorArray;
 
     /** Constructors */
     FParticleSysParam() {}
@@ -989,12 +992,11 @@ public:
     //## BEGIN PROPS ParticleSystemComponent
     class UParticleSystem* Template;
     class UClass* LightEnvironmentClass;
-    class AActor* LightEnvironmentSharedInstigator;
-    INT MaxLightEnvironmentPooledReuses;
     TArrayNoInit<struct FParticleEmitterInstance*> EmitterInstances;
     TArrayNoInit<class UStaticMeshComponent*> SMComponents;
     TArrayNoInit<class UMaterialInterface*> SMMaterialInterfaces;
     TArrayNoInit<class USkeletalMeshComponent*> SkelMeshComponents;
+    class UObject* ParticleAkComponent;
     TArrayNoInit<struct FViewParticleEmitterInstanceMotionBlurInfo> ViewMBInfoArray;
     BITFIELD bAutoActivate:1;
     BITFIELD bWasCompleted:1;
@@ -1004,11 +1006,11 @@ public:
     BITFIELD bUpdateOnDedicatedServer:1;
     BITFIELD bJustAttached:1;
     BITFIELD bIsActive:1;
+    BITFIELD bIsPaused:1;
     BITFIELD bWarmingUp:1;
     BITFIELD bIsCachedInPool:1;
     BITFIELD bOverrideLODMethod:1;
     BITFIELD bSkipUpdateDynamicDataDuringTick:1;
-    BITFIELD bSkipBoundsUpdate:1;
     BITFIELD bUpdateComponentInTick:1;
     BITFIELD bDeferredBeamUpdate:1;
     BITFIELD bForcedInActive:1;
@@ -1017,6 +1019,8 @@ public:
     BITFIELD bRecacheViewRelevance:1;
     BITFIELD bLODUpdatePending:1;
     BITFIELD bSkipSpawnCountCheck:1;
+    SCRIPT_ALIGN;
+    FVector DynamicLocalSpawnLocation;
     TArrayNoInit<struct FParticleSysParam> InstanceParameters;
     FVector OldPosition;
     FVector PartSysVelocity;
@@ -1033,7 +1037,10 @@ public:
     FLOAT AccumTickTime;
     BYTE LODMethod;
     BYTE ReplayState;
+    FName BeamOverrideSourceName;
+    FLOAT BeamOverrideCustomBoneBlend;
     TArrayNoInit<FMaterialViewRelevance> CachedViewRelevanceFlags;
+    FLinearColor IncomingLight;
     TArrayNoInit<class UParticleSystemReplay*> ReplayClips;
     INT ReplayClipIDNumber;
     INT ReplayFrameIndex;

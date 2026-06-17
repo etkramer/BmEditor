@@ -977,10 +977,14 @@ void FScene::AddLight(ULightComponent* Light)
 		{
 			// Create a lighting channel that has all channels except BSP, Static and CompositeDynamic set.
 			FLightingChannelContainer PotentiallyNonStatic;
+#if BATMAN
+			PotentiallyNonStatic.Bitfield = 0xC059FFE8;
+#else
 			PotentiallyNonStatic.SetAllChannels();
 			PotentiallyNonStatic.BSP				= FALSE;
 			PotentiallyNonStatic.Static				= FALSE;
 			PotentiallyNonStatic.CompositeDynamic	= FALSE;
+#endif
 
 			// A light with a light channel not overlapping with the "potentially non static" channel is only
 			// affecting static objects

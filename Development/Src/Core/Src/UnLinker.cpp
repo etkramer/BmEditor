@@ -3797,7 +3797,7 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 			// "TypeIndex out of range" messages with most SequenceObjects
 			LoadClass->GetName() == "Sequence" ||
 
-			LoadClass->GetName() == "InterpData" ||
+			// LoadClass->GetName() == "InterpData" ||
 			LoadClass->GetName() == "SeqAct_Interp" ||
 
 			LoadClass->GetName() == "PhysicalMaterial" ||

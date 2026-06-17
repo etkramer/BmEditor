@@ -234,7 +234,7 @@ native final function ResetEnvironment();
 defaultproperties
 {
 	InvisibleUpdateTime=5.0
-	MinTimeBetweenFullUpdates=1.0
+	MinTimeBetweenFullUpdates=0.25
 	NumVolumeVisibilitySamples=1
 	LightingBoundsScale=1
 	// Using a relatively slow speed so that the shadow is mostly interpolating which hides the low update frequency
@@ -242,7 +242,7 @@ defaultproperties
 	AmbientShadowColor=(R=0.001,G=0.001,B=0.001)
 	AmbientShadowSourceDirection=(X=0.01,Y=0,Z=0.99)
 	LightDistance=10.0
-	ShadowDistance=5.0
+	ShadowDistance=2.0
 	// bRequiresNonLatentUpdates sets it to TG_PostUpdateWork in BeginPlay()
 	TickGroup=TG_DuringAsyncWork
 	bCastShadows=TRUE

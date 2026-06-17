@@ -22,11 +22,11 @@ var bool bAllowDynamicShadowsOnTranslucency;
 /** Whether primitives using this light environment will create a preshadow (dynamic shadow from the static environment onto a dynamic object). */
 var const transient protected {protected} bool bAllowPreShadow;
 
-/** Shadowing factor applied to AffectingDominantLight. */
-var const transient protected {protected} float DominantShadowFactor;
-
 /** Contains the shadow factor used on translucency using this light environment when bAllowDynamicShadowsOnTranslucency is FALSE. */
 var const transient protected {protected} bool bTranslucencyShadowed;
+
+/** Shadowing factor applied to AffectingDominantLight. */
+var const transient protected {protected} float DominantShadowFactor;
 
 /** The single dominant light that is allowed to affect this light environment. */
 var const transient protected {protected} LightComponent AffectingDominantLight;

@@ -480,7 +480,7 @@ void FParticleBeam2EmitterInstance::UpdateBoundingBox(FLOAT DeltaTime)
 	SCOPE_CYCLE_COUNTER(STAT_ParticleUpdateBounds);
 	if (Component)
 	{
-		UBOOL bUpdateBox = ((Component->bWarmingUp == FALSE) && (Component->bSkipBoundsUpdate == FALSE));
+		UBOOL bUpdateBox = (Component->bWarmingUp == FALSE);
 		FLOAT MaxSizeScale	= 1.0f;
 		if (bUpdateBox)
 		{
