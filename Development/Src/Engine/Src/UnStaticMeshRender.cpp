@@ -1322,12 +1322,18 @@ FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponen
 	bUsesMeshModifyingMaterials(FALSE)
 {
 	UBOOL bHasStaticLighting = FALSE;
+	// BM
+	UBOOL bHasVertexLighting = FALSE;
+	UBOOL bHasStaticModulatedShadows = FALSE;
 	if(Component->LODData.Num() > 0)
 	{
 		const FStaticMeshComponentLODInfo& ComponentLODInfo = Component->LODData(0);
 
 		// Determine if the LOD has static lighting.
 		bHasStaticLighting = ComponentLODInfo.LightMap != NULL || ComponentLODInfo.ShadowMaps.Num() || ComponentLODInfo.ShadowVertexBuffers.Num();
+		// BM
+		bHasVertexLighting = (ComponentLODInfo.LightMap != NULL && ComponentLODInfo.LightMap->GetLightMap1D() != NULL) || ComponentLODInfo.ShadowVertexBuffers.Num() || ComponentLODInfo.OverrideVertexColors != NULL;
+		bHasStaticModulatedShadows = ComponentLODInfo.ShadowMaps.ShadowMap != NULL && !ComponentLODInfo.ShadowMaps.ShadowMap->IsShadowFactorTexture();
 
 		// Initialize this LOD's overridden vertex colors, if it has any
 		if( ComponentLODInfo.OverrideVertexColors )
@@ -1358,7 +1364,15 @@ FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponen
 		ElementInfo.Material = Component->GetMaterial(Element.MaterialIndex,InLODIndex);
 
 		// If there isn't an applied material, or if we need static lighting and it doesn't support it, fall back to the default material.
-		if(!ElementInfo.Material || (bHasStaticLighting && !ElementInfo.Material->CheckMaterialUsage(MATUSAGE_StaticLighting)))
+		// BM: also check vertex lighting, static modulated shadows, rock atmos fog, and dynamic light usages, matching the retail scene proxy.
+		if(!ElementInfo.Material
+			|| (bHasVertexLighting && !ElementInfo.Material->CheckMaterialUsage(MATUSAGE_VertexLighting))
+			|| (bHasStaticLighting && !ElementInfo.Material->CheckMaterialUsage(MATUSAGE_StaticLighting))
+			|| (bHasStaticModulatedShadows && !ElementInfo.Material->CheckMaterialUsage(MATUSAGE_StaticModulatedShadows))
+			|| (Component->bPerVertexRockAtmosFog && !ElementInfo.Material->CheckMaterialUsage(MATUSAGE_PerVertexRockAtmosFog))
+			|| (Component->bRecieveDynamicDirectionalLights && !ElementInfo.Material->CheckMaterialUsage(MATUSAGE_DirectionalLights))
+			|| (Component->bRecieveDynamicSpotLights && !ElementInfo.Material->CheckMaterialUsage(MATUSAGE_SpotLights))
+			|| (Component->bRecieveDynamicPointLights && !ElementInfo.Material->CheckMaterialUsage(MATUSAGE_PointLights)))
 		{
 			ElementInfo.Material = GEngine->DefaultMaterial;
 		}

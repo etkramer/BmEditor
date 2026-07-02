@@ -35,6 +35,10 @@ enum EMaterialUsage
 	MATUSAGE_APEXMesh,
 	MATUSAGE_Terrain,
 	MATUSAGE_Landscape,
+	// BM
+	MATUSAGE_DirectionalLights,
+	MATUSAGE_SpotLights,
+	MATUSAGE_PointLights,
 };
 
 struct native PhysicalMaterialColorPair

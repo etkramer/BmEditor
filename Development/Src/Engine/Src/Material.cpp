@@ -344,6 +344,10 @@ UBOOL UMaterial::GetUsageByFlag(EMaterialUsage Usage) const
 		case MATUSAGE_PerVertexRockAtmosFog: UsageValue = bUsedWithPerVertexRockAtmosFog; break;
 		case MATUSAGE_LightEnvironments: UsageValue = bUsedWithLightEnvironment; break;
 		case MATUSAGE_StaticMesh: UsageValue = bUsedWithStaticMesh; break;
+		// BM: retail maps both spot and point usages to the spot flag
+		case MATUSAGE_DirectionalLights: UsageValue = bRecievesDynamicDirectionalLights; break;
+		case MATUSAGE_SpotLights:
+		case MATUSAGE_PointLights: UsageValue = bRecievesDynamicSpotLights; break;
 		default: appErrorf(TEXT("Unknown material usage: %u"), (INT)Usage);
 	};
 	return UsageValue;
@@ -381,6 +385,10 @@ void UMaterial::SetUsageByFlag(EMaterialUsage Usage, UBOOL NewValue)
 		case MATUSAGE_PerVertexRockAtmosFog: bUsedWithPerVertexRockAtmosFog = NewValue; break;
 		case MATUSAGE_LightEnvironments: bUsedWithLightEnvironment = NewValue; break;
 		case MATUSAGE_StaticMesh: bUsedWithStaticMesh = NewValue; break;
+		// BM: retail maps both spot and point usages to the spot flag
+		case MATUSAGE_DirectionalLights: bRecievesDynamicDirectionalLights = NewValue; break;
+		case MATUSAGE_SpotLights:
+		case MATUSAGE_PointLights: bRecievesDynamicSpotLights = NewValue; break;
 		default: appErrorf(TEXT("Unknown material usage: %u"), (INT)Usage);
 	};
 }
@@ -418,6 +426,10 @@ FString UMaterial::GetUsageName(EMaterialUsage Usage) const
 		case MATUSAGE_PerVertexRockAtmosFog: UsageName = TEXT("bUsedWithPerVertexRockAtmosFog"); break;
 		case MATUSAGE_LightEnvironments: UsageName = TEXT("bUsedWithLightEnvironment"); break;
 		case MATUSAGE_StaticMesh: UsageName = TEXT("bUsedWithStaticMesh"); break;
+		// BM: retail maps both spot and point usages to the spot flag
+		case MATUSAGE_DirectionalLights: UsageName = TEXT("bRecievesDynamicDirectionalLights"); break;
+		case MATUSAGE_SpotLights:
+		case MATUSAGE_PointLights: UsageName = TEXT("bRecievesDynamicSpotLights"); break;
 		default: appErrorf(TEXT("Unknown material usage: %u"), (INT)Usage);
 	};
 	return UsageName;

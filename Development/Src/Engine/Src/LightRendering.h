@@ -1127,14 +1127,15 @@ UBOOL DrawLitDynamicMesh(
 	{
 		return FALSE;
 	}
-	if (Mesh.VertexFactory->GetType()->SupportsDynamicLighting())
+	if (Mesh.VertexFactory->GetType()->SupportsStaticLighting())
 	{
 		const FMaterial* Material = Mesh.MaterialRenderProxy->GetMaterial();
 		const UBOOL bRecievesDynamicLight =
 			(LightSceneInfo->LightType == LightType_Directional && Material->RecievesDynamicDirectionalLights()) ||
 			(LightSceneInfo->LightType == LightType_Point && Material->RecievesDynamicPointLights()) ||
 			(LightSceneInfo->LightType == LightType_Spot && Material->RecievesDynamicSpotLights()) ||
-			(LightSceneInfo->LightType != LightType_Directional && LightSceneInfo->LightType != LightType_Point && LightSceneInfo->LightType != LightType_Spot);
+			(LightSceneInfo->LightType != LightType_Directional && LightSceneInfo->LightType != LightType_Point && LightSceneInfo->LightType != LightType_Spot) ||
+			(GIsEditor && !GIsPlayInEditorWorld);
 
 		if (!bRecievesDynamicLight)
 		{
@@ -1296,7 +1297,8 @@ public:
 				(LightSceneInfo->LightType == LightType_Directional && Material->RecievesDynamicDirectionalLights()) ||
 				(LightSceneInfo->LightType == LightType_Point && Material->RecievesDynamicPointLights()) ||
 				(LightSceneInfo->LightType == LightType_Spot && Material->RecievesDynamicSpotLights()) ||
-				(LightSceneInfo->LightType != LightType_Directional && LightSceneInfo->LightType != LightType_Point && LightSceneInfo->LightType != LightType_Spot);
+				(LightSceneInfo->LightType != LightType_Directional && LightSceneInfo->LightType != LightType_Point && LightSceneInfo->LightType != LightType_Spot) ||
+				(GIsEditor && !GIsPlayInEditorWorld);
 
 			if (bRecievesDynamicLight)
 			{
