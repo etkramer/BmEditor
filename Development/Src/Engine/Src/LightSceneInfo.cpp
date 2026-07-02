@@ -29,6 +29,7 @@ void FLightSceneInfoCompact::Init(FLightSceneInfo* InLightSceneInfo)
 	bModulateBetterShadows = InLightSceneInfo->LightShadowMode == LightShadow_ModulateBetter;
 #if BATMAN
 	bCheapLight = InLightSceneInfo->bCheapLight;
+	bBypassLightEnvironment = InLightSceneInfo->bBypassLightEnvironment;
 #endif
 }
 
@@ -72,6 +73,7 @@ FLightSceneInfo::FLightSceneInfo(const ULightComponent* Component)
 	, bUseVolumes(Component->bUseVolumes)
 #if BATMAN
 	, bCheapLight(Component->bCheapLight)
+	, bBypassLightEnvironment(Component->BypassLightEnvironment)
 #endif
 	, bOwnerSelected(Component->IsOwnerSelected())
 	, bPrecomputedLightingIsValid(Component->bPrecomputedLightingIsValid)
@@ -450,7 +452,11 @@ UBOOL FLightSceneInfoCompact::AffectsPrimitive(const FPrimitiveSceneInfoCompact&
 		&& (!PrimitiveSceneInfo->bAllowDominantLightInfluence || PrimitiveSceneInfo->AffectingDominantLight && LightSceneInfo->LightComponent != PrimitiveSceneInfo->AffectingDominantLight);
 
 	const ULightEnvironmentComponent* PrimitiveLightEnvironment = CompactPrimitiveSceneInfo.LightEnvironment;
+#if BATMAN
+	if((!LightEnvironment && !bCastCompositeShadow && !bCompositeDynamicLight) || bBypassLightEnvironment)
+#else
 	if(!LightEnvironment && !bStaticLighting && !bCompositeDynamicLight)
+#endif
 	{
 		PrimitiveLightEnvironment = NULL;
 	}

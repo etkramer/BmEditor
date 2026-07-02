@@ -38,6 +38,13 @@ void ULightComponent::ValidateLightGUIDs()
 
 UBOOL ULightComponent::AffectsPrimitive(const UPrimitiveComponent* Primitive, UBOOL bCompareLightingChannels) const
 {
+#if BATMAN
+	if(bCheapLight)
+	{
+		return CastDynamicShadows && AffectsBounds(Primitive->Bounds);
+	}
+#endif
+
 	ULightEnvironmentComponent* PrimitiveLightEnvironment = Primitive->LightEnvironment;
 	if(PrimitiveLightEnvironment && !PrimitiveLightEnvironment->IsEnabled())
 	{
@@ -62,6 +69,13 @@ UBOOL ULightComponent::AffectsPrimitive(const UPrimitiveComponent* Primitive, UB
 	{
 		return FALSE;
 	}
+
+#if BATMAN
+	if( bCastStaticModulatedShadows && !Primitive->bCastStaticModulatedShadows && !Primitive->bRecieveStaticModulatedShadows )
+	{
+		return FALSE;
+	}
+#endif
 
 	// Explicitly assigned lights only affect their assigned meshes
 	if (bExplicitlyAssignedLight)

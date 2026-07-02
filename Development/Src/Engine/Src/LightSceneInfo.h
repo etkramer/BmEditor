@@ -78,6 +78,7 @@ public:
 	BITFIELD bCastCompositeShadow : 1;
 #if BATMAN
 	BITFIELD bCheapLight : 1;
+	BITFIELD bBypassLightEnvironment : 1;
 #endif
 
 
@@ -209,6 +210,7 @@ public:
 
 #if BATMAN
 	const BITFIELD bCheapLight : 1;
+	const BITFIELD bBypassLightEnvironment : 1;
 #endif
 
 	/** Whether the light's owner is selected in the editor. */
