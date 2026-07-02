@@ -98,6 +98,18 @@ struct FLensFlareRenderElement
 	 */
 	BITFIELD bOrientTowardsSource:1;
 
+	// BM: RockOptions - drive vertex alpha from occlusion/intensity/distance lookups
+	BITFIELD bOcclusionPercentageInVertAlpha:1;
+	BITFIELD bIntensityInVertAlpha:1;
+	BITFIELD bSourceDistanceInVertAlpha:1;
+	BITFIELD bRayDistanceInVertAlpha:1;
+	BITFIELD bRadialDistanceInVertAlpha:1;
+	BITFIELD bInvertOcclusionPercentage:1;
+	BITFIELD bInvertIntensity:1;
+	BITFIELD bInvertSourceDistance:1;
+	BITFIELD bInvertRayDistance:1;
+	BITFIELD bInvertRadialDistance:1;
+
 	/**
 	 *	The 'base' size of the element
 	 */

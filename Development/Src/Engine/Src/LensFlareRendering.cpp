@@ -39,6 +39,18 @@ void FLensFlareRenderElement::CopyFromElement(const FLensFlareElement& InElement
 
 	bOrientTowardsSource = InElement.bOrientTowardsSource;
 
+	// BM
+	bOcclusionPercentageInVertAlpha = InElement.bOcclusionPercentageInVertAlpha;
+	bIntensityInVertAlpha = InElement.bIntensityInVertAlpha;
+	bSourceDistanceInVertAlpha = InElement.bSourceDistanceInVertAlpha;
+	bRayDistanceInVertAlpha = InElement.bRayDistanceInVertAlpha;
+	bRadialDistanceInVertAlpha = InElement.bRadialDistanceInVertAlpha;
+	bInvertOcclusionPercentage = InElement.bInvertOcclusionPercentage;
+	bInvertIntensity = InElement.bInvertIntensity;
+	bInvertSourceDistance = InElement.bInvertSourceDistance;
+	bInvertRayDistance = InElement.bInvertRayDistance;
+	bInvertRadialDistance = InElement.bInvertRadialDistance;
+
 	INT MaterialCount = InElementMaterials.ElementMaterials.Num();
 	if (MaterialCount > 0)
 	{
@@ -234,6 +246,35 @@ void FLensFlareDynamicData::Render(FLensFlareSceneProxy* Proxy, FPrimitiveDrawIn
 	//@todo. Fill in or remove...
 }
 
+// BM: Combined vertex alpha multiplier from the RockOptions lookup flags
+static FLOAT GetVertAlphaScale(const FLensFlareRenderElement* Element, const FLensFlareElementValues& Values, FLensFlareSceneProxy* Proxy, const FSceneView* View)
+{
+	FLOAT Scale = 1.0f;
+	if (Element->bOcclusionPercentageInVertAlpha)
+	{
+		const FLOAT Occlusion = Proxy->GetOcclusionPercentage(*View);
+		Scale *= Element->bInvertOcclusionPercentage ? (1.0f - Occlusion) : Occlusion;
+	}
+	if (Element->bIntensityInVertAlpha)
+	{
+		const FLOAT Intensity = Proxy->GetConeStrength();
+		Scale *= Element->bInvertIntensity ? (1.0f - Intensity) : Intensity;
+	}
+	if (Element->bSourceDistanceInVertAlpha)
+	{
+		Scale *= Element->bInvertSourceDistance ? (1.0f - Values.SourceDistance) : Values.SourceDistance;
+	}
+	if (Element->bRayDistanceInVertAlpha)
+	{
+		Scale *= Element->bInvertRayDistance ? (1.0f - Element->RayDistance) : Element->RayDistance;
+	}
+	if (Element->bRadialDistanceInVertAlpha)
+	{
+		Scale *= Element->bInvertRadialDistance ? (1.0f - Values.RadialDistance) : Values.RadialDistance;
+	}
+	return Scale;
+}
+
 /** Render the source element. */
 void FLensFlareDynamicData::RenderSource(FLensFlareSceneProxy* Proxy, FPrimitiveDrawInterface* PDI,const FSceneView* View,UINT DPGIndex, DWORD Flags)
 {
@@ -310,6 +351,17 @@ void FLensFlareDynamicData::RenderSource(FLensFlareSceneProxy* Proxy, FPrimitive
 
 			if (LookupValues.LFMaterial)
 			{
+				// BM: RockOptions - drive vertex alpha from occlusion/intensity/distance lookups
+				if (LookupValues.Color.A <= 0.001f)
+				{
+					continue;
+				}
+				LookupValues.Color.A *= GetVertAlphaScale(Element, LookupValues, Proxy, View);
+				if (LookupValues.Color.A <= 0.001f)
+				{
+					continue;
+				}
+
 				DrawSize = FVector2D(Element->Size) * LookupValues.Scaling;
 				
 				ConstantVertexData.Position = FVector(0.0f);
@@ -458,6 +510,17 @@ void FLensFlareDynamicData::RenderReflections(FLensFlareSceneProxy* Proxy, FPrim
 			ElementPosition += LookupValues.Offset;
 			if (LookupValues.LFMaterial)
 			{
+				// BM: RockOptions - drive vertex alpha from occlusion/intensity/distance lookups
+				if (LookupValues.Color.A <= 0.001f)
+				{
+					continue;
+				}
+				LookupValues.Color.A *= GetVertAlphaScale(Element, LookupValues, Proxy, View);
+				if (LookupValues.Color.A <= 0.001f)
+				{
+					continue;
+				}
+
 				DrawSize = FVector2D(Element->Size) * LookupValues.Scaling;
 				
 				FVector4 ElementProjection = FVector4(ElementPosition.X, ElementPosition.Y, 0.1f, 1.0f);
