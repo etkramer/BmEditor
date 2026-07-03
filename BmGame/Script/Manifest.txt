@@ -1463,7 +1463,6 @@
    3 ParticleEventManager Engine [A] []
    3 Pawn Engine [PA] []
     4 GamePawn GameFramework [A] []
-     5 RPawnTest BmGame [] []
     4 MatineePawn Engine [P] []
     4 Scout Engine [] []
     4 Vehicle Engine [PA] [Vehicles]
