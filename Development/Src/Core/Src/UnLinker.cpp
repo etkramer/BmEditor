@@ -3794,12 +3794,6 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 			LoadClass->GetName() == "SceneCapture2DActor" ||
 			LoadClass->GetName() == "FractureMaterial" ||
 
-			// "TypeIndex out of range" messages with most SequenceObjects
-			LoadClass->GetName() == "Sequence" ||
-
-			// LoadClass->GetName() == "InterpData" ||
-			LoadClass->GetName() == "SeqAct_Interp" ||
-
 			LoadClass->GetName() == "PhysicalMaterial" ||
 			LoadClass->GetName() == "NavigationMeshBase" ||
 			LoadClass->GetName() == "FaceFxAsset" ||
@@ -4331,15 +4325,6 @@ UObject* ULinkerLoad::IndexToObject( PACKAGE_INDEX Index )
 	{
 		if( !ExportMap.IsValidIndex( Index-1 ) )
 		{
-#if BATMAN
-			if (IsBmCooked(TRUE))
-			{
-				warnf( NAME_Warning, TEXT("Bad export index %i/%i (serializing %s at offset %i)"), Index-1, ExportMap.Num(),
-					GSerializedObject ? *GSerializedObject->GetFullName() : TEXT("NULL"), Tell() );
-				return NULL;
-			}
-			else
-#endif
 			appErrorf( TEXT("Bad export index %i/%i (serializing %s at offset %i)"), Index-1, ExportMap.Num(),
 				GSerializedObject ? *GSerializedObject->GetFullName() : TEXT("NULL"), Tell() );
 		}

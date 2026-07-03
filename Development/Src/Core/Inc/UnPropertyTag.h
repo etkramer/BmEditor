@@ -104,11 +104,7 @@ struct FPropertyTag
 
 				if (TypeIndex < 0 || TypeIndex > NAME_GUIDProperty)
 				{
-					warnf(NAME_Warning, TEXT("FPropertyTag: TypeIndex %d out of range, treating as end of properties"), (INT)TypeIndex);
-					Tag.Type = NAME_None;
-					Tag.Name = NAME_None;
-					Tag.PropertyOffset = 0;
-					return Ar;
+					appErrorf(TEXT("FPropertyTag: TypeIndex %d out of range"), (INT)TypeIndex);
 				}
 
 				Tag.Type = FName((EName)TypeIndex);

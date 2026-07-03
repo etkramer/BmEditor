@@ -264,7 +264,7 @@ var array<SeqOpInputLink>		InputLinks;
  * Individual output link entry, for linking an output link
  * to an input link on another operation.
  */
-struct native SeqOpOutputInputLink
+struct immutablewhencooked native SeqOpOutputInputLink
 {
 	/** SequenceOp this is linked to */
 	var SequenceOp LinkedOp;

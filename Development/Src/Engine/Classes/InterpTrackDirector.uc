@@ -35,7 +35,7 @@ cpptext
 }
 
 /** Information for one cut in this track. */
-struct native DirectorTrackCut
+struct immutablewhencooked native DirectorTrackCut
 {
 	/** Time to perform the cut. */
 	var		float	Time;
