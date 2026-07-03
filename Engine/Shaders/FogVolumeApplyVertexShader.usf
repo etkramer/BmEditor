@@ -34,6 +34,6 @@ void Main(
 #if PER_PIXEL_CAMERA_VECTOR
 	CameraVectorOrVertexColor = VertexFactoryGetVertexColor(Input, VFIntermediates);
 #else
-	CameraVectorOrVertexColor.xyz = VertexFactoryWorldToTangentSpace(Input,VFIntermediates,TangentBasis,CameraPosition.xyz - WorldPosition.xyz * CameraPosition.w);
+	CameraVectorOrVertexColor.xyz = VertexFactoryWorldToTangentSpace(Input,VFIntermediates,TangentBasis,CameraPositionVS.xyz - WorldPosition.xyz * CameraPositionVS.w);
 #endif
 }

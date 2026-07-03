@@ -435,7 +435,11 @@ FArchive& operator<<(FArchive& Ar,FShaderType*& Ref)
 			}
 			else
 			{
+#if BATMAN
+				// BM: Expected with BM2 caches for now
+#else
 				warnf(NAME_DevShaders, TEXT("Unknown FShaderType '%s' on load."), *FactoryName.ToString());
+#endif
 			}
 		}
 	}
