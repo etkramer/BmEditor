@@ -1512,6 +1512,7 @@ defaultproperties
 
 	WireframeColor=(R=221,G=221,B=28,A=255)
 	bTransformFromAnimParent=1
+	bUseParentAnimComponentBounds=true // BM
 	// by default, update kinematic when the mesh is far in the distnace as things falling out of the world and are hard to track down
 	MinDistFactorForKinematicUpdate=0.0f
 	bNoSkeletonUpdate=FALSE

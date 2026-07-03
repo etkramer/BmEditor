@@ -4099,6 +4099,13 @@ void USkeletalMeshComponent::UpdateBounds()
 		return;
 	}
 
+	// BM: anim-parented meshes adopt the parent's bounds so they cull with it, not independently.
+	if( ParentAnimComponent && bUseParentAnimComponentBounds )
+	{
+		Bounds = ParentAnimComponent->Bounds;
+		return;
+	}
+
 	FVector DrawScale = Scale * Scale3D;
 	if (Owner != NULL)
 	{
