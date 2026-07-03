@@ -8,6 +8,7 @@
 #pragma pack (push,4)
 #endif
 
+#include "BmGameNames.h"
 
 // Split enums from the rest of the header so they can be included earlier
 // than the rest of the header file by including this file twice with different
@@ -24,20 +25,88 @@
 #if !ENUMS_ONLY
 
 #ifndef NAMES_ONLY
-#define AUTOGENERATE_NAME(name) extern FName EXAMPLEGAME_##name;
 #define AUTOGENERATE_FUNCTION(cls,idx,name)
 #endif
+
 
 #ifndef NAMES_ONLY
 
 #ifndef INCLUDED_BMGAME_CLASSES
 #define INCLUDED_BMGAME_CLASSES 1
+#define ENABLE_DECLARECLASS_MACRO 1
+#include "UnObjBas.h"
+#undef ENABLE_DECLARECLASS_MACRO
 
+class ARSkeletalMeshActor : public ASkeletalMeshActor
+{
+public:
+    //## BEGIN PROPS RSkeletalMeshActor
+    class UAnimNodeSequence* SequenceNode;
+    TArrayNoInit<class UAnimNodeSlot*> SlotNodes;
+    INT AnimControlReferenceCount;
+    INT MatineeControlReferenceCount;
+    class UInterpTrackMove* LastMove_MoveTrack;
+    FLOAT LastMove_CurTime;
+    //## END PROPS RSkeletalMeshActor
+
+    void InternalInitAnimTree();
+    virtual void Teleport();
+    virtual void MAT_SetAnimPosition(FName SlotName,INT ChannelIndex,FName InAnimSeqName,FLOAT InPosition,UBOOL bFireNotifies,UBOOL bLooping,UBOOL bEnableRootMotion);
+    void InternalSetMorphWeight(FName MorphNodeName,FLOAT MorphWeight);
+    DECLARE_FUNCTION(execInternalInitAnimTree)
+    {
+        P_FINISH;
+        this->InternalInitAnimTree();
+    }
+    DECLARE_FUNCTION(execTeleport)
+    {
+        P_FINISH;
+        this->Teleport();
+    }
+    DECLARE_FUNCTION(execMAT_SetAnimPosition)
+    {
+        P_GET_NAME(SlotName);
+        P_GET_INT(ChannelIndex);
+        P_GET_NAME(InAnimSeqName);
+        P_GET_FLOAT(InPosition);
+        P_GET_UBOOL(bFireNotifies);
+        P_GET_UBOOL(bLooping);
+        P_GET_UBOOL(bEnableRootMotion);
+        P_FINISH;
+        this->MAT_SetAnimPosition(SlotName,ChannelIndex,InAnimSeqName,InPosition,bFireNotifies,bLooping,bEnableRootMotion);
+    }
+    DECLARE_FUNCTION(execInternalSetMorphWeight)
+    {
+        P_GET_NAME(MorphNodeName);
+        P_GET_FLOAT(MorphWeight);
+        P_FINISH;
+        this->InternalSetMorphWeight(MorphNodeName,MorphWeight);
+    }
+    DECLARE_CLASS(ARSkeletalMeshActor,ASkeletalMeshActor,0,BmGame)
+	virtual void PreviewBeginAnimControl(class UInterpGroup* InInterpGroup);
+	virtual void PreviewSetAnimPosition(FName SlotName, INT ChannelIndex, FName InAnimSeqName, FLOAT InPosition, UBOOL bLooping, UBOOL bFireNotifies, UBOOL bEnableRootMotion, FLOAT DeltaTime);
+	virtual void PreviewSetAnimWeights(TArray<FAnimSlotInfo>& SlotInfos);
+	virtual void PreviewFinishAnimControl(class UInterpGroup* InInterpGroup);
+
+	virtual void SetAnimWeights( const TArray<struct FAnimSlotInfo>& SlotInfos );
+
+	void CacheSlotNodes();
+	void MAT_SetAnimWeights(const TArray<struct FAnimSlotInfo>& SlotInfos);
+};
+
+#undef DECLARE_CLASS
+#undef DECLARE_CASTED_CLASS
+#undef DECLARE_ABSTRACT_CLASS
+#undef DECLARE_ABSTRACT_CASTED_CLASS
 #endif // !INCLUDED_BMGAME_CLASSES
 #endif // !NAMES_ONLY
 
+AUTOGENERATE_FUNCTION(ARSkeletalMeshActor,-1,execInternalSetMorphWeight);
+AUTOGENERATE_FUNCTION(ARSkeletalMeshActor,-1,execMAT_SetAnimPosition);
+AUTOGENERATE_FUNCTION(ARSkeletalMeshActor,-1,execTeleport);
+AUTOGENERATE_FUNCTION(ARSkeletalMeshActor,-1,execInternalInitAnimTree);
+
 #ifndef NAMES_ONLY
-#undef AUTOGENERATE_NAME
 #undef AUTOGENERATE_FUNCTION
 #endif
 
@@ -46,15 +115,28 @@
 #define BMGAME_NATIVE_DEFS
 
 #define AUTO_INITIALIZE_REGISTRANTS_BMGAME \
+	ARSkeletalMeshActor::StaticClass(); \
+	GNativeLookupFuncs.Set(FName("RSkeletalMeshActor"), GBmGameARSkeletalMeshActorNatives); \
 
 #endif // BMGAME_NATIVE_DEFS
 
 #ifdef NATIVES_ONLY
+FNativeFunctionLookup GBmGameARSkeletalMeshActorNatives[] = 
+{ 
+	MAP_NATIVE(ARSkeletalMeshActor, execInternalSetMorphWeight)
+	MAP_NATIVE(ARSkeletalMeshActor, execMAT_SetAnimPosition)
+	MAP_NATIVE(ARSkeletalMeshActor, execTeleport)
+	MAP_NATIVE(ARSkeletalMeshActor, execInternalInitAnimTree)
+	{NULL, NULL}
+};
 
 #endif // NATIVES_ONLY
 #endif // STATIC_LINKING_MOJO
 
 #ifdef VERIFY_CLASS_SIZES
+VERIFY_CLASS_OFFSET_NODIE(ARSkeletalMeshActor,RSkeletalMeshActor,SequenceNode)
+VERIFY_CLASS_OFFSET_NODIE(ARSkeletalMeshActor,RSkeletalMeshActor,LastMove_CurTime)
+VERIFY_CLASS_SIZE_NODIE(ARSkeletalMeshActor)
 #endif // VERIFY_CLASS_SIZES
 #endif // !ENUMS_ONLY
 

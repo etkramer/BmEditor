@@ -63,6 +63,10 @@
 				RelativePath=".\Src\BmGame.cpp"
 				>
 			</File>
+			<File
+				RelativePath=".\Src\RSkeletalMeshActor.cpp"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Inc"

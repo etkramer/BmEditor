@@ -8141,7 +8141,11 @@ UBOOL UInterpTrackAnimControl::GetAnimForTime(FLOAT InTime, FName& OutAnimSeqNam
 /** Get the strength that the animation from this track should be blended in with at the give time. */
 FLOAT UInterpTrackAnimControl::GetWeightForTime(FLOAT InTime)
 {
+#if BATMAN
+	return FloatTrack.Eval(InTime, 1.f);
+#else
 	return FloatTrack.Eval(InTime, 0.f);
+#endif
 }
 
 

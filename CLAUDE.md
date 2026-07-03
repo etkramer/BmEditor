@@ -42,6 +42,4 @@ BM2 packages are all Ver=805, LicenseeVer=101
 
 Use "#if BATMAN" for our changes where it makes sense, otherwise mark our changes with a "// BM" comment (always // format, not a block comment). "// BM" itself works, so does "// BM: Short comment".
 
-Generally avoid overly descriptive comments except where necessary - the repo isn't your notepad.
-
-Default to no descriptive comments (only // BM tags), but add one if the code's intent isn't clear or it differs from the original decomp
+Generally avoid overly descriptive comments except where necessary - the repo isn't your notepad. Don't add full comments unless they're very clearly necessary for future work

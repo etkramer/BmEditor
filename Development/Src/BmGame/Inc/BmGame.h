@@ -4,6 +4,7 @@
 =============================================================================*/
 
 #include "Engine.h"
+#include "EngineAnimClasses.h"
 #include "BmGameClasses.h"
 
 
