@@ -1245,6 +1245,17 @@ void WxLevelPane::WxLevelWindow::OnVisibleCheckChanged(wxCommandEvent& In)
 {
 	check( Level != NULL );
 	const UBOOL bNewLevelVisibility = !FLevelUtils::IsLevelVisible( Level );
+
+#if BATMAN
+	// Toggle all sublevels with Alt+LMB
+	if ( ( GetAsyncKeyState( VK_MENU ) & 0x8000 ) != 0 )
+	{
+		( (WxLevelPane*)GetParent() )->SetAllLevelVisibility( bNewLevelVisibility );
+		LevelBrowser->RequestUpdate();
+		return;
+	}
+#endif
+
 	SetLevelVisibility( bNewLevelVisibility );
 	LevelBrowser->SelectSingleLevelItem( GetLevelItem() );
 }
