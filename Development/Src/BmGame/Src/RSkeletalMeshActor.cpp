@@ -50,6 +50,38 @@ static UBOOL RVerifyComp(USkeletalMeshComponent* Comp)
 	return TRUE;
 }
 
+// Resolve (or create) the single AnimNodeSequence used by cinematic actors that drive one
+// animation directly rather than through an AnimTree/slots.
+static UAnimNodeSequence* GetOrCreateSequenceNode(USkeletalMeshComponent* SkelComp)
+{
+	if( !SkelComp->Animations && SkelComp->AnimTreeTemplate )
+	{
+		SkelComp->SetAnimTreeTemplate(SkelComp->AnimTreeTemplate);
+	}
+
+	if( SkelComp->Animations )
+	{
+		UAnimTree* Tree = Cast<UAnimTree>(SkelComp->Animations);
+		if( !Tree || Tree->Children.Num() <= 0 )
+		{
+			return Cast<UAnimNodeSequence>(SkelComp->Animations);
+		}
+
+		UAnimNodeSequence* SeqNode = Cast<UAnimNodeSequence>(Tree->Children(0).Anim);
+		if( !SeqNode )
+		{
+			return Cast<UAnimNodeSequence>(SkelComp->Animations);
+		}
+
+		return SeqNode;
+	}
+
+	UAnimNodeSequence* NewSeqNode = ConstructObject<UAnimNodeSequence>(UAnimNodeSequence::StaticClass(), UObject::GetTransientPackage());
+	SkelComp->Animations = NewSeqNode;
+	SkelComp->InitAnimTree(TRUE);
+	return NewSeqNode;
+}
+
 /** Rebuild the SlotNodes cache from the current AnimTree. */
 void ARSkeletalMeshActor::CacheSlotNodes()
 {
@@ -87,6 +119,7 @@ void ARSkeletalMeshActor::InternalInitAnimTree()
 	if( SkeletalMeshComponent )
 	{
 		SkeletalMeshComponent->InitAnimTree();
+		SequenceNode = GetOrCreateSequenceNode(SkeletalMeshComponent);
 		CacheSlotNodes();
 	}
 }
@@ -94,6 +127,35 @@ void ARSkeletalMeshActor::InternalInitAnimTree()
 /** Update an AnimTree slot from Matinee track info. Mirrors ASkeletalMeshActorMAT::MAT_SetAnimPosition. */
 void ARSkeletalMeshActor::MAT_SetAnimPosition(FName SlotName, INT ChannelIndex, FName InAnimSeqName, FLOAT InPosition, UBOOL bFireNotifies, UBOOL bLooping, UBOOL bEnableRootMotion)
 {
+	// Drive a single AnimNodeSequence directly, for actors without an AnimTree/slots.
+	if( SequenceNode )
+	{
+		if( SequenceNode->AnimSeqName != InAnimSeqName || SequenceNode->AnimSeq == NULL )
+		{
+			SequenceNode->SetAnim(InAnimSeqName);
+			SequenceNode->SetPosition(InPosition, FALSE);
+		}
+
+		if( bEnableRootMotion )
+		{
+			SkeletalMeshComponent->RootMotionMode = RMM_Translate;
+			SequenceNode->SetRootBoneAxisOption(RBA_Translate, RBA_Translate, RBA_Translate);
+			SkeletalMeshComponent->RootMotionRotationMode = RMRM_RotateActor;
+			SequenceNode->SetRootBoneRotationOption(RRO_Extract, RRO_Extract, RRO_Extract);
+		}
+		else
+		{
+			SkeletalMeshComponent->RootMotionMode = RMM_Ignore;
+			SequenceNode->SetRootBoneAxisOption(RBA_Default, RBA_Default, RBA_Default);
+			SkeletalMeshComponent->RootMotionRotationMode = RMRM_Ignore;
+			SequenceNode->SetRootBoneRotationOption(RRO_Default, RRO_Default, RRO_Default);
+		}
+
+		SequenceNode->bLooping = bLooping;
+		SequenceNode->PreviousTime = SequenceNode->CurrentTime;
+		SequenceNode->SetPosition(InPosition, bFireNotifies);
+	}
+
 	// Ensure anims are updated correctly in cinematics even when the mesh isn't rendered.
 	SkeletalMeshComponent->LastRenderTime = GWorld->GetTimeSeconds();
 
@@ -147,6 +209,9 @@ void ARSkeletalMeshActor::PreviewBeginAnimControl(UInterpGroup* InInterpGroup)
 		SkeletalMeshComponent->Animations = SkeletalMeshComponent->AnimTreeTemplate->CopyAnimTree(SkeletalMeshComponent);
 	}
 
+	// Resolve the single-sequence handle (creates one if there's no AnimTree at all).
+	SequenceNode = GetOrCreateSequenceNode(SkeletalMeshComponent);
+
 	// In the editor we don't have access to Script, so cache slot nodes here.
 	CacheSlotNodes();
 
@@ -189,6 +254,7 @@ void ARSkeletalMeshActor::PreviewFinishAnimControl(UInterpGroup* InInterpGroup)
 
 	// When done in Matinee in the editor, drop the AnimTree instance.
 	SkeletalMeshComponent->Animations = NULL;
+	SequenceNode = NULL;
 
 	// Clear the weight on all slots before freeing them.
 	FAnimSlotInfo SlotNodeInfo;
