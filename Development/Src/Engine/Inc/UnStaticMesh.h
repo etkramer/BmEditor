@@ -1202,6 +1202,9 @@ public:
 	/** BM: Per-section material overrides. */
 	TArray<UMaterialInterface*>				MaterialOverrides;
 
+	/** Array of physics-engine shapes that can be used by multiple StaticMeshComponents. */
+	TArray<void*>							PhysMesh;
+
 	// Collision data.
 
 //	typedef TkDOPTree<class FStaticMeshCollisionDataProvider,WORD>	kDOPTreeType;
@@ -1212,9 +1215,6 @@ public:
 
 	URB_BodySetup*							BodySetup;
 	FBoxSphereBounds						Bounds;
-
-	/** Array of physics-engine shapes that can be used by multiple StaticMeshComponents. */
-	TArray<void*>							PhysMesh;
 
 	/** Scale of each PhysMesh entry. Arrays should be same size. */
 	TArray<FVector>							PhysMeshScale3D;
@@ -1335,6 +1335,9 @@ public:
 
 	/** Unique ID for tracking/caching this mesh during distributed lighting */
 	FGuid LightingGuid;
+
+	// BM
+	INT										GeomTypeForRef;
 
 	/** BM: UV set to use when generating per-triangle collision UVs. */
 	INT										CollisionUVSet;
