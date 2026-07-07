@@ -324,7 +324,7 @@ function Reset()
 
 static event int GetObjClassVersion()
 {
-	return Super.GetObjClassVersion() + 1;
+	return Super.GetObjClassVersion() + 4;
 }
 
 defaultproperties
