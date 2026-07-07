@@ -2245,6 +2245,13 @@ public:
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent);
 };
 
+struct SeqAct_PlaySound_eventSetVariableLinkType_Parms
+{
+    INT I;
+    SeqAct_PlaySound_eventSetVariableLinkType_Parms(EEventParm)
+    {
+    }
+};
 class USeqAct_PlaySound : public USeqAct_Latent
 {
 public:
@@ -2257,10 +2264,19 @@ public:
     FLOAT VolumeMultiplier;
     FLOAT PitchMultiplier;
     BITFIELD bSuppressSubtitles:1;
+    BITFIELD bLockVariableLinks:1;
     BITFIELD bStopped:1;
-    SCRIPT_ALIGN;
+    INT NumberOfParameters;
+    TArrayNoInit<FLOAT> StoredFloat;
+    TArrayNoInit<FString> ParamNameList;
     //## END PROPS SeqAct_PlaySound
 
+    void eventSetVariableLinkType(INT I)
+    {
+        SeqAct_PlaySound_eventSetVariableLinkType_Parms Parms(EC_EventParm);
+        Parms.I=I;
+        ProcessEvent(FindFunctionChecked(ENGINE_SetVariableLinkType),&Parms);
+    }
     DECLARE_CLASS(USeqAct_PlaySound,USeqAct_Latent,0,Engine)
 	void Activated();
 	UBOOL UpdateOp(FLOAT deltaTime);
@@ -5199,7 +5215,7 @@ VERIFY_CLASS_OFFSET_NODIE(USeqAct_LevelVisibility,SeqAct_LevelVisibility,Level)
 VERIFY_CLASS_OFFSET_NODIE(USeqAct_LevelVisibility,SeqAct_LevelVisibility,LevelName)
 VERIFY_CLASS_SIZE_NODIE(USeqAct_LevelVisibility)
 VERIFY_CLASS_OFFSET_NODIE(USeqAct_PlaySound,SeqAct_PlaySound,PlaySound)
-VERIFY_CLASS_OFFSET_NODIE(USeqAct_PlaySound,SeqAct_PlaySound,PitchMultiplier)
+VERIFY_CLASS_OFFSET_NODIE(USeqAct_PlaySound,SeqAct_PlaySound,ParamNameList)
 VERIFY_CLASS_SIZE_NODIE(USeqAct_PlaySound)
 VERIFY_CLASS_OFFSET_NODIE(USeqAct_PrepareMapChange,SeqAct_PrepareMapChange,MainLevelName)
 VERIFY_CLASS_OFFSET_NODIE(USeqAct_PrepareMapChange,SeqAct_PrepareMapChange,InitiallyLoadedSecondaryLevelNames)
