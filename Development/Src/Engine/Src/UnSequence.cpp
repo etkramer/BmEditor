@@ -9646,6 +9646,10 @@ UBOOL USeqAct_LevelStreaming::UpdateOp(FLOAT DeltaTime)
 
 USequenceObject* USeqAct_LevelStreaming::ConvertObject()
 {
+#if BATMAN
+	// BM: Don't convert LevelStreaming to MultiLevelStreaming on load
+	return NULL;
+#else
 	USeqAct_MultiLevelStreaming* NewSeqObj = Cast<USeqAct_MultiLevelStreaming>(StaticDuplicateObject(this, this, GetOuter(), TEXT("None"), 0, USeqAct_MultiLevelStreaming::StaticClass()));
 
 	FLevelStreamingNameCombo LevelStreamingData;
@@ -9656,6 +9660,7 @@ USequenceObject* USeqAct_LevelStreaming::ConvertObject()
 	ConvertObjectInternal(NewSeqObj);
 
 	return NewSeqObj;
+#endif
 };
 
 void USeqAct_MultiLevelStreaming::Activated()

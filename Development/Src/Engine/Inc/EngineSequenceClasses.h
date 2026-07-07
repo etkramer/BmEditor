@@ -2154,6 +2154,7 @@ public:
     //## BEGIN PROPS SeqAct_LevelStreamingBase
     BITFIELD bMakeVisibleAfterLoad:1;
     BITFIELD bShouldBlockOnLoad:1;
+    BITFIELD bRegisterLevelIfMissing:1;
     SCRIPT_ALIGN;
     //## END PROPS SeqAct_LevelStreamingBase
 
@@ -2181,6 +2182,7 @@ public:
     //## BEGIN PROPS SeqAct_LevelStreaming
     class ULevelStreaming* Level;
     FName LevelName;
+    FStringNoInit LevelNameAsString;
     BITFIELD bStatusIsOk:1;
     SCRIPT_ALIGN;
     //## END PROPS SeqAct_LevelStreaming
@@ -5189,7 +5191,7 @@ VERIFY_CLASS_OFFSET_NODIE(USeqAct_Interp,SeqAct_Interp,RenderingOverrides)
 VERIFY_CLASS_SIZE_NODIE(USeqAct_Interp)
 VERIFY_CLASS_SIZE_NODIE(USeqAct_LevelStreamingBase)
 VERIFY_CLASS_OFFSET_NODIE(USeqAct_LevelStreaming,SeqAct_LevelStreaming,Level)
-VERIFY_CLASS_OFFSET_NODIE(USeqAct_LevelStreaming,SeqAct_LevelStreaming,LevelName)
+VERIFY_CLASS_OFFSET_NODIE(USeqAct_LevelStreaming,SeqAct_LevelStreaming,LevelNameAsString)
 VERIFY_CLASS_SIZE_NODIE(USeqAct_LevelStreaming)
 VERIFY_CLASS_OFFSET_NODIE(USeqAct_MultiLevelStreaming,SeqAct_MultiLevelStreaming,Levels)
 VERIFY_CLASS_SIZE_NODIE(USeqAct_MultiLevelStreaming)

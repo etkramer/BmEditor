@@ -13,6 +13,8 @@ var const	 LevelStreaming			Level;
 
 /** LevelStreaming object name */
 var() const	 Name					LevelName<autocomment=true>;
+// BM
+var() const	 string					LevelNameAsString;
 
 var transient bool bStatusIsOk;
 

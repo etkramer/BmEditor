@@ -15,6 +15,9 @@ var() bool							bMakeVisibleAfterLoad;
 /** Whether we want to force a blocking load								*/
 var() bool							bShouldBlockOnLoad;
 
+// BM
+var() bool							bRegisterLevelIfMissing;
+
 cpptext
 {
 	/**
