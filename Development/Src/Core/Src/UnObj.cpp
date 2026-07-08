@@ -7215,14 +7215,6 @@ UPackage* UObject::LoadPackage( UPackage* InOuter, const TCHAR* Filename, DWORD 
             return( NULL );
 		}
 
-#if BATMAN
-		// Log when BM2 packages are loaded, so we can notice if they've been misdetected.
-		if (Linker->IsBmCooked())
-		{
-			warnf(NAME_Warning, TEXT("Loading BM2 package %s"), Filename);
-		}
-#endif
-
 		// is there a script SHA hash for this package?
 		BYTE SavedScriptSHA[20];
 		UBOOL bHasScriptSHAHash = FSHA1::GetFileSHAHash(*Linker->LinkerRoot->GetName(), SavedScriptSHA, FALSE);
