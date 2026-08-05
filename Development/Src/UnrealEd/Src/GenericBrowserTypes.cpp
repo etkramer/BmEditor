@@ -102,6 +102,10 @@ IMPLEMENT_CLASS(UGenericBrowserType_PostProcess);
 IMPLEMENT_CLASS(UGenericBrowserType_Prefab)
 IMPLEMENT_CLASS(UGenericBrowserType_ProcBuildingRuleset)
 IMPLEMENT_CLASS(UGenericBrowserType_RenderTexture)
+#if BATMAN
+IMPLEMENT_CLASS(URGenericBrowserType)
+IMPLEMENT_CLASS(URGenericBrowserType_AdditionalContent)
+#endif
 IMPLEMENT_CLASS(UGenericBrowserType_Sequence)
 IMPLEMENT_CLASS(UGenericBrowserType_SkeletalMesh)
 IMPLEMENT_CLASS(UGenericBrowserType_SoundCue)
@@ -6289,3 +6293,38 @@ void UGenericBrowserType_FractureMaterial::Init()
 	SupportInfo.AddItem( FGenericBrowserTypeInfo( UFractureMaterial::StaticClass(), FColor(255,192,128), 0, 0, this ) );
 }
 
+
+#if BATMAN
+/*------------------------------------------------------------------------------
+URGenericBrowserType
+------------------------------------------------------------------------------*/
+void URGenericBrowserType::Init()
+{
+	// BM: BM2 authors SupportedClass directly; resolve by path when it came from a cooked package.
+	if( SupportedClass == NULL && SupportedClassName.Len() > 0 )
+	{
+		SupportedClass = LoadObject<UClass>( NULL, *SupportedClassName, NULL, LOAD_None, NULL );
+	}
+
+	if( SupportedClass == NULL )
+	{
+		warnf( NAME_Warning, TEXT("%s: couldn't resolve SupportedClassName '%s'"), *GetClass()->GetName(), *SupportedClassName );
+		return;
+	}
+
+	SupportInfo.AddItem( FGenericBrowserTypeInfo( SupportedClass, BorderColor, NULL ) );
+}
+
+UBOOL URGenericBrowserType::ShowObjectEditor( UObject* InObject )
+{
+	WxPropertyWindowFrame* Properties = new WxPropertyWindowFrame;
+	Properties->Create( GApp->EditorFrame, -1 );
+
+	Properties->AllowClose();
+	Properties->SetObject( InObject, EPropertyWindowFlags::Sorted | EPropertyWindowFlags::ShouldShowCategories );
+	Properties->SetTitle( *InObject->GetPathName() );
+	Properties->Show();
+
+	return 1;
+}
+#endif

@@ -3798,7 +3798,7 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 
 			LoadClass->GetName() == "PhysicalMaterial" ||
 			LoadClass->GetName() == "NavigationMeshBase" ||
-			LoadClass->GetName() == "FaceFxAsset" ||
+			// LoadClass->GetName() == "FaceFxAsset" ||
             LoadClass->GetName() == "FaceFxAnimSet"
         ))
         {

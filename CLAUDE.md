@@ -19,7 +19,7 @@ Build uses UnrealBuildTool. Do not try to trigger builds on your own. The editor
 
 There are two useful decompilations to use as reference on the retail BM2 game:
 
-- `I:\Gangland\Binaries\Win32\BmGame.exe.c` - decompiled source from a PC build of Arkham City, with partial symbols (has all function names but no structs). Should be very accurate to the PC version and a strong reference
+- `I:\Gangland\Binaries\Win32\BmGame.exe.c` - decompiled source from a PC build of Arkham City, with partial symbols (has all function names but no structs). Editor-enabled and should be very accurate to the PC version
 - `F:\Game Builds\Batman Arkham City (January 20, 2012)\Default.xex.[c,h]` - decompiled X360 source, with full symbols. May not be fully accurate to the PC version, but a good reference for overall behavior and game structs
 
 ## Architecture: Batman Customizations

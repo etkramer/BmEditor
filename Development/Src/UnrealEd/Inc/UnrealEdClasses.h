@@ -1962,6 +1962,30 @@ public:
 	virtual void Init();
 };
 
+class URGenericBrowserType : public UGenericBrowserType
+{
+public:
+    //## BEGIN PROPS RGenericBrowserType
+    class UClass* SupportedClass;
+    FColor BorderColor;
+    FStringNoInit SupportedClassName;
+    //## END PROPS RGenericBrowserType
+
+    DECLARE_ABSTRACT_CLASS(URGenericBrowserType,UGenericBrowserType,0,UnrealEd)
+	virtual void Init();
+	virtual UBOOL ShowObjectEditor( UObject* InObject );
+};
+
+class URGenericBrowserType_AdditionalContent : public URGenericBrowserType
+{
+public:
+    //## BEGIN PROPS RGenericBrowserType_AdditionalContent
+    //## END PROPS RGenericBrowserType_AdditionalContent
+
+    DECLARE_CLASS(URGenericBrowserType_AdditionalContent,URGenericBrowserType,0,UnrealEd)
+    NO_DEFAULT_CONSTRUCTOR(URGenericBrowserType_AdditionalContent)
+};
+
 class UGeomModifier : public UObject
 {
 public:
@@ -5274,6 +5298,8 @@ AUTOGENERATE_FUNCTION(UGameStatsDBUploader,-1,execPostProcessStream);
 	UGenericBrowserType_RenderTexture::StaticClass(); \
 	UGenericBrowserType_TextureCube::StaticClass(); \
 	UGenericBrowserType_TextureMovie::StaticClass(); \
+	URGenericBrowserType::StaticClass(); \
+	URGenericBrowserType_AdditionalContent::StaticClass(); \
 	UGeomModifier::StaticClass(); \
 	UGeomModifier_Edit::StaticClass(); \
 	UGeomModifier_Clip::StaticClass(); \
@@ -5720,6 +5746,10 @@ VERIFY_CLASS_SIZE_NODIE(UGenericBrowserType_Texture)
 VERIFY_CLASS_SIZE_NODIE(UGenericBrowserType_RenderTexture)
 VERIFY_CLASS_SIZE_NODIE(UGenericBrowserType_TextureCube)
 VERIFY_CLASS_SIZE_NODIE(UGenericBrowserType_TextureMovie)
+VERIFY_CLASS_OFFSET_NODIE(URGenericBrowserType,RGenericBrowserType,SupportedClass)
+VERIFY_CLASS_OFFSET_NODIE(URGenericBrowserType,RGenericBrowserType,SupportedClassName)
+VERIFY_CLASS_SIZE_NODIE(URGenericBrowserType)
+VERIFY_CLASS_SIZE_NODIE(URGenericBrowserType_AdditionalContent)
 VERIFY_CLASS_OFFSET_NODIE(UGeomModifier,GeomModifier,Description)
 VERIFY_CLASS_OFFSET_NODIE(UGeomModifier,GeomModifier,CachedPolys)
 VERIFY_CLASS_SIZE_NODIE(UGeomModifier)
