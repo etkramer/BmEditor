@@ -2099,9 +2099,8 @@ static UBOOL BmSaveStandaloneSeekFreePackage( UPackage* SourcePackage, const TCH
 	const UE3::EPlatformType OldCookingTarget = GCookingTarget;
 	const INT OldLicenseeVersion = GPackageFileLicenseeVersion;
 
-	// PLATFORM_Windows keeps editor data, matching how the retail PC packages were cooked.
 	GIsCooking = TRUE;
-	GCookingTarget = UE3::PLATFORM_Windows;
+	GCookingTarget = UE3::PLATFORM_WindowsConsole;
 	GPackageFileLicenseeVersion = VER_BATMAN2;
 
 	UPackage* DestPackage = UObject::CreatePackage( NULL, *DestPackageName );
