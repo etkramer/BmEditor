@@ -1992,13 +1992,6 @@ UBOOL FDynamicLightEnvironmentState::DoesLightAffectOwner(const ULightComponent*
 		return FALSE;
 	}
 
-#if BATMAN
-	if(!Light->GetOutermost()->IsBmCooked(TRUE) && Light->IsUsedForStaticLightingOnly())
-	{
-		return FALSE;
-	}
-#endif
-
 	// Skip lights which don't affect the owner's predicted bounds.
 	if(!Light->AffectsBounds(FBoxSphereBounds(OwnerPosition,OwnerBounds.BoxExtent,OwnerBounds.SphereRadius)))
 	{

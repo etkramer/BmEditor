@@ -20,6 +20,10 @@ var() bool bStartAwake;
 /** Allows setting the RBChannel flag on the spawned rigid body's StaticMeshComponent. */
 var() ERBCollisionChannel		RBChannel;
 
+// BM
+var() byte RBDominanceGroup;
+var() vector DrawScale3D;
+
 /** Define the channels with which this actor will collide. */
 var() const RBCollisionChannelContainer CollideWithChannels;
 
@@ -32,6 +36,8 @@ defaultproperties
 	GameplayActorClass=class'Engine.ApexDestructibleActorSpawnable'
 	bStartAwake=FALSE
 	RBChannel=RBCC_EffectPhysics
+	RBDominanceGroup=16
+	DrawScale3D=(X=1.0,Y=1.0,Z=1.0)
 	CollideWithChannels={(
                 Default=TRUE,
                 BlockingVolume=TRUE,

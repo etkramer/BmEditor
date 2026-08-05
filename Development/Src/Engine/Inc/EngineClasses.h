@@ -12946,7 +12946,9 @@ public:
     BITFIELD bStartAwake:1;
     SCRIPT_ALIGN;
     BYTE RBChannel;
+    BYTE RBDominanceGroup;
     SCRIPT_ALIGN;
+    FVector DrawScale3D;
     FRBCollisionChannelContainer CollideWithChannels;
     class UApexDestructibleAsset* DestructibleAsset;
     //## END PROPS ActorFactoryApexDestructible
