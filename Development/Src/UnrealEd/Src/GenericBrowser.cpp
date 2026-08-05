@@ -2068,6 +2068,85 @@ UBOOL WxGenericBrowser::SaveAsSelectedPackages()
 	return bAllPackagesWereSaved;
 }
 
+// BM: Marks everything outside DestPackage for forced export, so SavePackage embeds the whole dependency graph.
+// Mirrors UCookPackagesCommandlet::PrepPackageForObjectCooking, minus the always-loaded script packages.
+static void BmMarkSeekFreeForceExports( UPackage* DestPackage )
+{
+	for( FObjectIterator It; It; ++It )
+	{
+		UObject* Object = *It;
+		if( !Object->HasAnyFlags( RF_Transient )
+			&&	!Object->IsIn( UObject::GetTransientPackage() )
+			&&	!Object->IsIn( DestPackage )
+			&&	!(Object->GetOutermost()->PackageFlags & PKG_ContainsScript) )
+		{
+			Object->SetFlags( RF_ForceTagExp );
+		}
+	}
+}
+
+// BM: Saves SourcePackage as a standalone seekfree package, matching the layout the retail cooker produces for _SF packages.
+static UBOOL BmSaveStandaloneSeekFreePackage( UPackage* SourcePackage, const TCHAR* DstFilename )
+{
+	const FString DestPackageName = FFilename( DstFilename ).GetBaseFilename();
+	if( FindObject<UPackage>( NULL, *DestPackageName ) != NULL )
+	{
+		appMsgf( AMT_OK, TEXT("A package named '%s' is already loaded - pick a different filename."), *DestPackageName );
+		return FALSE;
+	}
+
+	const UBOOL OldIsCooking = GIsCooking;
+	const UE3::EPlatformType OldCookingTarget = GCookingTarget;
+	const INT OldLicenseeVersion = GPackageFileLicenseeVersion;
+
+	// PLATFORM_Windows keeps editor data, matching how the retail PC packages were cooked.
+	GIsCooking = TRUE;
+	GCookingTarget = UE3::PLATFORM_Windows;
+	GPackageFileLicenseeVersion = VER_BATMAN2;
+
+	UPackage* DestPackage = UObject::CreatePackage( NULL, *DestPackageName );
+	DestPackage->MakeNewGuid();
+	DestPackage->PackageFlags |= SourcePackage->PackageFlags & (PKG_AllowDownload | PKG_ClientOptional | PKG_ServerSideOnly);
+	DestPackage->PackageFlags |= PKG_Cooked | PKG_RequireImportsAlreadyLoaded | PKG_StoreCompressed;
+	if( !(DestPackage->PackageFlags & PKG_ServerSideOnly) )
+	{
+		DestPackage->CreateEmptyNetInfo();
+	}
+
+	// Root every object of the source package so SavePackage walks out from there.
+	UObjectReferencer* Referencer = ConstructObject<UObjectReferencer>( UObjectReferencer::StaticClass(), DestPackage, NAME_None, RF_Cooked );
+	for( FObjectIterator It; It; ++It )
+	{
+		if( It->IsIn( SourcePackage ) )
+		{
+			Referencer->ReferencedObjects.AddItem( *It );
+		}
+	}
+
+	BmMarkSeekFreeForceExports( DestPackage );
+
+	const UBOOL bSaved = UObject::SavePackage( DestPackage, Referencer, RF_Standalone, DstFilename, GError );
+
+	for( FObjectIterator It; It; ++It )
+	{
+		It->ClearFlags( RF_ForceTagExp | RF_Saved );
+	}
+
+	// Move the temporary package aside so repeat saves of the same filename start clean.
+	Referencer->ClearFlags( RF_Standalone | RF_Public );
+	DestPackage->ClearFlags( RF_Standalone | RF_Public );
+	DestPackage->Rename(
+		*UObject::MakeUniqueObjectName( UObject::GetTransientPackage(), UPackage::StaticClass(), *DestPackageName ).ToString(),
+		UObject::GetTransientPackage(),
+		REN_ForceNoResetLoaders | REN_DoNotDirty );
+
+	GIsCooking = OldIsCooking;
+	GCookingTarget = OldCookingTarget;
+	GPackageFileLicenseeVersion = OldLicenseeVersion;
+
+	return bSaved;
+}
+
 UBOOL WxGenericBrowser::SaveAsCookedSelectedPackages()
 {
 	// Generate a list of unique packages.
@@ -2106,7 +2185,8 @@ UBOOL WxGenericBrowser::SaveAsCookedSelectedPackages()
 			continue;
 		}
 
-		FString File = FString::Printf( TEXT("%s.upk"), *Package->GetName() );
+		// BM: default to the seekfree name the retail cooker would have used
+		FString File = FString::Printf( TEXT("%s%s.upk"), *Package->GetName(), STANDALONE_SEEKFREE_SUFFIX );
 
 		WxFileDialog SaveFileDialog( this,
 			TEXT("Save Cooked Package"),
@@ -2132,26 +2212,10 @@ UBOOL WxGenericBrowser::SaveAsCookedSelectedPackages()
 				appMsgf( AMT_OK, *FString::Printf( LocalizeSecure(LocalizeUnrealEd("Error_CouldntWriteToFile_F"), *SaveFileName)) );
 				bAllPackagesWereSaved = FALSE;
 			}
-			else
+			else if( !BmSaveStandaloneSeekFreePackage( Package, *SaveFileName ) )
 			{
-				// Temporarily set cooked flags and licensee version for saving
-				const DWORD OldPackageFlags = Package->PackageFlags;
-				const INT OldLicenseeVersion = GPackageFileLicenseeVersion;
-
-				Package->PackageFlags |= PKG_Cooked;
-				GPackageFileLicenseeVersion = VER_BATMAN2;
-
-				UBOOL bSaved = UObject::SavePackage( Package, NULL, RF_Standalone, *SaveFileName, GError );
-
-				// Restore original state
-				Package->PackageFlags = OldPackageFlags;
-				GPackageFileLicenseeVersion = OldLicenseeVersion;
-
-				if( !bSaved )
-				{
-					appMsgf( AMT_OK, *LocalizeUnrealEd("Error_CouldntSavePackage") );
-					bAllPackagesWereSaved = FALSE;
-				}
+				appMsgf( AMT_OK, *LocalizeUnrealEd("Error_CouldntSavePackage") );
+				bAllPackagesWereSaved = FALSE;
 			}
 		}
 		else
