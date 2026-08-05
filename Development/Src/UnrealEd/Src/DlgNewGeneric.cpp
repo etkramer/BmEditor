@@ -208,7 +208,12 @@ int WxDlgNewGeneric::ShowModal(const FString& InPackage, const FString& InGroup,
 {
 	Package = InPackage;
 	Group = InGroup;
-	
+
+#if BATMAN
+	// BM: patch in metaclasses that depend on classes loaded from the cooked packages.
+	URAdditionalContentFactoryNew::FixupContentTypeMetaClass();
+#endif
+
 	if( InBrowsableObjectTypeList != NULL )
 	{
 		BrowsableObjectTypeList = *InBrowsableObjectTypeList;

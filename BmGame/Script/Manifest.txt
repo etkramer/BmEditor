@@ -480,6 +480,7 @@
   2 PolysFactory UnrealEd [] []
   2 PostProcessFactoryNew UnrealEd [] []
   2 ProcBuildingRulesetFactoryNew UnrealEd [] []
+  2 RAdditionalContentFactoryNew UnrealEd [] []
   2 SequenceFactory UnrealEd [] []
   2 SkeletalMeshFactory UnrealEd [] []
    3 ReimportSkeletalMeshFactory UnrealEd [] []

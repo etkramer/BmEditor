@@ -9507,3 +9507,56 @@ UObject* UApexDestructibleDamageParametersFactoryNew::FactoryCreateNew(UClass* C
 }
 
 IMPLEMENT_CLASS(UApexDestructibleDamageParametersFactoryNew);
+
+#if BATMAN
+/*-----------------------------------------------------------------------------
+	URAdditionalContentFactoryNew.
+-----------------------------------------------------------------------------*/
+
+void URAdditionalContentFactoryNew::FixupContentTypeMetaClass()
+{
+	UClassProperty* ContentTypeProp = FindField<UClassProperty>( StaticClass(), TEXT("ContentType") );
+	if( ContentTypeProp == NULL || ContentTypeProp->MetaClass != UObject::StaticClass() )
+	{
+		return;
+	}
+
+	const FString& ClassName = StaticClass()->GetDefaultObject<URAdditionalContentFactoryNew>()->SupportedClassName;
+	UClass* MetaClass = LoadObject<UClass>( NULL, *ClassName, NULL, LOAD_None, NULL );
+	if( MetaClass != NULL )
+	{
+		ContentTypeProp->MetaClass = MetaClass;
+	}
+}
+
+UObject* URAdditionalContentFactoryNew::FactoryCreateNew( UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn )
+{
+	// BM: BM2 resolves this at static init; ours comes from the cooked packages, so do it here.
+	if( SupportedClass == NULL && SupportedClassName.Len() > 0 )
+	{
+		SupportedClass = LoadObject<UClass>( NULL, *SupportedClassName, NULL, LOAD_None, NULL );
+	}
+
+	if( ContentType == NULL || (SupportedClass != NULL && !ContentType->IsChildOf( SupportedClass )) )
+	{
+		Warn->Logf( NAME_Error, TEXT("ContentType must be set to a %s subclass."), SupportedClass ? *SupportedClass->GetName() : TEXT("RAdditionalContent") );
+		return NULL;
+	}
+
+	if( ContentType->ClassFlags & CLASS_Abstract )
+	{
+		Warn->Logf( NAME_Error, TEXT("%s is abstract and can't be instanced."), *ContentType->GetName() );
+		return NULL;
+	}
+
+	UObject* NewObject = StaticConstructObject( ContentType, InParent, InName, Flags );
+	if( NewObject )
+	{
+		NewObject->MarkPackageDirty();
+	}
+
+	return NewObject;
+}
+
+IMPLEMENT_CLASS(URAdditionalContentFactoryNew);
+#endif

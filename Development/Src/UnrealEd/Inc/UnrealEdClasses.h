@@ -3655,6 +3655,20 @@ public:
 	virtual FMaterialResource* AllocateResource();
 };
 
+class URAdditionalContentFactoryNew : public UFactory
+{
+public:
+    //## BEGIN PROPS RAdditionalContentFactoryNew
+    class UClass* ContentType;
+    FStringNoInit SupportedClassName;
+    //## END PROPS RAdditionalContentFactoryNew
+
+    DECLARE_CLASS(URAdditionalContentFactoryNew,UFactory,0,UnrealEd)
+	static void FixupContentTypeMetaClass();
+
+	virtual UObject* FactoryCreateNew( UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn );
+};
+
 class USequenceObjectHelper : public UObject
 {
 public:
@@ -5400,6 +5414,7 @@ AUTOGENERATE_FUNCTION(UGameStatsDBUploader,-1,execPostProcessStream);
 	UPropertyInputCombo::StaticClass(); \
 	UPropertyInputEditInline::StaticClass(); \
 	UPropertyInputText::StaticClass(); \
+	URAdditionalContentFactoryNew::StaticClass(); \
 	URenderTargetCubeExporterTGA::StaticClass(); \
 	URenderTargetExporterTGA::StaticClass(); \
 	UReplaceActorCommandlet::StaticClass(); \
@@ -5829,6 +5844,9 @@ VERIFY_CLASS_OFFSET_NODIE(UPhATSkeletalMeshComponent,PhATSkeletalMeshComponent,P
 VERIFY_CLASS_OFFSET_NODIE(UPhATSkeletalMeshComponent,PhATSkeletalMeshComponent,AnimationSpaceBases)
 VERIFY_CLASS_SIZE_NODIE(UPhATSkeletalMeshComponent)
 VERIFY_CLASS_SIZE_NODIE(UPreviewMaterial)
+VERIFY_CLASS_OFFSET_NODIE(URAdditionalContentFactoryNew,RAdditionalContentFactoryNew,ContentType)
+VERIFY_CLASS_OFFSET_NODIE(URAdditionalContentFactoryNew,RAdditionalContentFactoryNew,SupportedClassName)
+VERIFY_CLASS_SIZE_NODIE(URAdditionalContentFactoryNew)
 VERIFY_CLASS_SIZE_NODIE(USequenceObjectHelper)
 VERIFY_CLASS_SIZE_NODIE(USoundNodeHelper)
 VERIFY_CLASS_OFFSET_NODIE(UStaticMeshMode_Options,StaticMeshMode_Options,CollisionType)
