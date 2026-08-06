@@ -1901,6 +1901,10 @@ public:
 	 */
 	inline void Increment(DWORD StatId,FLOAT IncBy)
 	{
+		if (!bIsInitialized)
+		{
+			return;
+		}
 		// Heavier weight synching since there isn't an interlocked that
 		// supports floats
 		FScopeLock sl(SyncObject);
@@ -1919,6 +1923,10 @@ public:
 	 */
 	inline void Increment(DWORD StatId,DWORD IncBy)
 	{
+		if (!bIsInitialized)
+		{
+			return;
+		}
 		// Find the stat that we are updating
 		FStatAccumulatorDWORD* Accum = DwordAccumulatorMap.FindRef(StatId);
 		check(Accum != NULL);
@@ -1934,6 +1942,10 @@ public:
 	 */
 	inline void Decrement(DWORD StatId,FLOAT DecBy)
 	{
+		if (!bIsInitialized)
+		{
+			return;
+		}
 		// Heavier weight synching since there isn't an interlocked that
 		// supports floats
 		FScopeLock sl(SyncObject);
@@ -1952,6 +1964,10 @@ public:
 	 */
 	inline void Decrement(DWORD StatId,DWORD DecBy)
 	{
+		if (!bIsInitialized)
+		{
+			return;
+		}
 		// Find the stat that we are updating
 		FStatAccumulatorDWORD* Accum = DwordAccumulatorMap.FindRef(StatId);
 		check(Accum != NULL);
@@ -1969,6 +1985,10 @@ public:
 	 */
 	inline void SetStatValue(DWORD StatId,FLOAT Value)
 	{
+		if (!bIsInitialized)
+		{
+			return;
+		}
 		// Heavier weight synching since there isn't an interlocked that
 		// supports floats
 		FScopeLock sl(SyncObject);
@@ -1987,6 +2007,10 @@ public:
 	 */
 	inline void SetStatValue(DWORD StatId,DWORD Value)
 	{
+		if (!bIsInitialized)
+		{
+			return;
+		}
 		// Find the stat that we are updating
 		FStatAccumulatorDWORD* Accum = DwordAccumulatorMap.FindRef(StatId);
 		check(Accum != NULL);

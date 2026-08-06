@@ -574,6 +574,14 @@ void FStatManager::Destroy(void)
 		Group = Group->NextGroup;
 		delete Delete;
 	}
+
+	// BM: fix exception on shutdown
+	FirstGroup = NULL;
+	GroupMap.Empty();
+	FloatAccumulatorMap.Empty();
+	DwordAccumulatorMap.Empty();
+	AllStatsMap.Empty();
+	bIsInitialized = FALSE;
 }
 
 /**
