@@ -3451,6 +3451,7 @@ namespace ObjectTools
 			return;
 		}
 
+#if !BATMAN
 		// Disallow export from cooked packages.
 		for( INT Index = 0 ; Index < ObjectsToExport.Num() ; ++Index )
 		{
@@ -3460,6 +3461,7 @@ namespace ObjectTools
 				return;
 			}
 		}
+#endif
 
 		FFilename SelectedExportPath;
 		UBOOL bExportGroupsAsSubDirs = FALSE;
@@ -3510,12 +3512,14 @@ namespace ObjectTools
 				continue;
 			}
 
-			// Can't export cooked content.
 			const UPackage* ObjectPackage = ObjectToExport->GetOutermost();
+#if !BATMAN
+			// Can't export cooked content.
 			if( ObjectPackage->PackageFlags & PKG_Cooked )
 			{
 				return;
 			}
+#endif
 
 			//For mod creators, the source art will be stripped out
 #if UDK

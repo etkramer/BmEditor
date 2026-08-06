@@ -4047,12 +4047,14 @@ void WxGenericBrowser::ExportObjects(const TArray<UObject*>& ObjectsToExport, UB
 			continue;
 		}
 
+#if !BATMAN
 		// Can't export cooked content.
 		const UPackage* ObjectPackage = ObjectToExport->GetOutermost();
 		if( ObjectPackage->PackageFlags & PKG_Cooked )
 		{
 			return;
 		}
+#endif
 
 		// Find all the exporters that can export this type of object and construct an export file dialog.
 		FString FileTypes;
@@ -4312,6 +4314,7 @@ void WxGenericBrowser::OnObjectExport(wxCommandEvent& In)
 	TArray<UObject*> SelectedObjects;
 	GetSelectedItems( LeftContainer->CurrentResourceType->SupportInfo, SelectedObjects );
 
+#if !BATMAN
 	// Disallow export from cooked packages.
 	for( INT Index = 0 ; Index < SelectedObjects.Num() ; ++Index )
 	{
@@ -4321,6 +4324,7 @@ void WxGenericBrowser::OnObjectExport(wxCommandEvent& In)
 			return;
 		}
 	}
+#endif
 
 	ExportObjects( SelectedObjects, TRUE );
 }

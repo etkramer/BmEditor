@@ -86,8 +86,13 @@ void WxMBGenericBrowserContext::ToggleItemsForCookedContent(UBOOL bSomeObjectsAr
 {
 	Super::ToggleItemsForCookedContent( bSomeObjectsAreCooked );
 
+#if BATMAN
+	if ( ExportItem ) Enable( ExportItem->GetId(), TRUE );
+	if ( DuplicateItem ) Enable( DuplicateItem->GetId(), TRUE );
+#else
 	if ( ExportItem ) Enable( ExportItem->GetId(), !bSomeObjectsAreCooked );
 	if ( DuplicateItem ) Enable( DuplicateItem->GetId(), !bSomeObjectsAreCooked );
+#endif
 	if ( RenameItem ) Enable( RenameItem->GetId(), !bSomeObjectsAreCooked );
 	if ( DeleteItem ) Enable( DeleteItem->GetId(), !bSomeObjectsAreCooked );
 	if ( DeleteWithReferencesItem ) Enable( DeleteWithReferencesItem->GetId(), !bSomeObjectsAreCooked );
