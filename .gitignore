@@ -1,5 +1,8 @@
 # Content files
 /Binaries/*
+!/Binaries/Win32/
+/Binaries/Win32/*
+!/Binaries/Win32/*.exe.config
 /Engine/Shaders/Binaries/*
 /Engine/Shaders/WorkingDirectory/*
 /BmGame/_CookedPCConsole/*

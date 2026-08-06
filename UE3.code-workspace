@@ -41,7 +41,6 @@
       "**/*.log": true,
       "**/*.xml": true,
       "**/*.vcproj": true,
-      "**/*.csproj": true,
 
       // Exclude per-user settings from search.
       "BmGame/Config/Bm*.txt": true,
@@ -98,6 +97,7 @@
       "GAMENAME=BMGAME",
       "BATMAN=1",
       "_DEBUG",
+      "WITH_MANAGED_CODE=1",
 
       "WIN32=1",
       "_MSC_VER=1400",
@@ -156,7 +156,7 @@
         "type": "cppvsdbg",
         "request": "launch",
         "program": "${workspaceFolder}/Binaries/Win32/Debug-BmGame.exe",
-        "args": ["editor", "-d3d11", "-forcelogflush", "-nopause"],
+        "args": ["editor", "-d3d11", "-forcelogflush", "-nopause", "-nogadwarning", "-nocontentbrowser"],
         "stopAtEntry": false,
         "cwd": "${workspaceFolder}",
         "environment": [],
@@ -164,12 +164,12 @@
         "visualizerFile": "${workspaceFolder}/UE3.natvis",
         "internalConsoleOptions": "openOnSessionStart"
       },
-{
+      {
         "name": "Launch Make",
         "type": "cppvsdbg",
         "request": "launch",
         "program": "${workspaceFolder}/Binaries/Win32/Debug-BmGame.exe",
-        "args": ["make", "-d3d11", "-forcelogflush", "-nopause"],
+        "args": ["make", "-d3d11", "-forcelogflush", "-nopause", "-nogadwarning", "-nocontentbrowser"],
         "stopAtEntry": false,
         "cwd": "${workspaceFolder}",
         "environment": [],

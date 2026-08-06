@@ -894,8 +894,14 @@ namespace UnrealBuildTool
 			// Initialize environment variables required for spawned tools.
 			InitializeEnvironmentVariables(Platform);
 
+			// BM: VS2008 sets FrameworkVersion to v2.0.50727, whose csc predates the C# 3.0 that UnrealEdCSharp needs.
+			// Prefer 4.0 - it still builds the project's v3.5 target, and unlike 3.5 it survives stale ToolsVersions keys (MSB4141).
 			string FrameworkDirectory = Environment.GetEnvironmentVariable("FrameworkDir");
-			string FrameworkVersion = Environment.GetEnvironmentVariable("FrameworkVersion");
+			string FrameworkVersion = "v4.0.30319";
+			if (FrameworkDirectory == null || !Directory.Exists(Path.Combine(FrameworkDirectory, FrameworkVersion)))
+			{
+				FrameworkVersion = Environment.GetEnvironmentVariable("Framework35Version");
+			}
 			if (FrameworkDirectory == null || FrameworkVersion == null)
 			{
 				throw new BuildException( ".NET Environment Variables 'FrameworkDir', 'FrameworkVersion', and 'FrameWork35Verion', have not been set correctly.\nPlease ensure that 64bit Tools are installed with DevStudio - there is usually an option to install these during install" );

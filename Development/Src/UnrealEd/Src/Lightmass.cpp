@@ -213,16 +213,16 @@ FORCEINLINE void Copy( const Lightmass::FQuantizedSHVectorRGB& In, FQuantizedSHV
 }
 FORCEINLINE void Copy( const FGuid& In, Lightmass::FGuid& Out )
 {
-	Out.A = In.A;
+	Out.A = In.SmallGuid;
 	Out.B = Out.C = Out.D = 0;
 }
 FORCEINLINE void Copy( const Lightmass::FGuid& In, FGuid& Out )
 {
-	Out.A = In.A;
+	Out.SmallGuid = In.A;
 }
 FORCEINLINE void Copy( const FGuid& In, NSwarm::FGuid& Out )
 {
-	Out.A = In.A;
+	Out.A = In.SmallGuid;
 	Out.B = Out.C = Out.D = 0;
 }
 FORCEINLINE void Copy( const Lightmass::FGuid& In, NSwarm::FGuid& Out )
@@ -234,10 +234,7 @@ FORCEINLINE void Copy( const Lightmass::FGuid& In, NSwarm::FGuid& Out )
 }
 FORCEINLINE void Copy( const NSwarm::FGuid& In, FGuid& Out )
 {
-	Out.A = In.A;
-	Out.B = In.B;
-	Out.C = In.C;
-	Out.D = In.D;
+	Out.SmallGuid = In.A;
 }
 FORCEINLINE void Copy( const ULightComponent* In, Lightmass::FLightData& Out )
 {	
@@ -783,7 +780,7 @@ void FLightmassExporter::WriteVisibilityData( INT Channel )
 	WireGuids.AddZeroed(VisibilityBucketGuids.Num());
 	for (INT GuidIdx = 0; GuidIdx < VisibilityBucketGuids.Num(); GuidIdx++)
 	{
-		WireGuids(GuidIdx).A = VisibilityBucketGuids(GuidIdx).A;
+		WireGuids(GuidIdx).A = VisibilityBucketGuids(GuidIdx).SmallGuid;
 	}
 	Swarm.WriteChannel( Channel, WireGuids.GetData(), WireGuids.Num() * WireGuids.GetTypeSize() );
 
@@ -3058,7 +3055,7 @@ void FLightmassExporter::WriteDebugInput( Lightmass::FDebugLightingInputData& In
 					else if (DebugVisibilityId != INDEX_NONE)
 					{
 						warnf(NAME_DevLightmassSolver, TEXT("Not debugging visibility for component %s with vis id %u, as it was not the first component on the selected actor."),
-							*Component->GetPathName(), INDEX_NONE);
+							*Component->GetPathName(), (INT)INDEX_NONE);
 					}
 				}
 			}
@@ -3085,7 +3082,7 @@ void FLightmassExporter::WriteDebugInput( Lightmass::FDebugLightingInputData& In
 							else if (DebugVisibilityId != INDEX_NONE)
 							{
 								warnf(NAME_DevLightmassSolver, TEXT("Not debugging visibility for model component %s with vis id %u!"),
-									*SomeModelComponent->GetPathName(), INDEX_NONE);
+									*SomeModelComponent->GetPathName(), (INT)INDEX_NONE);
 							}
 						}
 					}

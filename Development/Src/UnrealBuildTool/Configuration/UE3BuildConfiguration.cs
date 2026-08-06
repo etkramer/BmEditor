@@ -14,7 +14,7 @@ namespace UnrealBuildTool
         public static PS3GCMType PS3GCMType = PS3GCMType.Release;
 
         /** True if managed code (and all related functionality) will be enabled */
-        public static bool bAllowManagedCode = Utils.GetEnvironmentVariable( "ue3.bAllowManagedCode", false );
+        public static bool bAllowManagedCode = Utils.GetEnvironmentVariable( "ue3.bAllowManagedCode", true );
 
         /** Whether to allow Steam support if requested */
         public static bool bAllowSteamworks = Utils.GetEnvironmentVariable( "ue3.bAllowSteamworks", true );
