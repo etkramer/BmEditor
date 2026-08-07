@@ -474,6 +474,8 @@ FLOAT					GBloomWeightLarge				= -1;						/* see "GBloomWeightLarge" console com
 UBOOL                   GDrawGFx                        = TRUE;                     /* TRUE: Render GFx, FALSE: Disable GFx rendering */
 UBOOL					GIsDumpingMovie					= 0;						/* Whether we are dumping screenshots */
 UBOOL					GIsDumpingTileShotMovie			= 0;						/* Whether we are dumping tiledshot screenshots */
+// BM
+UBOOL					GIsAutoCapture					= 0;						/* Whether movie auto-capture is running */
 UBOOL					GForceLogFlush					= 0;						/* Whether to force output after each line written to the log */
 UBOOL					GForceSoundRecook				= 0;						/* Whether to force a recook of all loaded sounds */
 QWORD					GMakeCacheIDIndex				= 0;						/* Cache ID */

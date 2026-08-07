@@ -258,6 +258,14 @@ public:
 	//Helper function to translate ControllerId's to that controller's focused movie
 	FGFxMovie* GetFocusedMovieFromControllerID(INT ControllerId);
 
+#if BATMAN
+	// BM: raw stick axes; nothing feeds these yet, so GetStickMagAng reads zero.
+	FLOAT StickLeftY, StickLeftX, StickRightY, StickRightX;
+
+	// BM
+	FVector2D GetStickMagAng(INT Stick);
+#endif
+
 	//Function that determines what the focusable movies should be for all of the local players.
 	void ReevaluateFocus();
 

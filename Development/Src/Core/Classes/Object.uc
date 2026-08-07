@@ -742,6 +742,8 @@ native(190) static final function	float Atan  ( float A );
 native		static final function	float Atan2 ( float A, float B );
 native(191) static final function	float Exp   ( float A );
 native(192) static final function	float Loge  ( float A );
+// BM
+native		static final function	float Pow   ( float Base, float Exp );
 native(193) static final function	float Sqrt  ( float A );
 native(194) static final function	float Square( float A );
 native(195) static final k2pure function	float FRand ();
@@ -881,6 +883,15 @@ native			static final function	vector	VRandCone2	( vector Dir, float HorizontalC
 native(300)		static final function	vector	MirrorVectorByNormal( vector InVect, vector InNormal );
 native(1500)	static final function	Vector	ProjectOnTo( Vector x, Vector y );
 native(1501)	static final function	bool	IsZero( Vector A );
+
+// BM
+native			static final function	Vector	VRandRange( Vector MinRange, Vector MaxRange );
+
+// BM
+final function int GetYawFromDirection(Vector Direction)
+{
+	return int(Atan2(Direction.Y, Direction.X) * 10430.3800000);
+}
 
 /**
  * Tries to reach Target based on distance from Current position,
@@ -1567,6 +1578,16 @@ native(232) final static `{prevent_direct_calls} function WarnInternal( coerce s
 
 native static function string Localize( string SectionName, string KeyName, string PackageName );
 
+// BM
+native static final function string GetLocalisedString( coerce string PackageName, coerce string SectionName, coerce string KeyName );
+
+/** Looks up a localized value from a "Package.Section.Key" path. */
+// BM
+native static final function string GetLocalised( string PackageSectionKeyName );
+
+// BM
+native static final function bool DoesLocalisedExist( string PackageSectionKeyName );
+
 /** given a path to a localized key of the form "Package.Section.Name",
  * return the appropriate value from the localization file for the current language
  */
@@ -1729,6 +1750,20 @@ native final function float PointDistToLine(vector Point, vector Line, vector Or
  * @return	closest distance from Point to segment defined by (StartPoint, EndPoint).
  */
 native final function float PointDistToSegment(Vector Point, Vector StartPoint, Vector EndPoint, optional out Vector OutClosestPoint);
+
+/** Distance of Point along the (infinite) line (Origin, Line), normalized against the length of Line. */
+// BM
+native final function float PointDistAlongLine(Vector Point, Vector Line, Vector Origin);
+
+/** As PointDistAlongLine, but clamped to the [0,1] extent of the segment. */
+// BM
+native final function float PointDistAlongLineSegment(Vector Point, Vector Line, Vector Origin);
+
+// BM
+native final function float PointDistSquaredToLineSegment(Vector Point, Vector Line, Vector Origin);
+
+// BM
+native final function bool IsCapturingMovie();
 
 /**
  * Calculates the distance of a given point to the given plane. (defined by a combination of vector and rotator)

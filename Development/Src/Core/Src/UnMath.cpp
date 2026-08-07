@@ -1328,6 +1328,48 @@ FLOAT PointDistToSegment(const FVector &Point, const FVector &StartPoint, const 
     return (Point - OutClosestPoint).Size();
 }
 
+#if BATMAN
+
+FLOAT PointDistAlongLine(const FVector& Point, const FVector& Line, const FVector& Origin)
+{
+	const FLOAT LineSizeSq = Line.SizeSquared();
+	if( LineSizeSq > 0.f )
+	{
+		return ((Point - Origin) | Line) / LineSizeSq;
+	}
+	return 0.f;
+}
+
+FLOAT PointDistAlongLineSegment(const FVector& Point, const FVector& Line, const FVector& Origin)
+{
+	const FLOAT LineSizeSq = Line.SizeSquared();
+	if( LineSizeSq > 0.f )
+	{
+		const FLOAT Alpha = ((Point - Origin) | Line) / LineSizeSq;
+		if( Alpha >= 0.f )
+		{
+			return Alpha < 1.f ? Alpha : 1.f;
+		}
+	}
+	return 0.f;
+}
+
+FLOAT PointDistSquaredToLineSegment(const FVector& Point, const FVector& Line, const FVector& Origin)
+{
+	const FLOAT Alpha = PointDistAlongLineSegment(Point, Line, Origin);
+	return (Point - (Origin + Line * Alpha)).SizeSquared();
+}
+
+FVector VRandRange(const FVector& MinRange, const FVector& MaxRange)
+{
+	return FVector(
+		MinRange.X + appFrand() * (MaxRange.X - MinRange.X),
+		MinRange.Y + appFrand() * (MaxRange.Y - MinRange.Y),
+		MinRange.Z + appFrand() * (MaxRange.Z - MinRange.Z) );
+}
+
+#endif
+
 /** 
 * Find closest points between 2 segments.
 * @param	(A1, B1)	defines the first segment.

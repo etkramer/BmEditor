@@ -1592,6 +1592,8 @@ extern UBOOL                    GDrawGFx;
 /* Whether we are dumping screenshots */
 extern UBOOL					GIsDumpingMovie;
 extern UBOOL                    GIsDumpingTileShotMovie;
+// BM
+extern UBOOL					GIsAutoCapture;
 extern UBOOL		            GIsTiledScreenshot;
 extern INT						GGameScreenshotCounter;
 extern INT			            GScreenshotResolutionMultiplier;

@@ -473,6 +473,12 @@ struct GFxMoviePlayer_eventOnCleanup_Parms
     {
     }
 };
+struct GFxMoviePlayer_eventOnOutroClose_Parms
+{
+    GFxMoviePlayer_eventOnOutroClose_Parms(EEventParm)
+    {
+    }
+};
 struct GFxMoviePlayer_eventOnClose_Parms
 {
     GFxMoviePlayer_eventOnClose_Parms(EEventParm)
@@ -555,6 +561,7 @@ public:
     virtual void PostAdvance(FLOAT DeltaTime);
     virtual void SetPause(UBOOL bPausePlayback=TRUE);
     void Close(UBOOL Unload=TRUE);
+    virtual void OnOutroClose();
     virtual void SetTimingMode(BYTE Mode);
     virtual UBOOL SetExternalTexture(const FString& Resource,class UTexture* Texture);
     virtual void RefreshDataStoreBindings();
@@ -569,6 +576,9 @@ public:
     void SetPerspective3D(const FMatrix& matPersp);
     void SetMovieCanReceiveFocus(UBOOL bCanReceiveFocus);
     void SetMovieCanReceiveInput(UBOOL bCanReceiveInput);
+    void SetFocus(UBOOL CaptureInput,UBOOL Focus=TRUE);
+    class UGFxMoviePlayer* GetFocusMovie();
+    FVector2D GetStickMagAng(INT Stick);
     void AddCaptureKey(FName Key);
     void ClearCaptureKeys();
     void AddFocusIgnoreKey(FName Key);
@@ -625,6 +635,11 @@ public:
         P_GET_UBOOL_OPTX(Unload,TRUE);
         P_FINISH;
         this->Close(Unload);
+    }
+    DECLARE_FUNCTION(execOnOutroClose)
+    {
+        P_FINISH;
+        this->OnOutroClose();
     }
     DECLARE_FUNCTION(execSetTimingMode)
     {
@@ -713,6 +728,24 @@ public:
         P_GET_UBOOL(bCanReceiveInput);
         P_FINISH;
         this->SetMovieCanReceiveInput(bCanReceiveInput);
+    }
+    DECLARE_FUNCTION(execSetFocus)
+    {
+        P_GET_UBOOL(CaptureInput);
+        P_GET_UBOOL_OPTX(Focus,TRUE);
+        P_FINISH;
+        this->SetFocus(CaptureInput,Focus);
+    }
+    DECLARE_FUNCTION(execGetFocusMovie)
+    {
+        P_FINISH;
+        *(class UGFxMoviePlayer**)Result=this->GetFocusMovie();
+    }
+    DECLARE_FUNCTION(execGetStickMagAng)
+    {
+        P_GET_INT(Stick);
+        P_FINISH;
+        *(FVector2D*)Result=this->GetStickMagAng(Stick);
     }
     DECLARE_FUNCTION(execAddCaptureKey)
     {
@@ -978,6 +1011,10 @@ public:
     void eventOnCleanup()
     {
         ProcessEvent(FindFunctionChecked(GFXUI_OnCleanup),NULL);
+    }
+    void eventOnOutroClose()
+    {
+        ProcessEvent(FindFunctionChecked(GFXUI_OnOutroClose),NULL);
     }
     void eventOnClose()
     {
@@ -1651,6 +1688,9 @@ AUTOGENERATE_FUNCTION(UGFxMoviePlayer,-1,execClearFocusIgnoreKeys);
 AUTOGENERATE_FUNCTION(UGFxMoviePlayer,-1,execAddFocusIgnoreKey);
 AUTOGENERATE_FUNCTION(UGFxMoviePlayer,-1,execClearCaptureKeys);
 AUTOGENERATE_FUNCTION(UGFxMoviePlayer,-1,execAddCaptureKey);
+AUTOGENERATE_FUNCTION(UGFxMoviePlayer,-1,execGetStickMagAng);
+AUTOGENERATE_FUNCTION(UGFxMoviePlayer,-1,execGetFocusMovie);
+AUTOGENERATE_FUNCTION(UGFxMoviePlayer,-1,execSetFocus);
 AUTOGENERATE_FUNCTION(UGFxMoviePlayer,-1,execSetMovieCanReceiveInput);
 AUTOGENERATE_FUNCTION(UGFxMoviePlayer,-1,execSetMovieCanReceiveFocus);
 AUTOGENERATE_FUNCTION(UGFxMoviePlayer,-1,execSetPerspective3D);
@@ -1665,6 +1705,7 @@ AUTOGENERATE_FUNCTION(UGFxMoviePlayer,-1,execPublishDataStoreValues);
 AUTOGENERATE_FUNCTION(UGFxMoviePlayer,-1,execRefreshDataStoreBindings);
 AUTOGENERATE_FUNCTION(UGFxMoviePlayer,-1,execSetExternalTexture);
 AUTOGENERATE_FUNCTION(UGFxMoviePlayer,-1,execSetTimingMode);
+AUTOGENERATE_FUNCTION(UGFxMoviePlayer,-1,execOnOutroClose);
 AUTOGENERATE_FUNCTION(UGFxMoviePlayer,-1,execClose);
 AUTOGENERATE_FUNCTION(UGFxMoviePlayer,-1,execSetPause);
 AUTOGENERATE_FUNCTION(UGFxMoviePlayer,-1,execPostAdvance);
@@ -1807,6 +1848,9 @@ FNativeFunctionLookup GGFxUIUGFxMoviePlayerNatives[] =
 	MAP_NATIVE(UGFxMoviePlayer, execAddFocusIgnoreKey)
 	MAP_NATIVE(UGFxMoviePlayer, execClearCaptureKeys)
 	MAP_NATIVE(UGFxMoviePlayer, execAddCaptureKey)
+	MAP_NATIVE(UGFxMoviePlayer, execGetStickMagAng)
+	MAP_NATIVE(UGFxMoviePlayer, execGetFocusMovie)
+	MAP_NATIVE(UGFxMoviePlayer, execSetFocus)
 	MAP_NATIVE(UGFxMoviePlayer, execSetMovieCanReceiveInput)
 	MAP_NATIVE(UGFxMoviePlayer, execSetMovieCanReceiveFocus)
 	MAP_NATIVE(UGFxMoviePlayer, execSetPerspective3D)
@@ -1821,6 +1865,7 @@ FNativeFunctionLookup GGFxUIUGFxMoviePlayerNatives[] =
 	MAP_NATIVE(UGFxMoviePlayer, execRefreshDataStoreBindings)
 	MAP_NATIVE(UGFxMoviePlayer, execSetExternalTexture)
 	MAP_NATIVE(UGFxMoviePlayer, execSetTimingMode)
+	MAP_NATIVE(UGFxMoviePlayer, execOnOutroClose)
 	MAP_NATIVE(UGFxMoviePlayer, execClose)
 	MAP_NATIVE(UGFxMoviePlayer, execSetPause)
 	MAP_NATIVE(UGFxMoviePlayer, execPostAdvance)

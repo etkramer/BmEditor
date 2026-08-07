@@ -455,6 +455,32 @@ void UGFxMoviePlayer::AddFocusIgnoreKey(FName ukey)
 	pFocusIgnoreKeys->Add(ukey.GetIndex());
 }
 
+#if BATMAN
+
+void UGFxMoviePlayer::OnOutroClose() {}
+
+void UGFxMoviePlayer::SetFocus(UBOOL CaptureInput, UBOOL Focus)
+{
+	GGFxEngine->ReevaluateFocus();
+}
+
+UGFxMoviePlayer* UGFxMoviePlayer::GetFocusMovie()
+{
+	FGFxMovie* FocusMovie = GGFxEngine->GetFocusedMovieFromControllerID(0);
+	return FocusMovie ? FocusMovie->pUMovie : NULL;
+}
+
+FVector2D UGFxMoviePlayer::GetStickMagAng(INT Stick)
+{
+	if (GGFxEngine)
+	{
+		return GGFxEngine->GetStickMagAng(Stick);
+	}
+	return FVector2D(0.f, 0.f);
+}
+
+#endif
+
 void UGFxMoviePlayer::FlushPlayerInput(UBOOL CaptureKeysOnly)
 {
 	if (GGFxEngine)
@@ -2414,6 +2440,16 @@ void UGFxMoviePlayer::AddCaptureKey(FName ukey) {}
 void UGFxMoviePlayer::ClearFocusIgnoreKeys() {}
 
 void UGFxMoviePlayer::AddFocusIgnoreKey(FName ukey) {}
+
+#if BATMAN
+void UGFxMoviePlayer::OnOutroClose() {}
+
+void UGFxMoviePlayer::SetFocus(UBOOL CaptureInput, UBOOL Focus) {}
+
+UGFxMoviePlayer* UGFxMoviePlayer::GetFocusMovie() { return NULL; }
+
+FVector2D UGFxMoviePlayer::GetStickMagAng(INT Stick) { return FVector2D(0.f, 0.f); }
+#endif
 
 void UGFxMoviePlayer::FlushPlayerInput(UBOOL CaptureKeysOnly) {}
 

@@ -636,6 +636,10 @@ FGFxEngine::FGFxEngine()
 	check(GGFxEngine == NULL);
 	GGFxEngine = this;
 
+#if BATMAN
+	StickLeftY = StickLeftX = StickRightY = StickRightX = 0.f;
+#endif
+
 	InitGFxLoaderCommon(Loader);
 
 	GPtr<FGFxImageCreator> pimageCreator = *new FGFxImageCreator();
@@ -2327,6 +2331,51 @@ FGFxMovie* FGFxEngine::GetFocusedMovieFromControllerID(INT ControllerId)
 	}
 	return NULL;
 }
+
+#if BATMAN
+
+// BM: mouse deltas feeding GetStickMagAng(2); nothing writes these yet.
+static FLOAT GFx_GMouseDeltaX = 0.f;
+static FLOAT GFx_GMouseDeltaY = 0.f;
+
+FVector2D FGFxEngine::GetStickMagAng(INT Stick)
+{
+	FVector2D Result(0.f, 0.f);
+
+	if( Stick == 2 )
+	{
+		Result.X = GFx_GMouseDeltaX;
+		Result.Y = GFx_GMouseDeltaY;
+		return Result;
+	}
+
+	const FLOAT AxisY = (Stick == 1) ? StickRightY : StickLeftY;
+	const FLOAT AxisX = (Stick == 1) ? StickRightX : StickLeftX;
+
+	const FLOAT Magnitude = appSqrt(AxisX * AxisX + AxisY * AxisY);
+	if( Magnitude > 1.f )
+	{
+		Result.X = 1.f;
+	}
+	else if( Magnitude <= 0.25f )
+	{
+		return Result;
+	}
+	else
+	{
+		Result.X = Magnitude;
+	}
+
+	Result.Y = appAtan2(AxisY, AxisX);
+	if( Result.Y < 0.f )
+	{
+		Result.Y += 2.f * (FLOAT)PI;
+	}
+
+	return Result;
+}
+
+#endif
 
 #else // WITH_GFx = 0
 

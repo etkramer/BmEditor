@@ -2971,6 +2971,17 @@ public:
 	DECLARE_FUNCTION(execVectorConst);
 	DECLARE_FUNCTION(execPointDistToLine);
 	DECLARE_FUNCTION(execPointDistToSegment);
+#if BATMAN
+	DECLARE_FUNCTION(execPow);
+	DECLARE_FUNCTION(execPointDistAlongLine);
+	DECLARE_FUNCTION(execPointDistAlongLineSegment);
+	DECLARE_FUNCTION(execPointDistSquaredToLineSegment);
+	DECLARE_FUNCTION(execVRandRange);
+	DECLARE_FUNCTION(execIsCapturingMovie);
+	DECLARE_FUNCTION(execGetLocalisedString);
+	DECLARE_FUNCTION(execGetLocalised);
+	DECLARE_FUNCTION(execDoesLocalisedExist);
+#endif
 	DECLARE_FUNCTION(execPointProjectToPlane);
 	DECLARE_FUNCTION(execGetDotDistance);
 	DECLARE_FUNCTION(execGetAngularDistance);

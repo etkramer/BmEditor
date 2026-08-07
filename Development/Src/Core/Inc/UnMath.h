@@ -5007,6 +5007,13 @@ FLOAT PointDistToLine
 
 FLOAT PointDistToSegment(const FVector &Point, const FVector &StartPoint, const FVector &EndPoint, FVector &OutClosestPoint);
 
+#if BATMAN
+FLOAT PointDistAlongLine(const FVector& Point, const FVector& Line, const FVector& Origin);
+FLOAT PointDistAlongLineSegment(const FVector& Point, const FVector& Line, const FVector& Origin);
+FLOAT PointDistSquaredToLineSegment(const FVector& Point, const FVector& Line, const FVector& Origin);
+FVector VRandRange(const FVector& MinRange, const FVector& MaxRange);
+#endif
+
 /** 
  * Find closest points between 2 segments.
  * @param	(A1, B1)	defines the first segment.

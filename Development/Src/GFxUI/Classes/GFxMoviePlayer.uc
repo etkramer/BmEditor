@@ -351,6 +351,10 @@ native final function Close(optional bool Unload = TRUE);
 /** Called when a movie is closed to allow cleanup and handling */
 event OnClose();
 
+/** Called to start the movie's outro before it is closed */
+// BM
+native event OnOutroClose();
+
 /** Called when the movie is done and removed from the all movie list. So final clean up can be done*/
 event OnCleanup();
 
@@ -421,6 +425,17 @@ native final function SetMovieCanReceiveFocus(bool bCanReceiveFocus);
 
 /**Sets whether or not a movie is allowed to receive input.  Defaults to true*/
 native final function SetMovieCanReceiveInput(bool bCanReceiveInput);
+
+// BM
+native final function SetFocus(bool CaptureInput, optional bool Focus = true);
+
+/** Returns the movie that currently holds focus. */
+// BM
+native final function GFxMoviePlayer GetFocusMovie();
+
+/** Returns the magnitude (X) and angle in radians (Y) of a stick: 0 = left, 1 = right, 2 = mouse. */
+// BM
+native final function Vector2D GetStickMagAng(int Stick);
 
 
 /** Adds a key to the list of keys that get eaten by the movie being played, and not passed down to the game */

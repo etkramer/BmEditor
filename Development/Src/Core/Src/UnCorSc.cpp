@@ -3129,6 +3129,18 @@ void UObject::execMultiplyMultiply_FloatFloat( FFrame& Stack, RESULT_DECL )
 }	
 IMPLEMENT_FUNCTION( UObject, 170, execMultiplyMultiply_FloatFloat );
 
+#if BATMAN
+void UObject::execPow( FFrame& Stack, RESULT_DECL )
+{
+	P_GET_FLOAT(Base);
+	P_GET_FLOAT(Exp);
+	P_FINISH;
+
+	*(FLOAT*)Result = appPow(Base,Exp);
+}
+IMPLEMENT_FUNCTION( UObject, INDEX_NONE, execPow );
+#endif
+
 void UObject::execMultiply_FloatFloat( FFrame& Stack, RESULT_DECL )
 {
 	P_GET_FLOAT(A);
@@ -3590,6 +3602,59 @@ void UObject::execPointDistToSegment( FFrame& Stack, RESULT_DECL )
 	*(FLOAT*)Result = PointDistToSegment(Point, StartPoint, EndPoint, OutClosestPoint);
 }
 IMPLEMENT_FUNCTION( UObject, INDEX_NONE, execPointDistToSegment);
+
+#if BATMAN
+void UObject::execPointDistAlongLine( FFrame& Stack, RESULT_DECL )
+{
+	P_GET_VECTOR(Point);
+	P_GET_VECTOR(Line);
+	P_GET_VECTOR(Origin);
+	P_FINISH;
+
+	*(FLOAT*)Result = PointDistAlongLine(Point, Line, Origin);
+}
+IMPLEMENT_FUNCTION( UObject, INDEX_NONE, execPointDistAlongLine);
+
+void UObject::execPointDistAlongLineSegment( FFrame& Stack, RESULT_DECL )
+{
+	P_GET_VECTOR(Point);
+	P_GET_VECTOR(Line);
+	P_GET_VECTOR(Origin);
+	P_FINISH;
+
+	*(FLOAT*)Result = PointDistAlongLineSegment(Point, Line, Origin);
+}
+IMPLEMENT_FUNCTION( UObject, INDEX_NONE, execPointDistAlongLineSegment);
+
+void UObject::execPointDistSquaredToLineSegment( FFrame& Stack, RESULT_DECL )
+{
+	P_GET_VECTOR(Point);
+	P_GET_VECTOR(Line);
+	P_GET_VECTOR(Origin);
+	P_FINISH;
+
+	*(FLOAT*)Result = PointDistSquaredToLineSegment(Point, Line, Origin);
+}
+IMPLEMENT_FUNCTION( UObject, INDEX_NONE, execPointDistSquaredToLineSegment);
+
+void UObject::execVRandRange( FFrame& Stack, RESULT_DECL )
+{
+	P_GET_VECTOR(MinRange);
+	P_GET_VECTOR(MaxRange);
+	P_FINISH;
+
+	*(FVector*)Result = VRandRange(MinRange, MaxRange);
+}
+IMPLEMENT_FUNCTION( UObject, INDEX_NONE, execVRandRange);
+
+void UObject::execIsCapturingMovie( FFrame& Stack, RESULT_DECL )
+{
+	P_FINISH;
+
+	*(UBOOL*)Result = GIsAutoCapture;
+}
+IMPLEMENT_FUNCTION( UObject, INDEX_NONE, execIsCapturingMovie);
+#endif
 
 void UObject::execPointProjectToPlane( FFrame& Stack, RESULT_DECL )
 {
@@ -5149,6 +5214,54 @@ void UObject::execLocalize( FFrame& Stack, RESULT_DECL )
 	*(FString*)Result = Localize( *SectionName, *KeyName, *PackageName );
 }
 IMPLEMENT_FUNCTION( UObject, INDEX_NONE, execLocalize );
+
+#if BATMAN
+void UObject::execGetLocalisedString( FFrame& Stack, RESULT_DECL )
+{
+	P_GET_STR(PackageName);
+	P_GET_STR(SectionName);
+	P_GET_STR(KeyName);
+	P_FINISH;
+
+	*(FString*)Result = Localize( *SectionName, *KeyName, *PackageName );
+}
+IMPLEMENT_FUNCTION( UObject, INDEX_NONE, execGetLocalisedString );
+
+void UObject::execGetLocalised( FFrame& Stack, RESULT_DECL )
+{
+	P_GET_STR(PackageSectionKeyName);
+	P_FINISH;
+
+	TArray<FString> Pieces;
+	PackageSectionKeyName.ParseIntoArray( &Pieces, TEXT("."), TRUE );
+	if( Pieces.Num() == 3 )
+	{
+		*(FString*)Result = Localize( *Pieces(1), *Pieces(2), *Pieces(0) );
+	}
+	else
+	{
+		*(FString*)Result = PackageSectionKeyName;
+	}
+}
+IMPLEMENT_FUNCTION( UObject, INDEX_NONE, execGetLocalised );
+
+void UObject::execDoesLocalisedExist( FFrame& Stack, RESULT_DECL )
+{
+	P_GET_STR(PackageSectionKeyName);
+	P_FINISH;
+
+	UBOOL bExists = FALSE;
+	TArray<FString> Pieces;
+	PackageSectionKeyName.ParseIntoArray( &Pieces, TEXT("."), TRUE );
+	if( Pieces.Num() == 3 )
+	{
+		bExists = Localize( *Pieces(1), *Pieces(2), *Pieces(0), NULL, TRUE ).Len() > 0;
+	}
+
+	*(UBOOL*)Result = bExists;
+}
+IMPLEMENT_FUNCTION( UObject, INDEX_NONE, execDoesLocalisedExist );
+#endif
 
 //////////////////
 // High natives //
