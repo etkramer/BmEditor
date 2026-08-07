@@ -894,7 +894,7 @@ void AApexDestructibleActor::CacheFractureEffects()
 			UFractureMaterial* FracMat = FracMats->GetTypedData()[Depth];
 			if( FracMat )
 			{
-				FractureSounds.AddItem( FracMat->FractureSound );
+				FractureSounds.AddItem( Cast<USoundCue>(FracMat->FractureShardSound) ); // BM
 				FractureParticleEffects.AddItem( FracMat->FractureEffect );
 			}
 			else

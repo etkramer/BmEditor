@@ -3787,18 +3787,13 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 #if BATMAN
         // BM: Skip currently unsupported types.
         if (IsBmCooked() && (
-			LoadClass->GetName() == "ActorFactoryEmitter" ||
+			// LoadClass->GetName() == "ActorFactoryEmitter" ||
 
 			LoadClass->GetName() == "Pylon" ||
 			LoadClass->GetName() == "DynamicPylon" ||
 			LoadClass->GetName() == "SceneCapture2DActor" ||
-			LoadClass->GetName() == "FractureMaterial" ||
-
-			LoadClass->GetName() == "InterpTrackSound" ||
-
-			LoadClass->GetName() == "PhysicalMaterial" ||
 			LoadClass->GetName() == "NavigationMeshBase" ||
-			// LoadClass->GetName() == "FaceFxAsset" ||
+			LoadClass->GetName() == "FaceFxAsset" ||
             LoadClass->GetName() == "FaceFxAnimSet"
         ))
         {

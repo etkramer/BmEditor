@@ -2540,143 +2540,7 @@ void WxInterpEd::OnToggleKeyframeTextSelection_UpdateUI( wxUpdateUIEvent& In )
 	In.Check( bAllowKeyframeTextSelection == TRUE );
 }
 
-/**
- * Prompts the user to edit volumes for the selected sound keys.
- */
-void WxInterpEd::OnSetSoundVolume(wxCommandEvent& In)
-{
-	TArray<INT> SoundTrackKeyIndices;
-	UBOOL bFoundVolume = FALSE;
-	UBOOL bKeysDiffer = FALSE;
-	FLOAT Volume = 1.0f;
-
-	// Make a list of all keys and what their volumes are.
-	for( INT i = 0 ; i < Opt->SelectedKeys.Num() ; ++i )
-	{
-		const FInterpEdSelKey& SelKey		= Opt->SelectedKeys(i);
-		UInterpTrack* Track					= SelKey.Track;
-		UInterpTrackSound* SoundTrack		= Cast<UInterpTrackSound>( Track );
-
-		if( SoundTrack )
-		{
-			SoundTrackKeyIndices.AddItem(i);
-			const FSoundTrackKey& SoundTrackKey	= SoundTrack->Sounds(SelKey.KeyIndex);
-			if ( !bFoundVolume )
-			{
-				bFoundVolume = TRUE;
-				Volume = SoundTrackKey.Volume;
-			}
-			else
-			{
-				if ( Abs(Volume-SoundTrackKey.Volume) > KINDA_SMALL_NUMBER )
-				{
-					bKeysDiffer = TRUE;
-				}
-			}
-		}
-	}
-
-	if ( SoundTrackKeyIndices.Num() )
-	{
-		// Display dialog and let user enter new rate.
-		const FString VolumeStr( FString::Printf( TEXT("%2.2f"), bKeysDiffer ? 1.f : Volume ) );
-		WxDlgGenericStringEntry dlg;
-		const INT Result = dlg.ShowModal( TEXT("SetSoundVolume"), TEXT("Volume"), *VolumeStr );
-		if( Result == wxID_OK )
-		{
-			double NewVolume;
-			const UBOOL bIsNumber = dlg.GetStringEntry().GetValue().ToDouble( &NewVolume );
-			if( bIsNumber )
-			{
-				const FLOAT ClampedNewVolume = ::Clamp( (FLOAT)NewVolume, 0.f, 100.f );
-				for ( INT i = 0 ; i < SoundTrackKeyIndices.Num() ; ++i )
-				{
-					const INT Index						= SoundTrackKeyIndices(i);
-					const FInterpEdSelKey& SelKey		= Opt->SelectedKeys(Index);
-					UInterpTrack* Track					= SelKey.Track;
-					UInterpTrackSound* SoundTrack		= CastChecked<UInterpTrackSound>( Track );
-					FSoundTrackKey& SoundTrackKey		= SoundTrack->Sounds(SelKey.KeyIndex);
-					SoundTrackKey.Volume				= ClampedNewVolume;
-				}
-			}
-		}
-
-		Interp->MarkPackageDirty();
-
-		// Update stuff in case doing this has changed it.
-		RefreshInterpPosition();
-	}
-}
-
-/**
- * Prompts the user to edit pitches for the selected sound keys.
- */
-void WxInterpEd::OnSetSoundPitch(wxCommandEvent& In)
-{
-	TArray<INT> SoundTrackKeyIndices;
-	UBOOL bFoundPitch = FALSE;
-	UBOOL bKeysDiffer = FALSE;
-	FLOAT Pitch = 1.0f;
-
-	// Make a list of all keys and what their pitches are.
-	for( INT i = 0 ; i < Opt->SelectedKeys.Num() ; ++i )
-	{
-		const FInterpEdSelKey& SelKey		= Opt->SelectedKeys(i);
-		UInterpTrack* Track					= SelKey.Track;
-		UInterpTrackSound* SoundTrack		= Cast<UInterpTrackSound>( Track );
-
-		if( SoundTrack )
-		{
-			SoundTrackKeyIndices.AddItem(i);
-			const FSoundTrackKey& SoundTrackKey	= SoundTrack->Sounds(SelKey.KeyIndex);
-			if ( !bFoundPitch )
-			{
-				bFoundPitch = TRUE;
-				Pitch = SoundTrackKey.Pitch;
-			}
-			else
-			{
-				if ( Abs(Pitch-SoundTrackKey.Pitch) > KINDA_SMALL_NUMBER )
-				{
-					bKeysDiffer = TRUE;
-				}
-			}
-		}
-	}
-
-	if ( SoundTrackKeyIndices.Num() )
-	{
-		// Display dialog and let user enter new rate.
-		const FString PitchStr( FString::Printf( TEXT("%2.2f"), bKeysDiffer ? 1.f : Pitch ) );
-		WxDlgGenericStringEntry dlg;
-		const INT Result = dlg.ShowModal( TEXT("SetSoundPitch"), TEXT("Pitch"), *PitchStr );
-		if( Result == wxID_OK )
-		{
-			double NewPitch;
-			const UBOOL bIsNumber = dlg.GetStringEntry().GetValue().ToDouble( &NewPitch );
-			if( bIsNumber )
-			{
-				const FLOAT ClampedNewPitch = ::Clamp( (FLOAT)NewPitch, 0.f, 100.f );
-				for ( INT i = 0 ; i < SoundTrackKeyIndices.Num() ; ++i )
-				{
-					const INT Index						= SoundTrackKeyIndices(i);
-					const FInterpEdSelKey& SelKey		= Opt->SelectedKeys(Index);
-					UInterpTrack* Track					= SelKey.Track;
-					UInterpTrackSound* SoundTrack		= CastChecked<UInterpTrackSound>( Track );
-					FSoundTrackKey& SoundTrackKey		= SoundTrack->Sounds(SelKey.KeyIndex);
-					SoundTrackKey.Pitch					= ClampedNewPitch;
-				}
-			}
-		}
-
-		Interp->MarkPackageDirty();
-
-		// Update stuff in case doing this has changed it.
-		RefreshInterpPosition();
-	}
-}
-
-
+// BM: BM2's SoundTrackKey has no per-key Volume/Pitch
 
 /** Syncs the generic browser to the currently selected sound track key */
 void WxInterpEd::OnKeyContext_SyncGenericBrowserToSoundCue( wxCommandEvent& In )
@@ -2686,7 +2550,7 @@ void WxInterpEd::OnKeyContext_SyncGenericBrowserToSoundCue( wxCommandEvent& In )
 		// Does this key have a sound cue set?
 		FInterpEdSelKey& SelKey = Opt->SelectedKeys( 0 );
 		UInterpTrackSound* SoundTrack = Cast<UInterpTrackSound>( SelKey.Track );
-		USoundCue* KeySoundCue = SoundTrack->Sounds( SelKey.KeyIndex ).Sound;
+		USoundCue* KeySoundCue = Cast<USoundCue>(SoundTrack->Sounds( SelKey.KeyIndex ).WwiseEvent); // BM
 		if( KeySoundCue != NULL )
 		{
 			TArray< UObject* > Objects;
@@ -3330,7 +3194,7 @@ void WxInterpEd::OnExportSoundCueInfoCommand( wxCommandEvent& )
 								for( INT CurSoundIndex = 0; CurSoundIndex < SoundTrack->Sounds.Num(); ++CurSoundIndex )
 								{
 									const FSoundTrackKey& CurSound = SoundTrack->Sounds( CurSoundIndex );
-									if( CurSound.Sound != NULL )
+									if( CurSound.WwiseEvent != NULL ) // BM
 									{
 										FString FoundAnimName;
 										FLOAT FoundAnimTime = 0.0f;
@@ -3368,7 +3232,7 @@ void WxInterpEd::OnExportSoundCueInfoCommand( wxCommandEvent& )
 											TEXT( "%s,%s,%s,%0.2f,%i" ),
 											*CurGroup->GroupName.ToString(),
 											*CurTrack->TrackTitle,
-											*CurSound.Sound->GetName(),
+											*CurSound.WwiseEvent->GetName(), // BM
 											CurSound.Time,
 											SoundFrameIndex );
 
@@ -5081,14 +4945,10 @@ WxMBInterpEdKeyMenu::WxMBInterpEdKeyMenu(WxInterpEd* InterpEd)
 
 	if ( bHaveSoundKeys )
 	{
-		Append( IDM_INTERP_SoundKey_SetVolume, *LocalizeUnrealEd("SetSoundVolume") );
-		Append( IDM_INTERP_SoundKey_SetPitch, *LocalizeUnrealEd("SetSoundPitch") );
-
-
 		// Does this key have a sound cue set?
 		FInterpEdSelKey& SelKey = InterpEd->Opt->SelectedKeys( 0 );
 		UInterpTrackSound* SoundTrack = Cast<UInterpTrackSound>( SelKey.Track );
-		USoundCue* KeySoundCue = SoundTrack->Sounds( SelKey.KeyIndex ).Sound;
+		USoundCue* KeySoundCue = Cast<USoundCue>(SoundTrack->Sounds( SelKey.KeyIndex ).WwiseEvent); // BM
 		if( KeySoundCue != NULL )
 		{
 			AppendSeparator();

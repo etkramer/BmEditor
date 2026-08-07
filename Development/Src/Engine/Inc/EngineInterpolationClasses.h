@@ -1790,9 +1790,9 @@ public:
 struct FSoundTrackKey
 {
     FLOAT Time;
-    FLOAT Volume;
-    FLOAT Pitch;
-    class USoundCue* Sound;
+    class UObject* WwiseEvent;
+    class UObject* Line;
+    FLOAT WwiseDuration;
 
     /** Constructors */
     FSoundTrackKey() {}
@@ -1809,8 +1809,10 @@ public:
     TArrayNoInit<struct FSoundTrackKey> Sounds;
     BITFIELD bPlayOnReverse:1;
     BITFIELD bContinueSoundOnMatineeEnd:1;
-    BITFIELD bSuppressSubtitles:1;
     BITFIELD bTreatAsDialogue:1;
+    BITFIELD bOnlyPlayInEditor:1;
+    BITFIELD bStopSoundOnMatineeSkip:1;
+    BITFIELD bHighPriorityStream:1;
     SCRIPT_ALIGN;
     //## END PROPS InterpTrackSound
 

@@ -7285,6 +7285,20 @@ public:
 	virtual void UnLinkSelection(USelection* SelectedObjects){}
 };
 
+struct FCornerPointInfo
+{
+    class AActor* StartPoint;
+    class AActor* EndPoint;
+    INT EndPolyID;
+
+    /** Constructors */
+    FCornerPointInfo() {}
+    FCornerPointInfo(EEventParm)
+    {
+        appMemzero(this, sizeof(FCornerPointInfo));
+    }
+};
+
 struct FPolyReference
 {
     struct FActorReference OwningPylon;
@@ -7419,6 +7433,12 @@ public:
     BITFIELD bRenderInShowPaths:1;
     BITFIELD bDrawWalkableSurface:1;
     BITFIELD bDrawObstacleSurface:1;
+    BITFIELD bEmbedVisibilityInfo:1;
+    BITFIELD bForceDontBuildThisPylon:1;
+    BITFIELD bSkipSquareMerge:1;
+    BITFIELD bSkipConcaveMerge:1;
+    BITFIELD bDoRawGridOnly:1;
+    BITFIELD bMaxVertIDLimitHit:1;
     BITFIELD bBuildThisPylon:1;
     BITFIELD bDisabled:1;
     BITFIELD bForceObstacleMeshCollision:1;
@@ -7431,6 +7451,10 @@ public:
     TArrayNoInit<class AActor*> OnBuild_EnableCollisionForThese;
     FLOAT MaxPolyHeight_Optional;
     INT DebugEdgeCount;
+    TArrayNoInit<class AActor*> AdditionalSeedList;
+    FLOAT MaxGroundCheckSize;
+    INT MaxSubdivisions;
+    FLOAT MaxPolyHeight;
     //## END PROPS Pylon
 
     virtual void OnPylonStatusChange();
@@ -21681,7 +21705,7 @@ VERIFY_CLASS_SIZE_NODIE(APlayerStart)
 VERIFY_CLASS_OFFSET_NODIE(APortalMarker,PortalMarker,MyPortal)
 VERIFY_CLASS_SIZE_NODIE(APortalMarker)
 VERIFY_CLASS_OFFSET_NODIE(APylon,Pylon,NavMeshPtr)
-VERIFY_CLASS_OFFSET_NODIE(APylon,Pylon,DebugEdgeCount)
+VERIFY_CLASS_OFFSET_NODIE(APylon,Pylon,MaxPolyHeight)
 VERIFY_CLASS_SIZE_NODIE(APylon)
 VERIFY_CLASS_SIZE_NODIE(AAISwitchablePylon)
 VERIFY_CLASS_SIZE_NODIE(ADynamicPylon)

@@ -50,14 +50,16 @@ cpptext
 struct native SoundTrackKey
 {
 	var		float		Time;
-	var		float		Volume;
-	var		float		Pitch;
-	var()	SoundCue	Sound;
+	// BM: AkEvent
+	var()	Object		WwiseEvent;
+	// BM: RDialogueEvent
+	var()	Object		Line;
+	// BM
+	var		float		WwiseDuration;
 
 	structdefaultproperties
 	{
-		Volume=1.f
-		Pitch=1.f
+		WwiseDuration=-1.f
 	}
 };
 
@@ -68,10 +70,14 @@ var array<SoundTrackKey> Sounds;
 var() bool bPlayOnReverse;
 /** If true, sounds on this track will not be forced to finish when the matinee sequence finishes. */
 var() bool bContinueSoundOnMatineeEnd;
-/** If TRUE, don't show subtitles for sounds played by this track. */
-var() bool bSuppressSubtitles;
 /** If true and track is controlling a pawn, makes the pawn "speak" the given audio. */
 var() bool bTreatAsDialogue;
+// BM
+var() bool bOnlyPlayInEditor;
+// BM
+var() bool bStopSoundOnMatineeSkip;
+// BM
+var() bool bHighPriorityStream;
 
 defaultproperties
 {

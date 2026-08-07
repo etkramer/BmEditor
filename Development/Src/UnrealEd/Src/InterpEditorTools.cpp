@@ -4858,7 +4858,7 @@ void  UInterpTrackSoundHelper::PostCreateKeyframe( UInterpTrack *Track, INT KeyI
 
 	// Assign the chosen SoundCue to the new key.
 	FSoundTrackKey& NewSoundKey = SoundTrack->Sounds( KeyIndex );
-	NewSoundKey.Sound = KeyframeAddSoundCue;
+	NewSoundKey.WwiseEvent = KeyframeAddSoundCue; // BM
 	KeyframeAddSoundCue = NULL;
 }
 

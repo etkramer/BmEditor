@@ -909,7 +909,25 @@ class UFractureMaterial : public UObject
 public:
     //## BEGIN PROPS FractureMaterial
     class UParticleSystem* FractureEffect;
-    class USoundCue* FractureSound;
+    class UObject* FractureShardSound;
+    class UObject* FractureDamageSound;
+    BITFIELD CastShadow:1;
+    BITFIELD bForceDirectLightMap:1;
+    BITFIELD bCastDynamicShadow:1;
+    BITFIELD bSelfShadowOnly:1;
+    BITFIELD bAcceptsDynamicDominantLightShadows:1;
+    BITFIELD bCastHiddenShadow:1;
+    BITFIELD bCastShadowAsTwoSided:1;
+    BITFIELD bAcceptsLights:1;
+    BITFIELD bAcceptsDynamicLights:1;
+    BITFIELD bUseOnePassLightingOnTranslucency:1;
+    BITFIELD bUsePrecomputedShadows:1;
+    BITFIELD bCastStaticModulatedShadows:1;
+    BITFIELD bRecieveStaticModulatedShadows:1;
+    BITFIELD bCullModulatedShadowOnEmissive:1;
+    BITFIELD bAllowAmbientOcclusion:1;
+    SCRIPT_ALIGN;
+    FLightingChannelContainer LightingChannels;
     //## END PROPS FractureMaterial
 
     DECLARE_CLASS(UFractureMaterial,UObject,0,Engine)
@@ -970,6 +988,22 @@ public:
 	UBOOL AddCollisionFromCachedData(const FVector& Scale3D, FKCachedConvexData* CachedData, const FString& DebugName);
 };
 
+struct FAkEnvelopeSettings_Mirror
+{
+    FLOAT SustainValue;
+    FLOAT ReleaseValue;
+    FLOAT AttackDuration;
+    FLOAT SustainDuration;
+    FLOAT ReleaseDuration;
+
+    /** Constructors */
+    FAkEnvelopeSettings_Mirror() {}
+    FAkEnvelopeSettings_Mirror(EEventParm)
+    {
+        appMemzero(this, sizeof(FAkEnvelopeSettings_Mirror));
+    }
+};
+
 class UPhysicalMaterial : public UObject
 {
 public:
@@ -979,24 +1013,48 @@ public:
     FLOAT Restitution;
     BITFIELD bForceConeFriction:1;
     BITFIELD bEnableAnisotropicFriction:1;
+    BITFIELD bUseSphericalInertiaTensor:1;
+    BITFIELD SpawnParticlesAtSurface:1;
     SCRIPT_ALIGN;
     FVector AnisoFrictionDir;
     FLOAT FrictionV;
+    FLOAT SphericalInertiaTensorRadius;
+    FLOAT MassOverride;
+    INT PhysicsSolverIterationCount;
+    FLOAT SkinWidthOverride;
+    FLOAT MaxRampUpAngularDamping;
+    FLOAT LinearDampingStartProportion;
+    FLOAT MaxRampUpLinearDamping;
+    FLOAT InertiaTensorScale;
     FLOAT Density;
     FLOAT AngularDamping;
     FLOAT LinearDamping;
     FLOAT MagneticResponse;
     FLOAT WindResponse;
     FLOAT ImpactThreshold;
+    FLOAT MinImpactEffectSpeed;
+    FLOAT MaxImpactEffectSpeed;
     FLOAT ImpactReFireDelay;
     class UParticleSystem* ImpactEffect;
-    class USoundCue* ImpactSound;
+    class UObject* ImpactSound;
+    class UActorComponent* ImpactForce;
     FLOAT SlideThreshold;
+    FLOAT MinSlideEffectSpeed;
+    FLOAT MaxSlideEffectSpeed;
     FLOAT SlideReFireDelay;
     class UParticleSystem* SlideEffect;
-    class USoundCue* SlideSound;
-    class USoundCue* FractureSoundExplosion;
-    class USoundCue* FractureSoundSingle;
+    class UObject* SlideSound;
+    class UObject* BodyfallSound;
+    class UObject* GenericSound;
+    class UObject* FootstepSurface;
+    FLOAT FootstepSurfaceWetness;
+    FLOAT FootstepSurfaceGlass;
+    class UObject* FootstepSurfaceContinuousContactSound;
+    class UObject* FootstepSurfaceContinuousContactParameter;
+    struct FAkEnvelopeSettings_Mirror FootstepSurfaceContinuousContactEnvelope;
+    class UObject* FractureSoundExplosion;
+    class UObject* FractureSoundSingle;
+    class UParticleSystem* FractureEffectExplosion;
     class UPhysicalMaterial* Parent;
     class UPhysicalMaterialPropertyBase* PhysicalMaterialProperty;
     //## END PROPS PhysicalMaterial
@@ -2246,7 +2304,7 @@ VERIFY_CLASS_SIZE_NODIE(UActorFactoryApexClothing)
 VERIFY_CLASS_OFFSET_NODIE(UApexDestructibleDamageParameters,ApexDestructibleDamageParameters,DamageMap)
 VERIFY_CLASS_SIZE_NODIE(UApexDestructibleDamageParameters)
 VERIFY_CLASS_OFFSET_NODIE(UFractureMaterial,FractureMaterial,FractureEffect)
-VERIFY_CLASS_OFFSET_NODIE(UFractureMaterial,FractureMaterial,FractureSound)
+VERIFY_CLASS_OFFSET_NODIE(UFractureMaterial,FractureMaterial,LightingChannels)
 VERIFY_CLASS_SIZE_NODIE(UFractureMaterial)
 VERIFY_CLASS_OFFSET_NODIE(URB_BodySetup,RB_BodySetup,SleepFamily)
 VERIFY_CLASS_OFFSET_NODIE(URB_BodySetup,RB_BodySetup,PreCachedPhysDataVersion)

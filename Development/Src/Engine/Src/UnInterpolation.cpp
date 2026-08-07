@@ -8617,10 +8617,9 @@ void UInterpTrackSound::SetTrackToSensibleDefault()
 INT UInterpTrackSound::AddKeyframe(FLOAT Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode)
 {
 	FSoundTrackKey NewSound;
-	NewSound.Sound = NULL;
+	NewSound.WwiseEvent = NULL; // BM
 	NewSound.Time = Time;
-	NewSound.Volume = 1.0f;
-	NewSound.Pitch = 1.0f;
+	NewSound.WwiseDuration = -1.0f; // BM
 
 	// Find the correct index to insert this cut.
 	INT i=0; for( i=0; i<Sounds.Num() && Sounds(i).Time < Time; i++);
@@ -8649,7 +8648,7 @@ UBOOL UInterpTrackSound::GetClosestSnapPosition(FLOAT InPosition, TArray<INT> &I
 			FLOAT SoundEndTime = SoundStartTime;
 
 			// Make block as long as the SoundCue is.
-			USoundCue* Cue = Sounds(i).Sound;
+			USoundCue* Cue = Cast<USoundCue>(Sounds(i).WwiseEvent); // BM
 			if(Cue)
 			{
 				SoundEndTime += Cue->GetCueDuration();
@@ -8693,7 +8692,8 @@ FLOAT UInterpTrackSound::GetTrackEndTime() const
 	if( Sounds.Num() )
 	{
 		const FSoundTrackKey& SoundKey = Sounds( Sounds.Num()-1 );
-		EndTime = SoundKey.Time + SoundKey.Sound->Duration;
+		USoundCue* EndCue = Cast<USoundCue>(SoundKey.WwiseEvent); // BM
+		EndTime = SoundKey.Time + (EndCue ? EndCue->Duration : 0.f);
 	}
 
 	return EndTime;
@@ -8794,7 +8794,6 @@ void UInterpTrackSound::UpdateTrack(FLOAT NewPosition, UInterpTrackInst* TrInst,
 
 		//////
 		FSoundTrackKey& SoundTrackKey = GetSoundTrackKeyAtPosition(NewPosition);
-		VolumePitchValue *= FVector( SoundTrackKey.Volume, SoundTrackKey.Pitch, 1.0f );
 		if (VectorTrack.Points.Num() > 0)
 		{
 			VolumePitchValue *= VectorTrack.Eval(NewPosition,VolumePitchValue);
@@ -8803,7 +8802,7 @@ void UInterpTrackSound::UpdateTrack(FLOAT NewPosition, UInterpTrackInst* TrInst,
 		// If we have moved into a new sound, we should start playing it now.
 		if(StartSoundIndex != EndSoundIndex)
 		{
-			USoundCue* NewCue = SoundTrackKey.Sound;
+			USoundCue* NewCue = Cast<USoundCue>(SoundTrackKey.WwiseEvent); // BM
 
 			IInterface_Speaker* Speaker = NULL;
 			if (bTreatAsDialogue && Actor)
@@ -8881,7 +8880,7 @@ void UInterpTrackSound::UpdateTrack(FLOAT NewPosition, UInterpTrackInst* TrInst,
 	{
 		SoundInst->PlayAudioComp->VolumeMultiplier = VolumePitchValue.X;
 		SoundInst->PlayAudioComp->PitchMultiplier = VolumePitchValue.Y;
-		SoundInst->PlayAudioComp->SubtitlePriority = bSuppressSubtitles ? 0.f : SUBTITLE_PRIORITY_MATINEE;
+		SoundInst->PlayAudioComp->SubtitlePriority = SUBTITLE_PRIORITY_MATINEE; // BM
 	}
 
 	// Finally update the current position as the last one.

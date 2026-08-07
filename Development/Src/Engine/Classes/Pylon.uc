@@ -474,6 +474,35 @@ var(Debug) bool bDrawPolyBounds;
 var(Display) bool bRenderInShowPaths;
 var(Display) bool bDrawWalkableSurface;
 var(Display) bool bDrawObstacleSurface;
+// BM
+var() bool bEmbedVisibilityInfo;
+// BM
+var transient bool bForceDontBuildThisPylon;
+// BM
+var() bool bSkipSquareMerge;
+// BM
+var() bool bSkipConcaveMerge;
+// BM
+var() bool bDoRawGridOnly;
+// BM
+var transient bool bMaxVertIDLimitHit;
+
+// BM
+var() array<Actor> AdditionalSeedList;
+// BM
+var() float MaxGroundCheckSize;
+// BM
+var() int MaxSubdivisions;
+// BM
+var() float MaxPolyHeight;
+
+// BM
+struct native CornerPointInfo
+{
+	var Actor StartPoint;
+	var Actor EndPoint;
+	var int EndPolyID;
+};
 
 struct immutablewhencooked native PolyReference
 {
@@ -659,6 +688,11 @@ defaultproperties
 
 	ExpansionRadius=2048
 	MaxExpansionRadius=7168
+
+	// BM
+	MaxGroundCheckSize=10
+	MaxSubdivisions=2
+	MaxPolyHeight=500
 
 	bDestinationOnly=TRUE
 	bRenderInShowPaths=TRUE

@@ -1500,8 +1500,6 @@ BEGIN_EVENT_TABLE( WxInterpEd, WxTrackableFrame )
 
 	EVT_MENU( IDM_INTERP_CAMERA_ANIM_EXPORT, WxInterpEd::OnContextSaveAsCameraAnimation )
 
-	EVT_MENU( IDM_INTERP_SoundKey_SetVolume, WxInterpEd::OnSetSoundVolume )
-	EVT_MENU( IDM_INTERP_SoundKey_SetPitch, WxInterpEd::OnSetSoundPitch )
 	EVT_MENU( IDM_INTERP_KeyContext_SyncGenericBrowserToSoundCue, WxInterpEd::OnKeyContext_SyncGenericBrowserToSoundCue )
 	EVT_MENU( IDM_INTERP_KeyContext_SetMasterVolume, WxInterpEd::OnKeyContext_SetMasterVolume )
 	EVT_MENU( IDM_INTERP_KeyContext_SetMasterPitch, WxInterpEd::OnKeyContext_SetMasterPitch )

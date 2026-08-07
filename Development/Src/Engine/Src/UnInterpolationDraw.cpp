@@ -1437,7 +1437,7 @@ void UInterpTrackSound::DrawTrack( FCanvas* Canvas, UInterpGroup* Group, const F
 		FLOAT SoundEndTime = SoundStartTime;
 
 		// Make block as long as the SoundCue is.
-		USoundCue* Cue = Sounds(i).Sound;
+		USoundCue* Cue = Cast<USoundCue>(Sounds(i).WwiseEvent); // BM
 		if (bPlayOnReverse)
 		{
 			if (Cue != NULL)
@@ -1500,20 +1500,12 @@ void UInterpTrackSound::DrawTrack( FCanvas* Canvas, UInterpGroup* Group, const F
 		FLOAT SoundStartTime = Sounds(i).Time;
 		INT PixelPos = appTrunc((SoundStartTime - Params.StartTime) * Params.PixelsPerSec);
 
-		USoundCue* Cue = Sounds(i).Sound;
+		USoundCue* Cue = Cast<USoundCue>(Sounds(i).WwiseEvent); // BM
 	
 		FString SoundString( TEXT("None") );
 		if(Cue)
 		{
 			SoundString = FString( *Cue->GetName() );
-			if ( Sounds(i).Volume != 1.0f )
-			{
-				SoundString += FString::Printf( TEXT(" v%2.2f"), Sounds(i).Volume );
-			}
-			if ( Sounds(i).Pitch != 1.0f )
-			{
-				SoundString += FString::Printf( TEXT(" p%2.2f"), Sounds(i).Pitch );
-			}
 		}
 		
 		INT XL, YL;

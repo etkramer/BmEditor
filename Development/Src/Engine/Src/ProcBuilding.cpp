@@ -2329,7 +2329,7 @@ void AProcBuilding::BreakFractureComponent(UFracturedStaticMeshComponent* FracCo
 		USoundCue* ShatterSound = NULL;
 		while( (PhysMat != NULL) && (ShatterSound == NULL) )
 		{
-			ShatterSound = bShouldPlayExplosionSound ? PhysMat->FractureSoundExplosion : PhysMat->FractureSoundSingle;
+			ShatterSound = Cast<USoundCue>(bShouldPlayExplosionSound ? PhysMat->FractureSoundExplosion : PhysMat->FractureSoundSingle); // BM
 			PhysMat = PhysMat->Parent;
 		}
 

@@ -1928,8 +1928,6 @@ public:
 	 */
 	void OnContextMoveMarkerToEndOfLongestTrack( wxCommandEvent& In );
 
-	void OnSetSoundVolume(wxCommandEvent& In);
-	void OnSetSoundPitch(wxCommandEvent& In);
 	void OnContextDirKeyTransitionTime( wxCommandEvent& In );
 	void OnFlipToggleKey(wxCommandEvent& In);
 

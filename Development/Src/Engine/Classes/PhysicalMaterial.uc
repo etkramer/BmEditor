@@ -7,6 +7,16 @@ class PhysicalMaterial extends Object
 	hidecategories(Object);
 
 
+// BM
+struct native AkEnvelopeSettings_Mirror
+{
+	var() float SustainValue;
+	var() float ReleaseValue;
+	var() float AttackDuration;
+	var() float SustainDuration;
+	var() float ReleaseDuration;
+};
+
 // Used internally by physics engine.
 var	transient int	MaterialIndex;
 
@@ -20,10 +30,24 @@ var()	bool	bForceConeFriction;
 
 /** Enable support for different friction in different directions. */
 var(Advanced)	bool		bEnableAnisotropicFriction;
+// BM
+var(RockAdvanced)	bool	bUseSphericalInertiaTensor;
+// BM
+var(Footsteps)		bool	SpawnParticlesAtSurface;
 /** Direction (in physics object local space) for FrictionV to be applied. */
 var(Advanced)	vector		AnisoFrictionDir;
 /** Friction to be applied in AnisoFrictionDir - Friction will be used for the other direction. */
 var(Advanced)	float		FrictionV;
+
+// BM
+var(RockAdvanced)	float	SphericalInertiaTensorRadius;
+var(RockAdvanced)	float	MassOverride;
+var(RockAdvanced)	int		PhysicsSolverIterationCount;
+var(RockAdvanced)	float	SkinWidthOverride;
+var(RockAdvanced)	float	MaxRampUpAngularDamping;
+var(RockAdvanced)	float	LinearDampingStartProportion;
+var(RockAdvanced)	float	MaxRampUpLinearDamping;
+var(RockAdvanced)	float	InertiaTensorScale;
 
 // Object properties
 var()	float	Density;
@@ -37,30 +61,54 @@ var()	float	WindResponse;
 // Impact effects 
 
 /** How hard an impact must be to trigger effect/sound */
-var(Impact)		float						ImpactThreshold;
+var(Deprecated)	float						ImpactThreshold;
+// BM
+var(Impact)		float						MinImpactEffectSpeed;
+// BM
+var(Impact)		float						MaxImpactEffectSpeed;
 /** Min time between effect/sound being triggered */
 var(Impact)		float						ImpactReFireDelay;
 /** Particle effect to play at impact location */
 var(Impact)		ParticleSystem				ImpactEffect;
-/** Sound to play  */
-var(Impact)		SoundCue					ImpactSound;
+// BM: AkEvent
+var(Impact)		Object						ImpactSound;
+// BM: RB_ForceComponent
+var(Impact)		editoronly export ActorComponent	ImpactForce;
 
 // Slide effects
 /** How fast an object must slide to trigger effect/sound */
-var(Slide)		float						SlideThreshold;
+var(Deprecated)	float						SlideThreshold;
+// BM
+var(Slide)		float						MinSlideEffectSpeed;
+// BM
+var(Slide)		float						MaxSlideEffectSpeed;
 /** How long since last slide before sound/effect can be re-triggered */
 var(Slide)		float						SlideReFireDelay;
 /** Effect to place at contact position and enable while sliding */
 var(Slide)		ParticleSystem				SlideEffect;
-/** Looping sound to play while objects are sliding */
-var(Slide)		SoundCue					SlideSound;
+// BM: AkEvent
+var(Slide)		Object						SlideSound;
+
+// BM: movement sounds
+var(SoundMovement)	Object					BodyfallSound;
+var(SoundMovement)	Object					GenericSound;
+
+// BM: footstep sounds
+var(SoundFootsteps)	Object					FootstepSurface;
+var(SoundFootsteps)	float					FootstepSurfaceWetness;
+var(SoundFootsteps)	float					FootstepSurfaceGlass;
+var(SoundFootstepsContinuous)	Object		FootstepSurfaceContinuousContactSound;
+var(SoundFootstepsContinuous)	Object		FootstepSurfaceContinuousContactParameter;
+var(SoundFootstepsContinuous)	AkEnvelopeSettings_Mirror	FootstepSurfaceContinuousContactEnvelope;
 
 // Fracture effects
 
-/** Sound cue to play when multiple fracture parts are dislodged from a mesh */
-var(Fracture)	SoundCue					FractureSoundExplosion;
-/** Sound cue to play when a single piece is removed from mesh. */
-var(Fracture)	SoundCue					FractureSoundSingle;
+// BM: AkEvent
+var(Fracture)	Object						FractureSoundExplosion;
+// BM: AkEvent
+var(Fracture)	Object						FractureSoundSingle;
+// BM
+var(Fracture)	ParticleSystem				FractureEffectExplosion;
 
 
 /**
@@ -113,7 +161,7 @@ enum EPhysEffectType
 function native PhysEffectInfo FindPhysEffectInfo(EPhysEffectType Type);
 
 /** Look up PhysicalMaterial heriarchy to find fracture sounds */
-simulated function FindFractureSounds(out SoundCue OutSoundExplosion, out SoundCue OutSoundSingle)
+simulated function FindFractureSounds(out Object OutSoundExplosion, out Object OutSoundSingle) // BM
 {
 	local PhysicalMaterial TestMat;
 
@@ -172,4 +220,20 @@ defaultproperties
 	LinearDamping=0.01
 	MagneticResponse=0.0
 	WindResponse=0.0
+
+	// BM
+	SphericalInertiaTensorRadius=10.0
+	PhysicsSolverIterationCount=4
+	SkinWidthOverride=-1.0
+	MaxRampUpAngularDamping=5000.0
+	LinearDampingStartProportion=0.7
+	MaxRampUpLinearDamping=5.0
+	InertiaTensorScale=1.0
+	MinImpactEffectSpeed=2.0
+	MaxImpactEffectSpeed=1000.0
+	ImpactReFireDelay=0.2
+	MinSlideEffectSpeed=1.0
+	MaxSlideEffectSpeed=1000.0
+	SlideReFireDelay=0.2
+	FootstepSurfaceContinuousContactEnvelope=(SustainValue=1.0,ReleaseValue=0.0,AttackDuration=1.0,SustainDuration=1.0,ReleaseDuration=1.0)
 }

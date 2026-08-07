@@ -153,8 +153,9 @@ simulated native final function FracturedStaticMeshPart SpawnPartMulti(array<int
 simulated event PostBeginPlay()
 {
 	local PhysicalMaterial PhysMat;
-	local SoundCue LargeFractureSound;
-	local SoundCue ChunkFractureSound;
+	// BM: AkEvent
+	local Object LargeFractureSound;
+	local Object ChunkFractureSound;
 
 	super.PostBeginPlay();
 	ResetHealth();
