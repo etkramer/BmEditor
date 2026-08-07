@@ -280,7 +280,7 @@ namespace UnrealBuildTool
 				}
 
 				// Link for Windows.
-				Result += " /SUBSYSTEM:WINDOWS";
+				Result += LinkEnvironment.bIsConsoleApplication ? " /SUBSYSTEM:CONSOLE" : " /SUBSYSTEM:WINDOWS";
 
 				// Allow the OS to load the EXE at different base addresses than its preferred base address.
 				Result += " /FIXED:No";
@@ -317,7 +317,10 @@ namespace UnrealBuildTool
 				}
 
 				// Include definition file required for PixelMine's UnrealScript debugger.
-				Result += " /DEF:UnrealEngine3.def";
+				if( LinkEnvironment.bUseUnrealEngine3Def )
+				{
+					Result += " /DEF:UnrealEngine3.def";
+				}
 
 				// Allow delay-loaded DLLs to be explicitly unloaded.
 				Result += " /DELAY:UNLOAD";
@@ -709,8 +712,9 @@ namespace UnrealBuildTool
 			// Add the output file to the command-line.
 			LinkAction.CommandArguments += string.Format(" /OUT:\"{0}\"", OutputFile.AbsolutePath);
 
-			// Xbox 360 LTCG does not seem to produce those.
-			if( LinkEnvironment.TargetPlatform != CPPTargetPlatform.Xbox360 || LinkEnvironment.TargetConfiguration != CPPTargetConfiguration.Shipping )
+			// Xbox 360 LTCG does not seem to produce those, and neither does a binary with no exports.
+			if( LinkEnvironment.bUseUnrealEngine3Def &&
+				( LinkEnvironment.TargetPlatform != CPPTargetPlatform.Xbox360 || LinkEnvironment.TargetConfiguration != CPPTargetConfiguration.Shipping ) )
 			{
 				// Write the import library to the output directory for nFringe support.
 				string ImportLibraryFilePath = Path.Combine(
@@ -824,7 +828,8 @@ namespace UnrealBuildTool
 				if( ToolName.ToUpperInvariant() == "RC" )
 				{
 					// 64 bit -- we can use the 32 bit version to target 64 bit on 32 bit OS.
-					if( Platform == CPPTargetPlatform.Win64 && bSupports64bitExecutables )
+					if( Platform == CPPTargetPlatform.Win64 && bSupports64bitExecutables &&
+						File.Exists( Path.Combine( WindowsSDKDir, "bin/x64/rc.exe" ) ) )
 					{
 						VCToolPath = Path.Combine( WindowsSDKDir, "bin/x64/rc.exe" );
 					}

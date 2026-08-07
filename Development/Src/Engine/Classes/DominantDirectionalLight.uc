@@ -39,7 +39,6 @@ defaultproperties
         bAllowPreShadow=TRUE
 
 	    LightingChannels=(BSP=TRUE,Static=TRUE,Dynamic=TRUE,bInitialized=TRUE)
-        LightmassSettings=(LightSourceAngle=.2)
 	End Object
 	Components.Remove(DirectionalLightComponent0)
     LightComponent=DominantDirectionalLightComponent0

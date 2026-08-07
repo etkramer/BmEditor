@@ -12,17 +12,18 @@
 
 
 #include "../../../External/zlib/Inc/zlib.h"
+// BM: these were paths relative to the linker's working directory; use the library search path instead
 #if _DEBUG
 	#if _WIN64
-		#pragma comment(lib, "../../External/zlib/Lib/zlibd_64.lib")
+		#pragma comment(lib, "zlibd_64.lib")
 	#else
-		#pragma comment(lib, "../../External/zlib/Lib/zlibd.lib")
+		#pragma comment(lib, "zlibd.lib")
 	#endif
 #else
 	#if _WIN64
-		#pragma comment(lib, "../../External/zlib/Lib/zlib_64.lib")
+		#pragma comment(lib, "zlib_64.lib")
 	#else
-		#pragma comment(lib, "../../External/zlib/Lib/zlib.lib")
+		#pragma comment(lib, "zlib.lib")
 	#endif
 #endif
 

@@ -1307,7 +1307,7 @@ defaultproperties
 	StallZ=+1000000.0
 	PackedLightAndShadowMapTextureSize=1024
 
-	bUseGlobalIllumination=true
+	bUseGlobalIllumination=false
 	MaxTrianglesPerLeaf=4
 
 	bSimpleLightmapsStoredInLinearSpace=false

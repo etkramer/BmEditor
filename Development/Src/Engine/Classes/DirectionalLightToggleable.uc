@@ -56,8 +56,6 @@ defaultproperties
 	    UseDirectLightMap=FALSE
 
 	    LightingChannels=(BSP=TRUE,Static=TRUE,Dynamic=TRUE,bInitialized=TRUE)
-        // By default indirect light from toggleable lights won't be put into lightmaps, since it can't be toggled in-game
-        LightmassSettings=(IndirectLightingScale=0)
 	End Object
 
 

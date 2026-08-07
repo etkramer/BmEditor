@@ -163,6 +163,7 @@ void ADirectionalLight::Spawned()
 {
 	Super::Spawned();
 
+#if !BATMAN
 	// Set the default value for the LightSourceAngle.
 	// See LightmassPointLightSettings in EngineTypes.uc for an explanation.
 	UDirectionalLightComponent* DirLightComp = Cast<UDirectionalLightComponent>(LightComponent);
@@ -170,6 +171,7 @@ void ADirectionalLight::Spawned()
 	{
 		DirLightComp->LightmassSettings.LightSourceAngle = 1.0f;
 	}
+#endif
 }
 
 void ADirectionalLightToggleable::DetermineAndSetEditorIcon()

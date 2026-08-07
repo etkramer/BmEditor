@@ -492,7 +492,6 @@ public:
     FLOAT WholeSceneDynamicShadowRadius;
     INT NumWholeSceneDynamicShadowCascades;
     FLOAT CascadeDistributionExponent;
-    struct FLightmassDirectionalLightSettings LightmassSettings;
     //## END PROPS DirectionalLightComponent
 
     DECLARE_CLASS(UDirectionalLightComponent,ULightComponent,0,Engine)
@@ -1096,7 +1095,7 @@ VERIFY_CLASS_OFFSET_NODIE(UAmbientPlus3DirectionalLightComponent,AmbientPlus3Dir
 VERIFY_CLASS_OFFSET_NODIE(UAmbientPlus3DirectionalLightComponent,AmbientPlus3DirectionalLightComponent,Ambient)
 VERIFY_CLASS_SIZE_NODIE(UAmbientPlus3DirectionalLightComponent)
 VERIFY_CLASS_OFFSET_NODIE(UDirectionalLightComponent,DirectionalLightComponent,TraceDistance)
-VERIFY_CLASS_OFFSET_NODIE(UDirectionalLightComponent,DirectionalLightComponent,LightmassSettings)
+VERIFY_CLASS_OFFSET_NODIE(UDirectionalLightComponent,DirectionalLightComponent,CascadeDistributionExponent)
 VERIFY_CLASS_SIZE_NODIE(UDirectionalLightComponent)
 VERIFY_CLASS_OFFSET_NODIE(UDominantDirectionalLightComponent,DominantDirectionalLightComponent,DominantLightShadowInfo)
 VERIFY_CLASS_OFFSET_NODIE(UDominantDirectionalLightComponent,DominantDirectionalLightComponent,DominantLightShadowMap)

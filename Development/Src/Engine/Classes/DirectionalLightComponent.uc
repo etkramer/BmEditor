@@ -33,9 +33,6 @@ var(CascadedShadowMaps) const int NumWholeSceneDynamicShadowCascades;
  */
 var(CascadedShadowMaps) const float CascadeDistributionExponent;
 
-/** The Lightmass settings for this object. */
-var(Lightmass) LightmassDirectionalLightSettings	LightmassSettings <ScriptOrder=true>;
-
 cpptext
 {
 	virtual FLightSceneInfo* CreateSceneInfo() const;

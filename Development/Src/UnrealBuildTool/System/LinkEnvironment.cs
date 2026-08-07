@@ -59,6 +59,12 @@ namespace UnrealBuildTool
 		/** True if debug info should be created. */
 		public bool bCreateDebugInfo = true;
 
+		/** True if the UnrealEngine3.def export list should be linked in (not used by standalone tools). */
+		public bool bUseUnrealEngine3Def = true;
+
+		/** True if the binary is a console application rather than a windowed one. */
+		public bool bIsConsoleApplication = false;
+
 		/** Default constructor. */
 		public LinkEnvironment()
 		{

@@ -156,6 +156,9 @@ namespace UnrealBuildTool
 		/** A list of projects that are compiled with the game-dependent compilation environment. */
 		List<UE3ProjectDesc> GameProjects = new List<UE3ProjectDesc>();
 
+		/** Whether we're building the standalone Lightmass tool rather than a game/editor target. */
+		bool bBuildLightmass = false;
+
 		/**
 		 * Constructor, initializing target information based on passed in arguments.
 		 * 
@@ -186,6 +189,12 @@ namespace UnrealBuildTool
 
 		public List<FileItem> Build()
 		{
+			// Lightmass doesn't share the UE3 build environment at all, so it gets its own path.
+			if (bBuildLightmass)
+			{
+				return BuildLightmass();
+			}
+
 			// Validate UE3 configuration - needs to happen before setting any environment mojo and after argument parsing.
 			UE3BuildConfiguration.ValidateConfiguration();
 
@@ -351,6 +360,11 @@ namespace UnrealBuildTool
 						Game = new UE3BuildMobileGame();
 						break;
 
+					// Standalone tools:
+					case "LIGHTMASS":
+						bBuildLightmass = true;
+						break;
+
 					// Platform names:
 					case "WIN32":
 						Platform = UnrealTargetPlatform.Win32;
@@ -502,7 +516,7 @@ namespace UnrealBuildTool
 			}
 
 			// Verify that the required parameters have been found.
-			if (Game == null)
+			if (Game == null && !bBuildLightmass)
 			{
 				throw new BuildException("Couldn't determine game name.");
 			}
@@ -516,7 +530,11 @@ namespace UnrealBuildTool
 			}
 
 			// Construct the output path based on configuration, platform, game if not specified.
-			if( OutputPath == null )
+			if( OutputPath == null && bBuildLightmass )
+			{
+				OutputPath = Path.Combine("..\\..\\Binaries", Platform.ToString(), "UnrealLightmass.exe");
+			}
+			else if( OutputPath == null )
 			{
 				OutputPath = "..\\..\\";
 

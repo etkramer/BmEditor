@@ -237,7 +237,13 @@ FORCEINLINE void Copy( const NSwarm::FGuid& In, FGuid& Out )
 	Out.SmallGuid = In.A;
 }
 FORCEINLINE void Copy( const ULightComponent* In, Lightmass::FLightData& Out )
-{	
+{
+	// BM: per-light LightmassSettings was removed to match retail; use the stock struct defaults
+	Out.IndirectLightingScale = 1.0f;
+	Out.IndirectLightingSaturation = 1.0f;
+	Out.ShadowExponent = 2.0f;
+	Out.LightSourceRadius = 32.0f;
+
 	Out.LightFlags = 0;
 	if (In->CastShadows)
 	{
@@ -959,10 +965,7 @@ void FLightmassExporter::WriteLights( INT Channel )
 		Lightmass::FLightData LightData;
 		Lightmass::FDirectionalLightData DirectionalData;
 		Copy( Light, LightData );
-		Copy( Light->LightmassSettings.IndirectLightingScale, LightData.IndirectLightingScale );
-		Copy( Light->LightmassSettings.IndirectLightingSaturation, LightData.IndirectLightingSaturation );
-		Copy( Light->LightmassSettings.ShadowExponent, LightData.ShadowExponent );
-		Copy( Light->LightmassSettings.LightSourceAngle * (FLOAT)PI / 180.0f, DirectionalData.LightSourceAngle );
+		Copy( 3.0f * (FLOAT)PI / 180.0f, DirectionalData.LightSourceAngle );
 		Swarm.WriteChannel( Channel, &LightData, sizeof(LightData) );
 		Swarm.WriteChannel( Channel, &DirectionalData, sizeof(DirectionalData) );
 		GWarn->UpdateProgress( CurrentProgress++, TotalProgress );
@@ -3271,6 +3274,8 @@ UBOOL FLightmassProcessor::Run()
 	const TCHAR* RequiredDependencyPaths32[] =
 	{
 		TEXT("..\\AgentInterface.dll"),
+		// BM: hosts CLR 4.0, without which the v4-targeted AgentInterface fails to JIT
+		TEXT("..\\Win32\\UnrealLightmass.exe.config"),
 		TEXT("..\\Win32\\Microsoft.VC90.CRT\\msvcm90.dll"),
 		TEXT("..\\Win32\\Microsoft.VC90.CRT\\msvcr90.dll"),
 		TEXT("..\\Win32\\Microsoft.VC90.CRT\\Microsoft.VC90.CRT.manifest")
@@ -3282,6 +3287,8 @@ UBOOL FLightmassProcessor::Run()
 	const TCHAR* RequiredDependencyPaths64[] =
 	{
 		TEXT("..\\AgentInterface.dll"),
+		// BM: hosts CLR 4.0, without which the v4-targeted AgentInterface fails to JIT
+		TEXT("..\\Win64\\UnrealLightmass.exe.config"),
 		TEXT("..\\Win64\\Microsoft.VC90.CRT\\msvcm90.dll"),
 		TEXT("..\\Win64\\Microsoft.VC90.CRT\\msvcr90.dll"),
 		TEXT("..\\Win64\\Microsoft.VC90.CRT\\Microsoft.VC90.CRT.manifest")
@@ -3406,7 +3413,15 @@ UBOOL FLightmassProcessor::Run()
 	}
 
 	NSwarm::FGuid TaskGuid;
+#if BATMAN
+	// BM: Lightmass only accepts a full 32-char GUID on its command line, but FGuid::String() is 8 chars here
+	Lightmass::FGuid CommandLineGuid;
+	Copy( Exporter->SceneGuid, CommandLineGuid );
+	FString CommandLineParameters = FString::Printf( TEXT("%08X%08X%08X%08X"),
+		CommandLineGuid.A, CommandLineGuid.B, CommandLineGuid.C, CommandLineGuid.D );
+#else
 	FString CommandLineParameters = *Exporter->SceneGuid.String();
+#endif
 	if (GLightmassDebugOptions.bStatsEnabled)
 	{
 		CommandLineParameters += TEXT(" -stats");
@@ -5319,7 +5334,10 @@ UBOOL FLightmassProcessor::ImportVertexMapping(INT Channel, FVertexMappingImport
 	for (INT i = 0; i < NumLights; i++)
 	{
 		const INT NewLightIndex = LightGuids.Add();
-		Swarm.ReadChannel(Channel, &LightGuids(NewLightIndex), sizeof(LightGuids(NewLightIndex)));
+		// Wire format is the full 16-byte FGuidImplementation even though our in-memory FGuid is 4 bytes.
+		FGuidImplementation LightGuidWire;
+		Swarm.ReadChannel(Channel, &LightGuidWire, sizeof(FGuidImplementation));
+		LightGuids(NewLightIndex) = FGuid(LightGuidWire.A);
 	}
 
 	// allocate space to store the quantized data
@@ -5383,7 +5401,10 @@ UBOOL FLightmassProcessor::ImportTextureMapping(INT Channel, FTextureMappingImpo
 	for (INT i = 0; i < NumLights; i++)
 	{
 		const INT NewLightIndex = LightGuids.Add();
-		Swarm.ReadChannel(Channel, &LightGuids(NewLightIndex), sizeof(LightGuids(NewLightIndex)));
+		// Wire format is the full 16-byte FGuidImplementation even though our in-memory FGuid is 4 bytes.
+		FGuidImplementation LightGuidWire;
+		Swarm.ReadChannel(Channel, &LightGuidWire, sizeof(FGuidImplementation));
+		LightGuids(NewLightIndex) = FGuid(LightGuidWire.A);
 	}
 
 	// allocate space to store the quantized data

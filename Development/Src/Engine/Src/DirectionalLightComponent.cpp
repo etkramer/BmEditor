@@ -166,8 +166,8 @@ public:
 		CascadeDistributionExponent(Component->CascadeDistributionExponent)
 	{
 		// Convert LightSourceAngle into uniform penumbra size, since LightSourceAngle doesn't have any meaning for distance field shadowed lights
-		DistanceFieldShadowMapPenumbraSize = Clamp(Component->LightmassSettings.LightSourceAngle / 3.0f, 0.001f, 1.0f);
-		DistanceFieldShadowMapShadowExponent = Component->LightmassSettings.ShadowExponent;
+		DistanceFieldShadowMapPenumbraSize = Clamp(3.0f / 3.0f, 0.001f, 1.0f);
+		DistanceFieldShadowMapShadowExponent = 2.0f;
 	}
 
 	/** Accesses parameters needed for rendering the light. */
@@ -435,11 +435,6 @@ private:
  */
 void UDirectionalLightComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	LightmassSettings.LightSourceAngle = Max(LightmassSettings.LightSourceAngle, 0.0f);
-	LightmassSettings.IndirectLightingScale = Max(LightmassSettings.IndirectLightingScale, 0.0f);
-	LightmassSettings.IndirectLightingSaturation = Max(LightmassSettings.IndirectLightingSaturation, 0.0f);
-	LightmassSettings.ShadowExponent = Clamp(LightmassSettings.ShadowExponent, .5f, 8.0f);
-
 	WholeSceneDynamicShadowRadius = Max(WholeSceneDynamicShadowRadius, 0.0f);
 	NumWholeSceneDynamicShadowCascades = Clamp(NumWholeSceneDynamicShadowCascades, 0, 10);
 	CascadeDistributionExponent = Clamp(CascadeDistributionExponent, .1f, 10.0f);
