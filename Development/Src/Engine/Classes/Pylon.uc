@@ -335,6 +335,9 @@ cpptext
 
 	// build pylon to pylon reachspecs representing a super graph for quick "is this pylon connected to that one" checks
 	UBOOL NavMeshPass_BuildPylonToPylonReachSpecs();
+
+	// BM: builds VertVisionInfo for this pylon's mesh
+	void CreateVisibilityLinks( class AScout* Scout );
 #endif
 
 	/** Checks to make sure the navigation is at a valid point */

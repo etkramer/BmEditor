@@ -3820,10 +3820,7 @@ UObject* ULinkerLoad::CreateExport( INT Index )
         if (IsBmCooked() && (
 			// LoadClass->GetName() == "ActorFactoryEmitter" ||
 
-			LoadClass->GetName() == "Pylon" ||
-			LoadClass->GetName() == "DynamicPylon" ||
 			LoadClass->GetName() == "SceneCapture2DActor" ||
-			LoadClass->GetName() == "NavigationMeshBase" ||
 			LoadClass->GetName() == "FaceFxAsset" ||
             LoadClass->GetName() == "FaceFxAnimSet"
         ))

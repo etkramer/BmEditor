@@ -5422,20 +5422,25 @@ void UNavigationMeshBase::Serialize(FArchive& Ar)
 		}
 
 		// add references to cover ref'd by polys
-		for(INT PolyIdx=0;PolyIdx<Polys.Num();++PolyIdx)
+#if BATMAN
+		if( !Ar.IsBmCooked(TRUE) ) // BM: BM2 polys have no cover
+#endif
 		{
-			FNavMeshPolyBase* Poly = &Polys(PolyIdx);
-			for(INT PolyCoverIdx=0;PolyCoverIdx<Poly->PolyCover.Num();++PolyCoverIdx)
+			for(INT PolyIdx=0;PolyIdx<Polys.Num();++PolyIdx)
 			{
-				if( Poly->PolyCover(PolyCoverIdx).Actor != NULL &&
-					Poly->PolyCover(PolyCoverIdx).Actor->GetOutermost() == GetOutermost())
+				FNavMeshPolyBase* Poly = &Polys(PolyIdx);
+				for(INT PolyCoverIdx=0;PolyCoverIdx<Poly->PolyCover.Num();++PolyCoverIdx)
 				{
-					Ar << Poly->PolyCover(PolyCoverIdx).Actor;
+					if( Poly->PolyCover(PolyCoverIdx).Actor != NULL &&
+						Poly->PolyCover(PolyCoverIdx).Actor->GetOutermost() == GetOutermost())
+					{
+						Ar << Poly->PolyCover(PolyCoverIdx).Actor;
+					}
 				}
 			}
 		}
 
-		// add refs to submeshes 
+		// add refs to submeshes
 		for( PolyObstacleInfoList::TIterator It(PolyObstacleInfoMap);It;++It)
 		{
 			FPolyObstacleInfo& Info = It.Value();
@@ -5462,6 +5467,13 @@ void UNavigationMeshBase::Serialize(FArchive& Ar)
 		Polys.CountBytes(Ar);
 		CrossPylonEdges.CountBytes(Ar);
 		EdgePtrs.CountBytes(Ar);
+
+#if BATMAN
+		if( Ar.IsBmCooked(TRUE) ) // BM
+		{
+			Ar << VertVisionInfo;
+		}
+#endif
 	}
 
 	if( Ar.IsSaving() || Ar.IsLoading() )
@@ -5501,7 +5513,14 @@ void UNavigationMeshBase::Serialize(FArchive& Ar)
 				Ar << BorderEdgeSegments;
 			}			
 		}
-		
+
+#if BATMAN
+		// BM
+		if( Ar.IsBmCooked(TRUE) && NavMeshVersionNum >= VER_MESH_BOUNDS )
+		{
+			Ar << VertVisionInfo;
+		}
+#endif
 
 		// if we just loaded, construct our edges
 		if(Ar.IsLoading())
@@ -7241,6 +7260,119 @@ void APylon::NotifyPylonBuildStopping()
 	}
 }
 
+#if BATMAN
+#define BM_VISIBILITY_MAX_DIST 1500.f
+#define BM_VISIBILITY_EYE_HEIGHT 150.f
+#define BM_VISIBILITY_TARGET_HEIGHT 100.f
+
+// BM: traces from VertA to VertB, and records B as visible from A if nothing blocks
+static void BuildVisibilityInfoForEdges( APylon* Pylon, VERTID VertA, VERTID VertB, INT& TotalVisible )
+{
+	if( VertA == VertB )
+	{
+		return;
+	}
+
+	UNavigationMeshBase* Mesh = Pylon->NavMeshPtr;
+	const FVector Start = Mesh->Verts(VertA) + FVector(0.f,0.f,BM_VISIBILITY_EYE_HEIGHT);
+	const FVector End = Mesh->Verts(VertB) + FVector(0.f,0.f,BM_VISIBILITY_TARGET_HEIGHT);
+
+	if( (Start-End).SizeSquared() < BM_VISIBILITY_MAX_DIST*BM_VISIBILITY_MAX_DIST )
+	{
+		FCheckResult Hit(1.f);
+		if( GWorld->SingleLineCheck(Hit, NULL, End, Start, TRACE_World, FVector(0.f)) )
+		{
+			Mesh->VertVisionInfo(VertA).VisibleVertIDs.AddItem(VertB);
+			++TotalVisible;
+		}
+	}
+}
+
+void APylon::CreateVisibilityLinks( AScout* Scout )
+{
+	if( NavMeshPtr == NULL )
+	{
+		debugf(TEXT("Nav mesh object not found"));
+		return;
+	}
+
+	NavMeshPtr->VertVisionInfo.Empty(0);
+
+	if( NavMeshPtr->Verts.Num() <= 0 || NavMeshPtr->Verts.Num() >= MAXVERTID )
+	{
+		debugf(TEXT("Nav mesh object has invalid verts %i"), NavMeshPtr->Verts.Num());
+		return;
+	}
+
+	for( INT VertIdx=0; VertIdx<NavMeshPtr->Verts.Num(); ++VertIdx )
+	{
+		NavMeshPtr->AddVertVisionInfo();
+	}
+
+	INT TotalVisible = 0;
+	INT MaxVisible = 0;
+	INT ValidVerts = 0;
+	UBOOL bCancelled = GEngine->GetMapBuildCancelled();
+
+	for( WORD EdgeIdx=0; EdgeIdx<NavMeshPtr->GetNumEdges(); ++EdgeIdx )
+	{
+		GWarn->StatusUpdatef( EdgeIdx, NavMeshPtr->Verts.Num(), *FString::Printf(TEXT("Building visibility lines (%i / %i)"), EdgeIdx, NavMeshPtr->GetNumEdges()) );
+
+		if( bCancelled || GEngine->GetMapBuildCancelled() )
+		{
+			NavMeshPtr->VertVisionInfo.Empty(0);
+			break;
+		}
+		bCancelled = FALSE;
+
+		FNavMeshEdgeBase* Edge = NavMeshPtr->GetEdgeAtIdx(EdgeIdx);
+
+		// only verts we haven't traced for yet
+		const UBOOL bDoVert0 = (NavMeshPtr->VertVisionInfo(Edge->Vert0).VisibleVertIDs.Num() == 0);
+		const UBOOL bDoVert1 = (NavMeshPtr->VertVisionInfo(Edge->Vert1).VisibleVertIDs.Num() == 0);
+
+		if( bDoVert0 )
+		{
+			++ValidVerts;
+		}
+		if( bDoVert1 )
+		{
+			++ValidVerts;
+		}
+
+		for( WORD OtherIdx=0; OtherIdx<NavMeshPtr->GetNumEdges(); ++OtherIdx )
+		{
+			if( GEngine->GetMapBuildCancelled() )
+			{
+				bCancelled = TRUE;
+				NavMeshPtr->VertVisionInfo.Empty(0);
+				break;
+			}
+			bCancelled = FALSE;
+
+			FNavMeshEdgeBase* OtherEdge = NavMeshPtr->GetEdgeAtIdx(OtherIdx);
+
+			if( bDoVert0 )
+			{
+				BuildVisibilityInfoForEdges(this, Edge->Vert0, OtherEdge->Vert0, TotalVisible);
+				BuildVisibilityInfoForEdges(this, Edge->Vert0, OtherEdge->Vert1, TotalVisible);
+			}
+			if( bDoVert1 )
+			{
+				BuildVisibilityInfoForEdges(this, Edge->Vert1, OtherEdge->Vert0, TotalVisible);
+				BuildVisibilityInfoForEdges(this, Edge->Vert1, OtherEdge->Vert1, TotalVisible);
+			}
+		}
+
+		MaxVisible = Max<INT>(MaxVisible, NavMeshPtr->VertVisionInfo(Edge->Vert0).VisibleVertIDs.Num());
+		MaxVisible = Max<INT>(MaxVisible, NavMeshPtr->VertVisionInfo(Edge->Vert1).VisibleVertIDs.Num());
+	}
+
+	debugf(TEXT("%s: Total verts %i, Valid Verts %i, Average visible verts per vert %g, Max visible verts %i"),
+		*GetName(), NavMeshPtr->VertVisionInfo.Num(), ValidVerts, (FLOAT)TotalVisible/(FLOAT)NavMeshPtr->Verts.Num(), MaxVisible);
+}
+#endif
+
 UBOOL AScout::GenerateNavMesh( UBOOL bShowMapCheck, UBOOL bOnlyBuildSelected )
 {
 	GWarn->BeginSlowTask( *LocalizeUnrealEd(TEXT("GenNavMesh")), FALSE );
@@ -7542,7 +7674,32 @@ UBOOL AScout::GenerateNavMesh( UBOOL bShowMapCheck, UBOOL bOnlyBuildSelected )
 				// Refresh render info
 				ListPylon->ForceUpdateComponents(FALSE,FALSE);
 
-			}		
+			}
+
+#if BATMAN
+			// BM: bake vert-to-vert visibility for pylons that want it embedded
+			for( APylon* Pylon = GWorld->GetWorldInfo()->PylonList; Pylon != NULL; Pylon = Pylon->NextPylon )
+			{
+				if( GEngine->GetMapBuildCancelled() )
+				{
+					debugf(TEXT("Aborting pylon visibility creation"));
+					break;
+				}
+
+				if( Pylon->bBuildThisPylon && !Pylon->bForceDontBuildThisPylon )
+				{
+					if( Pylon->NavMeshPtr != NULL && Pylon->NavMeshPtr->Verts.Num() < MAXVERTID && Pylon->bEmbedVisibilityInfo )
+					{
+						debugf(TEXT("Creating visibility links for %s"), *Pylon->GetPathName());
+						Pylon->CreateVisibilityLinks(this);
+					}
+					else if( Pylon->NavMeshPtr != NULL )
+					{
+						Pylon->NavMeshPtr->VertVisionInfo.Empty(0);
+					}
+				}
+			}
+#endif
 		}
 	}// end profiling scope
 
@@ -8402,6 +8559,19 @@ FArchive& FNavMeshEdgeBase::Serialize( FArchive& Ar )
 		Ar << EdgeGroupID;
 	}
 
+#if BATMAN
+	if( Ar.IsBmCooked(TRUE) )
+	{
+		if(NavMesh != NULL && NavMesh->NavMeshVersionNum >= VER_BM_EDGE_PERP)
+		{
+			Ar << EdgePerp;
+		}
+		else
+		{
+			EdgePerp = FVector(0.f);
+		}
+	}
+#endif
 
 	return Ar;
 }
@@ -8538,6 +8708,19 @@ void FNavMeshEdgeBase::UpdateEdgeCenter( UNavigationMeshBase* NavMesh )
 	if( NavMesh )
 	{
 		EdgeCenter = (NavMesh->Verts(Vert0)+NavMesh->Verts(Vert1)) * 0.5f;
+	}
+}
+
+// BM
+void FNavMeshEdgeBase::UpdateEdgePerpDir()
+{
+	if( NavMesh )
+	{
+		const FVector& V0 = NavMesh->Verts(Vert0);
+		const FVector& V1 = NavMesh->Verts(Vert1);
+
+		EdgeCenter = (V0 + V1) * 0.5f;
+		EdgePerp = ((V0 - V1) ^ GetEdgeNormal(LOCAL_SPACE)).SafeNormal();
 	}
 }
 
@@ -8894,7 +9077,17 @@ FVector FNavMeshEdgeBase::GetEdgePerpDir(UBOOL bWorldSpace,FVector* EdgeDir)
 	{
 		*EdgeDir = ThisEdgeDir;
 	}
+
+#if BATMAN
+	// BM: perp dir is cached on the edge, backfilled for meshes saved before it was serialized
+	if( NavMesh != NULL && NavMesh->NavMeshVersionNum < VER_BM_EDGE_PERP && EdgePerp.IsNearlyZero() )
+	{
+		UpdateEdgePerpDir();
+	}
+	return bWorldSpace ? NavMesh->L2WTransformNormal(EdgePerp) : EdgePerp;
+#else
 	return (ThisEdgeDir ^ GetEdgeNormal(bWorldSpace)).SafeNormal();
+#endif
 }
 
 /**
@@ -9824,7 +10017,9 @@ FNavMeshPolyBase::FNavMeshPolyBase( UNavigationMeshBase* Mesh, const TArray<WORD
 	PolyVerts(inPolyIndices),
 	TransientCost(0),
 	BorderListNode(NULL),
-	NumObstaclesAffectingThisPoly(0)
+	NumObstaclesAffectingThisPoly(0),
+	bForceConstrainPawns(FALSE), // BM
+	bForceDontConstrainPawns(FALSE)
 {
 	PolyBuildLoc = FVector(0.f);
 	PolyCenter = FVector(0.f);
@@ -10350,6 +10545,9 @@ void UNavigationMeshBase::AddCrossPylonEdge( const FVector& inV1, const FVector&
 
 		NewEdge->SetPoly0( Poly0 );
 		NewEdge->SetPoly1( Poly1 );
+#if BATMAN
+		NewEdge->UpdateEdgePerpDir(); // BM
+#endif
 		Edge = NewEdge;
 
 		// carry over supported edge width
@@ -10407,6 +10605,9 @@ void UNavigationMeshBase::AddCrossPylonEdge( const FVector& inV1, const FVector&
 		Poly1->PolyEdges.AddUniqueItem(NewEdgeID);
 		NewEdge->SetPoly0( Poly1 );
 		NewEdge->SetPoly1( Poly0 );
+#if BATMAN
+		NewEdge->UpdateEdgePerpDir(); // BM
+#endif
 		Edge=NewEdge;
 
 		// carry over supported edge width

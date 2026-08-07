@@ -631,6 +631,10 @@ public:
 	friend FArchive& operator<<( FArchive& Ar, FMeshVertex& V )
 	{
 		Ar << V.X << V.Y << V.Z;
+#if BATMAN
+		// BM: BM2 dropped PolyIndices, verts are position-only
+		if( !Ar.IsBmCooked(TRUE) )
+#endif
 		Ar << V.PolyIndices;
 		return Ar;
 	}
@@ -722,6 +726,8 @@ protected:
 	/** Center of the edges */
 	FVector EdgeCenter;
 public:
+	// BM: direction perpendicular to this edge, pointing across it
+	FVector EdgePerp;
 	/** Type of edge */
 	BYTE	EdgeType;
 	/** Extra edge cost */
@@ -1019,6 +1025,11 @@ public:
 	 * Sets EdgeCenter variable based on the Edge Verts
 	 */
 	void UpdateEdgeCenter( UNavigationMeshBase* NavMesh );
+
+	/**
+	 * Sets EdgeCenter and EdgePerp based on the Edge Verts
+	 */
+	void UpdateEdgePerpDir(); // BM
 
 
 	/**
@@ -1929,13 +1940,20 @@ public:
 	/** SessionID of the last path search that touched this polygon (useful for determining if the search has seen this poly yet in evaluagegoal)*/
 	INT SavedPathSessionID;
 
+	// BM
+	UBOOL bForceConstrainPawns;
+	// BM
+	UBOOL bForceDontConstrainPawns;
+
 	// Constructor
 	FNavMeshPolyBase() : 
 		FNavMeshObject(NULL),
 		TransientCost(0),
 		BorderListNode(NULL),
 		NumObstaclesAffectingThisPoly(0),
-		SavedPathSessionID(MAXINT){}
+		SavedPathSessionID(MAXINT),
+		bForceConstrainPawns(FALSE), // BM
+		bForceDontConstrainPawns(FALSE){}
 	FNavMeshPolyBase( UNavigationMeshBase* Mesh, const TArray<VERTID>& inPolyIndices, FLOAT PolyHeight);
 	~FNavMeshPolyBase();
 
@@ -2344,6 +2362,15 @@ public:
 
 		if( Ar.Ver() >= VER_NAVMESH_COVERREF )
 		{
+#if BATMAN
+			if( Ar.IsBmCooked(TRUE) )
+			{
+				// BM: deprecated cover list, read and discarded
+				TArray<FCoverReference> DeprecatedPolyCover;
+				Ar << DeprecatedPolyCover;
+			}
+			else
+#endif
 			Ar << T.PolyCover;
 		}
 
@@ -2355,6 +2382,14 @@ public:
 		{
 			T.PolyHeight = 0.f;
 		}
+
+#if BATMAN
+		if( Ar.IsBmCooked(TRUE) )
+		{
+			Ar << T.bForceConstrainPawns;
+			Ar << T.bForceDontConstrainPawns;
+		}
+#endif
 
 		return Ar;
 	}
@@ -2464,7 +2499,13 @@ typedef TMultiMap<FMeshVertex,VERTID> FVertHash;
 #define VER_COMBATZONE_POLY_LINKAGE 38
 // 4/25/2011 - fixed combatzone poly map centroid and clearing issues
 #define VER_COMBATZONE_FIX 39
+// BM: serialize edge perpendicular direction
+#define VER_BM_EDGE_PERP 41
+#if BATMAN
+#define VER_LATEST_NAVMESH		42
+#else
 #define VER_LATEST_NAVMESH		VER_COMBATZONE_FIX
+#endif
 
 // if a navmesh is loaded which was generated with a version less than this, PATHS NEED TO BE REBUILT warnings will let fly
 #define VER_MIN_PATHING			VER_COMBATZONE_FIX
@@ -2584,7 +2625,31 @@ public:
 
 	/** high water mark for static (saved) verts in the pool */
 	INT							StaticVertCount;
-	
+
+	// BM: precomputed vert-to-vert visibility, one entry per static vert
+	struct FVisionInfo
+	{
+		TArray<VERTID>	VisibleVertIDs;
+		FLOAT			LastSpottedTime;
+
+		FVisionInfo() : LastSpottedTime(-100.f) {}
+
+		friend FArchive& operator<<( FArchive& Ar, FVisionInfo& T )
+		{
+			Ar << T.VisibleVertIDs;
+			Ar << T.LastSpottedTime;
+			return Ar;
+		}
+	};
+	// BM
+	TArray<FVisionInfo>			VertVisionInfo;
+
+	// BM: appends a default vision info entry, returns its index
+	INT AddVertVisionInfo()
+	{
+		return VertVisionInfo.AddItem(FVisionInfo());
+	}
+
 protected:
 
 	// array of edgestoragedata the stores pointer into data buffer
@@ -4211,6 +4276,9 @@ UBOOL UNavigationMeshBase::AddEdge( const FVector& inV1,
 		checkSlowish((*ConnectedPolys)(0) != (*ConnectedPolys)(1));
 		Edge.SetPoly0((*ConnectedPolys)(0));
 		Edge.SetPoly1((*ConnectedPolys)(1));
+#if BATMAN
+		Edge.UpdateEdgePerpDir(); // BM
+#endif
 	}
 
 	if( out_EdgePtr != NULL )
@@ -4314,7 +4382,10 @@ UBOOL UNavigationMeshBase::AddOneWayCrossPylonEdgeToMesh(const FVector& StartPt,
 	checkSlowish((ConnectedPolys)(0) != (ConnectedPolys)(1));
 	Edge.SetPoly0((ConnectedPolys)(0));
 	Edge.SetPoly1((ConnectedPolys)(1));
-	
+#if BATMAN
+	Edge.UpdateEdgePerpDir(); // BM
+#endif
+
 	if ( NewEdge != NULL && bAddDummyRefEdge )
 	{
 		static TArray<FNavMeshPolyBase*> TempPolys;
@@ -4441,6 +4512,9 @@ void UNavigationMeshBase::AddDynamicCrossPylonEdge( const FVector& inV1,
 
 		NewEdge->SetPoly0( Poly0 );
 		NewEdge->SetPoly1( Poly1 );
+#if BATMAN
+		NewEdge->UpdateEdgePerpDir(); // BM
+#endif
 
 		// MT-NOTE->dynamic edges are not linked to obstacle geo, pathing must take place through them
 
@@ -4493,6 +4567,9 @@ void UNavigationMeshBase::AddDynamicCrossPylonEdge( const FVector& inV1,
 			Mesh->DynamicEdges.AddUnique(Poly1->Item,NewEdge);
 			NewEdge->SetPoly0( Poly1 );
 			NewEdge->SetPoly1( Poly0 );
+#if BATMAN
+			NewEdge->UpdateEdgePerpDir(); // BM
+#endif
 
 			// MT-NOTE->dynamic edges are not linked to obstacle geo, pathing must take place through them
 
