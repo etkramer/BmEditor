@@ -362,11 +362,42 @@ void InvalidParameterHandler(const TCHAR* Expression,
 		Line );
 }
 
+#if WITH_MANAGED_CODE
+// BM: Lock DPI awareness before WPF initializes, otherwise HwndTarget calls SetProcessDPIAware() mid-startup and shrinks the whole editor.
+static void SetupDPIAwareness( void )
+{
+	typedef BOOL (WINAPI *FSetProcessDpiAwarenessContext)( HANDLE );
+
+	HMODULE User32 = GetModuleHandle( TEXT("user32.dll") );
+
+	// Can use Windows.h if we ever upgrade to latest VS, for now we're stuck with headers from 2008.
+#pragma warning( push )
+#pragma warning( disable : 4191 )
+	FSetProcessDpiAwarenessContext SetAwarenessContext = User32 != NULL
+		? (FSetProcessDpiAwarenessContext)GetProcAddress( User32, "SetProcessDpiAwarenessContext" )
+		: NULL;
+#pragma warning( pop )
+
+	if( SetAwarenessContext != NULL )
+	{
+		// DPI_AWARENESS_CONTEXT_UNAWARE_GDISCALED (Win10 1809+), falling back to DPI_AWARENESS_CONTEXT_UNAWARE
+		if( !SetAwarenessContext( (HANDLE)-5 ) )
+		{
+			SetAwarenessContext( (HANDLE)-1 );
+		}
+	}
+}
+#endif
+
 /**
- * Setup the common debug settings 
+ * Setup the common debug settings
  */
 void SetupWindowsEnvironment( void )
 {
+#if WITH_MANAGED_CODE
+	SetupDPIAwareness();
+#endif
+
 	// all crt validation should trigger the callback
 	_set_invalid_parameter_handler(InvalidParameterHandler);
 
