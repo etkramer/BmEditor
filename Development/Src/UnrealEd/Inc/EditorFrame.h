@@ -349,6 +349,8 @@ private:
 	void MenuFileSave( wxCommandEvent& In );
 	void MenuFileSaveAllLevels( wxCommandEvent& In );
 	void MenuFileSaveAs( wxCommandEvent& In );
+	// BM
+	void MenuFileSaveAsCooked( wxCommandEvent& In );
 	void MenuFileSaveDlg( wxCommandEvent& In );
 	void MenuFileSaveAll( wxCommandEvent& In );
 	void MenuFileForceSaveAll( wxCommandEvent& In );

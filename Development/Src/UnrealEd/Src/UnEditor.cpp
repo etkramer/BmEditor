@@ -389,7 +389,9 @@ void UEditorEngine::Init()
 
 	//Init the class hierarchy
 	EditorClassHierarchy = new FEditorClassHierarchy;
+#if !BATMAN
 	EditorClassHierarchy->Init();
+#endif
 
 	// Init transactioning.
 	Trans = CreateTrans();
@@ -441,6 +443,12 @@ void UEditorEngine::Init()
 
 	EndLoad();
 	}
+
+#if BATMAN
+	// BM: built from loaded classes, so it has to run after the edit packages are loaded
+	EditorClassHierarchy->Init();
+#endif
+
 	// Init the client.
 	UClass* ClientClass = StaticLoadClass( UClient::StaticClass(), NULL, TEXT("engine-ini:UnrealEd.EditorEngine.Client"), NULL, LOAD_None, NULL );
 	Client = (UClient*)StaticConstructObject( ClientClass );

@@ -2657,3 +2657,112 @@ void FEditorFileUtils::LoadSimpleMapAtStartup ()
 }
 
 
+
+
+void BmMarkSeekFreeForceExports( UPackage* DestPackage )
+{
+	for( FObjectIterator It; It; ++It )
+	{
+		UObject* Object = *It;
+		if( !Object->HasAnyFlags( RF_Transient )
+			&&	!Object->IsIn( UObject::GetTransientPackage() )
+			&&	!Object->IsIn( DestPackage )
+			&&	!(Object->GetOutermost()->PackageFlags & PKG_ContainsScript) )
+		{
+			Object->SetFlags( RF_ForceTagExp );
+		}
+	}
+}
+
+// BM: Reparents an object without leaving a redirector behind or disturbing the source package's net indices.
+static void BmMoveObjectToPackage( UObject* Object, UPackage* NewOuter )
+{
+	const UBOOL bWasPublic = Object->HasAnyFlags( RF_Public );
+	Object->ClearFlags( RF_Public );
+	Object->Rename( *Object->GetName(), NewOuter, REN_ForceNoResetLoaders | REN_DoNotDirty | REN_KeepNetIndex );
+	if( bWasPublic )
+	{
+		Object->SetFlags( RF_Public );
+	}
+}
+
+UBOOL BmSaveCookedLevel( UWorld* World, const TCHAR* DstFilename )
+{
+	UPackage* SourcePackage = World->GetOutermost();
+	const FString SourcePackageName = SourcePackage->GetName();
+	const FString DestPackageName = FFilename( DstFilename ).GetBaseFilename();
+
+	if( SourcePackageName != DestPackageName && FindObject<UPackage>( NULL, *DestPackageName ) != NULL )
+	{
+		appMsgf( AMT_OK, TEXT("A package named '%s' is already loaded - pick a different filename."), *DestPackageName );
+		return FALSE;
+	}
+
+	SourcePackage->FullyLoad();
+
+	// Everything directly under the map package moves into the cooked package, so it ends up laid out like a retail map.
+	TArray<UObject*> TopLevelObjects;
+	for( FObjectIterator It; It; ++It )
+	{
+		if( It->GetOuter() == SourcePackage )
+		{
+			TopLevelObjects.AddItem( *It );
+		}
+	}
+
+	// Free up the name in case we're cooking to the same name the editor package is loaded under.
+	SourcePackage->Rename(
+		*UObject::MakeUniqueObjectName( NULL, UPackage::StaticClass(), *SourcePackageName ).ToString(),
+		NULL,
+		REN_ForceNoResetLoaders | REN_DoNotDirty );
+
+	const UBOOL OldIsCooking = GIsCooking;
+	const UE3::EPlatformType OldCookingTarget = GCookingTarget;
+	const INT OldLicenseeVersion = GPackageFileLicenseeVersion;
+
+	GIsCooking = TRUE;
+	GCookingTarget = UE3::PLATFORM_WindowsConsole;
+	GPackageFileLicenseeVersion = VER_BATMAN2;
+
+	UPackage* DestPackage = UObject::CreatePackage( NULL, *DestPackageName );
+	DestPackage->MakeNewGuid();
+	DestPackage->ThisContainsMap();
+	DestPackage->PackageFlags |= SourcePackage->PackageFlags & (PKG_AllowDownload | PKG_ClientOptional | PKG_ServerSideOnly);
+	DestPackage->PackageFlags |= PKG_Cooked | PKG_DisallowLazyLoading | PKG_RequireImportsAlreadyLoaded | PKG_StoreCompressed;
+	// No net info: retail maps have an empty net object table and get PKG_ServerSideOnly from SavePackage because of it.
+
+	// The game looks TheWorld up directly under the map package, so it has to live there for the save.
+	for( INT ObjectIndex = 0; ObjectIndex < TopLevelObjects.Num(); ObjectIndex++ )
+	{
+		BmMoveObjectToPackage( TopLevelObjects(ObjectIndex), DestPackage );
+	}
+
+	BmMarkSeekFreeForceExports( DestPackage );
+
+	const UBOOL bSaved = UObject::SavePackage( DestPackage, World, RF_Standalone, DstFilename, GError );
+
+	for( FObjectIterator It; It; ++It )
+	{
+		It->ClearFlags( RF_ForceTagExp | RF_Saved );
+	}
+
+	// Move the temporary package aside before restoring the source name, in case the two match.
+	for( INT ObjectIndex = 0; ObjectIndex < TopLevelObjects.Num(); ObjectIndex++ )
+	{
+		BmMoveObjectToPackage( TopLevelObjects(ObjectIndex), SourcePackage );
+	}
+
+	DestPackage->ClearFlags( RF_Standalone | RF_Public );
+	DestPackage->Rename(
+		*UObject::MakeUniqueObjectName( UObject::GetTransientPackage(), UPackage::StaticClass(), *DestPackageName ).ToString(),
+		UObject::GetTransientPackage(),
+		REN_ForceNoResetLoaders | REN_DoNotDirty );
+
+	SourcePackage->Rename( *SourcePackageName, NULL, REN_ForceNoResetLoaders | REN_DoNotDirty );
+
+	GIsCooking = OldIsCooking;
+	GCookingTarget = OldCookingTarget;
+	GPackageFileLicenseeVersion = OldLicenseeVersion;
+
+	return bSaved;
+}

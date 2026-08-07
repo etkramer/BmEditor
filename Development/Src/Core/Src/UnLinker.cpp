@@ -3231,7 +3231,12 @@ UBOOL ULinkerLoad::VerifyImportInner(INT ImportIndex, FString& WarningSuffix)
 				UObject* FindObject = StaticFindObject(FindClass, FindOuter, *Import.ObjectName.ToString());
 				// reference to native transient class or CDO of such a class
 				UBOOL IsNativeTransient	= FindObject != NULL && (FindObject->HasAllFlags(RF_Public|RF_Native|RF_Transient) || (FindObject->HasAnyFlags(RF_ClassDefaultObject) && FindObject->GetClass()->HasAllFlags(RF_Public|RF_Native|RF_Transient)));
-				if (FindObject != NULL && ((LoadFlags & LOAD_FindIfFail) || IsNativeTransient))
+				if (FindObject != NULL && ((LoadFlags & LOAD_FindIfFail) || IsNativeTransient
+#if BATMAN
+					// BM: match CreateImport, which resolves these against memory rather than the source linker
+					|| IsBmCooked(TRUE)
+#endif
+					))
 				{
 					Import.XObject = FindObject;
 					GImportCount++;
@@ -4216,7 +4221,7 @@ UObject* ULinkerLoad::CreateImport( INT Index )
 #if BATMAN
 		// BM: Seekfree resolves imports by path first; do the same so references to forced exports embedded
 		// in this package (which have no separate .upk on disk) resolve in the editor.
-		if( IsBmCooked() )
+		if( IsBmCooked(TRUE) )
 		{
 			Import.XObject = StaticFindObject( UObject::StaticClass(), NULL, *GetImportPathName(Index) );
 		}
@@ -4229,7 +4234,7 @@ UObject* ULinkerLoad::CreateImport( INT Index )
 		||	GIsScriptPatcherActive
 #endif
 #if BATMAN
-		|| IsBmCooked()
+		|| IsBmCooked(TRUE)
 #endif
 			)
 		{

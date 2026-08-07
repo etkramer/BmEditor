@@ -29,6 +29,67 @@ struct EditorClassEntry
 
 TArray<EditorClassEntry> EditorClassArray;
 
+#if BATMAN
+
+// BM: adds a class and its parents to the hierarchy, returning the index of the class
+static INT AddClassToHierarchy(UClass* InClass, TMap<UClass*, INT>& ClassToIndexMap)
+{
+	INT* ExistingIndex = ClassToIndexMap.Find(InClass);
+	if (ExistingIndex != NULL)
+	{
+		return *ExistingIndex;
+	}
+
+	// Parents have to be present before the child so ParentClassIndex stays valid
+	UClass* SuperClass = InClass->GetSuperClass();
+	const INT ParentClassIndex = SuperClass ? AddClassToHierarchy(SuperClass, ClassToIndexMap) : INDEX_NONE;
+
+	EditorClassEntry ClassEntry;
+	ClassEntry.ClassName = InClass->GetName();
+	ClassEntry.PackageName = InClass->GetOutermost()->GetName();
+	ClassEntry.ParentClassIndex = ParentClassIndex;
+	ClassEntry.NumChildren = 0;
+	ClassEntry.NumPlaceableChildren = 0;
+	ClassEntry.bIsHidden = (InClass->ClassFlags & (CLASS_Hidden | CLASS_Deprecated)) ? TRUE : FALSE;
+	ClassEntry.bIsPlaceable = (InClass->ClassFlags & CLASS_Placeable) ? TRUE : FALSE;
+	ClassEntry.bIsAbstract = (InClass->ClassFlags & CLASS_Abstract) ? TRUE : FALSE;
+	ClassEntry.bCanCreateClasses = FALSE;
+	ClassEntry.Class = InClass;
+	ClassEntry.DMCProto = NULL;
+
+	ClassEntry.bIsFactory = FALSE;
+	if (InClass->IsChildOf(UActorFactory::StaticClass()) && !ClassEntry.bIsAbstract)
+	{
+		UObject* DefaultObject = InClass->GetDefaultObject();
+		ClassEntry.bIsFactory = (DefaultObject != NULL && ((UActorFactory*)DefaultObject)->bPlaceable);
+	}
+
+	for (INT NameIndex = 0; NameIndex < InClass->ClassGroupNames.Num(); ++NameIndex)
+	{
+		if (ClassEntry.ClassGroupString.Len() > 0)
+		{
+			ClassEntry.ClassGroupString += TEXT(",");
+		}
+		ClassEntry.ClassGroupString += InClass->ClassGroupNames(NameIndex).ToString();
+	}
+
+	const INT NewIndex = EditorClassArray.AddItem(ClassEntry);
+	ClassToIndexMap.Set(InClass, NewIndex);
+
+	if (ParentClassIndex != INDEX_NONE)
+	{
+		EditorClassArray(ParentClassIndex).NumChildren++;
+		if (ClassEntry.bIsPlaceable)
+		{
+			EditorClassArray(ParentClassIndex).NumPlaceableChildren++;
+		}
+	}
+
+	return NewIndex;
+}
+
+#endif
+
 /**
  * Builds the tree from the class manifest
  * @return - whether the class hierarchy was successfully built
@@ -36,6 +97,17 @@ TArray<EditorClassEntry> EditorClassArray;
 UBOOL FEditorClassHierarchy::Init (void)
 {
 	EditorClassArray.Empty();
+
+#if BATMAN
+	// BM: build from the loaded classes instead of the script manifest, so classes from cooked packages are included
+	TMap<UClass*, INT> ClassToIndexMap;
+	for( TObjectIterator<UClass> It; It; ++It )
+	{
+		AddClassToHierarchy(*It, ClassToIndexMap);
+	}
+
+	return TRUE;
+#else
 
 	FString ManifestFileName = appScriptManifestFile();
 	
@@ -152,6 +224,7 @@ UBOOL FEditorClassHierarchy::Init (void)
 	}
 
 	return TRUE;
+#endif
 }
 
 /**

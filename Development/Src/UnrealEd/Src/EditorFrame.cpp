@@ -15,6 +15,7 @@
 #include "LevelViewportToolBar.h"
 #include "MainToolBar.h"
 #include "UnLinkedObjEditor.h"
+#include "BusyCursor.h"
 #include "FileHelpers.h"
 #include "Kismet.h"
 #include "MaterialInstanceConstantEditor.h"
@@ -378,6 +379,8 @@ WxMainMenu::WxMainMenu()
 		FileMenu->AppendSeparator();
 		FileMenu->Append( IDM_SAVE, *LocalizeUnrealEd("&SaveCurrentLevel"), *LocalizeUnrealEd("ToolTip_82") );
 		FileMenu->Append( IDM_SAVE_AS, *LocalizeUnrealEd("Save&AsE"), *LocalizeUnrealEd("ToolTip_83") );
+		// BM
+		FileMenu->Append( IDM_SAVE_AS_COOKED, TEXT("Save Level As Cooked..."), TEXT("") );
 		FileMenu->Append( IDM_SAVE_DLG, *LocalizeUnrealEd("SaveE"), *LocalizeUnrealEd("ToolTip_SaveDlg") );
 		FileMenu->Append( IDM_SAVE_ALL, *LocalizeUnrealEd("SaveA&ll"), *LocalizeUnrealEd("ToolTip_84") );
 		FileMenu->Append( IDM_SAVE_ALL_WRITABLE, *LocalizeUnrealEd("SaveAllWritable"), *LocalizeUnrealEd("ToolTip_SaveAllWritable") );
@@ -913,6 +916,7 @@ BEGIN_EVENT_TABLE( WxEditorFrame, wxFrame )
 	EVT_MENU( IDM_OPEN, WxEditorFrame::MenuFileOpen )
 	EVT_MENU( IDM_SAVE, WxEditorFrame::MenuFileSave )
 	EVT_MENU( IDM_SAVE_AS, WxEditorFrame::MenuFileSaveAs )
+	EVT_MENU( IDM_SAVE_AS_COOKED, WxEditorFrame::MenuFileSaveAsCooked )
 	EVT_MENU( IDM_SAVE_ALL, WxEditorFrame::MenuFileSaveAll )
 	EVT_MENU( IDM_SAVE_ALL_WRITABLE, WxEditorFrame::MenuFileSaveAll )
 	EVT_MENU( IDM_SAVE_DLG, WxEditorFrame::MenuFileSaveDlg )
@@ -2364,6 +2368,48 @@ void WxEditorFrame::MenuFileSaveAs( wxCommandEvent& In )
 {
 	FEditorFileUtils::SaveAs( GWorld );
 	GCallbackEvent->Send(FCallbackEventParameters(NULL, CALLBACK_RefreshContentBrowser, CBR_UpdatePackageList ));
+}
+
+// BM: Saves the current level as a standalone cooked map the retail game can load.
+void WxEditorFrame::MenuFileSaveAsCooked( wxCommandEvent& In )
+{
+	if( !GWorld )
+	{
+		return;
+	}
+
+	const FString File = FString::Printf( TEXT("%s.upk"), *GWorld->GetOutermost()->GetName() );
+
+	WxFileDialog SaveFileDialog( this,
+		TEXT("Save Cooked Level"),
+		*GApp->LastDir[LD_GENERIC_SAVE_COOKED],
+		*File,
+		TEXT("Unreal Packages (*.upk)|*.upk|All Files|*.*"),
+		wxSAVE,
+		wxDefaultPosition);
+
+	if( SaveFileDialog.ShowModal() != wxID_OK )
+	{
+		return;
+	}
+
+	const FScopedBusyCursor BusyCursor;
+	GApp->LastDir[LD_GENERIC_SAVE_COOKED] = SaveFileDialog.GetDirectory();
+
+	FString SaveFileName = FString( SaveFileDialog.GetPath() );
+	if( SaveFileName.Len() > 0 && FFilename( SaveFileName ).GetExtension().Len() == 0 )
+	{
+		SaveFileName += TEXT(".upk");
+	}
+
+	if( GFileManager->IsReadOnly( *SaveFileName ) )
+	{
+		appMsgf( AMT_OK, *FString::Printf( LocalizeSecure(LocalizeUnrealEd("Error_CouldntWriteToFile_F"), *SaveFileName)) );
+	}
+	else if( !BmSaveCookedLevel( GWorld, *SaveFileName ) )
+	{
+		appMsgf( AMT_OK, *LocalizeUnrealEd("Error_CouldntSavePackage") );
+	}
 }
 
 void WxEditorFrame::MenuFileSaveDlg( wxCommandEvent& In )

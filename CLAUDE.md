@@ -40,6 +40,6 @@ BM2 packages are all Ver=805, LicenseeVer=101
 
 ## Comments
 
-Use "#if BATMAN" for our changes where easy/possible (leaving original code intact), otherwise mark our changes with a "// BM" comment (always // format, not a block comment).
+Use "#if BATMAN" for our changes where easy/possible (leaving original code intact), otherwise mark our changes with a "// BM" or "// BM:" comment (always // format on its own line, not a block comment).
 
-Avoid overly descriptive comments except where necessary - the repo isn't your notepad. Don't add full comments unless they're very clearly useful for future work
+Avoid overly descriptive comments except where necessary - the repo isn't your notepad. Don't add full comments unless they're very clearly useful for future work. Do not prefix function names with "Bm"

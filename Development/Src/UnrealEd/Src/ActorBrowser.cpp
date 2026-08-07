@@ -4,7 +4,6 @@
 
 #include "UnrealEd.h"
 #include "EnginePrefabClasses.h"
-#include "UnClassTree.h"
 #include "ActorBrowser.h"
 #include "DMC.h"
 
@@ -180,19 +179,6 @@ BEGIN_EVENT_TABLE( WxActorBrowser, WxBrowser )
 	EVT_TIMER( IDMN_ActorBrowser_SearchTimer, WxActorBrowser::OnSearchTimer )
 END_EVENT_TABLE()
 
-/** @return			A new class tree. */
-static FClassTree* CreateClassTree()
-{
-	FClassTree* ClassTree = new FClassTree( UObject::StaticClass() );
-	check( ClassTree );
-	for( TObjectIterator<UClass> It ; It ; ++It )
-	{
-		UClass* CurClass = *It;
-		ClassTree->AddClass( CurClass );
-	}
-	return ClassTree;
-}
-
 WxActorBrowser::WxActorBrowser()
 	:	bUpdateOnActivated( FALSE )
 {
@@ -334,6 +320,11 @@ void WxActorBrowser::Update()
 	}
 	if ( bUpdate )
 	{
+#if BATMAN
+		// BM: rebuild in case classes were loaded since the last update
+		GEditor->EditorClassHierarchy->Init();
+#endif
+
 		RepopulateClassTree();
 
 		// RepopulateClassTree relies on this bool being set after it's called, in order to determine if the list of expanded items were

@@ -235,4 +235,11 @@ private:
 	static UBOOL bIsLoadingSimpleStartupMap;
 };
 
+// BM: Marks everything outside DestPackage for forced export, so SavePackage embeds the whole dependency graph.
+// Mirrors UCookPackagesCommandlet::PrepPackageForObjectCooking, minus the always-loaded script packages.
+void BmMarkSeekFreeForceExports( UPackage* DestPackage );
+
+// BM: Saves World and everything it references as a standalone cooked map, matching the layout the retail cooker produces.
+UBOOL BmSaveCookedLevel( UWorld* World, const TCHAR* DstFilename );
+
 #endif

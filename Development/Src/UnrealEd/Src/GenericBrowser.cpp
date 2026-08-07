@@ -9,6 +9,7 @@
 #include "LensFlare.h"
 #include "LevelUtils.h"
 #include "ScopedTransaction.h"
+#include "FileHelpers.h"
 #include "GenericBrowser.h"
 #include "ReferencedAssetsBrowser.h"
 #include "..\..\Launch\Resources\resource.h"
@@ -2068,23 +2069,6 @@ UBOOL WxGenericBrowser::SaveAsSelectedPackages()
 	return bAllPackagesWereSaved;
 }
 
-// BM: Marks everything outside DestPackage for forced export, so SavePackage embeds the whole dependency graph.
-// Mirrors UCookPackagesCommandlet::PrepPackageForObjectCooking, minus the always-loaded script packages.
-static void BmMarkSeekFreeForceExports( UPackage* DestPackage )
-{
-	for( FObjectIterator It; It; ++It )
-	{
-		UObject* Object = *It;
-		if( !Object->HasAnyFlags( RF_Transient )
-			&&	!Object->IsIn( UObject::GetTransientPackage() )
-			&&	!Object->IsIn( DestPackage )
-			&&	!(Object->GetOutermost()->PackageFlags & PKG_ContainsScript) )
-		{
-			Object->SetFlags( RF_ForceTagExp );
-		}
-	}
-}
-
 // BM: Saves SourcePackage as a standalone seekfree package, matching the layout the retail cooker produces for _SF packages.
 static UBOOL BmSaveStandaloneSeekFreePackage( UPackage* SourcePackage, const TCHAR* DstFilename )
 {
@@ -2106,7 +2090,7 @@ static UBOOL BmSaveStandaloneSeekFreePackage( UPackage* SourcePackage, const TCH
 	UPackage* DestPackage = UObject::CreatePackage( NULL, *DestPackageName );
 	DestPackage->MakeNewGuid();
 	DestPackage->PackageFlags |= SourcePackage->PackageFlags & (PKG_AllowDownload | PKG_ClientOptional | PKG_ServerSideOnly);
-	DestPackage->PackageFlags |= PKG_Cooked | PKG_RequireImportsAlreadyLoaded | PKG_StoreCompressed;
+	DestPackage->PackageFlags |= PKG_Cooked | PKG_DisallowLazyLoading | PKG_RequireImportsAlreadyLoaded | PKG_StoreCompressed;
 	if( !(DestPackage->PackageFlags & PKG_ServerSideOnly) )
 	{
 		DestPackage->CreateEmptyNetInfo();
