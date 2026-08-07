@@ -4,14 +4,27 @@
 	Copyright 1998-2011 Epic Games, Inc. All Rights Reserved.
 =============================================================================*/
 
+#define NEEDS_LIGHTMAP_COORDINATE		(TEXTURE_LIGHTMAP || SIMPLE_TEXTURE_LIGHTMAP || STATICLIGHTING_TEXTUREMASK)
+#define NEEDS_SHADOWMAP_COORDINATE		STATICLIGHTING_TEXTUREMASK
+#define NEEDS_VERTEX_LIGHTMAP			VERTEX_LIGHTMAP
+#define NEEDS_SIMPLE_VERTEX_LIGHTMAP	SIMPLE_VERTEX_LIGHTMAP
+#define SUPPORTS_DECAL_FOGGING			(!(DECAL_FACTORY && GPUSKIN_DECAL))
+#define NEEDS_BASEPASS_FOGGING			(MATERIALBLENDING_TRANSLUCENT || MATERIALBLENDING_ADDITIVE) && SUPPORTS_DECAL_FOGGING
+
+// SH lighting requires a TangentToWorld matrix.
+#if ENABLE_SH_LIGHT
+	#undef WORLD_COORDS
+	#define WORLD_COORDS 1
+#endif
+
+#if DYNAMICALLY_SHADOWED_BASEPASS_LIGHT
+	#undef WORLD_POS
+	#define WORLD_POS 1
+#endif
+
 #include "Common.usf"
-#include "BasePassCommon.usf"
 #include "Material.usf"
 #include "VertexFactory.usf"
-
-#if ENABLE_A_PLUS_THREE_D_LIGHT
-	#include "AmbientPlus3DirectionalVertexCommon.usf"
-#endif
 
 #if NEEDS_BASEPASS_FOGGING
 	#if ROCK_HEIGHT_FOG
@@ -19,6 +32,12 @@
 	#endif
 	#include "FogVolumeCommon.usf"
 #endif
+
+#if ENABLE_A_PLUS_THREE_D_LIGHT
+	#include "AmbientPlus3DirectionalVertexCommon.usf"
+#endif
+
+#include "BasePassCommon.usf"
 
 /*
  * The light position and inverse radius.

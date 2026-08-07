@@ -1,0 +1,84 @@
+// NVCHANGE_BEGIN_RS: Adding DX11 Multi-View Soft Shadows
+#define ENABLE_MVSS (ALLOW_MVSS && SM5_PROFILE && (MATERIALBLENDING_SOLID || MATERIALBLENDING_MASKED || MATERIALBLENDING_SOFTMASKED))
+#if ENABLE_MVSS	
+
+	// Defined in ShaderCompiler.cpp
+	#ifndef NV_MVSS_NUM_LIGHTS
+	#define NV_MVSS_NUM_LIGHTS 16
+	#endif
+	
+	// Assuming that NV_MVSS_CONSTANT_BUFFER_INDEX == 10
+	cbuffer MVSSConstants : register(b10)
+	{
+		float bUseMVSS;
+		float3 ShadowColorMVSS;
+		float4 LightPositionAndInvRadiusMVSS;
+		float4 FalloffParametersMVSS;
+		float4x4 ScreenToShadowMatricesMVSS[NV_MVSS_NUM_LIGHTS];
+	};
+	
+	// SM5 supports up to 32 float4 texcoords.
+	// TEXCOORDS[0..11] are used above, but TEXCOORDS[12..31] are possibly available.
+	struct FMVSSInterpolants
+	{
+		float3 WorldLightVector						: TEXCOORD12;
+		float4 ShadowPositions[NV_MVSS_NUM_LIGHTS]	: TEXCOORD13;
+	};
+
+	#define NV_MVSS_COMPUTE_TEXCOORDS(OutMVSSInterpolants, WorldPosition, ClipPosition) \
+		OutMVSSInterpolants.WorldLightVector = (LightPositionAndInvRadiusMVSS.xyz - WorldPosition.xyz) * LightPositionAndInvRadiusMVSS.w; \
+		UNROLL \
+		for (int ShadowMapId = 0; ShadowMapId < NV_MVSS_NUM_LIGHTS; ++ShadowMapId) \
+		{ \
+			OutMVSSInterpolants.ShadowPositions[ShadowMapId] = MulMatrix(ScreenToShadowMatricesMVSS[ShadowMapId], ClipPosition); \
+		}
+
+#if PIXELSHADER
+	Texture2DArray<float> ShadowDepthTextureArray	: register(t31);
+	SamplerState ShadowDepthSamplerState			: register(s15);
+
+	float ShadowAttenuation(float3 WorldLightVector)
+	{
+		float FalloffExponent = FalloffParametersMVSS.x;
+		float FalloffDistanceScale = FalloffParametersMVSS.y;
+		float FalloffDistanceBias = FalloffParametersMVSS.z;
+		float ShadowAtt = computeCheapPow(
+			saturate(1.0f - Square(max(0,length(WorldLightVector) * FalloffDistanceScale + FalloffDistanceBias)) ),
+			FalloffParametersMVSS.xw
+			);
+		return ShadowAtt;
+	}
+
+	float CalculateOcclusion(float SceneDepth, float ShadowmapDepth)
+	{
+		// The standard comparison is SceneDepth < ShadowmapDepth
+		// Using a soft transition based on depth difference
+		// Offsets shadows a bit but reduces self shadowing artifacts considerably
+		float TransitionScale = 60.0f;
+		return saturate((ShadowmapDepth - SceneDepth) * TransitionScale + 1);
+	}
+
+	#define NV_MVSS_COMPUTE_SHADOW(OutColor, MVSSInterpolants) \
+	BRANCH \
+	if (bUseMVSS) \
+	{ \
+		float Shadow = 0.0; \
+		UNROLL \
+		for (int ShadowMapId = 0; ShadowMapId < NV_MVSS_NUM_LIGHTS; ++ShadowMapId) \
+		{ \
+			float4 ShadowPosition = MVSSInterpolants.ShadowPositions[ShadowMapId]; \
+			ShadowPosition.xy /= ShadowPosition.w; \
+			ShadowPosition.z = min(ShadowPosition.z,0.999); \
+			float ShadowmapDepth = ShadowDepthTextureArray.Sample(ShadowDepthSamplerState, float3(ShadowPosition.xy, ShadowMapId)); \
+			Shadow += CalculateOcclusion(ShadowPosition.z, ShadowmapDepth); \
+		} \
+		Shadow *= 1.0/NV_MVSS_NUM_LIGHTS; \
+		float ShadowAtt = ShadowAttenuation(MVSSInterpolants.WorldLightVector); \
+		float3 ShadowedColor = lerp(float3(1,1,1),ShadowColorMVSS,ShadowAtt); \
+		float3 UnshadowedColor = float3(1,1,1); \
+		OutColor.rgb *= lerp(ShadowedColor,UnshadowedColor,Square(Shadow)); \
+	}
+#endif
+
+#endif // ENABLE_MVSS
+// NVCHANGE_END_RS: Adding DX11 Multi-View Soft Shadows

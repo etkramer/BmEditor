@@ -137,7 +137,12 @@ public:
 
 	static UBOOL ShouldCache(EShaderPlatform Platform)
 	{
+#if BATMAN
+		// BM: BM2 gates all of HeightFogVertexShader.usf behind ROCK_HEIGHT_FOG, which is never set.
+		return FALSE;
+#else
 		return TRUE;
+#endif
 	}
 
 	THeightFogVertexShader( )	{ }
@@ -209,7 +214,12 @@ public:
 
 	static UBOOL ShouldCache(EShaderPlatform Platform)
 	{
+#if BATMAN
+		// BM: BM2 gates all of HeightFogPixelShader.usf behind ROCK_HEIGHT_FOG, which is never set.
+		return FALSE;
+#else
 		return MSAAShaderFrequency == MSAASF_NoMSAA || Platform == SP_PCD3D_SM5;
+#endif
 	}
 
 	/**
@@ -272,7 +282,12 @@ public:
 	static UBOOL ShouldCache(EShaderPlatform Platform)
 	{
 		// Only compile the downsampled version (NumLayers == 0) for xbox
+#if BATMAN
+		// BM: BM2 gates all of HeightFogPixelShader.usf behind ROCK_HEIGHT_FOG, which is never set.
+		return FALSE;
+#else
 		return (NumLayers != 0 || Platform == SP_XBOXD3D) && (MSAAShaderFrequency == MSAASF_NoMSAA || Platform == SP_PCD3D_SM5);
+#endif
 	}
 
 	/**
@@ -516,6 +531,10 @@ void SetFogShaders(FScene* Scene,const FViewInfo& View)
 
 UBOOL FSceneRenderer::RenderFog(UINT DPGIndex)
 {
+#if BATMAN
+	// BM: BM2 replaces Epic's global height fog with RockAtmos, so these shaders are never compiled.
+	return FALSE;
+#else
 	const INT NumSceneFogLayers = Scene->Fogs.Num();
 	if (DPGIndex == SDPG_World && (NumSceneFogLayers > 0 || Scene->ExponentialFogs.Num() > 0))
 	{
@@ -635,6 +654,7 @@ UBOOL FSceneRenderer::RenderFog(UINT DPGIndex)
 	}
 
 	return FALSE;
+#endif
 }
 
 /** 

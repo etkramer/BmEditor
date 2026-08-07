@@ -624,12 +624,18 @@ float GetMaterialSubsurfaceScatteringRadius(FMaterialPixelParameters Parameters)
 // This allows shader error line numbers after this point to be the same regardless of which material is being compiled
 #line %u
 
-float3 GetMaterialPointLightTransfer(float3 DiffuseColor,float3 SpecularColor,FMaterialPixelParameters Parameters,half FalloffExponent,half3 ShadowFactor)
+float3 GetMaterialPointLightTransfer(float3 DiffuseColor,float3 SpecularColor,FMaterialPixelParameters Parameters,float3 WorldLightVector,half FalloffExponent,half3 ShadowFactor,uniform bool bAllowAttenuation)
 {
+	float Attenuation = 1.0f;
+	// Skip attenuation with static branching if not required
+	if (bAllowAttenuation)
+	{
+		Attenuation = RadialAttenuation(WorldLightVector,FalloffExponent);
+	}
 	float3 TwoSidedLightingMask = GetMaterialTwoSidedLightingMask(Parameters);
 	float3	Lighting = 0;
 #if MATERIAL_LIGHTINGMODEL_NONDIRECTIONAL
-	Lighting = DiffuseColor * ShadowFactor;
+	Lighting = DiffuseColor * Attenuation * ShadowFactor;
 #elif MATERIAL_LIGHTINGMODEL_PHONG
 	Lighting = PointLightPhong(
 		GetMaterialDiffuseColorNormalized(DiffuseColor, Parameters),
@@ -642,9 +648,9 @@ float3 GetMaterialPointLightTransfer(float3 DiffuseColor,float3 SpecularColor,FM
 		Parameters.TangentNormal,
 		Parameters.TangentReflectionVector
 		) *
-		ShadowFactor;
+		Attenuation * ShadowFactor;
 #elif MATERIAL_LIGHTINGMODEL_CUSTOM
-	Lighting = GetMaterialCustomLighting(Parameters) * ShadowFactor;
+	Lighting = GetMaterialCustomLighting(Parameters) * ShadowFactor * Attenuation;
 #elif MATERIAL_LIGHTINGMODEL_ANISOTROPIC
 	Lighting = PointLightAnisotropic(
 		DiffuseColor,
@@ -657,7 +663,7 @@ float3 GetMaterialPointLightTransfer(float3 DiffuseColor,float3 SpecularColor,FM
 		Parameters.TangentReflectionVector,
 		Parameters.TangentAnisotropicDirection
 		) *
-		ShadowFactor;
+		Attenuation * ShadowFactor;
 #endif
 
 	return Lighting;

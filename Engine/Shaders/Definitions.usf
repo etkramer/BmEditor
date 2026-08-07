@@ -3,6 +3,45 @@
 	Copyright 1998-2011 Epic Games, Inc. All Rights Reserved.
 =============================================================================*/
 
+//@Rock - JoelS: Adding custom defines:
+#ifndef HAS_SPECULAR2
+#define	HAS_SPECULAR2									0
+#endif
+
+#ifndef SPECULAR_CONSERVE_ENERGY
+#define	SPECULAR_CONSERVE_ENERGY						0
+#endif
+
+#ifndef SPECULAR_HAS_FRESNEL
+#define	SPECULAR_HAS_FRESNEL							0
+#endif
+
+#ifndef SPECULAR_BLINNPHONG
+#define	SPECULAR_BLINNPHONG								0
+#endif
+
+#ifndef DISABLE_TWOSIDED_LIGHTING
+#define	DISABLE_TWOSIDED_LIGHTING						0
+#endif
+
+#ifndef HAS_DIFFUSE_POWER
+#define	HAS_DIFFUSE_POWER								0
+#endif
+
+#ifndef HAS_LIGHT_WRAPPING
+#define	HAS_LIGHT_WRAPPING								0
+#endif
+
+#ifndef HAS_SSS_NORMAL
+#define	HAS_SSS_NORMAL									0
+#endif
+
+#ifndef HAS_SSS_MASK
+#define	HAS_SSS_MASK									0
+#endif
+
+//@Rock - JoelS: End custom defines
+
 #define GEMINI_TODO										0
 
 #ifndef MATERIAL_TWOSIDED
@@ -67,6 +106,16 @@
 
 #ifndef MATERIAL_LIGHTINGMODEL_UNLIT
 #define	MATERIAL_LIGHTINGMODEL_UNLIT					0
+#endif
+
+//@ROCK - BW: Allow us to disable Lightmass shader code
+#ifndef ROCK_ENABLE_LIGHTMASS
+#define ROCK_ENABLE_LIGHTMASS							0
+#endif
+
+//@ROCK - Dustin: Modulated Shadows
+#ifndef MODULATED_SHADOWMAP
+#define MODULATED_SHADOWMAP								0
 #endif
 
 #ifndef MATERIAL_LIGHTINGMODEL_ANISOTROPIC

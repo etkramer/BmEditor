@@ -83,7 +83,7 @@ void Main(
 	half3 SpecularColor = GetMaterialSpecularColor(MaterialParameters);
 
 	OutColor.rgb = 
-		GetMaterialPointLightTransfer(GetMaterialDiffuseColor(MaterialParameters),SpecularColor,MaterialParameters,0,CombinedShadowFactor) *
+		GetMaterialPointLightTransfer(GetMaterialDiffuseColor(MaterialParameters),SpecularColor,MaterialParameters,0,0,CombinedShadowFactor,false) *
 		LightColor;
 
 	half Opacity = GetMaterialOpacity(MaterialParameters);

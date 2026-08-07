@@ -3,31 +3,6 @@
 	Copyright 1998-2011 Epic Games, Inc. All Rights Reserved.
 =============================================================================*/
 
-#undef NEEDS_LIGHTMAP_COORDINATE
-#undef NEEDS_SHADOWMAP_COORDINATE
-
-#define NEEDS_LIGHTMAP_COORDINATE		(TEXTURE_LIGHTMAP || SIMPLE_TEXTURE_LIGHTMAP || STATICLIGHTING_TEXTUREMASK)
-#define NEEDS_SHADOWMAP_COORDINATE		STATICLIGHTING_TEXTUREMASK
-#define NEEDS_VERTEX_LIGHTMAP			VERTEX_LIGHTMAP
-#define NEEDS_SIMPLE_VERTEX_LIGHTMAP	SIMPLE_VERTEX_LIGHTMAP
-#define SUPPORTS_DECAL_FOGGING			(!(DECAL_FACTORY && GPUSKIN_DECAL))
-#define NEEDS_BASEPASS_FOGGING			(MATERIALBLENDING_TRANSLUCENT || MATERIALBLENDING_ADDITIVE || MATERIALBLENDING_MODULATE) && SUPPORTS_DECAL_FOGGING
-
-/* If simple lighting is enabled then the base pass shader will just be Diffuse * LightMap + Emissive */
-#define SIMPLE_LIGHTING					((SIMPLE_VERTEX_LIGHTMAP || SIMPLE_TEXTURE_LIGHTMAP) && !MATERIAL_LIGHTINGMODEL_CUSTOM)
-
-// SH lighting requires a TangentToWorld matrix.
-// SM5 also requires the TangentToWorld matrix for deferred rendering.
-#if ENABLE_SH_LIGHT || SM5_PROFILE
-	#undef WORLD_COORDS
-	#define WORLD_COORDS 1
-#endif
-
-#if DYNAMICALLY_SHADOWED_BASEPASS_LIGHT
-	#undef WORLD_POS
-	#define WORLD_POS 1
-#endif
-
 #if XBOX || PS3
 	#if ENABLE_A_PLUS_THREE_D_LIGHT
 		#define SUPPORTS_MULTITYPE_BASEPASS_LIGHT	0
@@ -47,6 +22,10 @@
 #define V_INPUT_TANGENTLIGHTVECTOR2	TEXCOORD9
 
 #define TANGENT_LIGHT_VECTOR_DEFINED 0
+
+// NVCHANGE_BEGIN_RS: Adding DX11 Multi-View Soft Shadows
+#include "MVSSCommon.usf"
+// NVCHANGE_END_RS: Adding DX11 Multi-View Soft Shadows
 
 struct FSharedBasePassInterpolants
 {
@@ -125,6 +104,12 @@ struct FSharedBasePassInterpolants
 struct FBasePassInterpolantsVSToPS : FSharedBasePassInterpolants
 {
 	float4 PixelPosition	: TEXCOORD5;
+
+	// NVCHANGE_BEGIN_RS: Adding DX11 Multi-View Soft Shadows
+	#if ENABLE_MVSS
+	FMVSSInterpolants MVSSInterpolants;
+	#endif
+	// NVCHANGE_END_RS: Adding DX11 Multi-View Soft Shadows
 };
 
 /** Interpolants passed from the vertex shader to the domain shader. */

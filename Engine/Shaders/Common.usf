@@ -466,6 +466,52 @@ float4 ExpandCompressedRGBE( float4 RGBE )
 	return float4( ldexp( RGBE.xyz, 255.0 / 16.0 * RGBE.w - 8.0 ), 1.0 );
 }
 
+//------------------------------------------------------------------------------------------------------------------------------------------------------
+//	Lighting equations:
+//------------------------------------------------------------------------------------------------------------------------------------------------------
+//@Rock - JoelS: Restructuring lighting equations and moving them here. This is to optomise and reduce code duplication between BasePassPixelShader.usf
+// and *LightPixelShader.usf, and also within the lighting models themselves.
+
+//============================
+// Static lighting functions:
+//============================
+
+half3 Phong_DiffuseCoeff(half3 LightMapNormal, half DiffusePower, half3 TwoSidedLightingMask, half3 InverseTwoSidedLightingMask)
+{
+	//Square saturated LightMapNormal (saving 1 instruction)
+	half3 result	= saturate(LightMapNormal);
+	result			*= result;
+
+	//Check if there's a node attached to DiffusePower.
+	//We now check this instead of relying on the compiler since it saves us up to 2 instructions when nothing's connected.
+#if HAS_DIFFUSE_POWER
+	result			= pow( result, DiffusePower	);
+#endif //HAS_DIFFUSE_POWER
+
+	//Fix for transmission ported to the basepasspixelshader.usf and removed here:
+	//result			= result * InverseTwoSidedLightingMask + TwoSidedLightingMask;
+
+	return result;
+}
+
+half3 Phong_SpecularCoeff(half3 LightMapReflectionVector, half SpecularPower, half3 TwoSidedLightingMask, half3 InverseTwoSidedLightingMask)
+{
+	half3 result = pow(	saturate(LightMapReflectionVector),	SpecularPower ); //removed * InverseTwoSidedLightingMask; //removed (SpecularPower + 1)
+						//Approx. energy conservation
+						#if SPECULAR_CONSERVE_ENERGY
+							#if SPECULAR_BLINNPHONG
+								result *= ((SpecularPower+8.h)/8.h);
+							#else //SPECULAR_BLINNPHONG
+								result *= ((SpecularPower+2.h)/8.h);		//using microfacet theory alternative for Phong
+							#endif //SPECULAR_BLINNPHONG
+						#endif //defined(SPECULAR_CONSERVE_ENERGY)
+	return result;
+}
+
+//=============================
+// Dynamic lighting functions:
+//=============================
+
 half3 PointLightPhong(half3 DiffuseColor,half DiffusePower,half3 TransmissionMask,half3 SpecularColor,half SpecularPower, half3 L, float3 E, half3 N, float3 R)
 {
 	half	DiffuseLighting = PhongShadingPow(saturate(dot(N, L)), DiffusePower);
@@ -502,6 +548,14 @@ float3 PointLightAnisotropic(half3 DiffuseColor,half3 TransmissionMask,half3 Spe
 float4 PreviousLighting(float4 ScreenPosition)
 {
 	return tex2D(SceneColorTexture,ScreenPosition.xy / ScreenPosition.w * ScreenPositionScaleBias.xy + ScreenPositionScaleBias.wz);
+}
+
+float RadialAttenuation(float3 WorldLightVector,half FalloffExponent)
+{
+	return pow(
+		1.0f - saturate(dot(WorldLightVector,WorldLightVector)),
+		FalloffExponent
+		);
 }
 
 sampler2D	LightAttenuationTexture;

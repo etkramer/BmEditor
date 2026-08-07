@@ -56,18 +56,6 @@ float DistanceFromCameraFade(float3 WorldPosition, float3 CameraPosition)
 }
 
 /** 
- * Returns a radial attenuation factor for a point light.  
- * WorldLightVector is the vector from the position being shaded to the light, divided by the radius of the light. 
- */
-float RadialAttenuation(float3 WorldLightVector, half FalloffExponent)
-{
-	return pow(
-		1.0f - saturate(dot(WorldLightVector, WorldLightVector)),
-		FalloffExponent
-		);
-}
-
-/** 
  * Calculates attenuation for a spot light.
  * WorldLightVector is the vector from the position being shaded to the light, divided by the radius of the light. 
  * SpotDirection is the direction of the spot light.

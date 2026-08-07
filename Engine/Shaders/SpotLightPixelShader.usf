@@ -80,13 +80,10 @@ void Main(
 
 		half3 SpecularColor = GetMaterialSpecularColor(MaterialParameters);
 
-		float DistanceAttenuation = RadialAttenuation(WorldLightVector.xyz, FalloffExponent);
-
 		OutColor.rgb =
-			GetMaterialPointLightTransfer(GetMaterialDiffuseColor(MaterialParameters),SpecularColor,MaterialParameters,FalloffExponent,CombinedShadowFactor)
-			* LightColor
-			* DistanceAttenuation
-			* ConeAngleFalloff;
+			GetMaterialPointLightTransfer(GetMaterialDiffuseColor(MaterialParameters),SpecularColor,MaterialParameters,WorldLightVector.xyz,FalloffExponent,CombinedShadowFactor,true) *
+			LightColor *
+			ConeAngleFalloff;
 
 		half Opacity = GetMaterialOpacity(MaterialParameters);
 
@@ -104,7 +101,7 @@ void Main(
 		  LightColor
 		* ConeAngleFalloff
 		* CombinedShadowFactor
-		* DistanceAttenuation
+		* RadialAttenuation(WorldLightVector.xyz, FalloffExponent)
 		* saturate(dot(MaterialParameters.TangentLightVector,MaterialParameters.TangentNormal));
 
 	OutSubsurfaceInscattering = EncodeSubsurfaceInscattering(IncidentLighting * GetMaterialSubsurfaceInscatteringColor(MaterialParameters));

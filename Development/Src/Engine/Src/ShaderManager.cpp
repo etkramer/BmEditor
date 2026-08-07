@@ -163,11 +163,14 @@ static UBOOL IsKnownUnboundParameter(const FString& ParameterName, EShaderFreque
 	UBOOL bMakeException = FALSE;
 	if (Frequency == SF_Pixel)
 	{
-		bMakeException = 
+		bMakeException =
 			// TTP 84767 is open to fix these
-			ParameterName == TEXT("DecalLocalBinormal") 
+			ParameterName == TEXT("DecalLocalBinormal")
 			|| ParameterName == TEXT("DecalLocalTangent")
-			|| ParameterName == TEXT("MotionBlurMask");		// workaround, should to be fixed: TTP 190603
+			|| ParameterName == TEXT("MotionBlurMask")		// workaround, should to be fixed: TTP 190603
+			// BM: bound directly to slot 1 alongside ShadowDepthTexture
+			|| ParameterName == TEXT("PointSampler")
+			|| ParameterName == TEXT("PCFSampler");
 	}
 	return bMakeException;
 }

@@ -2,9 +2,33 @@
 	BasePassPixelShader.usf: Base pass pixel shader
 	Copyright 1998-2011 Epic Games, Inc. All Rights Reserved.
 =============================================================================*/
-
+//@Rock - JG: Character Lighting Improvements. 
 #include "Common.usf"
-#include "BasePassCommon.usf"
+
+//@Rock - JG: Character Lighting Improvements. 
+#undef NEEDS_LIGHTMAP_COORDINATE
+#define NEEDS_LIGHTMAP_COORDINATE	(TEXTURE_LIGHTMAP || SIMPLE_TEXTURE_LIGHTMAP || STATICLIGHTING_TEXTUREMASK)
+#undef NEEDS_SHADOWMAP_COORDINATE
+#define NEEDS_SHADOWMAP_COORDINATE	STATICLIGHTING_TEXTUREMASK
+
+/* If simple lighting is enabled then the base pass shader will just be Diffuse * LightMap + Emissive */
+#define SIMPLE_LIGHTING				((SIMPLE_VERTEX_LIGHTMAP || SIMPLE_TEXTURE_LIGHTMAP) && !MATERIAL_LIGHTINGMODEL_CUSTOM)
+
+#undef NEEDS_BASEPASS_FOGGING //@Rock - JG:Fixed warning
+#define NEEDS_BASEPASS_FOGGING		(MATERIALBLENDING_TRANSLUCENT || MATERIALBLENDING_ADDITIVE) && !(DECAL_FACTORY && GPUSKIN_DECAL)
+
+// SH lighting requires a TangentToWorld matrix.
+#if ENABLE_SH_LIGHT
+	#undef WORLD_COORDS
+	#define WORLD_COORDS 1
+#endif
+
+// World position is needed when fading based on distance between dynamic and precomputed shadows
+#if DYNAMICALLY_SHADOWED_BASEPASS_LIGHT
+	#undef WORLD_POS
+	#define WORLD_POS 1
+#endif
+
 #include "Material.usf"
 #include "VertexFactory.usf"
 #include "DynamicLightingCommon.usf"
@@ -13,9 +37,11 @@
 	#include "SphericalHarmonicCommon.usf"
 #endif
 
-#if ENABLE_A_PLUS_THREE_D_LIGHT
+#if ENABLE_A_PLUS_THREE_D_LIGHT  //@Rock - JG: Improved character lighting
 	#include "AmbientPlus3DirectionalPixelCommon.usf"
-#endif
+#endif 
+
+#include "BasePassCommon.usf"
 
 /** 1 if this object has MotionBlurScale set to enable motionblur, and 0 if disabled */
 float MotionBlurMask;
@@ -32,8 +58,12 @@ float MotionBlurMask;
 /** Spot light parameters. */
 float3	SpotDirection;
 float2	SpotAngles;
-half3 UpperSkyColor;
-half3 LowerSkyColor;
+
+//@ROCK - BW: Changed to be constants as we don't change these dynamically and have compiled out this feature on the ROCK_DLEC_USE_SH define
+#if ENABLE_SKY_LIGHT
+#define UpperSkyColor 0
+#define LowerSkyColor 0
+#endif
 
 // SkyFactor and AmbientColor are constants if we assume SHOW_Lighting to be always set. We make the assumption that on console 
 // performance is more important than being able to toggle this flag and therefore use special shortcut.
@@ -46,7 +76,9 @@ half3 LowerSkyColor;
 	static const half SkyFactor = AmbientColorAndSkyFactor.a;
 #endif
 
-#if !ENABLE_A_PLUS_THREE_D_LIGHT && (TEXTURE_LIGHTMAP || SIMPLE_TEXTURE_LIGHTMAP)
+//@Rock - JG: Character Lighting Improvements. 
+#if !ENABLE_A_PLUS_THREE_D_LIGHT
+#if TEXTURE_LIGHTMAP || SIMPLE_TEXTURE_LIGHTMAP
 	// Directional lightmaps use 3 samplers here, and ShadowTexture uses one more, and if DYNAMICALLY_SHADOWED_BASEPASS_LIGHT is defined, another will be used for that,
 	// So the most a material with static lighting can use is 11.  This is enforced by the material compiler through MAX_ME_STATICLIGHTING_PIXELSHADER_SAMPLERS,
 	// Dynamically lit materials are enforced through MAX_ME_DYNAMICLIGHTING_PIXELSHADER_SAMPLERS.
@@ -54,6 +86,11 @@ half3 LowerSkyColor;
 
 	// The light-map scale array is a set of float4s so it can be set as a contiguous chunk regardless of platform shader constant alignment.
 	float4 LightMapScale[NUM_LIGHTMAP_COEFFICIENTS];
+
+		#if MODULATED_SHADOWMAP
+			half4 ModShadowColor;
+		#endif
+	#endif
 #endif
 
 #if IMAGE_BASED_REFLECTIONS && SM5_PROFILE
@@ -93,28 +130,20 @@ void Main(
 	,out float4 OutSubsurfaceScatteringAttenuation : COLOR2
 #endif
 #if IMAGE_BASED_REFLECTIONS && SM5_PROFILE
-	,out float4 OutWorldNormal : COLOR3
+	,out float4 OutWorldNormal : COLOR3 
 	,out float4 OutSpecularColorAndPower : COLOR4
 #endif
 	)
 {
-#if PER_PIXEL_TANGENT_BASIS
-	float3x3 TangentBasis = VertexFactoryGetPerPixelTangentBasis(Interpolants);
-#if TANGENT_LIGHT_VECTOR_DEFINED
-	BasePassInterpolants.TangentLightVector.xyz = mul(TangentBasis, normalize(BasePassInterpolants.TangentLightVector.xyz));
-#endif
-#endif
-
 	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Interpolants);
 
 #if MATERIAL_DECAL && XBOX
-	float4 ClipDecal = GetMaterialClippingDecal(MaterialParameters);
+	float3 ClipDecal = GetMaterialClippingDecal(MaterialParameters);
 	float AttenDecal = GetMaterialAttenuationDecal(MaterialParameters);
 	IFALL
 	if( ClipDecal.x <= 0 ||
 		ClipDecal.y <= 0 || 
 		ClipDecal.z <= 0 ||
-		ClipDecal.w <= 0 ||
 		AttenDecal <= 0 )
 	{
 		#if MATERIALBLENDING_MODULATE
@@ -127,24 +156,40 @@ void Main(
 	{
 #endif
 
+ //@Rock - JG: Improved character lighting. 
 	#if ENABLE_A_PLUS_THREE_D_LIGHT
 		float4 TangentLightVector = BasePassInterpolants.TangentLightVector0;
-	#elif TANGENT_LIGHT_VECTOR_DEFINED
+	#else
+	#if TANGENT_LIGHT_VECTOR_DEFINED
 		float4 TangentLightVector = BasePassInterpolants.TangentLightVector;
 	#else
 		float4 TangentLightVector = float4(0,0,1,1);
 	#endif
+	#endif 
 
 	//Don't flip the normal for backfaces of two-sided materials used with this shader.
 	//As a result, the backfaces will have the same lighting as the frontfaces, instead of being mostly black.
-#if PER_PIXEL_CAMERA_VECTOR || !ROCK_STRIP_VERTEX_COLOUR
-	CalcMaterialParameters(MaterialParameters,FacingSign,BasePassInterpolants.CameraVectorOrVertexColor,BasePassInterpolants.PixelPosition,TangentLightVector.xyz,false);
+#if PER_PIXEL_CAMERA_VECTOR || !ROCK_STRIP_VERTEX_COLOUR //@Rock - JG: LOD Shader Simplification. 
+	CalcMaterialParameters(MaterialParameters,FacingSign,BasePassInterpolants.CameraVectorOrVertexColor,BasePassInterpolants.PixelPosition,TangentLightVector.xyz,
+		//@Rock - JoelS: add ability to override the two sided lighting flag.
+		#if MATERIAL_TWOSIDED && DISABLE_TWOSIDED_LIGHTING
+			false
+		#else
+			true
+		#endif //DISABLE_TWOSIDED_LIGHTING		
+		);
 #else
-	CalcMaterialParameters(MaterialParameters,FacingSign,float4(0,0,0,0),BasePassInterpolants.PixelPosition,TangentLightVector.xyz,false);
-#endif
-
+	CalcMaterialParameters(MaterialParameters,FacingSign,float4(0,0,0,0),BasePassInterpolants.PixelPosition,TangentLightVector.xyz,
+		//@Rock - JoelS: add ability to override the two sided lighting flag.
+		#if MATERIAL_TWOSIDED && DISABLE_TWOSIDED_LIGHTING
+			false
+		#else
+			true
+		#endif //DISABLE_TWOSIDED_LIGHTING		
+		);		
+#endif 
 	//Clip if the blend mode requires it.
-	GetMaterialCoverageAndClipping(MaterialParameters,PixelShaderScreenPosition.xy,InCoverage,OutCoverage);
+	GetMaterialCoverageAndClipping(MaterialParameters,PixelShaderScreenPosition,InCoverage,OutCoverage);
 
 	// Store the result of GetMaterialDiffuseColor in a local variable and reuse that instead of calling the function multiple times.
 	// This drastically reduces compile time on Xbox 360 with a complex diffuse material input and can improve the compiled result too.
@@ -176,50 +221,49 @@ void Main(
 				half3(	1.0f / sqrt(3.0f),		1.0f / sqrt(3.0f),			1.0f / sqrt(3.0f))
 				);
 
-			#if DECAL_FACTORY
-				// for decals the normal and reflection vector are transformed ouf of the projected decal frame 
-				// and back into the original vertex basis.  Interpolants.TangentToWorld2 contains the 2x2 rotation
-				half4 TangentToWorld2 = UnpackColor4( Interpolants.TangentToWorld2 );
+#if DECAL_FACTORY
+			// for decals the normal and reflection vector are transformed ouf of the projected decal frame 
+			// and back into the original vertex basis.  Interpolants.TangentToWorld2 contains the 2x2 rotation
+			half4 TangentToWorld2 = UnpackColor4( Interpolants.TangentToWorld2 );
 
-				half MatNormalX = dot( MaterialParameters.TangentNormal.xy, TangentToWorld2.xy );
-				half MatNormalY = dot( MaterialParameters.TangentNormal.xy, TangentToWorld2.zw );
-				half3 MatNormal = half3(MatNormalX,MatNormalY,MaterialParameters.TangentNormal.z);
+			half MatNormalX = dot( MaterialParameters.TangentNormal.xy, TangentToWorld2.xy );
+			half MatNormalY = dot( MaterialParameters.TangentNormal.xy, TangentToWorld2.zw );
+			half3 MatNormal = half3(MatNormalX,MatNormalY,MaterialParameters.TangentNormal.z);
 
-				half MatReflectX = dot( MaterialParameters.TangentReflectionVector.xy, TangentToWorld2.xy );
-				half MatReflectY = dot( MaterialParameters.TangentReflectionVector.xy, TangentToWorld2.zw );
-				half3 MatReflect = half3(MatReflectX,MatReflectY,MaterialParameters.TangentReflectionVector.z);
+			half MatReflectX = dot( MaterialParameters.TangentReflectionVector.xy, TangentToWorld2.xy );
+			half MatReflectY = dot( MaterialParameters.TangentReflectionVector.xy, TangentToWorld2.zw );
+			half3 MatReflect = half3(MatReflectX,MatReflectY,MaterialParameters.TangentReflectionVector.z);
 
-				half3 LightMapNormal = mul(MatNormal,LightMapBasis);
-				half3 LightMapReflectionVector = mul(MatReflect,LightMapBasis);
+			half3 LightMapNormal = mul(MatNormal,LightMapBasis);
+			half3 LightMapReflectionVector = mul(MatReflect,LightMapBasis);
 
-			#else
-				// Transform the per-pixel normal into the coordinate space defined by the lightmap basis
-				// Each component of LightMapNormal is the dot product of the per-pixel normal with the corresponding lightmap basis vector
-				// So for the interpolated vertex normal which is (0,0,1) in tangent space, each component would be 1 / sqrt(3) == .577f
-				half3 LightMapNormal = mul(MaterialParameters.TangentNormal,LightMapBasis);
-				half3 LightMapReflectionVector = mul(MaterialParameters.TangentReflectionVector,LightMapBasis);
-			#endif
+#else
+			// Transform the per-pixel normal into the coordinate space defined by the lightmap basis
+			// Each component of LightMapNormal is the dot product of the per-pixel normal with the corresponding lightmap basis vector
+			// So for the interpolated vertex normal which is (0,0,1) in tangent space, each component would be 1 / sqrt(3) == .577f
+			half3 LightMapNormal = mul(MaterialParameters.TangentNormal,LightMapBasis);
+			half3 LightMapReflectionVector = mul(MaterialParameters.TangentReflectionVector,LightMapBasis);
+#endif
 
 			half3 TwoSidedLightingMask = GetMaterialTwoSidedLightingMask(MaterialParameters);
 			#if MATERIAL_LIGHTINGMODEL_NONDIRECTIONAL
 				TwoSidedLightingMask = 1;
 			#endif
 
-			half3 DiffuseTransferCoefficients = 
-				pow(
-					// Square the lightmap basis influences to get closer results to dynamic lighting with strong normals
-					// Also has the benefit that the total weight of the interpolated vertex normal to all 3 lightmap basis vectors is 1, 
-					// So no normalizing is necessary when doing a weighted sum with DiffuseTransferCoefficients as the weights.
-					saturate(LightMapNormal) * saturate(LightMapNormal),
-					GetMaterialDiffusePower(MaterialParameters)
-					//@todo - this transmission implementation is incorrect, each color channel of TwoSidedLightingMask is controlling 
-					// How much each lightmap basis contributes to the transmission
-					) * (1 - TwoSidedLightingMask) + TwoSidedLightingMask;
-			half3 SpecularTransferCoefficients =
-				pow(
-					saturate(LightMapReflectionVector),
-					GetMaterialSpecularPower(MaterialParameters) + 1
-					);
+//@RockIntJan10 - Took Joel's changes, start
+			//@Rock - JoelS: moving functions into Common.usf, and optomising:
+			#if SPECULAR_HAS_FRESNEL
+				half3 EyeVector			= mul(MaterialParameters.TangentCameraVector, LightMapBasis);
+				half FresnelExponential = pow(1 - saturate(dot(mul( MaterialParameters.TangentLightVector, LightMapBasis),EyeVector) * 0.5 + 0.5), GetMaterialFresnelPower(MaterialParameters));
+				// interpolate between FresnelMin and 1.0 by exponential term
+				half Fresnel = FresnelExponential + GetMaterialFresnelMin(MaterialParameters) * (1.0 - FresnelExponential);
+			#endif //SPECULAR_HAS_FRESNEL
+
+			half3 InverseTwoSidedLightingMask	= 1 - TwoSidedLightingMask;
+//@RockIntNov09 - Joel : I took your changes here
+			half3 DiffuseTransferCoefficients	= Phong_DiffuseCoeff( LightMapNormal, GetMaterialDiffusePower(MaterialParameters), TwoSidedLightingMask, InverseTwoSidedLightingMask);
+			half3 SpecularTransferCoefficients	= Phong_SpecularCoeff( LightMapReflectionVector, GetMaterialSpecularPower(MaterialParameters), TwoSidedLightingMask, InverseTwoSidedLightingMask);
+//@RockIntJan10 - Took Joel's changes, end
 
 		#endif //#if SIMPLE_LIGHTING
 
@@ -233,9 +277,13 @@ void Main(
 		#elif TEXTURE_LIGHTMAP || VERTEX_LIGHTMAP
 			#if TEXTURE_LIGHTMAP
 				// Average color of the incident lighting over all directions, normalized by the maximum color component.
-				half3 NormalizedAverageColor = tex2D(LightMapTextures[0],GetLightMapCoordinate(Interpolants)).rgb * LightMapScale[0].rgb;
+				half3 NormalizedAverageColor = tex2D(LightMapTextures[0],GetLightMapCoordinate(Interpolants)).rgb;
+				//NormalizedAverageColor = pow(NormalizedAverageColor.rgb, 2.2h);
+				NormalizedAverageColor.rgb = NormalizedAverageColor.rgb * NormalizedAverageColor.rgb * LightMapScale[0].rgb;
 				// Maximum color component of the incident lighting along each of the lightmap basis directions.
-				half3 BasisDirectionsMaxComponents = tex2D(LightMapTextures[1],GetLightMapCoordinate(Interpolants)).rgb * LightMapScale[1].rgb;
+				half3 BasisDirectionsMaxComponents = tex2D(LightMapTextures[1],GetLightMapCoordinate(Interpolants)).rgb;
+				//BasisDirectionsMaxComponents.rgb = pow(BasisDirectionsMaxComponents.rgb, 2.2h);
+				BasisDirectionsMaxComponents.rgb = BasisDirectionsMaxComponents.rgb * BasisDirectionsMaxComponents.rgb * LightMapScale[1].rgb;
 			#elif VERTEX_LIGHTMAP
 				half3 NormalizedAverageColor = BasePassInterpolants.LightMapA;
 				half3 BasisDirectionsMaxComponents = BasePassInterpolants.LightMapB;
@@ -243,20 +291,53 @@ void Main(
 
 			#if MATERIAL_LIGHTINGMODEL_CUSTOM
 				half3 DiffuseCoefficient = CustomLightingDiffuse;
-			#else
-				half3 DiffuseCoefficient = GetMaterialDiffuseColorNormalized(DiffuseColor, MaterialParameters);
-			#endif
+			#else //MATERIAL_LIGHTINGMODEL_CUSTOM
+
 			// Dot DiffuseTransferCoefficients and BasisDirectionsMaxComponents to scale each max component by the influence of the corresponding basis direction based on the per-pixel normal
 			// Compared to directional lightmaps by storing incident color along each basis direction, this encoding has the advantage that it uses 1/3rd less lightmap memory,
 			// And the disadvantages that compression artifacts are somewhat worse (compressing three gradient textures and recombining looks better than one gradient texture),
 			// And only directional intensities are stored, so varying per-pixel normals can only produce different brightnesses of the lightmap texel color instead of different colors.
-			half3 LightmapIncidentLighting = NormalizedAverageColor * dot(BasisDirectionsMaxComponents, DiffuseTransferCoefficients);
-			half3 LightmapContribution = DiffuseCoefficient * LightmapIncidentLighting;
-			#ifndef DISABLE_LIGHTMAP_SPECULAR
-				LightmapContribution += SpecularColor * NormalizedAverageColor * dot(BasisDirectionsMaxComponents, SpecularTransferCoefficients);
+
+				//@Rock - JoelS: Restructured to take our custom passes into account, and introduce a few optimizations...
+				half3 LightmapContribution = dot(BasisDirectionsMaxComponents, DiffuseTransferCoefficients);
+					#if HAS_LIGHT_WRAPPING 
+						#if TEXTURE_LIGHTMAP || SIMPLE_TEXTURE_LIGHTMAP || VERTEX_LIGHTMAP || SIMPLE_VERTEX_LIGHTMAP
+							half3 LightWrapping		= GetMaterialLightWrapping(MaterialParameters);
+							LightmapContribution	= saturate( LightmapContribution * (1-LightWrapping) + LightWrapping );
+						#endif
+					#endif				
+
+				// Only apply transmission to diffuse, not specular
+				// @Rock - JoelS: inject Epics transmission with fix here:
+				LightmapContribution = lerp(LightmapContribution, TwoSidedLightingMask, TwoSidedLightingMask);
+
+				LightmapContribution *= GetMaterialDiffuseColorNormalized(DiffuseColor, MaterialParameters);
+
+				#ifndef DISABLE_LIGHTMAP_SPECULAR
+					#if SPECULAR_HAS_FRESNEL
+						LightmapContribution = lerp( LightmapContribution, GetMaterialSpecularColor(MaterialParameters) * dot(BasisDirectionsMaxComponents, SpecularTransferCoefficients), Fresnel);
+					#else
+						LightmapContribution += GetMaterialSpecularColor(MaterialParameters) * dot(BasisDirectionsMaxComponents, SpecularTransferCoefficients);
+					#endif //SPECULAR_HAS_FRESNEL
+				#endif
+
+				Color += LightmapContribution * NormalizedAverageColor;
+			#endif //MATERIAL_LIGHTINGMODEL_CUSTOM
+
+			//@ROCK- Dustin: Rooftop shadowing system
+			#if MODULATED_SHADOWMAP
+				#if STATICLIGHTING_TEXTUREMASK
+					#if STATICLIGHTING_SIGNEDDISTANCEFIELD
+						half TransitionDistance = tex2D(ShadowTexture,GetShadowMapCoordinate(Interpolants)).x;
+						half ShadowFactor = (TransitionDistance + DistanceFieldParameters.x) * DistanceFieldParameters.y;
+						half ShadowMask = pow(saturate(ShadowFactor), DistanceFieldParameters.z); 
+					#else
+						// static texture shadow map
+						half ShadowMask = tex2D(ShadowTexture, GetShadowMapCoordinate(Interpolants)).r;
+					#endif
+					Color *= lerp(ModShadowColor.rgb, half3(1.h,1.h,1.h), ShadowMask);
+				#endif
 			#endif
-			Color += LightmapContribution;
-			IncidentLighting += LightmapIncidentLighting;
 		#endif
 
 		#if ENABLE_SKY_LIGHT
@@ -282,20 +363,28 @@ void Main(
 			Color += ComputeSHLighting(DiffuseColor, CustomLightingDiffuse, WorldNormal, MaterialParameters);
 			IncidentLighting += ComputeSHLighting(1, 1, WorldNormal, MaterialParameters);
 		#endif
-
+		
+//@RockIntOct10 - JG: Improved character lighting
 		#if ENABLE_A_PLUS_THREE_D_LIGHT
-			half3 DummyCombinedShadowFactor = 1.0f;
-			Color.rgb += DiffuseColor * APlus3DLightPixelInfo[APLUS3D_AMBIENT_COLOUR].rgb;
-			Color.rgb += GetMaterialPointLightTransfer(DiffuseColor, SpecularColor, MaterialParameters, 0, DummyCombinedShadowFactor) * APlus3DLightPixelInfo[APLUS3D_COLOUR_0].rgb;
-			MaterialParameters.TangentLightVector = normalize(BasePassInterpolants.TangentLightVector1.xyz);
-			Color.rgb += GetMaterialPointLightTransfer(DiffuseColor, SpecularColor, MaterialParameters, 0, DummyCombinedShadowFactor) * APlus3DLightPixelInfo[APLUS3D_COLOUR_1].rgb;
-			MaterialParameters.TangentLightVector = normalize(BasePassInterpolants.TangentLightVector2.xyz);
-			Color.rgb += GetMaterialPointLightTransfer(DiffuseColor, SpecularColor, MaterialParameters, 0, DummyCombinedShadowFactor) * APlus3DLightPixelInfo[APLUS3D_COLOUR_2].rgb;
+			//#if !MATERIAL_LIGHTINGMODEL_CUSTOM
+			//	half3 DiffuseColor = GetMaterialDiffuseColor(MaterialParameters);
+			//#else
+			//	half3 DiffuseColor = GetMaterialCustomLighting(MaterialParameters);
+			//#endif
+			Color.rgb+=DiffuseColor*APlus3DLightPixelInfo[APLUS3D_AMBIENT_COLOUR].rgb;
+			half3 DummyCombinedShadowFactor=1.0f;
+			Color.rgb+=GetMaterialPointLightTransfer(DiffuseColor,SpecularColor,MaterialParameters,0,0,DummyCombinedShadowFactor,false) * APlus3DLightPixelInfo[APLUS3D_COLOUR_0].rgb;
+			MaterialParameters.TangentLightVector = normalize((half3)BasePassInterpolants.TangentLightVector1);
+			Color.rgb+=GetMaterialPointLightTransfer(DiffuseColor,SpecularColor,MaterialParameters,0,0,DummyCombinedShadowFactor,false) * APlus3DLightPixelInfo[APLUS3D_COLOUR_1].rgb;
+			MaterialParameters.TangentLightVector = normalize((half3)BasePassInterpolants.TangentLightVector2);
+			Color.rgb+=GetMaterialPointLightTransfer(DiffuseColor,SpecularColor,MaterialParameters,0,0,DummyCombinedShadowFactor,false) * APlus3DLightPixelInfo[APLUS3D_COLOUR_2].rgb;
 		#endif
 
+#if !ROCK_STRIP_NORMALS_AND_TANGENTS
 		//Flip normals now for lighting because we skipped flipping them in CalculateMaterialParameters
 		TwoSidedFlipVector(MaterialParameters);
-
+#endif 
+		
 		// Calculate lighting for a dynamic light
 		#if ENABLE_DIRECTIONAL_LIGHT || ENABLE_MULTITYPE_BASEPASS_LIGHT
 			#if STATICLIGHTING_TEXTUREMASK
@@ -323,13 +412,15 @@ void Main(
 						// .rgb contains accumulated per-object normal shadow factors * light function output
 						// .a contains the dominant whole scene shadow, if one was rendered
 						half4 AccumulatedShadowFactors = GetLightAttenuation(MaterialParameters.ScreenPosition);
+#if ROCK_ENABLE_LIGHTMASS
 						// Static branching to only calculate the distance fade when enabled
 						if (bEnableDistanceShadowFading)
 						{
-							half DynamicShadowFraction = DistanceFromCameraFade(MaterialParameters.WorldPosition, CameraWorldPos);
+							half DynamicShadowFraction = DistanceFromCameraFade(MaterialParameters.WorldPosition);
 							// Replace the precomputed dominant shadow with the whole scene dynamic shadow based on distance
 							CombinedShadowFactor = lerp(CombinedShadowFactor, AccumulatedShadowFactors.a, DynamicShadowFraction);
 						}
+#endif // ROCK_ENABLE_LIGHTMASS
 						// Combine the whole scene dominant light shadow with per-object shadows and the light function if one was rendered
 						// Dot the factors with LightChannelMask to select the channel corresponding to the light this object is lit by
 						CombinedShadowFactor *= dot(AccumulatedShadowFactors.rgb, LightChannelMask.rgb) + LightChannelMask.w;
@@ -340,19 +431,12 @@ void Main(
 				}
 			#endif
 
-			float DistanceAttenuation = 1.0f;
 			float SpotLightFalloff = 1.0f;
 			#if ENABLE_MULTITYPE_BASEPASS_LIGHT
-
-				if (!bDynamicDirectionalLight)
-				{
-					DistanceAttenuation = RadialAttenuation(BasePassInterpolants.WorldLightVector.xyz, FalloffExponent);
-				}
-
 				// Use static branching to only calculate spotlight falloff for spot lights
 				if (bDynamicSpotLight)
 				{
-					SpotLightFalloff = SpotAttenuation(BasePassInterpolants.WorldLightVector.xyz, SpotDirection, SpotAngles);
+					SpotLightFalloff = Square(saturate((dot(normalize((half3)BasePassInterpolants.WorldLightVector.xyz), -SpotDirection) - SpotAngles.x) * SpotAngles.y));
 				}
 			#endif
 
@@ -362,18 +446,41 @@ void Main(
 					SpecularColor,
 					MaterialParameters,
 					#if ENABLE_MULTITYPE_BASEPASS_LIGHT
+						BasePassInterpolants.WorldLightVector,
 						LightColorAndFalloffExponent.w,
-						CombinedShadowFactor
+						CombinedShadowFactor,
+						!bDynamicDirectionalLight
 					#else
 						0,
-						CombinedShadowFactor
+						0,
+						CombinedShadowFactor,
+						false
 					#endif
 					)
 				* LightColorAndFalloffExponent.rgb
-				* DistanceAttenuation
 				* SpotLightFalloff;	
 
 			Color += DynamicLightContribution;
+
+			half3 DynamicIncidentLighting = GetMaterialPointLightTransfer(
+					1,
+					0,
+					MaterialParameters,
+					#if ENABLE_MULTITYPE_BASEPASS_LIGHT
+						BasePassInterpolants.WorldLightVector,
+						LightColorAndFalloffExponent.w,
+						CombinedShadowFactor,
+						!bDynamicDirectionalLight
+					#else
+						0,
+						0,
+						CombinedShadowFactor,
+						false
+					#endif
+					)
+				* LightColorAndFalloffExponent.rgb
+				* SpotLightFalloff;
+			IncidentLighting += DynamicIncidentLighting;
 		#endif
 
 		#if !MATERIAL_LIGHTINGMODEL_CUSTOM
@@ -401,11 +508,11 @@ void Main(
 		#endif
 	#endif
 
-	#if NEEDS_BASEPASS_FOGGING
-		float4 VertexFog = BasePassInterpolants.VertexFog;
-	#else
-		float4 VertexFog = float4(0,0,0,1);
-	#endif
+#if NEEDS_BASEPASS_FOGGING
+	float4 VertexFog = BasePassInterpolants.VertexFog;
+#else
+	float4 VertexFog = float4(0,0,0,1);
+#endif
 
 	#if MATERIAL_ONELAYERDISTORTION
 		// Clamping and scaling to match the normal distortion method
@@ -427,21 +534,18 @@ void Main(
 		#elif MATERIALBLENDING_MODULATE
 			// Manual modulative blending
 			// RETURN_COLOR not needed with modulative blending
-			half3 FoggedColor = lerp(1, Color,VertexFog.a*VertexFog.a);
-			OutColor = MaterialGammaCorrect(half4(FoggedColor, Opacity));
-
+			OutColor = MaterialGammaCorrect(half4(Color * DistortedSceneColor, Opacity));
 		#endif
 	#else
 		#if MATERIALBLENDING_TRANSLUCENT
-			OutColor = MaterialGammaCorrect(half4(Color * VertexFog.a + VertexFog.rgb, Opacity));// * VertexFog.a ));
+			OutColor = MaterialGammaCorrect(half4(Color * VertexFog.a + VertexFog.rgb, Opacity));
 			OutColor = RETURN_COLOR(OutColor);
 		#elif MATERIALBLENDING_ADDITIVE
 			OutColor = MaterialGammaCorrect(half4(Color * VertexFog.a * Opacity, 0.0f));
 			OutColor = RETURN_COLOR(OutColor);
 		#elif MATERIALBLENDING_MODULATE
 			// RETURN_COLOR not needed with modulative blending
-			half3 FoggedColor = lerp(1,Color,VertexFog.a*VertexFog.a);
-			OutColor = MaterialGammaCorrect(half4(FoggedColor, Opacity));
+			OutColor = MaterialGammaCorrect(half4(Color, Opacity));
 		#elif MATERIALBLENDING_SOFTMASKED
 			OutColor = RETURN_COLOR(MaterialGammaCorrect(float4(Color, Opacity)));
 		#else
@@ -455,15 +559,22 @@ void Main(
 				OutColor = RETURN_COLOR(MaterialGammaCorrect(float4(Color,PackedAlpha)));
 			#else
 				// Output clip space w in scene color alpha
-#if ORTHOGRAPHIC_FRIENDLY_DEPTH
-				float W = dot(CameraPlane,float4(MaterialParameters.WorldPosition,1));
-#else
-				float W = MaterialParameters.ScreenPosition.w;
-#endif
+//@Rock - JG: ORTHOGRAPHIC_FRIENDLY_DEPTH
+				#if ORTHOGRAPHIC_FRIENDLY_DEPTH
+					float W=dot(CameraPlane,float4(MaterialParameters.WorldPosition,1));
+				#else
+					float W=MaterialParameters.ScreenPosition.w;
+				#endif
 				OutColor = RETURN_COLOR(MaterialGammaCorrect(float4(Color,EncodeFloatW(W))));
 			#endif
 		#endif
 	#endif
+
+	// NVCHANGE_BEGIN_RS: Adding DX11 Multi-View Soft Shadows
+	#if ENABLE_MVSS
+		NV_MVSS_COMPUTE_SHADOW(OutColor, BasePassInterpolants.MVSSInterpolants)
+	#endif
+	// NVCHANGE_END_RS: Adding DX11 Multi-View Soft Shadows
 
 	#if PC_D3D
 		#if IMAGE_BASED_REFLECTIONS && SM5_PROFILE
