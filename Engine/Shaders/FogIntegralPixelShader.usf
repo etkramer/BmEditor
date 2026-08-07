@@ -23,8 +23,6 @@ float4  DepthFilterSampleOffsets[2];
 /* 1 / MaxIntegral estimate for the density function */
 float	InvMaxIntegral;
 
-float	MaxDistance;
-
 /*
 * Filters scene depth by taking 4 samples and averaging the results
 * which helps to antialias it when rendering to a downsampled integral buffer.
@@ -54,7 +52,7 @@ half PreviousFilteredDepth(float4 ScreenPosition)
 #endif
 
 	half SampleWeight = 1.0f / 4.0f;
-	float AverageDepth = dot(min(Depths, MaxDistance.xxxx), SampleWeight.xxxx);
+	float AverageDepth = dot(Depths, SampleWeight.xxxx);
 
 	//sample the current position if desired, doesn't make a big visual difference
 	//AverageDepth = AverageDepth + 1.0f / 3.0f * tex2D(SceneColorTexture, PersCorrectScreenPos.xy).w;
@@ -83,7 +81,7 @@ float3 GetClosestFilteredWorldPos(float4 ScreenPosition)
 */
 float3 GetClosestWorldPos(float4 ScreenPosition)
 {
-	half SceneW = min(PreviousDepth(ScreenPosition), MaxDistance);
+	half SceneW = PreviousDepth(ScreenPosition);
 
 	//clamp scene depth to a reasonable range
 	SceneW = min(SceneW, 65535.0f);

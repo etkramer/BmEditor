@@ -123,10 +123,14 @@ void Main(
 
 // Calculate the fog needed for translucency
 #if NEEDS_BASEPASS_FOGGING
-	float4 Fog = GetCombinedFog(
-		CalculateVertexHeightFog(WorldPosition.xyz, CameraPositionVS),
-		GetFogDensity(WorldPosition, CameraPositionVS)
-		);
+	#if ROCK_HEIGHT_FOG
+		float4 Fog = GetCombinedFog(
+			CalculateVertexHeightFog(WorldPosition.xyz, CameraPositionVS),
+			GetFogDensity(WorldPosition, CameraPositionVS)
+			);
+	#else
+		float4 Fog = GetFogDensity(WorldPosition, CameraPositionVS);
+	#endif
 
 		Output.BasePassInterpolants.VertexFog = Fog;
 #endif

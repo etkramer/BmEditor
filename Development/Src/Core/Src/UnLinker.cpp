@@ -22,49 +22,80 @@ TMap<FString, TArray<BYTE> > ULinkerSave::PackagesToScriptSHAMap;
 
 #if BATMAN
 /**
- * BM2 uses a different EObjectFlags layout than standard UE3.
- * These are the known BM2 flag values that need remapping.
+ * BM2 stores object flags in a different layout than standard UE3.
+ * Values are from BM2 runtime flag tests; unmapped bits are dropped rather than
+ * passed through, as the layouts overlap and would otherwise alias each other.
  */
+#define BM2_RF_Native				DECLARE_UINT64(0x0000000000000002)
+#define BM2_RF_Transient			DECLARE_UINT64(0x0000000000000020)
+#define BM2_RF_HasStack				DECLARE_UINT64(0x0000000000000040)
 #define BM2_RF_ClassDefaultObject	DECLARE_UINT64(0x0000000000000080)
+#define BM2_RF_ArchetypeObject		DECLARE_UINT64(0x0000000000000100)
 #define BM2_RF_RootSet				DECLARE_UINT64(0x0000000000000400)
+#define BM2_RF_LocalizedResource	DECLARE_UINT64(0x0000000000004000)
 #define BM2_RF_Public				DECLARE_UINT64(0x0000000000100000)
 #define BM2_RF_NeedPostLoad			DECLARE_UINT64(0x0000000004000000)
+#define BM2_RF_PendingKill			DECLARE_UINT64(0x0000000008000000)
+#define BM2_RF_LoadForClient		DECLARE_UINT64(0x0000000010000000)
+#define BM2_RF_NotForClient			DECLARE_UINT64(0x0000000020000000)
+#define BM2_RF_ForceTagExp			DECLARE_UINT64(0x0000000200000000)
+#define BM2_RF_Transactional		DECLARE_UINT64(0x0000002000000000)
+#define BM2_RF_TagExp				DECLARE_UINT64(0x0000008000000000)
+#define BM2_RF_LoadForEdit			DECLARE_UINT64(0x0000100000000000)
+#define BM2_RF_NotForEdit			DECLARE_UINT64(0x0000200000000000)
 #define BM2_RF_Standalone			DECLARE_UINT64(0x0000400000000000)
+#define BM2_RF_PerObjectLocalized	DECLARE_UINT64(0x0004000000000000)
+#define BM2_RF_LoadForServer		DECLARE_UINT64(0x0008000000000000)
+#define BM2_RF_NotForServer			DECLARE_UINT64(0x0010000000000000)
 
-static void RemapObjectFlag(EObjectFlags& Flags, EObjectFlags From, EObjectFlags To)
+struct FBmObjectFlagRemap
 {
-	if (From != To)
-	{
-		const UBOOL bSet = (Flags & From) != 0;
-		Flags &= ~From;
-		if (bSet)
-		{
-			Flags |= To;
-		}
-	}
-}
+	EObjectFlags BmFlag;
+	EObjectFlags UeFlag;
+};
+
+static const FBmObjectFlagRemap BmObjectFlagRemap[] =
+{
+	{ BM2_RF_Native,				RF_Native },
+	{ BM2_RF_Transient,				RF_Transient },
+	{ BM2_RF_HasStack,				RF_HasStack },
+	{ BM2_RF_ClassDefaultObject,	RF_ClassDefaultObject },
+	{ BM2_RF_ArchetypeObject,		RF_ArchetypeObject },
+	{ BM2_RF_RootSet,				RF_RootSet },
+	{ BM2_RF_LocalizedResource,		RF_LocalizedResource },
+	{ BM2_RF_Public,				RF_Public },
+	{ BM2_RF_NeedPostLoad,			RF_NeedPostLoad },
+	{ BM2_RF_PendingKill,			RF_PendingKill },
+	{ BM2_RF_LoadForClient,			RF_LoadForClient },
+	{ BM2_RF_NotForClient,			RF_NotForClient },
+	{ BM2_RF_ForceTagExp,			RF_ForceTagExp },
+	{ BM2_RF_Transactional,			RF_Transactional },
+	{ BM2_RF_TagExp,				RF_TagExp },
+	{ BM2_RF_LoadForEdit,			RF_LoadForEdit },
+	{ BM2_RF_NotForEdit,			RF_NotForEdit },
+	{ BM2_RF_Standalone,			RF_Standalone },
+	{ BM2_RF_PerObjectLocalized,	RF_PerObjectLocalized },
+	{ BM2_RF_LoadForServer,			RF_LoadForServer },
+	{ BM2_RF_NotForServer,			RF_NotForServer },
+};
 
 /** Remap BM2 object flags to/from standard UE3 layout. */
 static void RemapBmObjectFlags(EObjectFlags& Flags, UBOOL bLoading)
 {
-	if (bLoading)
+	EObjectFlags RemappedFlags = 0;
+
+	for (INT FlagIndex = 0; FlagIndex < ARRAY_COUNT(BmObjectFlagRemap); FlagIndex++)
 	{
-		// BM2 → UE3
-		RemapObjectFlag(Flags, BM2_RF_ClassDefaultObject, RF_ClassDefaultObject);
-		RemapObjectFlag(Flags, BM2_RF_RootSet,            RF_RootSet);
-		RemapObjectFlag(Flags, BM2_RF_Public,             RF_Public);
-		RemapObjectFlag(Flags, BM2_RF_NeedPostLoad,       RF_NeedPostLoad);
-		RemapObjectFlag(Flags, BM2_RF_Standalone,         RF_Standalone);
+		const EObjectFlags InputFlag = bLoading ? BmObjectFlagRemap[FlagIndex].BmFlag : BmObjectFlagRemap[FlagIndex].UeFlag;
+		const EObjectFlags OutputFlag = bLoading ? BmObjectFlagRemap[FlagIndex].UeFlag : BmObjectFlagRemap[FlagIndex].BmFlag;
+
+		if ((Flags & InputFlag) != 0)
+		{
+			RemappedFlags |= OutputFlag;
+		}
 	}
-	else
-	{
-		// UE3 → BM2
-		RemapObjectFlag(Flags, RF_ClassDefaultObject, BM2_RF_ClassDefaultObject);
-		RemapObjectFlag(Flags, RF_RootSet,            BM2_RF_RootSet);
-		RemapObjectFlag(Flags, RF_Public,             BM2_RF_Public);
-		RemapObjectFlag(Flags, RF_NeedPostLoad,       BM2_RF_NeedPostLoad);
-		RemapObjectFlag(Flags, RF_Standalone,         BM2_RF_Standalone);
-	}
+
+	Flags = RemappedFlags;
 }
 #endif
 
@@ -3706,7 +3737,7 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 
 	// Check whether we already loaded the object and if not whether the context flags allow loading it.
 #if BATMAN
-	// NOTE: Basically forces the object to be loaded if it's from Batman2. But why is _ContextFlags not set to begin with?
+	// NOTE: Basically forces the object to be loaded if it's from Batman2 - cooked packages don't carry RF_LoadForEdit.
 	if( !Export._Object && ((Export.ObjectFlags & _ContextFlags) || IsBmCooked() ))
 #else
 	if( !Export._Object && (Export.ObjectFlags & _ContextFlags) )

@@ -8,7 +8,6 @@
 #include "Material.usf"
 #include "VertexFactory.usf"
 #include "DynamicLightingCommon.usf"
-#include "SubsurfaceScatteringCommon.usf"
 
 #if ENABLE_SH_LIGHT
 	#include "SphericalHarmonicCommon.usf"
@@ -17,8 +16,6 @@
 #if ENABLE_A_PLUS_THREE_D_LIGHT
 	#include "AmbientPlus3DirectionalPixelCommon.usf"
 #endif
-
-#include "DeferredLightingCommon.usf"
 
 /** 1 if this object has MotionBlurScale set to enable motionblur, and 0 if disabled */
 float MotionBlurMask;
@@ -59,6 +56,28 @@ half3 LowerSkyColor;
 	float4 LightMapScale[NUM_LIGHTMAP_COEFFICIENTS];
 #endif
 
+#if IMAGE_BASED_REFLECTIONS && SM5_PROFILE
+
+/** Populates WorldNormal and SpecularColorAndPower. */
+void GetImageReflectionOutputs(FMaterialPixelParameters MaterialParameters, out float4 WorldNormal, out float4 SpecularColorAndPower)
+{
+	// Make the normal less bumpy - needed to reduce image reflection aliasing
+	//@todo - move this into the deferred pass somehow so that other deferred passes can get the original normal
+	float3 DampenedTangentNormal = normalize(MaterialParameters.TangentNormal * float3(1, 1, 10));
+	// Transform the per pixel normal into world space
+	WorldNormal = float4(TransformTangentVectorToWorld(MaterialParameters.TangentToWorld, DampenedTangentNormal), 0);
+
+	float OriginalSpecularPower = GetMaterialSpecularPower(MaterialParameters);
+	float3 WorldSurfaceNormal = MaterialParameters.TangentToWorld[2];
+	float2 DerivativeLengths = float2(length(ddx(WorldSurfaceNormal)), length(ddy(WorldSurfaceNormal)));
+	// Heuristic that measures how quickly the surface normal is changing in screen space
+	float SurfaceNormalDeviation = saturate(max(DerivativeLengths.x, DerivativeLengths.y) * 10.0f);
+	// Lower the specular power of pixels whose normal is changing quickly in screen space, this hides a lot of specular and image reflection aliasing
+	SpecularColorAndPower = float4(GetMaterialSpecularColor(MaterialParameters), lerp(OriginalSpecularPower, 1, SurfaceNormalDeviation));
+}
+
+#endif
+
 void Main(
 	FVertexFactoryInterpolantsVSToPS Interpolants,
 	FBasePassInterpolantsVSToPS BasePassInterpolants,
@@ -69,13 +88,13 @@ void Main(
 #if ENABLE_TRANSLUCENCY_DOF && XBOX
 	,out float4 OutTranslucencyDoFBlur : COLOR1
 #endif
-#if SM5_PROFILE && (MATERIALBLENDING_SOLID || MATERIALBLENDING_MASKED || MATERIALBLENDING_SOFTMASKED || MATERIALBLENDING_DITHEREDTRANSLUCENT)
-	,out float4 OutWorldNormal : COLOR1 
-	,out float4 OutReflectionWorldNormal : COLOR2 
-	,out float4 OutSpecularColorAndPower : COLOR3
-	,out float4 OutDiffuseColor : COLOR4
-	,out float4 OutSubsurfaceInscattering : COLOR5
-	,out float4 OutSubsurfaceScatteringAttenuation : COLOR6
+#if PC_D3D
+	,out float4 OutSubsurfaceInscattering : COLOR1
+	,out float4 OutSubsurfaceScatteringAttenuation : COLOR2
+#endif
+#if IMAGE_BASED_REFLECTIONS && SM5_PROFILE
+	,out float4 OutWorldNormal : COLOR3
+	,out float4 OutSpecularColorAndPower : COLOR4
 #endif
 	)
 {
@@ -446,37 +465,21 @@ void Main(
 		#endif
 	#endif
 
-	#if SM5_PROFILE && (MATERIALBLENDING_SOLID || MATERIALBLENDING_MASKED || MATERIALBLENDING_SOFTMASKED || MATERIALBLENDING_DITHEREDTRANSLUCENT)
-		GetGBufferOutputs(
-			MaterialParameters.TangentNormal,
-			MaterialParameters.TangentToWorld,
-			GetMaterialSpecularColor(MaterialParameters),
-			GetMaterialSpecularPower(MaterialParameters),
-			OutWorldNormal,
-			OutReflectionWorldNormal,
-			OutSpecularColorAndPower,
-			OutDiffuseColor.a
-			);
-
-		#if MATERIAL_LIGHTINGMODEL_CUSTOM
-			OutDiffuseColor.rgb = CustomLightingDiffuse;
-		#elif MATERIAL_LIGHTINGMODEL_UNLIT
-			OutDiffuseColor.rgb = 0;
-			OutSpecularColorAndPower = 0;
-		#else
-			OutDiffuseColor.rgb = DiffuseColor;
+	#if PC_D3D
+		#if IMAGE_BASED_REFLECTIONS && SM5_PROFILE
+			GetImageReflectionOutputs(MaterialParameters, OutWorldNormal, OutSpecularColorAndPower);
 		#endif
 
 		#if MATERIAL_ENABLE_SUBSURFACE_SCATTERING
-			float3 SubsurfaceAbsorptionColor = GetMaterialSubsurfaceAbsorptionColor(MaterialParameters);
-			float SubsurfaceScatteringRadius = GetMaterialSubsurfaceScatteringRadius(MaterialParameters);
-			OutSubsurfaceScatteringAttenuation = EncodeSubsurfaceScatteringAttenuation(SubsurfaceAbsorptionColor,SubsurfaceScatteringRadius);
-			OutSubsurfaceInscattering = EncodeSubsurfaceInscattering(IncidentLighting * GetMaterialSubsurfaceInscatteringColor(MaterialParameters));
+		float3 SubsurfaceAbsorptionColor = GetMaterialSubsurfaceAbsorptionColor(MaterialParameters);
+		float SubsurfaceScatteringRadius = GetMaterialSubsurfaceScatteringRadius(MaterialParameters);
+		OutSubsurfaceScatteringAttenuation = float4(SubsurfaceAbsorptionColor,SubsurfaceScatteringRadius);
+		OutSubsurfaceInscattering = float4(IncidentLighting * GetMaterialSubsurfaceInscatteringColor(MaterialParameters),0);
 		#else
-			OutSubsurfaceScatteringAttenuation = 0;
-			OutSubsurfaceInscattering = 0;
+			OutSubsurfaceInscattering = float4(0,0,0,0);
+			OutSubsurfaceScatteringAttenuation = float4(0,0,0,0);
 		#endif
-	#endif 
+	#endif
 
 #if MATERIAL_DECAL && XBOX
 } //else

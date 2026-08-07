@@ -14,8 +14,6 @@
 
 // previous frame
 float4x4 PrevViewProjectionMatrix;
-// PreViewTranslation - PreviousPreViewTranslation
-float3 PreViewTranslationDelta;
 
 struct FVelocityInterpsVSToPS
 {
@@ -150,7 +148,7 @@ void MainVertexShader( FVertexFactoryInput Input, out FVertexOutput Output)
 
 	{
 		float4 ScreenPosition;
-		float4 PrevScreenPositionObj	= MulMatrix(ViewProjectionMatrix, float4(PrevWorldPosition.xyz + PreViewTranslationDelta, 1));
+		float4 PrevScreenPositionObj	= MulMatrix(ViewProjectionMatrix, float4(PrevWorldPosition.xyz, 1));
 
 #if !USING_SM5_TESSELATION
 		ISOLATE

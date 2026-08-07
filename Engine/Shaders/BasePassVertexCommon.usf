@@ -14,7 +14,9 @@
 #endif
 
 #if NEEDS_BASEPASS_FOGGING
-	#include "HeightFogCommon.usf"
+	#if ROCK_HEIGHT_FOG
+		#include "HeightFogCommon.usf"
+	#endif
 	#include "FogVolumeCommon.usf"
 #endif
 

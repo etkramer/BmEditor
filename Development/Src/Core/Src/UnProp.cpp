@@ -95,7 +95,8 @@ const TCHAR* ReadToken( const TCHAR* Buffer, FString& String, UBOOL DottedNames=
 #if BATMAN
 /**
  * BM2 stores property flags in a different layout than standard UE3.
- * Values are from BM2/X360 runtime flag tests; the remap shape mirrors Gangland's compatibility table.
+ * Values are from BM2/X360 runtime flag tests; unmapped bits are dropped rather than
+ * passed through, as the layouts overlap and would otherwise alias each other.
  */
 #define BM2_CPF_Const					DECLARE_UINT64(0x0000000000000001)
 #define BM2_CPF_Input					DECLARE_UINT64(0x0000000000000002)
@@ -187,13 +188,11 @@ static const FBmPropertyFlagRemap BmPropertyFlagRemap[] =
 static void RemapBmPropertyFlags(QWORD& Flags, UBOOL bLoading)
 {
 	QWORD RemappedFlags = 0;
-	QWORD KnownInputFlags = 0;
 
 	for (INT FlagIndex = 0; FlagIndex < ARRAY_COUNT(BmPropertyFlagRemap); FlagIndex++)
 	{
 		const QWORD InputFlag = bLoading ? BmPropertyFlagRemap[FlagIndex].BmFlag : BmPropertyFlagRemap[FlagIndex].UeFlag;
 		const QWORD OutputFlag = bLoading ? BmPropertyFlagRemap[FlagIndex].UeFlag : BmPropertyFlagRemap[FlagIndex].BmFlag;
-		KnownInputFlags |= InputFlag;
 
 		if ((Flags & InputFlag) != 0)
 		{
@@ -201,7 +200,7 @@ static void RemapBmPropertyFlags(QWORD& Flags, UBOOL bLoading)
 		}
 	}
 
-	Flags = RemappedFlags | (Flags & ~KnownInputFlags);
+	Flags = RemappedFlags;
 }
 #endif
 
