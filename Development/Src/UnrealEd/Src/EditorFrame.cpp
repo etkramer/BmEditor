@@ -377,11 +377,15 @@ WxMainMenu::WxMainMenu()
 		FileMenu->Append( IDM_NEW, *LocalizeUnrealEd("&New"), *LocalizeUnrealEd("ToolTip_80") );
 		FileMenu->Append( IDM_OPEN, *LocalizeUnrealEd("&OpenE"), *LocalizeUnrealEd("ToolTip_81") );
 		FileMenu->AppendSeparator();
-		FileMenu->Append( IDM_SAVE, *LocalizeUnrealEd("&SaveCurrentLevel"), *LocalizeUnrealEd("ToolTip_82") );
+		// BM
+		FileMenu->Append( IDM_SAVE, TEXT("&Save"), *LocalizeUnrealEd("ToolTip_82") );
 		FileMenu->Append( IDM_SAVE_AS, *LocalizeUnrealEd("Save&AsE"), *LocalizeUnrealEd("ToolTip_83") );
 		// BM
-		FileMenu->Append( IDM_SAVE_AS_COOKED, TEXT("Save Level As Cooked..."), TEXT("") );
-		FileMenu->Append( IDM_SAVE_DLG, *LocalizeUnrealEd("SaveE"), *LocalizeUnrealEd("ToolTip_SaveDlg") );
+		FileMenu->AppendSeparator();
+		FileMenu->Append( IDM_SAVE_AS_COOKED, TEXT("Cook Level..."), TEXT("") );
+		FileMenu->AppendSeparator();
+		// BM
+		FileMenu->Append( IDM_SAVE_DLG, TEXT("Save Dirty..."), *LocalizeUnrealEd("ToolTip_SaveDlg") );
 		FileMenu->Append( IDM_SAVE_ALL, *LocalizeUnrealEd("SaveA&ll"), *LocalizeUnrealEd("ToolTip_84") );
 		FileMenu->Append( IDM_SAVE_ALL_WRITABLE, *LocalizeUnrealEd("SaveAllWritable"), *LocalizeUnrealEd("ToolTip_SaveAllWritable") );
 		FileMenu->Append( IDM_FORCE_SAVE_ALL, *LocalizeUnrealEd("ForceSaveAll"), *LocalizeUnrealEd("ToolTip_ForceSaveAll") );
@@ -2381,7 +2385,7 @@ void WxEditorFrame::MenuFileSaveAsCooked( wxCommandEvent& In )
 	const FString File = FString::Printf( TEXT("%s.upk"), *GWorld->GetOutermost()->GetName() );
 
 	WxFileDialog SaveFileDialog( this,
-		TEXT("Save Cooked Level"),
+		TEXT("Cook Level"),
 		*GApp->LastDir[LD_GENERIC_SAVE_COOKED],
 		*File,
 		TEXT("Unreal Packages (*.upk)|*.upk|All Files|*.*"),

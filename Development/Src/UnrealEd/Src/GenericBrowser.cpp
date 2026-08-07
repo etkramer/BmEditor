@@ -952,7 +952,9 @@ public:
 		FileMenu->AppendSeparator();
 		FileMenu->Append( IDMN_FileSave, *LocalizeUnrealEd("SaveE"), TEXT("") );
 		FileMenu->Append( IDMN_FileSaveAs, *LocalizeUnrealEd("SaveAsE"), *LocalizeUnrealEd("ToolTip_83") );
-		FileMenu->Append( IDMN_FileSaveAsCooked, TEXT("Save as Cooked..."), TEXT("") );
+		FileMenu->AppendSeparator();
+		// BM
+		FileMenu->Append( IDMN_FileSaveAsCooked, TEXT("Cook Package..."), TEXT("") );
 		FileMenu->AppendSeparator();
 		FileMenu->Append( IDM_IMPORT, *LocalizeUnrealEd("ImportE"), TEXT("") );
 		FileMenu->Append( IDM_EXPORT, *LocalizeUnrealEd("ExportE"), TEXT("") );
@@ -2172,7 +2174,7 @@ UBOOL WxGenericBrowser::SaveAsCookedSelectedPackages()
 		FString File = FString::Printf( TEXT("%s%s.upk"), *Package->GetName(), STANDALONE_SEEKFREE_SUFFIX );
 
 		WxFileDialog SaveFileDialog( this,
-			TEXT("Save Cooked Package"),
+			TEXT("Cook Package"),
 			*GApp->LastDir[LD_GENERIC_SAVE_COOKED],
 			*File,
 			*FileTypes,
@@ -4919,7 +4921,10 @@ public:
 	wxGBLeftContainerMenu()
 	{
 		Append( IDMN_FileSave, *LocalizeUnrealEd("SaveE"), TEXT("") );
-		Append( IDMN_FileSaveAsCooked, TEXT("Save as Cooked..."), TEXT("") );
+		AppendSeparator();
+		// BM
+		Append( IDMN_FileSaveAsCooked, TEXT("Cook Package..."), TEXT("") );
+		AppendSeparator();
 		Append( IDMN_FileFullyLoad, *LocalizeUnrealEd("FullyLoadE"), TEXT("") );
 		Append( IDM_GenericBrowser_UnloadPackage, *LocalizeUnrealEd("UnloadE"), TEXT("") );
 		Append( IDM_IMPORT, *LocalizeUnrealEd("ImportE"), TEXT("") );
