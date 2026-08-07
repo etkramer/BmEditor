@@ -19,6 +19,10 @@
 
 
 
+	<!-- BM: declared here rather than in ColorWheel's Style.Resources, which seals and freezes
+	     its Freezables before BitmapImage.EndInit() gets to run -->
+	<BitmapImage x:Key="imgColorWheel" UriSource="pack://application:,,,/UnrealEdCSharp;Component/images/ColorWheel.png"/>
+
 	<BooleanToVisibilityConverter x:Key="BoolToVisConverter"/>
 	<CustomControls:NegatedBooleanToVisibilityConverter x:Key="NegatedBoolToVisConverter" />
 
@@ -1361,9 +1365,6 @@
   
 
 	<Style TargetType="{x:Type CustomControls:ColorWheel}">
-		<Style.Resources>
-			<BitmapImage x:Key="imgColorWheel" UriSource="pack://application:,,,/UnrealEdCSharp;Component/images/ColorWheel.png"/>
-		</Style.Resources>
 		<Setter Property="Template">
 			<Setter.Value>
 				<ControlTemplate TargetType="{x:Type CustomControls:ColorWheel}">
