@@ -258,6 +258,10 @@ WxLevelViewportToolBar::WxLevelViewportToolBar( wxWindow* InParent, wxWindowID I
 	AddTool( ID_CAMSPEED_CYCLE_BUTTON, TEXT(""), CamSpeedsB[LastCameraSpeedID - ID_CAMSPEED_START], *LocalizeUnrealEd("ToolTip_CameraSpeedSetting") );
 	AddSeparator();
 	
+#if BATMAN
+	// BM: PIE can't run BM2 content - "Play in Game" replaces it
+	PlayInViewportButton = NULL;
+#else
 	// Only add the PIV button if its available for this type of viewport
 	if( InViewportClient->IsPlayInViewportAllowed() )
 	{
@@ -269,6 +273,7 @@ WxLevelViewportToolBar::WxLevelViewportToolBar( wxWindow* InParent, wxWindowID I
 		PlayInViewportButton->SetCurrentState( PIE_Play );
 		AddControl( PlayInViewportButton );
 	}
+#endif
 
 	if( !ViewportClient->IsFloatingViewport() )
 	{

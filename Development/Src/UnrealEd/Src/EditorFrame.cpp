@@ -61,6 +61,9 @@
 #include "SourceControl.h"
 #include "EditorBuildUtils.h"
 #include "UnPath.h"
+#if BATMAN
+#include <wx/progdlg.h>
+#endif
 
 #if _WINDOWS
 // Needed for balloon message handling
@@ -356,7 +359,11 @@ WxMainMenu::WxMainMenu()
 	LightingInfoMenu = new wxMenu();
 	BrushMenu = new wxMenu();
 	BuildMenu = new wxMenu();
+#if BATMAN
+	PlayMenu = NULL;
+#else
 	PlayMenu = new wxMenu();
+#endif
 	ToolsMenu = new wxMenu();
 	HelpMenu = new wxMenu();
 	VolumeMenu = new wxMenu();
@@ -634,6 +641,7 @@ WxMainMenu::WxMainMenu()
 		}
 	}
 
+#if !BATMAN
 	// Play Menu
 	{
 		// if we have any console plugins, add them to the list of places we can play the level
@@ -699,6 +707,7 @@ WxMainMenu::WxMainMenu()
 		Append( PlayMenu, *LocalizeUnrealEd("Play") );
 
 	}
+#endif
 	// Tools menu
 	{
 		ToolsMenu->Append( IDMN_TOOL_CHECK_ERRORS, *LocalizeUnrealEd("CheckMapForErrorsE"), *LocalizeUnrealEd("ToolTip_133") );
@@ -1016,6 +1025,7 @@ BEGIN_EVENT_TABLE( WxEditorFrame, wxFrame )
 	EVT_MENU( IDM_BUILD_ALL_ONLY_SELECTED_PATHS, WxEditorFrame::MenuBuild )
 #if BATMAN
 	EVT_MENU( IDM_CREATE_GRAPPLE_POINTS, WxEditorFrame::MenuCreateGrapplePoints )
+	EVT_BUTTON( IDM_PLAY_IN_GAME, WxEditorFrame::MenuPlayInGame )
 #endif
 
 	EVT_MENU_RANGE( IDM_BROWSER_START, IDM_BROWSER_END, WxEditorFrame::MenuViewShowBrowser )
@@ -3988,6 +3998,110 @@ void WxEditorFrame::MenuBuild( wxCommandEvent& In )
 void WxEditorFrame::MenuCreateGrapplePoints( wxCommandEvent& In )
 {
 	GUnrealEd->Exec( TEXT("CREATE GRAPPLE POINTS"), *GLog );
+}
+
+// BM: Cooks the current level into the retail game's content dir and plays it there.
+void WxEditorFrame::MenuPlayInGame( wxCommandEvent& In )
+{
+	if( !GWorld )
+	{
+		return;
+	}
+
+	FString GameExe;
+	GConfig->GetString( TEXT("PlayInGame"), TEXT("GameExe"), GameExe, GEditorUserSettingsIni );
+
+	if( GameExe.Len() == 0 || GFileManager->FileSize( *GameExe ) == INDEX_NONE )
+	{
+		WxFileDialog OpenFileDialog( this,
+			TEXT("Select BatmanAC.exe"),
+			*FFilename( GameExe ).GetPath(),
+			TEXT("BatmanAC.exe"),
+			TEXT("Executables (*.exe)|*.exe|All Files|*.*"),
+			wxOPEN | wxFILE_MUST_EXIST,
+			wxDefaultPosition);
+
+		if( OpenFileDialog.ShowModal() != wxID_OK )
+		{
+			return;
+		}
+
+		GameExe = FString( OpenFileDialog.GetPath() );
+		GConfig->SetString( TEXT("PlayInGame"), TEXT("GameExe"), *GameExe, GEditorUserSettingsIni );
+		GConfig->Flush( FALSE, GEditorUserSettingsIni );
+	}
+
+	// save first so the cook matches what's on disk
+	if( GWorld->CurrentLevel && !(GWorld->GetOutermost()->PackageFlags & PKG_Cooked) && !FLevelUtils::IsLevelLocked( GWorld->CurrentLevel ) )
+	{
+		FEditorFileUtils::SaveLevel( GWorld->CurrentLevel );
+	}
+
+	// ..\Binaries\Win32\BatmanAC.exe -> ..\BmGame\CookedPCConsole\_TEMP_
+	const FString GameDir = FFilename( FFilename( FFilename( GameExe ).GetPath() ).GetPath() ).GetPath();
+	const FString TempDir = GameDir * TEXT("BmGame") * TEXT("CookedPCConsole") * TEXT("_TEMP_");
+	const FString MapName = GWorld->GetOutermost()->GetName();
+	const FString TempFile = TempDir * MapName + TEXT(".upk");
+
+	// clear out anything left behind by a previous session
+	GFileManager->DeleteDirectory( *TempDir, FALSE, TRUE );
+
+	if( !GFileManager->MakeDirectory( *TempDir, TRUE ) )
+	{
+		appMsgf( AMT_OK, *FString::Printf( TEXT("Couldn't create %s"), *TempDir ) );
+		return;
+	}
+
+	{
+		const FScopedBusyCursor BusyCursor;
+		GWarn->BeginSlowTask( *FString::Printf( TEXT("Cooking %s..."), *MapName ), TRUE );
+		const UBOOL bCooked = BmSaveCookedLevel( GWorld, *TempFile );
+		GWarn->EndSlowTask();
+
+		if( !bCooked )
+		{
+			appMsgf( AMT_OK, *LocalizeUnrealEd("Error_CouldntSavePackage") );
+			return;
+		}
+	}
+
+	const FString URL = FString::Printf( TEXT("\"%s\""), *GameExe );
+	const FString Params = FString::Printf( TEXT("batentry?Players=Playable_Batman?Area=%s -nosplash -windowed"), *MapName );
+
+	void* ProcHandle = appCreateProc( *URL, *Params );
+	if( ProcHandle )
+	{
+		wxProgressDialog ProgressDialog(
+			TEXT("Play in Game"),
+			*FString::Printf( TEXT("Playing %s..."), *MapName ),
+			100,
+			this,
+			wxPD_APP_MODAL | wxPD_CAN_ABORT | wxPD_ELAPSED_TIME );
+
+		if( wxWindow* AbortButton = ProgressDialog.FindWindow( wxID_CANCEL ) )
+		{
+			AbortButton->SetLabel( TEXT("Stop") );
+		}
+
+		while( appIsProcRunning( ProcHandle ) )
+		{
+			appSleep( 0.1f );
+
+			// the abort button doubles as "stop playing"
+			if( !ProgressDialog.Pulse() )
+			{
+				appTerminateProc( ProcHandle );
+				appWaitForProc( ProcHandle );
+				break;
+			}
+		}
+	}
+	else
+	{
+		appMsgf( AMT_OK, *FString::Printf( TEXT("Couldn't launch %s"), *GameExe ) );
+	}
+
+	GFileManager->DeleteDirectory( *TempDir, FALSE, TRUE );
 }
 #endif
 

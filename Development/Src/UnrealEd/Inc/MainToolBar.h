@@ -72,6 +72,7 @@ private:
 	WxBitmap BuildGeomB, BuildLightingB, BuildPathsB, BuildCoverNodesB, BuildAllB, BuildAllSubmitB, BuildAllSubmitDisabledB;
 #if BATMAN
 	WxBitmap CreateGrapplePointsB;
+	WxBitmap PlayInGameB;
 #endif
 	WxBitmap LightingQualityImages[Quality_MAX];
 	WxBitmap PlayOnB[B_MAX];
@@ -86,6 +87,9 @@ private:
 	WxMenuButton MRUButton, PasteSpecialButton;
 	WxBitmapCheckButton* SelectionModeButton;
 	WxBitmapStateButton* PlayInEditorButton;
+#if BATMAN
+	WxBitmapButton* PlayInGameButton;
+#endif
 	wxMenu PasteSpecialMenu;
 
 	/** Drop down of all available Matinee sequences in the level */

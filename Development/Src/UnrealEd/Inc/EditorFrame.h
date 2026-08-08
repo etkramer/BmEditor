@@ -478,6 +478,7 @@ private:
 	void MenuBuild( wxCommandEvent& In );
 #if BATMAN
 	void MenuCreateGrapplePoints( wxCommandEvent& In );
+	void MenuPlayInGame( wxCommandEvent& In );
 #endif
 	void MenuBuildAndSubmit( wxCommandEvent& In );
 	void MenuRedrawAllViewports( wxCommandEvent& In );

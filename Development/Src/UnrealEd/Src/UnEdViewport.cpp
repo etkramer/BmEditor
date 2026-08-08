@@ -4865,6 +4865,14 @@ UBOOL FEditorLevelViewportClient::InputKey(FViewport* Viewport,INT ControllerId,
 					bRedrawAllViewports = TRUE;
 				}
 			}
+#if BATMAN
+			else if( Key == KEY_F8 )
+			{
+				// BM: F8 plays in the retail game instead of PIE
+				wxCommandEvent PlayEvent( wxEVT_COMMAND_BUTTON_CLICKED, IDM_PLAY_IN_GAME );
+				GetEditorFrame()->GetEventHandler()->AddPendingEvent( PlayEvent );
+			}
+#else
 			else if( Key == KEY_F8 )
 			{
 				// Play in editor/ play in viewport
@@ -4906,6 +4914,7 @@ UBOOL FEditorLevelViewportClient::InputKey(FViewport* Viewport,INT ControllerId,
 					GUnrealEd->PlayMap( StartLocation, StartRotation, -1, MyViewportIndex );
 				}
 			}
+#endif
 		}
 
 		if( bRedrawAllViewports )

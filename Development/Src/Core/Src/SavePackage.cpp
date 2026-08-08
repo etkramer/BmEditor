@@ -3035,7 +3035,12 @@ UBOOL UObject::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				}
 		
 				// Update package file cache
+#if BATMAN
+				// BM: cooking writes a copy under the source package's name, so an ambiguity here is expected
+				GPackageFileCache->CachePackage( Filename, 0, !GIsUCC && !GIsCooking );
+#else
 				GPackageFileCache->CachePackage( Filename, 0, !GIsUCC );
+#endif
 
 #if HAVE_SCC && WITH_EDITOR
 				// If the package is a valid candidate for being automatically-added to source control, go ahead and add it

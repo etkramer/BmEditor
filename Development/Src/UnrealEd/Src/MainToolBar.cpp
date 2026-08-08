@@ -99,6 +99,7 @@ WxMainToolBar::WxMainToolBar( wxWindow* InParent, wxWindowID InID )
 	BuildCoverNodesB.Load( TEXT("BuildCoverNodes.png"));
 #if BATMAN
 	CreateGrapplePointsB.Load( TEXT("CreateGrapplePoints.png"));
+	PlayInGameB.Load( TEXT("PlayInGame.png"));
 #endif
 	BuildAllB.Load( TEXT("BuildAll.png"));
 	BuildAllSubmitB.Load( TEXT("BuildAllSubmit.png"));
@@ -357,6 +358,7 @@ WxMainToolBar::WxMainToolBar( wxWindow* InParent, wxWindowID InID )
 	AddCheckTool( IDM_REALTIME_AUDIO, TEXT(""), RealtimeAudioB, RealtimeAudioB, *LocalizeUnrealEd("MainToolBar_RealTimeAudio") );
 	AddSeparator();
 
+#if !BATMAN
 	// loop through all consoles (only support 20 consoles)
 	INT ConsoleIndex = 0;
 	UBOOL bHasAddedPreviewButton = FALSE;
@@ -425,7 +427,12 @@ WxMainToolBar::WxMainToolBar( wxWindow* InParent, wxWindowID InID )
 			AddSeparator();
 		}
 	}
+#endif
 
+#if BATMAN
+	// BM: PIE can't run BM2 content - "Play in Game" replaces it
+	PlayInEditorButton = NULL;
+#else
 	// we always can play in the editor, put it's Play Icon in the toolbar
 	PlayInEditorButton = new WxBitmapStateButton( this, this, IDM_BuildPlayInEditorButton, wxDefaultPosition, wxSize( 35, 21 ), FALSE );
 	PlayInEditorButton->AddState( PIE_Play, &PlayInEditorStartB );
@@ -433,6 +440,13 @@ WxMainToolBar::WxMainToolBar( wxWindow* InParent, wxWindowID InID )
 	PlayInEditorButton->SetToolTip( *LocalizeUnrealEd("MainToolBar_PlayInEditorPlay_ToolTip") );
 	PlayInEditorButton->SetCurrentState( PIE_Play );
 	AddControl( PlayInEditorButton );
+#endif
+
+#if BATMAN
+	PlayInGameButton = new WxBitmapButton( this, IDM_PLAY_IN_GAME, PlayInGameB, wxDefaultPosition, wxSize( 35, 21 ) );
+	PlayInGameButton->SetToolTip( TEXT("Play in Game") );
+	AddControl( PlayInGameButton );
+#endif
 
 	Realize();
 
