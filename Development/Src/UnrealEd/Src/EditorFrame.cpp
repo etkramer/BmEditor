@@ -601,9 +601,6 @@ WxMainMenu::WxMainMenu()
 		BuildMenu->Append( IDM_BUILD_LIGHTING, *LocalizeUnrealEd("MainBuildMenu_Lighting"), *LocalizeUnrealEd("ToolTip_124") );
 		BuildMenu->Append( IDM_BUILD_AI_PATHS, *LocalizeUnrealEd("AIPaths"), *LocalizeUnrealEd("ToolTip_148") );
 		BuildMenu->Append( IDM_BUILD_SELECTED_AI_PATHS, *LocalizeUnrealEd("SelectedAIPaths"), *LocalizeUnrealEd("ToolTip_125") );
-#if BATMAN
-		BuildMenu->Append( IDM_BUILD_GRAPPLE_POINTS, TEXT("Grapple Points"), TEXT("Places grapple points along the climbable edges of the selected actors.") );
-#endif
 		BuildMenu->AppendSeparator();
 		BuildMenu->Append( IDM_BUILD_ALL, *LocalizeUnrealEd("BuildAll"), *LocalizeUnrealEd("ToolTip_127") );
 		BuildMenu->Append( IDM_BUILD_ALL_ONLY_SELECTED_PATHS, *LocalizeUnrealEd("BuildAllSelectedPaths"), *LocalizeUnrealEd("ToolTip_149") );
@@ -1018,7 +1015,7 @@ BEGIN_EVENT_TABLE( WxEditorFrame, wxFrame )
 	EVT_MENU( IDM_BUILD_ALL_SUBMIT, WxEditorFrame::MenuBuildAndSubmit )
 	EVT_MENU( IDM_BUILD_ALL_ONLY_SELECTED_PATHS, WxEditorFrame::MenuBuild )
 #if BATMAN
-	EVT_MENU( IDM_BUILD_GRAPPLE_POINTS, WxEditorFrame::MenuCreateGrapplePoints )
+	EVT_MENU( IDM_CREATE_GRAPPLE_POINTS, WxEditorFrame::MenuCreateGrapplePoints )
 #endif
 
 	EVT_MENU_RANGE( IDM_BROWSER_START, IDM_BROWSER_END, WxEditorFrame::MenuViewShowBrowser )

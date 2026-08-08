@@ -98,7 +98,7 @@ WxMainToolBar::WxMainToolBar( wxWindow* InParent, wxWindowID InID )
 	BuildPathsB.Load( TEXT("BuildPaths.png"));
 	BuildCoverNodesB.Load( TEXT("BuildCoverNodes.png"));
 #if BATMAN
-	BuildGrapplePointsB.Load( TEXT("BuildGrapplePoints.png"));
+	CreateGrapplePointsB.Load( TEXT("CreateGrapplePoints.png"));
 #endif
 	BuildAllB.Load( TEXT("BuildAll.png"));
 	BuildAllSubmitB.Load( TEXT("BuildAllSubmit.png"));
@@ -304,9 +304,6 @@ WxMainToolBar::WxMainToolBar( wxWindow* InParent, wxWindowID InID )
 	AddTool( IDM_BUILD_LIGHTING, TEXT(""), BuildLightingB, *LocalizeUnrealEd("ToolTip_45") );
 	AddTool( IDM_BUILD_AI_PATHS, TEXT(""), BuildPathsB, *LocalizeUnrealEd("ToolTip_46") );
 	AddTool( IDM_BUILD_COVER, TEXT(""), BuildCoverNodesB, *LocalizeUnrealEd("ToolTip_47") );
-#if BATMAN
-	AddTool( IDM_BUILD_GRAPPLE_POINTS, TEXT(""), BuildGrapplePointsB, TEXT("Places grapple points along the climbable edges of the selected actors.") );
-#endif
 	AddTool( IDM_BUILD_ALL, TEXT(""), BuildAllB, *LocalizeUnrealEd("ToolTip_48") );
 
 #if HAVE_SCC && WITH_MANAGED_CODE
@@ -350,6 +347,11 @@ WxMainToolBar::WxMainToolBar( wxWindow* InParent, wxWindowID InID )
 
 		AddSeparator();
 	}
+
+#if BATMAN
+	AddTool( IDM_CREATE_GRAPPLE_POINTS, TEXT(""), CreateGrapplePointsB, TEXT("Create Grapple Points") );
+	AddSeparator();
+#endif
 
 	AddCheckTool( IDM_FULLSCREEN, TEXT(""), FullScreenB, FullScreenB, *LocalizeUnrealEd("ToolTip_37") );
 	AddCheckTool( IDM_REALTIME_AUDIO, TEXT(""), RealtimeAudioB, RealtimeAudioB, *LocalizeUnrealEd("MainToolBar_RealTimeAudio") );

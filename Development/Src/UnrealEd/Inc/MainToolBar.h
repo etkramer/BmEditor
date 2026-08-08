@@ -71,7 +71,7 @@ private:
 	WxBitmap SaveAllWritableB;
 	WxBitmap BuildGeomB, BuildLightingB, BuildPathsB, BuildCoverNodesB, BuildAllB, BuildAllSubmitB, BuildAllSubmitDisabledB;
 #if BATMAN
-	WxBitmap BuildGrapplePointsB;
+	WxBitmap CreateGrapplePointsB;
 #endif
 	WxBitmap LightingQualityImages[Quality_MAX];
 	WxBitmap PlayOnB[B_MAX];
