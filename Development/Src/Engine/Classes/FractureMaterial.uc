@@ -8,10 +8,8 @@ class FractureMaterial extends Object
 
 /** Particle system effect to play at fracture location. */
 var()	ParticleSystem				FractureEffect;
-// BM: AkEvent
-var()	Object						FractureShardSound;
-// BM: AkEvent
-var()	Object						FractureDamageSound;
+var()	AkEvent						FractureShardSound; // BM
+var()	AkEvent						FractureDamageSound; // BM
 
 // BM
 var()	bool	CastShadow;

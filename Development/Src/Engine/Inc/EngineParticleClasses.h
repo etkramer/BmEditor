@@ -996,7 +996,7 @@ public:
     TArrayNoInit<class UStaticMeshComponent*> SMComponents;
     TArrayNoInit<class UMaterialInterface*> SMMaterialInterfaces;
     TArrayNoInit<class USkeletalMeshComponent*> SkelMeshComponents;
-    class UObject* ParticleAkComponent;
+    class UAkComponent* ParticleAkComponent;
     TArrayNoInit<struct FViewParticleEmitterInstanceMotionBlurInfo> ViewMBInfoArray;
     BITFIELD bAutoActivate:1;
     BITFIELD bWasCompleted:1;

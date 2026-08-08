@@ -46,8 +46,8 @@ var() editoronly transient float Friction;
 var() editoronly transient int SolverIterations;
 var() editoronly transient float GravityScale;
 var() editoronly transient float HardStretchLimitation;
-var(Sound) Object SoundOnMove;							// BM: AkEvent stub
-var(Sound) Object SoundOnRest;							// BM: AkEvent stub
+var(Sound) AkEvent SoundOnMove;							// BM
+var(Sound) AkEvent SoundOnRest;							// BM
 var(Sound) float SpeedThresholdOnMove;
 var(Sound) float SpeedThresholdOnRest;
 

@@ -537,7 +537,7 @@ struct native PhysEffectInfo
 	var() float MaxEffectSpeed;
 	var() float ReFireDelay;
 	var() ParticleSystem Effect;
-	var() object Sound;
+	var() AkEvent Sound;
 	var() editoronly export ActorComponent Force;
 };
 

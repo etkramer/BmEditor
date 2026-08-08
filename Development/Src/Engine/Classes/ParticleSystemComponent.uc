@@ -36,7 +36,7 @@ var private transient duplicatetransient const array<MaterialInterface> SMMateri
  */
 var private transient duplicatetransient const array<SkeletalMeshComponent> SkelMeshComponents;
 
-var private transient duplicatetransient const object ParticleAkComponent; // BM
+var private transient duplicatetransient const AkComponent ParticleAkComponent; // BM
 
 /**
  * Stores motion blur transform info for particles

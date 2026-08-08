@@ -123,9 +123,9 @@ var(Investigate) vector InvestigateOffset;
 var		PhysEffectInfo	PartImpactEffect;
 
 /** Cached sound for large fractures. */
-var(Audio)	Object			ExplosionFractureSound; // BM: AkEvent
+var(Audio)	AkEvent			ExplosionFractureSound; // BM
 /** Cached sound for single chunk fractures. */
-var(Audio)	Object			SingleChunkFractureSound; // BM: AkEvent
+var(Audio)	AkEvent			SingleChunkFractureSound; // BM
 var(Audio)	int				NumChunksForExplosionSound;
 var		ParticleSystem	ExplosionFractureEffect;
 var()	DynamicLightEnvironmentComponent FracturePartLightEnv;
@@ -153,9 +153,9 @@ simulated native final function FracturedStaticMeshPart SpawnPartMulti(array<int
 simulated event PostBeginPlay()
 {
 	local PhysicalMaterial PhysMat;
-	// BM: AkEvent
-	local Object LargeFractureSound;
-	local Object ChunkFractureSound;
+	// BM
+	local AkEvent LargeFractureSound;
+	local AkEvent ChunkFractureSound;
 
 	super.PostBeginPlay();
 	ResetHealth();

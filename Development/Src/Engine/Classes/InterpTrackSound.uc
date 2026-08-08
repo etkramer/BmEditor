@@ -50,8 +50,8 @@ cpptext
 struct native SoundTrackKey
 {
 	var		float		Time;
-	// BM: AkEvent
-	var()	Object		WwiseEvent;
+	// BM
+	var()	AkEvent		WwiseEvent;
 	// BM: RDialogueEvent
 	var()	Object		Line;
 	// BM

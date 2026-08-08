@@ -84,33 +84,6 @@ enum EWheelSide
 #include "UnObjBas.h"
 #undef ENABLE_DECLARECLASS_MACRO
 
-struct FAkSoundHandle_Mirror
-{
-    INT EventInstanceID;
-    INT OriginalEventID;
-    INT SourceID;
-
-    /** Constructors */
-    FAkSoundHandle_Mirror() {}
-    FAkSoundHandle_Mirror(EEventParm)
-    {
-        appMemzero(this, sizeof(FAkSoundHandle_Mirror));
-    }
-};
-
-struct FAkSoundLoop_Mirror
-{
-    class UObject* SoundEvent;
-    struct FAkSoundHandle_Mirror SoundHandle;
-
-    /** Constructors */
-    FAkSoundLoop_Mirror() {}
-    FAkSoundLoop_Mirror(EEventParm)
-    {
-        appMemzero(this, sizeof(FAkSoundLoop_Mirror));
-    }
-};
-
 struct KActor_eventApplyImpulse_Parms
 {
     FVector ImpulseDir;
@@ -141,7 +114,7 @@ public:
     struct FPhysEffectInfo ImpactEffectInfo;
     class UObject* ImpactForceComponent;
     class UParticleSystemComponent* SlideEffectComponent;
-    struct FAkSoundLoop_Mirror SlideSoundLoop;
+    struct FAkSoundLoop SlideSoundLoop;
     FLOAT LastSlideTime;
     struct FPhysEffectInfo SlideEffectInfo;
     FLOAT StayUprightTorqueFactor;
@@ -909,8 +882,8 @@ class UFractureMaterial : public UObject
 public:
     //## BEGIN PROPS FractureMaterial
     class UParticleSystem* FractureEffect;
-    class UObject* FractureShardSound;
-    class UObject* FractureDamageSound;
+    class UAkEvent* FractureShardSound;
+    class UAkEvent* FractureDamageSound;
     BITFIELD CastShadow:1;
     BITFIELD bForceDirectLightMap:1;
     BITFIELD bCastDynamicShadow:1;
@@ -988,22 +961,6 @@ public:
 	UBOOL AddCollisionFromCachedData(const FVector& Scale3D, FKCachedConvexData* CachedData, const FString& DebugName);
 };
 
-struct FAkEnvelopeSettings_Mirror
-{
-    FLOAT SustainValue;
-    FLOAT ReleaseValue;
-    FLOAT AttackDuration;
-    FLOAT SustainDuration;
-    FLOAT ReleaseDuration;
-
-    /** Constructors */
-    FAkEnvelopeSettings_Mirror() {}
-    FAkEnvelopeSettings_Mirror(EEventParm)
-    {
-        appMemzero(this, sizeof(FAkEnvelopeSettings_Mirror));
-    }
-};
-
 class UPhysicalMaterial : public UObject
 {
 public:
@@ -1036,24 +993,24 @@ public:
     FLOAT MaxImpactEffectSpeed;
     FLOAT ImpactReFireDelay;
     class UParticleSystem* ImpactEffect;
-    class UObject* ImpactSound;
+    class UAkEvent* ImpactSound;
     class UActorComponent* ImpactForce;
     FLOAT SlideThreshold;
     FLOAT MinSlideEffectSpeed;
     FLOAT MaxSlideEffectSpeed;
     FLOAT SlideReFireDelay;
     class UParticleSystem* SlideEffect;
-    class UObject* SlideSound;
-    class UObject* BodyfallSound;
-    class UObject* GenericSound;
-    class UObject* FootstepSurface;
+    class UAkEvent* SlideSound;
+    class UAkEvent* BodyfallSound;
+    class UAkEvent* GenericSound;
+    class UAkSwitchName* FootstepSurface;
     FLOAT FootstepSurfaceWetness;
     FLOAT FootstepSurfaceGlass;
-    class UObject* FootstepSurfaceContinuousContactSound;
-    class UObject* FootstepSurfaceContinuousContactParameter;
-    struct FAkEnvelopeSettings_Mirror FootstepSurfaceContinuousContactEnvelope;
-    class UObject* FractureSoundExplosion;
-    class UObject* FractureSoundSingle;
+    class UAkEvent* FootstepSurfaceContinuousContactSound;
+    class UAkParameterName* FootstepSurfaceContinuousContactParameter;
+    struct FAkEnvelopeSettings FootstepSurfaceContinuousContactEnvelope;
+    class UAkEvent* FractureSoundExplosion;
+    class UAkEvent* FractureSoundSingle;
     class UParticleSystem* FractureEffectExplosion;
     class UPhysicalMaterial* Parent;
     class UPhysicalMaterialPropertyBase* PhysicalMaterialProperty;

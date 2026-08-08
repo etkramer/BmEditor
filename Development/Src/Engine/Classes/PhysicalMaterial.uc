@@ -3,19 +3,10 @@
  */
 class PhysicalMaterial extends Object
 	native(Physics)
+	dependson(AkWwise)
 	collapsecategories
 	hidecategories(Object);
 
-
-// BM
-struct native AkEnvelopeSettings_Mirror
-{
-	var() float SustainValue;
-	var() float ReleaseValue;
-	var() float AttackDuration;
-	var() float SustainDuration;
-	var() float ReleaseDuration;
-};
 
 // Used internally by physics engine.
 var	transient int	MaterialIndex;
@@ -70,8 +61,7 @@ var(Impact)		float						MaxImpactEffectSpeed;
 var(Impact)		float						ImpactReFireDelay;
 /** Particle effect to play at impact location */
 var(Impact)		ParticleSystem				ImpactEffect;
-// BM: AkEvent
-var(Impact)		Object						ImpactSound;
+var(Impact)		AkEvent						ImpactSound; // BM
 // BM: RB_ForceComponent
 var(Impact)		editoronly export ActorComponent	ImpactForce;
 
@@ -86,27 +76,24 @@ var(Slide)		float						MaxSlideEffectSpeed;
 var(Slide)		float						SlideReFireDelay;
 /** Effect to place at contact position and enable while sliding */
 var(Slide)		ParticleSystem				SlideEffect;
-// BM: AkEvent
-var(Slide)		Object						SlideSound;
+var(Slide)		AkEvent						SlideSound; // BM
 
 // BM: movement sounds
-var(SoundMovement)	Object					BodyfallSound;
-var(SoundMovement)	Object					GenericSound;
+var(SoundMovement)	AkEvent					BodyfallSound;
+var(SoundMovement)	AkEvent					GenericSound;
 
 // BM: footstep sounds
-var(SoundFootsteps)	Object					FootstepSurface;
+var(SoundFootsteps)	AkSwitchName			FootstepSurface;
 var(SoundFootsteps)	float					FootstepSurfaceWetness;
 var(SoundFootsteps)	float					FootstepSurfaceGlass;
-var(SoundFootstepsContinuous)	Object		FootstepSurfaceContinuousContactSound;
-var(SoundFootstepsContinuous)	Object		FootstepSurfaceContinuousContactParameter;
-var(SoundFootstepsContinuous)	AkEnvelopeSettings_Mirror	FootstepSurfaceContinuousContactEnvelope;
+var(SoundFootstepsContinuous)	AkEvent		FootstepSurfaceContinuousContactSound;
+var(SoundFootstepsContinuous)	AkParameterName	FootstepSurfaceContinuousContactParameter;
+var(SoundFootstepsContinuous)	AkWwise.AkEnvelopeSettings	FootstepSurfaceContinuousContactEnvelope;
 
 // Fracture effects
 
-// BM: AkEvent
-var(Fracture)	Object						FractureSoundExplosion;
-// BM: AkEvent
-var(Fracture)	Object						FractureSoundSingle;
+var(Fracture)	AkEvent						FractureSoundExplosion; // BM
+var(Fracture)	AkEvent						FractureSoundSingle; // BM
 // BM
 var(Fracture)	ParticleSystem				FractureEffectExplosion;
 
@@ -161,7 +148,7 @@ enum EPhysEffectType
 function native PhysEffectInfo FindPhysEffectInfo(EPhysEffectType Type);
 
 /** Look up PhysicalMaterial heriarchy to find fracture sounds */
-simulated function FindFractureSounds(out Object OutSoundExplosion, out Object OutSoundSingle) // BM
+simulated function FindFractureSounds(out AkEvent OutSoundExplosion, out AkEvent OutSoundSingle) // BM
 {
 	local PhysicalMaterial TestMat;
 

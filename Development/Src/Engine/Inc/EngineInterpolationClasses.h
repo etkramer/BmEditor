@@ -1790,7 +1790,7 @@ public:
 struct FSoundTrackKey
 {
     FLOAT Time;
-    class UObject* WwiseEvent;
+    class UAkEvent* WwiseEvent;
     class UObject* Line;
     FLOAT WwiseDuration;
 

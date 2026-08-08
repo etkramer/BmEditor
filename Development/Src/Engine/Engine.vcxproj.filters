@@ -831,6 +831,9 @@
     <ClCompile Include="Src\UnAnimTreeDraw.cpp">
       <Filter>Src</Filter>
     </ClCompile>
+    <ClCompile Include="Src\UnAkAudio.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
     <ClCompile Include="Src\UnAudio.cpp">
       <Filter>Src</Filter>
     </ClCompile>

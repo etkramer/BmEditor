@@ -835,8 +835,8 @@ public:
     TArrayNoInit<struct FDeferredPartToSpawn> DeferredPartsToSpawn;
     FVector InvestigateOffset;
     struct FPhysEffectInfo PartImpactEffect;
-    class UObject* ExplosionFractureSound;
-    class UObject* SingleChunkFractureSound;
+    class UAkEvent* ExplosionFractureSound;
+    class UAkEvent* SingleChunkFractureSound;
     INT NumChunksForExplosionSound;
     class UParticleSystem* ExplosionFractureEffect;
     class UDynamicLightEnvironmentComponent* FracturePartLightEnv;
@@ -1712,8 +1712,8 @@ public:
     INT SolverIterations;
     FLOAT GravityScale;
     FLOAT HardStretchLimitation;
-    class UObject* SoundOnMove;
-    class UObject* SoundOnRest;
+    class UAkEvent* SoundOnMove;
+    class UAkEvent* SoundOnRest;
     FLOAT SpeedThresholdOnMove;
     FLOAT SpeedThresholdOnRest;
     //## END PROPS ApexClothingAsset

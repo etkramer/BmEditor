@@ -284,6 +284,7 @@
     <ClCompile Include="Src\UIniLocPatcher.cpp" />
     <ClCompile Include="Src\UnActor.cpp" />
     <ClCompile Include="Src\UnActorComponent.cpp" />
+    <ClCompile Include="Src\UnAkAudio.cpp" />
     <ClCompile Include="Src\UnActorFactory.cpp" />
     <ClCompile Include="Src\UnAITree.cpp" />
     <ClCompile Include="Src\UnAnimPlay.cpp" />

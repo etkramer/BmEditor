@@ -4494,7 +4494,7 @@ void WxInterpEd::DisableCameraPostProcessFlags( UInterpTrack* Track, AActor* Gro
 
 // Common FName used just for storing name information while adding Keyframes to tracks.
 static FName		KeyframeAddDataName = NAME_None;
-static USoundCue	*KeyframeAddSoundCue = NULL;
+static UAkEvent	*KeyframeAddSoundCue = NULL;
 static FName		TrackAddPropName = NAME_None;
 static FName		AnimSlotName = NAME_None;
 static FString		FaceFXGroupName = FString(TEXT(""));
@@ -4837,7 +4837,7 @@ IMPLEMENT_CLASS(UInterpTrackEventHelper);
 UBOOL UInterpTrackSoundHelper::PreCreateKeyframe( UInterpTrack *Track, FLOAT KeyTime ) const
 {
 	GCallbackEvent->Send( CALLBACK_LoadSelectedAssetsIfNeeded );
-	KeyframeAddSoundCue = GEditor->GetSelectedObjects()->GetTop<USoundCue>();
+	KeyframeAddSoundCue = GEditor->GetSelectedObjects()->GetTop<UAkEvent>();
 	if ( KeyframeAddSoundCue )
 	{
 		return TRUE;

@@ -621,6 +621,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Src\UnAkAudio.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\Src\UnActorFactory.cpp"
 				>
 			</File>
@@ -8919,6 +8923,122 @@
 				</File>
 				<File
 					RelativePath=".\Classes\ActorFactoryApexDestructible.uc"
+					>
+				</File>
+				<File
+					RelativePath=".\Classes\AkAsset.uc"
+					>
+				</File>
+				<File
+					RelativePath=".\Classes\AkAssetBase.uc"
+					>
+				</File>
+				<File
+					RelativePath=".\Classes\AkAssetPack.uc"
+					>
+				</File>
+				<File
+					RelativePath=".\Classes\AkAssetPrep.uc"
+					>
+				</File>
+				<File
+					RelativePath=".\Classes\AkAudioAction.uc"
+					>
+				</File>
+				<File
+					RelativePath=".\Classes\AkAudioActionAltitude.uc"
+					>
+				</File>
+				<File
+					RelativePath=".\Classes\AkAudioActionAmbience.uc"
+					>
+				</File>
+				<File
+					RelativePath=".\Classes\AkAudioActionEvent.uc"
+					>
+				</File>
+				<File
+					RelativePath=".\Classes\AkAudioActionParameter.uc"
+					>
+				</File>
+				<File
+					RelativePath=".\Classes\AkAudioActionState.uc"
+					>
+				</File>
+				<File
+					RelativePath=".\Classes\AkAudioActionSwitch.uc"
+					>
+				</File>
+				<File
+					RelativePath=".\Classes\AkBank.uc"
+					>
+				</File>
+				<File
+					RelativePath=".\Classes\AkComponent.uc"
+					>
+				</File>
+				<File
+					RelativePath=".\Classes\AkDrawBoundsComponent.uc"
+					>
+				</File>
+				<File
+					RelativePath=".\Classes\AkDrawSoundBoxComponent.uc"
+					>
+				</File>
+				<File
+					RelativePath=".\Classes\AkDrawSoundRadiusComponent.uc"
+					>
+				</File>
+				<File
+					RelativePath=".\Classes\AkEnvironmentName.uc"
+					>
+				</File>
+				<File
+					RelativePath=".\Classes\AkEvent.uc"
+					>
+				</File>
+				<File
+					RelativePath=".\Classes\AkHash.uc"
+					>
+				</File>
+				<File
+					RelativePath=".\Classes\AkParameterName.uc"
+					>
+				</File>
+				<File
+					RelativePath=".\Classes\AkPropertySheet.uc"
+					>
+				</File>
+				<File
+					RelativePath=".\Classes\AkSoundActor.uc"
+					>
+				</File>
+				<File
+					RelativePath=".\Classes\AkStackName.uc"
+					>
+				</File>
+				<File
+					RelativePath=".\Classes\AkStateGroupName.uc"
+					>
+				</File>
+				<File
+					RelativePath=".\Classes\AkStateName.uc"
+					>
+				</File>
+				<File
+					RelativePath=".\Classes\AkSwitchGroupName.uc"
+					>
+				</File>
+				<File
+					RelativePath=".\Classes\AkSwitchName.uc"
+					>
+				</File>
+				<File
+					RelativePath=".\Classes\AkTriggerName.uc"
+					>
+				</File>
+				<File
+					RelativePath=".\Classes\AkWwise.uc"
 					>
 				</File>
 				<File

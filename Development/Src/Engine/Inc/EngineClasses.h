@@ -679,6 +679,156 @@ enum EDoorType
 #define FOREACH_ENUM_EDOORTYPE(op) \
     op(DOOR_Shoot) \
     op(DOOR_Touch) 
+enum EAkPhysicsNotifyType
+{
+    AK_PHYS_NOTIFY_IMPACT   =0,
+    AK_PHYS_NOTIFY_COLLAPSE =1,
+    AK_PHYS_NOTIFY_SLIDE    =2,
+    AK_PHYS_NOTIFY_ROLL     =3,
+    AK_PHYS_NOTIFY_FLAP     =4,
+    AK_PHYS_NOTIFY_PARTICLE =5,
+    AK_PHYS_NOTIFY_MAX      =6,
+};
+#define FOREACH_ENUM_EAKPHYSICSNOTIFYTYPE(op) \
+    op(AK_PHYS_NOTIFY_IMPACT) \
+    op(AK_PHYS_NOTIFY_COLLAPSE) \
+    op(AK_PHYS_NOTIFY_SLIDE) \
+    op(AK_PHYS_NOTIFY_ROLL) \
+    op(AK_PHYS_NOTIFY_FLAP) \
+    op(AK_PHYS_NOTIFY_PARTICLE) 
+enum EAkIOStreamPriorities
+{
+    AKIO_PRIORITY_HIGH      =0,
+    AKIO_PRIORITY_ABOVE_NORMAL=1,
+    AKIO_PRIORITY_NORMAL    =2,
+    AKIO_PRIORITY_BELOW_NORMAL=3,
+    AKIO_PRIORITY_LOW       =4,
+    AKIO_PRIORITY_MAX       =5,
+};
+#define FOREACH_ENUM_EAKIOSTREAMPRIORITIES(op) \
+    op(AKIO_PRIORITY_HIGH) \
+    op(AKIO_PRIORITY_ABOVE_NORMAL) \
+    op(AKIO_PRIORITY_NORMAL) \
+    op(AKIO_PRIORITY_BELOW_NORMAL) \
+    op(AKIO_PRIORITY_LOW) 
+enum EDialogueHelperType
+{
+    DialogueHelper_None     =0,
+    DialogueHelper_Player   =1,
+    DialogueHelper_BatmansRadio=2,
+    DialogueHelper_BroadcastAnalyzer=3,
+    DialogueHelper_Intercept=4,
+    DialogueHelper_Surveillance=5,
+    DialogueHelper_Tape     =6,
+    DialogueHelper_TV       =7,
+    DialogueHelper_Normal   =8,
+    DialogueHelper_TannoyLow=9,
+    DialogueHelper_TannoyHigh=10,
+    DialogueHelper_Helicopter=11,
+    DialogueHelper_Emote    =12,
+    DialogueHelper_MAX      =13,
+};
+#define FOREACH_ENUM_EDIALOGUEHELPERTYPE(op) \
+    op(DialogueHelper_None) \
+    op(DialogueHelper_Player) \
+    op(DialogueHelper_BatmansRadio) \
+    op(DialogueHelper_BroadcastAnalyzer) \
+    op(DialogueHelper_Intercept) \
+    op(DialogueHelper_Surveillance) \
+    op(DialogueHelper_Tape) \
+    op(DialogueHelper_TV) \
+    op(DialogueHelper_Normal) \
+    op(DialogueHelper_TannoyLow) \
+    op(DialogueHelper_TannoyHigh) \
+    op(DialogueHelper_Helicopter) \
+    op(DialogueHelper_Emote) 
+enum EAkGameSyncType
+{
+    AK_GS_GENERAL           =0,
+    AK_GS_SFX               =1,
+    AK_GS_MUSIC             =2,
+    AK_GS_DIALOGUE          =3,
+    AK_GS_FADER             =4,
+    AK_GS_LISTENER          =5,
+    AK_GS_LFO               =6,
+    AK_GS_MIX               =7,
+    AK_GS_MAX               =8,
+};
+#define FOREACH_ENUM_EAKGAMESYNCTYPE(op) \
+    op(AK_GS_GENERAL) \
+    op(AK_GS_SFX) \
+    op(AK_GS_MUSIC) \
+    op(AK_GS_DIALOGUE) \
+    op(AK_GS_FADER) \
+    op(AK_GS_LISTENER) \
+    op(AK_GS_LFO) \
+    op(AK_GS_MIX) 
+enum EGlobalAudioSourceID
+{
+    AK_INVALID_SOURCE_ID    =0,
+    AK_RESERVED_SOURCE_ID   =1,
+    AK_EDITOR_SOURCE_ID     =2,
+    AK_MUSIC_SOURCE_ID      =3,
+    AK_AMBIENCE_SOURCE_ID   =4,
+    AK_UI_SOURCE_ID         =5,
+    AK_HUD_SOURCE_ID        =6,
+    AK_KISMET_SOURCE_ID     =7,
+    AK_MOVIE_SOURCE_ID      =8,
+    AK_MATINEE_SOURCE_ID    =9,
+    AK_MAX                  =10,
+};
+#define FOREACH_ENUM_EGLOBALAUDIOSOURCEID(op) \
+    op(AK_INVALID_SOURCE_ID) \
+    op(AK_RESERVED_SOURCE_ID) \
+    op(AK_EDITOR_SOURCE_ID) \
+    op(AK_MUSIC_SOURCE_ID) \
+    op(AK_AMBIENCE_SOURCE_ID) \
+    op(AK_UI_SOURCE_ID) \
+    op(AK_HUD_SOURCE_ID) \
+    op(AK_KISMET_SOURCE_ID) \
+    op(AK_MOVIE_SOURCE_ID) \
+    op(AK_MATINEE_SOURCE_ID) 
+enum EListenerID
+{
+    AK_LISTENER_PLAYER_1    =0,
+    AK_LISTENER_CAMERA_1    =1,
+    AK_LISTENER_COMPOSITE_1 =2,
+    AK_LISTENER_MAX         =3,
+};
+#define FOREACH_ENUM_ELISTENERID(op) \
+    op(AK_LISTENER_PLAYER_1) \
+    op(AK_LISTENER_CAMERA_1) \
+    op(AK_LISTENER_COMPOSITE_1) 
+enum EAkComponentSourceCreateFailReason
+{
+    AK_COMPONENT_SOURCE_CREATE_FAIL_REASON_NONE=0,
+    AK_COMPONENT_SOURCE_CREATE_FAIL_REASON_DISTANT=1,
+    AK_COMPONENT_SOURCE_CREATE_FAIL_REASON_HIDDEN=2,
+    AK_COMPONENT_SOURCE_CREATE_FAIL_REASON_DEAD=3,
+    AK_COMPONENT_SOURCE_CREATE_FAIL_REASON_ERROR=4,
+    AK_COMPONENT_SOURCE_CREATE_FAIL_REASON_MAX=5,
+};
+#define FOREACH_ENUM_EAKCOMPONENTSOURCECREATEFAILREASON(op) \
+    op(AK_COMPONENT_SOURCE_CREATE_FAIL_REASON_NONE) \
+    op(AK_COMPONENT_SOURCE_CREATE_FAIL_REASON_DISTANT) \
+    op(AK_COMPONENT_SOURCE_CREATE_FAIL_REASON_HIDDEN) \
+    op(AK_COMPONENT_SOURCE_CREATE_FAIL_REASON_DEAD) \
+    op(AK_COMPONENT_SOURCE_CREATE_FAIL_REASON_ERROR) 
+enum EAkComponentUpdate
+{
+    AK_COMPONENT_UPDATE_SINGLE_AUTO=0,
+    AK_COMPONENT_UPDATE_SINGLE_NO_AUTO=1,
+    AK_COMPONENT_UPDATE_MULTIPOINT_AUTO=2,
+    AK_COMPONENT_UPDATE_MULTIPOINT_NO_AUTO=3,
+    AK_COMPONENT_UPDATE_NEVER=4,
+    AK_COMPONENT_UPDATE_MAX =5,
+};
+#define FOREACH_ENUM_EAKCOMPONENTUPDATE(op) \
+    op(AK_COMPONENT_UPDATE_SINGLE_AUTO) \
+    op(AK_COMPONENT_UPDATE_SINGLE_NO_AUTO) \
+    op(AK_COMPONENT_UPDATE_MULTIPOINT_AUTO) \
+    op(AK_COMPONENT_UPDATE_MULTIPOINT_NO_AUTO) \
+    op(AK_COMPONENT_UPDATE_NEVER) 
 enum ESceneCaptureViewMode
 {
     SceneCapView_Lit        =0,
@@ -692,6 +842,19 @@ enum ESceneCaptureViewMode
     op(SceneCapView_Unlit) \
     op(SceneCapView_LitNoShadows) \
     op(SceneCapView_Wire) 
+enum EAkBankLoadType
+{
+    AK_BANK_LOAD_NONE       =0,
+    AK_BANK_LOAD_NORMAL     =1,
+    AK_BANK_LOAD_PREPARE    =2,
+    AK_BANK_LOAD_DEFERRED   =3,
+    AK_BANK_LOAD_MAX        =4,
+};
+#define FOREACH_ENUM_EAKBANKLOADTYPE(op) \
+    op(AK_BANK_LOAD_NONE) \
+    op(AK_BANK_LOAD_NORMAL) \
+    op(AK_BANK_LOAD_PREPARE) \
+    op(AK_BANK_LOAD_DEFERRED) 
 enum DistributionParamMode
 {
     DPM_Normal              =0,
@@ -1642,7 +1805,7 @@ struct FPhysEffectInfo
     FLOAT MaxEffectSpeed;
     FLOAT ReFireDelay;
     class UParticleSystem* Effect;
-    class UObject* Sound;
+    class UAkEvent* Sound;
     class UActorComponent* Force;
 
     /** Constructors */
@@ -4510,6 +4673,24 @@ public:
 	 * Called when this actor is in a level which is being removed from the world (e.g. my level is getting UWorld::RemoveFromWorld called on it)
 	 */
 	virtual void OnRemoveFromWorld();
+};
+
+class AAkSoundActor : public AActor
+{
+public:
+    //## BEGIN PROPS AkSoundActor
+    class UAkComponent* ActorAudioComponent;
+    //## END PROPS AkSoundActor
+
+    virtual class UAkComponent* GetAkComponent(UBOOL AllowCreate=TRUE);
+    DECLARE_FUNCTION(execGetAkComponent)
+    {
+        P_GET_UBOOL_OPTX(AllowCreate,TRUE);
+        P_FINISH;
+        *(class UAkComponent**)Result=this->GetAkComponent(AllowCreate);
+    }
+    DECLARE_ABSTRACT_CLASS(AAkSoundActor,AActor,0,Engine)
+    NO_DEFAULT_CONSTRUCTOR(AAkSoundActor)
 };
 
 struct FGeomSelection
@@ -12215,6 +12396,934 @@ public:
 #endif
 };
 
+struct FAkSoundHandle
+{
+    INT EventInstanceID;
+    INT OriginalEventID;
+    INT SourceID;
+
+    /** Constructors */
+    FAkSoundHandle() {}
+    FAkSoundHandle(EEventParm)
+    {
+        appMemzero(this, sizeof(FAkSoundHandle));
+    }
+};
+
+struct FAkSoundLoop
+{
+    class UAkEvent* SoundEvent;
+    struct FAkSoundHandle SoundHandle;
+
+    /** Constructors */
+    FAkSoundLoop() {}
+    FAkSoundLoop(EEventParm)
+    {
+        appMemzero(this, sizeof(FAkSoundLoop));
+    }
+};
+
+struct FAkEnvironmentSettings
+{
+    class UAkEnvironmentName* EnvironmentName;
+    FLOAT WetMixAdjust;
+    FLOAT DryMixAdjust;
+
+    /** Constructors */
+    FAkEnvironmentSettings() {}
+    FAkEnvironmentSettings(EEventParm)
+    {
+        appMemzero(this, sizeof(FAkEnvironmentSettings));
+    }
+};
+
+struct FAkEnvironmentInfo
+{
+    struct FAkEnvironmentSettings EnvSettings;
+    FLOAT WetMixLevel;
+    FLOAT DryMixLevel;
+    FLOAT WetMixLevelAux;
+    FLOAT DryMixLevelAux;
+    INT ListenerEnvironmentCount;
+    INT RefCount;
+
+    /** Constructors */
+    FAkEnvironmentInfo() {}
+    FAkEnvironmentInfo(EEventParm)
+    {
+        appMemzero(this, sizeof(FAkEnvironmentInfo));
+    }
+};
+
+struct FAkSourceSpatial
+{
+    FVector TransformedPosition;
+    FVector TransformedOrientation;
+
+    /** Constructors */
+    FAkSourceSpatial() {}
+    FAkSourceSpatial(EEventParm)
+    {
+        appMemzero(this, sizeof(FAkSourceSpatial));
+    }
+};
+
+struct FAkEnvelopeSettings
+{
+    FLOAT SustainValue;
+    FLOAT ReleaseValue;
+    FLOAT AttackDuration;
+    FLOAT SustainDuration;
+    FLOAT ReleaseDuration;
+
+    /** Constructors */
+    FAkEnvelopeSettings() {}
+    FAkEnvelopeSettings(EEventParm)
+    {
+        appMemzero(this, sizeof(FAkEnvelopeSettings));
+    }
+};
+
+struct FAkPhysicsInfo
+{
+    class UAkEvent* ImpactSound;
+    class UAkEvent* CollapseSound;
+    class UAkEvent* SlideSound;
+    class UAkEvent* RollSound;
+    class UAkEvent* FlapSound;
+    class UAkEvent* ParticleSound;
+    FLOAT InstantaneousTimeout;
+    FLOAT ContinuousTimeout;
+
+    /** Constructors */
+    FAkPhysicsInfo() {}
+    FAkPhysicsInfo(EEventParm)
+    {
+        appMemzero(this, sizeof(FAkPhysicsInfo));
+    }
+};
+
+struct AkWwise_eventAkMusicCallback_Parms
+{
+    INT CallbackFlags;
+    INT MarkerID;
+    AkWwise_eventAkMusicCallback_Parms(EEventParm)
+    {
+    }
+};
+struct AkWwise_eventAkSoundCallback_Parms
+{
+    INT CallbackFlags;
+    struct FAkSoundHandle SoundHandle;
+    INT MarkerID;
+    AkWwise_eventAkSoundCallback_Parms(EEventParm)
+    {
+    }
+};
+class UAkWwise : public UObject
+{
+public:
+    //## BEGIN PROPS AkWwise
+    FScriptDelegate __AkSoundCallback__Delegate;
+    FScriptDelegate __AkMusicCallback__Delegate;
+    //## END PROPS AkWwise
+
+    struct FAkSoundHandle StartGlobalAudioEvent(class UAkEvent* AudioEvent,BYTE GlobalSource,FScriptDelegate SoundCallbackDelegate=FScriptDelegate(EC_EventParm),INT SoundCallbackFlags=1);
+    void StopGlobalAudioEvent(struct FAkSoundHandle& SoundHandle,UBOOL QuickStop=FALSE);
+    void SetGlobalAudioParameter(class UAkParameterName* ParamName,FLOAT ParamValue);
+    void SetGlobalStickyParameter(class UAkParameterName* ParamName,FLOAT ParamValue);
+    void SetGlobalStickyParameterEx(class UAkParameterName* ParamName,FLOAT ParamValue,FLOAT NewReleaseValue,FLOAT NewReleaseTime,FLOAT NewSustainTime,FLOAT NewAttackTime,UBOOL AllowPause);
+    void SetGlobalAudioSwitch(class UAkSwitchName* SwitchName,BYTE GlobalSource);
+    void SetGlobalAudioState(class UAkStateName* StateName);
+    void StartCollisionAudioEvent(class UAkEvent* CollisionEvent,class AActor* CollidingActor,FVector CollisionPosition,FLOAT CollisionVelocity,FLOAT CollisionStrength);
+    void StartContinuousCollisionAudioEvent(struct FAkSoundLoop& CollisionLoop,class AActor* CollidingActor,FVector CollisionPosition,FLOAT CollisionVelocity,FLOAT CollisionStrength);
+    UBOOL IsSoundHandleValid(struct FAkSoundHandle& SoundHandleToTest);
+    void CancelAudioCallbacks(class UObject* OwnerObject);
+    void StartMusic(class UAkEvent* CustomMusicEvent=NULL);
+    void StopMusic();
+    void SetMusicState(class UAkStateName* StateName);
+    void SetMixChapterState(const FString& ChapterName);
+    void SetMusicChapterState(const FString& ChapterName);
+    void SetMusicLevelState(const FString& LevelName);
+    void SetMusicGameplayState(const FString& GameplayName);
+    void SetMusicTrigger(class UAkTriggerName* TriggerName);
+    void SetMusicParameter(class UAkParameterName* ParamName,FLOAT ParamValue,FLOAT InterpolationTime=0);
+    void ResetMusicParameters(FLOAT InterpolationTime=0);
+    UBOOL RegisterMusicCallback(INT CallbackFlags,FScriptDelegate MusicCallbackDelegate,UBOOL UnregisterOnStop=TRUE);
+    void UnregisterMusicCallback(class UObject* CallbackOwner);
+    struct FAkSoundHandle StartCustomAudioEvent(class AActor* Parent,const FString& EventName);
+    void StopCustomAudioEvent(struct FAkSoundHandle& SoundHandle);
+    void SetCustomGlobalParameter(const FString& ParamName,FLOAT ParamValue);
+    void SetCustomSourceParameter(class AActor* Parent,const FString& ParamName,FLOAT ParamValue);
+    void SetCustomSourceSwitch(class AActor* Parent,const FString& SwitchGroup,const FString& SwitchName);
+    void SetCustomGlobalState(const FString& StateGroup,const FString& StateName);
+    void NotifySurveillanceDialogue(class AActor* Speaker,FLOAT SurvRange,INT SurvConversation=0);
+    void ResetSurveillanceDialogue();
+    UBOOL IsSurveillanceDialogueActive();
+    void EnableSurveillanceDialogue(UBOOL AllowSurv);
+    UBOOL IsSurveillanceDialogueEnabled();
+    UBOOL IsSurveillanceUIVisible();
+    class AActor* GetSurveillanceFocus();
+    void FullReset();
+    DECLARE_FUNCTION(execStartGlobalAudioEvent)
+    {
+        P_GET_OBJECT(UAkEvent,AudioEvent);
+        P_GET_BYTE(GlobalSource);
+        P_GET_DELEGATE_OPTX(SoundCallbackDelegate,FScriptDelegate(EC_EventParm));
+        P_GET_INT_OPTX(SoundCallbackFlags,1);
+        P_FINISH;
+        *(struct FAkSoundHandle*)Result=this->StartGlobalAudioEvent(AudioEvent,GlobalSource,SoundCallbackDelegate,SoundCallbackFlags);
+    }
+    DECLARE_FUNCTION(execStopGlobalAudioEvent)
+    {
+        P_GET_STRUCT_REF(struct FAkSoundHandle,SoundHandle);
+        P_GET_UBOOL_OPTX(QuickStop,FALSE);
+        P_FINISH;
+        this->StopGlobalAudioEvent(SoundHandle,QuickStop);
+    }
+    DECLARE_FUNCTION(execSetGlobalAudioParameter)
+    {
+        P_GET_OBJECT(UAkParameterName,ParamName);
+        P_GET_FLOAT(ParamValue);
+        P_FINISH;
+        this->SetGlobalAudioParameter(ParamName,ParamValue);
+    }
+    DECLARE_FUNCTION(execSetGlobalStickyParameter)
+    {
+        P_GET_OBJECT(UAkParameterName,ParamName);
+        P_GET_FLOAT(ParamValue);
+        P_FINISH;
+        this->SetGlobalStickyParameter(ParamName,ParamValue);
+    }
+    DECLARE_FUNCTION(execSetGlobalStickyParameterEx)
+    {
+        P_GET_OBJECT(UAkParameterName,ParamName);
+        P_GET_FLOAT(ParamValue);
+        P_GET_FLOAT(NewReleaseValue);
+        P_GET_FLOAT(NewReleaseTime);
+        P_GET_FLOAT(NewSustainTime);
+        P_GET_FLOAT(NewAttackTime);
+        P_GET_UBOOL(AllowPause);
+        P_FINISH;
+        this->SetGlobalStickyParameterEx(ParamName,ParamValue,NewReleaseValue,NewReleaseTime,NewSustainTime,NewAttackTime,AllowPause);
+    }
+    DECLARE_FUNCTION(execSetGlobalAudioSwitch)
+    {
+        P_GET_OBJECT(UAkSwitchName,SwitchName);
+        P_GET_BYTE(GlobalSource);
+        P_FINISH;
+        this->SetGlobalAudioSwitch(SwitchName,GlobalSource);
+    }
+    DECLARE_FUNCTION(execSetGlobalAudioState)
+    {
+        P_GET_OBJECT(UAkStateName,StateName);
+        P_FINISH;
+        this->SetGlobalAudioState(StateName);
+    }
+    DECLARE_FUNCTION(execStartCollisionAudioEvent)
+    {
+        P_GET_OBJECT(UAkEvent,CollisionEvent);
+        P_GET_OBJECT(AActor,CollidingActor);
+        P_GET_STRUCT(FVector,CollisionPosition);
+        P_GET_FLOAT(CollisionVelocity);
+        P_GET_FLOAT(CollisionStrength);
+        P_FINISH;
+        this->StartCollisionAudioEvent(CollisionEvent,CollidingActor,CollisionPosition,CollisionVelocity,CollisionStrength);
+    }
+    DECLARE_FUNCTION(execStartContinuousCollisionAudioEvent)
+    {
+        P_GET_STRUCT_REF(struct FAkSoundLoop,CollisionLoop);
+        P_GET_OBJECT(AActor,CollidingActor);
+        P_GET_STRUCT(FVector,CollisionPosition);
+        P_GET_FLOAT(CollisionVelocity);
+        P_GET_FLOAT(CollisionStrength);
+        P_FINISH;
+        this->StartContinuousCollisionAudioEvent(CollisionLoop,CollidingActor,CollisionPosition,CollisionVelocity,CollisionStrength);
+    }
+    DECLARE_FUNCTION(execIsSoundHandleValid)
+    {
+        P_GET_STRUCT_REF(struct FAkSoundHandle,SoundHandleToTest);
+        P_FINISH;
+        *(UBOOL*)Result=this->IsSoundHandleValid(SoundHandleToTest);
+    }
+    DECLARE_FUNCTION(execCancelAudioCallbacks)
+    {
+        P_GET_OBJECT(UObject,OwnerObject);
+        P_FINISH;
+        this->CancelAudioCallbacks(OwnerObject);
+    }
+    DECLARE_FUNCTION(execStartMusic)
+    {
+        P_GET_OBJECT_OPTX(UAkEvent,CustomMusicEvent,NULL);
+        P_FINISH;
+        this->StartMusic(CustomMusicEvent);
+    }
+    DECLARE_FUNCTION(execStopMusic)
+    {
+        P_FINISH;
+        this->StopMusic();
+    }
+    DECLARE_FUNCTION(execSetMusicState)
+    {
+        P_GET_OBJECT(UAkStateName,StateName);
+        P_FINISH;
+        this->SetMusicState(StateName);
+    }
+    DECLARE_FUNCTION(execSetMixChapterState)
+    {
+        P_GET_STR(ChapterName);
+        P_FINISH;
+        this->SetMixChapterState(ChapterName);
+    }
+    DECLARE_FUNCTION(execSetMusicChapterState)
+    {
+        P_GET_STR(ChapterName);
+        P_FINISH;
+        this->SetMusicChapterState(ChapterName);
+    }
+    DECLARE_FUNCTION(execSetMusicLevelState)
+    {
+        P_GET_STR(LevelName);
+        P_FINISH;
+        this->SetMusicLevelState(LevelName);
+    }
+    DECLARE_FUNCTION(execSetMusicGameplayState)
+    {
+        P_GET_STR(GameplayName);
+        P_FINISH;
+        this->SetMusicGameplayState(GameplayName);
+    }
+    DECLARE_FUNCTION(execSetMusicTrigger)
+    {
+        P_GET_OBJECT(UAkTriggerName,TriggerName);
+        P_FINISH;
+        this->SetMusicTrigger(TriggerName);
+    }
+    DECLARE_FUNCTION(execSetMusicParameter)
+    {
+        P_GET_OBJECT(UAkParameterName,ParamName);
+        P_GET_FLOAT(ParamValue);
+        P_GET_FLOAT_OPTX(InterpolationTime,0);
+        P_FINISH;
+        this->SetMusicParameter(ParamName,ParamValue,InterpolationTime);
+    }
+    DECLARE_FUNCTION(execResetMusicParameters)
+    {
+        P_GET_FLOAT_OPTX(InterpolationTime,0);
+        P_FINISH;
+        this->ResetMusicParameters(InterpolationTime);
+    }
+    DECLARE_FUNCTION(execRegisterMusicCallback)
+    {
+        P_GET_INT(CallbackFlags);
+        P_GET_DELEGATE(MusicCallbackDelegate);
+        P_GET_UBOOL_OPTX(UnregisterOnStop,TRUE);
+        P_FINISH;
+        *(UBOOL*)Result=this->RegisterMusicCallback(CallbackFlags,MusicCallbackDelegate,UnregisterOnStop);
+    }
+    DECLARE_FUNCTION(execUnregisterMusicCallback)
+    {
+        P_GET_OBJECT(UObject,CallbackOwner);
+        P_FINISH;
+        this->UnregisterMusicCallback(CallbackOwner);
+    }
+    DECLARE_FUNCTION(execStartCustomAudioEvent)
+    {
+        P_GET_OBJECT(AActor,Parent);
+        P_GET_STR(EventName);
+        P_FINISH;
+        *(struct FAkSoundHandle*)Result=this->StartCustomAudioEvent(Parent,EventName);
+    }
+    DECLARE_FUNCTION(execStopCustomAudioEvent)
+    {
+        P_GET_STRUCT_REF(struct FAkSoundHandle,SoundHandle);
+        P_FINISH;
+        this->StopCustomAudioEvent(SoundHandle);
+    }
+    DECLARE_FUNCTION(execSetCustomGlobalParameter)
+    {
+        P_GET_STR(ParamName);
+        P_GET_FLOAT(ParamValue);
+        P_FINISH;
+        this->SetCustomGlobalParameter(ParamName,ParamValue);
+    }
+    DECLARE_FUNCTION(execSetCustomSourceParameter)
+    {
+        P_GET_OBJECT(AActor,Parent);
+        P_GET_STR(ParamName);
+        P_GET_FLOAT(ParamValue);
+        P_FINISH;
+        this->SetCustomSourceParameter(Parent,ParamName,ParamValue);
+    }
+    DECLARE_FUNCTION(execSetCustomSourceSwitch)
+    {
+        P_GET_OBJECT(AActor,Parent);
+        P_GET_STR(SwitchGroup);
+        P_GET_STR(SwitchName);
+        P_FINISH;
+        this->SetCustomSourceSwitch(Parent,SwitchGroup,SwitchName);
+    }
+    DECLARE_FUNCTION(execSetCustomGlobalState)
+    {
+        P_GET_STR(StateGroup);
+        P_GET_STR(StateName);
+        P_FINISH;
+        this->SetCustomGlobalState(StateGroup,StateName);
+    }
+    DECLARE_FUNCTION(execNotifySurveillanceDialogue)
+    {
+        P_GET_OBJECT(AActor,Speaker);
+        P_GET_FLOAT(SurvRange);
+        P_GET_INT_OPTX(SurvConversation,0);
+        P_FINISH;
+        this->NotifySurveillanceDialogue(Speaker,SurvRange,SurvConversation);
+    }
+    DECLARE_FUNCTION(execResetSurveillanceDialogue)
+    {
+        P_FINISH;
+        this->ResetSurveillanceDialogue();
+    }
+    DECLARE_FUNCTION(execIsSurveillanceDialogueActive)
+    {
+        P_FINISH;
+        *(UBOOL*)Result=this->IsSurveillanceDialogueActive();
+    }
+    DECLARE_FUNCTION(execEnableSurveillanceDialogue)
+    {
+        P_GET_UBOOL(AllowSurv);
+        P_FINISH;
+        this->EnableSurveillanceDialogue(AllowSurv);
+    }
+    DECLARE_FUNCTION(execIsSurveillanceDialogueEnabled)
+    {
+        P_FINISH;
+        *(UBOOL*)Result=this->IsSurveillanceDialogueEnabled();
+    }
+    DECLARE_FUNCTION(execIsSurveillanceUIVisible)
+    {
+        P_FINISH;
+        *(UBOOL*)Result=this->IsSurveillanceUIVisible();
+    }
+    DECLARE_FUNCTION(execGetSurveillanceFocus)
+    {
+        P_FINISH;
+        *(class AActor**)Result=this->GetSurveillanceFocus();
+    }
+    DECLARE_FUNCTION(execFullReset)
+    {
+        P_FINISH;
+        this->FullReset();
+    }
+    void delegateAkMusicCallback(INT CallbackFlags,INT MarkerID)
+    {
+        AkWwise_eventAkMusicCallback_Parms Parms(EC_EventParm);
+        Parms.CallbackFlags=CallbackFlags;
+        Parms.MarkerID=MarkerID;
+        ProcessDelegate(ENGINE_AkMusicCallback,&__AkMusicCallback__Delegate,&Parms);
+    }
+    void delegateAkSoundCallback(INT CallbackFlags,struct FAkSoundHandle SoundHandle,INT MarkerID)
+    {
+        AkWwise_eventAkSoundCallback_Parms Parms(EC_EventParm);
+        Parms.CallbackFlags=CallbackFlags;
+        Parms.SoundHandle=SoundHandle;
+        Parms.MarkerID=MarkerID;
+        ProcessDelegate(ENGINE_AkSoundCallback,&__AkSoundCallback__Delegate,&Parms);
+    }
+    DECLARE_ABSTRACT_CLASS(UAkWwise,UObject,0,Engine)
+    NO_DEFAULT_CONSTRUCTOR(UAkWwise)
+};
+
+class UAkComponent : public UActorComponent
+{
+public:
+    //## BEGIN PROPS AkComponent
+    class UAkEvent* LifetimeEvent;
+    BITFIELD AutoPlayLifetimeEvent:1;
+    BITFIELD NeverAutoDestroySource:1;
+    BITFIELD AlwaysAutoCreateSource:1;
+    BITFIELD AutoDestroySourceWhenHidden:1;
+    BITFIELD AutoDestroySourceWhenDead:1;
+    BITFIELD KillSoundsOnDestroy:1;
+    BITFIELD WasInsideLODRadius:1;
+    BITFIELD EnableCameraDistanceParameters:1;
+    BITFIELD EnableCameraOffsetParameters:1;
+    BITFIELD EnableCameraAngleParameters:1;
+    BITFIELD EnablePlayerDistanceParameters:1;
+    BITFIELD EnablePlayerOffsetParameters:1;
+    BITFIELD EnablePlayerAngleParameters:1;
+    BITFIELD EnableObjectVelocityParameters:1;
+    BITFIELD Enable2DMode:1;
+    BITFIELD EnableDialogueMeter:1;
+    BITFIELD DialogueMeterEnabled:1;
+    BITFIELD EnableOcclusionParameters:1;
+    BITFIELD ParameterOnlyOcclusion:1;
+    BITFIELD EnableEnvironments:1;
+    BITFIELD EnableNonListenerEnvironments:1;
+    BITFIELD DebugLastOcclusionPrimaryHit:1;
+    BITFIELD DebugLastOcclusionSecondaryAHit:1;
+    BITFIELD DebugLastOcclusionSecondaryBHit:1;
+    BITFIELD SourceActive:1;
+    BITFIELD AuxSourceActive:1;
+    BITFIELD UseAuxSource:1;
+    BITFIELD DefaultAkComponent:1;
+    SCRIPT_ALIGN;
+    struct FAkSoundHandle LifetimeEventHandle;
+    FLOAT PeakAudiblityRadius;
+    FLOAT LODDestroyTimer;
+    FLOAT ObjectVelocityFilterRCI;
+    FLOAT ObjectVelocityFilterRCD;
+    class UAkEnvironmentName* DialogueMeterEffect;
+    FLOAT OcclusionUpdateTimeFast;
+    FLOAT OcclusionUpdateTimeSlow;
+    FLOAT OcclusionInterpolationTime;
+    FLOAT OcclusionScalingDistance;
+    FLOAT OcclusionMultiplier;
+    FLOAT OcclusionMultiplierAux;
+    FLOAT WetDryMixVolume;
+    FLOAT WetDryMixVolumeAux;
+    FLOAT FalloffRadiusMultiplier;
+    FLOAT FalloffEnhancementRadius;
+    DOUBLE FalloffEnhancementTimestamp;
+    DOUBLE LastOcclusionUpdateTime;
+    FLOAT CurrentOcclusion;
+    FLOAT TargetOcclusion;
+    FLOAT OcclusionVelocity;
+    FVector DebugLastOcclusionPrimaryFrom;
+    FVector DebugLastOcclusionPrimaryTo;
+    FVector DebugLastOcclusionSecondaryAFrom;
+    FVector DebugLastOcclusionSecondaryATo;
+    FVector DebugLastOcclusionSecondaryBFrom;
+    FVector DebugLastOcclusionSecondaryBTo;
+    FVector SourcePosition;
+    FRotator SourceOrientation;
+    FLOAT LastSourceVelocity;
+    DOUBLE LastSourceVelocityUpdateTime;
+    BYTE SpatialUpdateType;
+    BYTE DebugLastFailedSourceCreateReason;
+    INT SourceID;
+    INT AuxSourceID;
+    TArrayNoInit<struct FAkEnvironmentInfo> ActiveEnvironments;
+    class UAkEvent* DebugLastEvent;
+    class UAkEvent* DebugLastAuxEvent;
+    DOUBLE DebugLastFailedSourceCreateTime;
+    //## END PROPS AkComponent
+
+    void CreateAudioSource();
+    void DestroyAudioSource();
+    UBOOL HasAudioSource();
+    INT GetAudioSourceID(UBOOL AllowCreate=TRUE);
+    INT GetAuxAudioSourceID(UBOOL AllowCreate=TRUE);
+    UBOOL CheckListenerProximity(UBOOL UpdateSpatial=FALSE);
+    FLOAT GetDistanceToListener(BYTE listenerID);
+    struct FAkSoundHandle StartAudioEvent(class UAkEvent* AudioEvent,FScriptDelegate SoundCallbackDelegate=FScriptDelegate(EC_EventParm),INT SoundCallbackFlags=1);
+    struct FAkSoundHandle StartAuxAudioEvent(class UAkEvent* AudioEvent,FVector Position,FScriptDelegate SoundCallbackDelegate=FScriptDelegate(EC_EventParm),INT SoundCallbackFlags=1);
+    void StopAudioEvent(struct FAkSoundHandle& SoundHandle,UBOOL QuickStop=FALSE);
+    UBOOL IsSoundHandleValid(struct FAkSoundHandle& SoundHandleToTest);
+    void KillSounds(UBOOL DestroySources=FALSE);
+    void SetSourceParameter(class UAkParameterName* ParamName,FLOAT ParamValue);
+    FLOAT GetSourceParameter(class UAkParameterName* ParamName);
+    void SetSourceStickyAudioEvent(class UAkEvent* AudioEvent);
+    void SetSourceStickyAudioEventEx(class UAkEvent* AudioEvent,FLOAT NewAttackTime,FLOAT NewSustainTime,FLOAT NewReleaseTime,class UAkParameterName* ParamName,FLOAT newSustainValue=1.000000,FLOAT NewReleaseValue=0.000000);
+    void SetSourceStickyParameter(class UAkParameterName* ParamName,FLOAT ParamValue);
+    void SetSourceStickyParameterEx(class UAkParameterName* ParamName,FLOAT ParamValue,FLOAT NewReleaseValue,FLOAT NewReleaseTime,FLOAT NewSustainTime,FLOAT NewAttackTime,UBOOL AllowPause);
+    void SetSourceSwitch(class UAkSwitchName* SwitchName);
+    void SetSurfaceSwitch(class UAkSwitchName* SwitchName,class UAkSwitchName* FallbackSwitchName,const FString& CharacterName);
+    void SetSourceSpatial(FVector Position,FRotator Orientation=FRotator(EC_EventParm),BYTE NewUpdateType=1);
+    void SetSourceSpatialMulti(const TArray<struct FAkSourceSpatial>& MultiPositions,UBOOL Additive,FVector PrimaryPosition,FRotator PrimaryOrientation=FRotator(EC_EventParm),BYTE NewUpdateType=3);
+    void SetSourceSpatialRay(FVector RayOrigin,FRotator RayOrientation,FRotator Orientation=FRotator(EC_EventParm),BYTE NewUpdateType=1);
+    void SetSourceSpatialBeam(FVector BeamStartPoint,FVector BeamEndPoint,FRotator Orientation=FRotator(EC_EventParm),BYTE NewUpdateType=1);
+    void RegisterEnvironments(const TArray<struct FAkEnvironmentSettings>& Envs,UBOOL SetListenerEnvironment=FALSE);
+    void UnregisterEnvironments(const TArray<struct FAkEnvironmentSettings>& Envs,UBOOL ClearListenerEnvironment=FALSE);
+    void RegisterOcclusionMultipliers(FLOAT Multiplier,FLOAT MultiplierAux);
+    void UnregisterOcclusionMultipliers(FLOAT Multiplier,FLOAT MultiplierAux);
+    void SetLifetimeEvent(class UAkEvent* NewLifetimeEvent,UBOOL SetAutoplayLifetimeTo);
+    void StartLifetimeEvent(UBOOL SetAutoplayLifetimeTo=TRUE);
+    void StopLifetimeEvent(UBOOL SetAutoplayLifetimeTo=FALSE);
+    UBOOL ShouldAutoPlayLifetimeEvent();
+    UBOOL IsPlayingLifetimeEvent();
+    UBOOL IsSourceActive();
+    UBOOL IsAutoUpdateSpatial();
+    void EnableEnvironmentalEffects(UBOOL EnableEnvs);
+    void SetDialogueMeterEffect(UBOOL EnableMeter,class UAkEnvironmentName* MeterEffect);
+    void EnableOcclusion();
+    void DisableOcclusion();
+    UBOOL IsOcclusionEnabled();
+    void ApplyFalloffRadiusMultiplier(FLOAT FalloffMultiplier,UBOOL MixInOut);
+    void EnableFalloffEnhancement(FLOAT EnhancementRadius,UBOOL EaseIn=TRUE);
+    void DisableFalloffEnhancement();
+    UBOOL IsFalloffEnhancementEnabled();
+    FLOAT GetFalloffEnhancementMultiplier();
+    FLOAT GetPeakAudibilityRadius();
+    void ResetPeakAudibilityRadius(FLOAT ResetValue=0);
+    FLOAT GetSourceLODRadius();
+    UBOOL IsOwnerHidden();
+    UBOOL IsOwnerDead();
+    UBOOL IsOwnerSpeaking();
+    UBOOL IsOwnerSurveillance();
+    UBOOL DebugIsFailedSource();
+    DECLARE_FUNCTION(execCreateAudioSource)
+    {
+        P_FINISH;
+        this->CreateAudioSource();
+    }
+    DECLARE_FUNCTION(execDestroyAudioSource)
+    {
+        P_FINISH;
+        this->DestroyAudioSource();
+    }
+    DECLARE_FUNCTION(execHasAudioSource)
+    {
+        P_FINISH;
+        *(UBOOL*)Result=this->HasAudioSource();
+    }
+    DECLARE_FUNCTION(execGetAudioSourceID)
+    {
+        P_GET_UBOOL_OPTX(AllowCreate,TRUE);
+        P_FINISH;
+        *(INT*)Result=this->GetAudioSourceID(AllowCreate);
+    }
+    DECLARE_FUNCTION(execGetAuxAudioSourceID)
+    {
+        P_GET_UBOOL_OPTX(AllowCreate,TRUE);
+        P_FINISH;
+        *(INT*)Result=this->GetAuxAudioSourceID(AllowCreate);
+    }
+    DECLARE_FUNCTION(execCheckListenerProximity)
+    {
+        P_GET_UBOOL_OPTX(UpdateSpatial,FALSE);
+        P_FINISH;
+        *(UBOOL*)Result=this->CheckListenerProximity(UpdateSpatial);
+    }
+    DECLARE_FUNCTION(execGetDistanceToListener)
+    {
+        P_GET_BYTE(listenerID);
+        P_FINISH;
+        *(FLOAT*)Result=this->GetDistanceToListener(listenerID);
+    }
+    DECLARE_FUNCTION(execStartAudioEvent)
+    {
+        P_GET_OBJECT(UAkEvent,AudioEvent);
+        P_GET_DELEGATE_OPTX(SoundCallbackDelegate,FScriptDelegate(EC_EventParm));
+        P_GET_INT_OPTX(SoundCallbackFlags,1);
+        P_FINISH;
+        *(struct FAkSoundHandle*)Result=this->StartAudioEvent(AudioEvent,SoundCallbackDelegate,SoundCallbackFlags);
+    }
+    DECLARE_FUNCTION(execStartAuxAudioEvent)
+    {
+        P_GET_OBJECT(UAkEvent,AudioEvent);
+        P_GET_STRUCT(FVector,Position);
+        P_GET_DELEGATE_OPTX(SoundCallbackDelegate,FScriptDelegate(EC_EventParm));
+        P_GET_INT_OPTX(SoundCallbackFlags,1);
+        P_FINISH;
+        *(struct FAkSoundHandle*)Result=this->StartAuxAudioEvent(AudioEvent,Position,SoundCallbackDelegate,SoundCallbackFlags);
+    }
+    DECLARE_FUNCTION(execStopAudioEvent)
+    {
+        P_GET_STRUCT_REF(struct FAkSoundHandle,SoundHandle);
+        P_GET_UBOOL_OPTX(QuickStop,FALSE);
+        P_FINISH;
+        this->StopAudioEvent(SoundHandle,QuickStop);
+    }
+    DECLARE_FUNCTION(execIsSoundHandleValid)
+    {
+        P_GET_STRUCT_REF(struct FAkSoundHandle,SoundHandleToTest);
+        P_FINISH;
+        *(UBOOL*)Result=this->IsSoundHandleValid(SoundHandleToTest);
+    }
+    DECLARE_FUNCTION(execKillSounds)
+    {
+        P_GET_UBOOL_OPTX(DestroySources,FALSE);
+        P_FINISH;
+        this->KillSounds(DestroySources);
+    }
+    DECLARE_FUNCTION(execSetSourceParameter)
+    {
+        P_GET_OBJECT(UAkParameterName,ParamName);
+        P_GET_FLOAT(ParamValue);
+        P_FINISH;
+        this->SetSourceParameter(ParamName,ParamValue);
+    }
+    DECLARE_FUNCTION(execGetSourceParameter)
+    {
+        P_GET_OBJECT(UAkParameterName,ParamName);
+        P_FINISH;
+        *(FLOAT*)Result=this->GetSourceParameter(ParamName);
+    }
+    DECLARE_FUNCTION(execSetSourceStickyAudioEvent)
+    {
+        P_GET_OBJECT(UAkEvent,AudioEvent);
+        P_FINISH;
+        this->SetSourceStickyAudioEvent(AudioEvent);
+    }
+    DECLARE_FUNCTION(execSetSourceStickyAudioEventEx)
+    {
+        P_GET_OBJECT(UAkEvent,AudioEvent);
+        P_GET_FLOAT(NewAttackTime);
+        P_GET_FLOAT(NewSustainTime);
+        P_GET_FLOAT(NewReleaseTime);
+        P_GET_OBJECT(UAkParameterName,ParamName);
+        P_GET_FLOAT_OPTX(newSustainValue,1.000000);
+        P_GET_FLOAT_OPTX(NewReleaseValue,0.000000);
+        P_FINISH;
+        this->SetSourceStickyAudioEventEx(AudioEvent,NewAttackTime,NewSustainTime,NewReleaseTime,ParamName,newSustainValue,NewReleaseValue);
+    }
+    DECLARE_FUNCTION(execSetSourceStickyParameter)
+    {
+        P_GET_OBJECT(UAkParameterName,ParamName);
+        P_GET_FLOAT(ParamValue);
+        P_FINISH;
+        this->SetSourceStickyParameter(ParamName,ParamValue);
+    }
+    DECLARE_FUNCTION(execSetSourceStickyParameterEx)
+    {
+        P_GET_OBJECT(UAkParameterName,ParamName);
+        P_GET_FLOAT(ParamValue);
+        P_GET_FLOAT(NewReleaseValue);
+        P_GET_FLOAT(NewReleaseTime);
+        P_GET_FLOAT(NewSustainTime);
+        P_GET_FLOAT(NewAttackTime);
+        P_GET_UBOOL(AllowPause);
+        P_FINISH;
+        this->SetSourceStickyParameterEx(ParamName,ParamValue,NewReleaseValue,NewReleaseTime,NewSustainTime,NewAttackTime,AllowPause);
+    }
+    DECLARE_FUNCTION(execSetSourceSwitch)
+    {
+        P_GET_OBJECT(UAkSwitchName,SwitchName);
+        P_FINISH;
+        this->SetSourceSwitch(SwitchName);
+    }
+    DECLARE_FUNCTION(execSetSurfaceSwitch)
+    {
+        P_GET_OBJECT(UAkSwitchName,SwitchName);
+        P_GET_OBJECT(UAkSwitchName,FallbackSwitchName);
+        P_GET_STR(CharacterName);
+        P_FINISH;
+        this->SetSurfaceSwitch(SwitchName,FallbackSwitchName,CharacterName);
+    }
+    DECLARE_FUNCTION(execSetSourceSpatial)
+    {
+        P_GET_STRUCT(FVector,Position);
+        P_GET_STRUCT_OPTX(FRotator,Orientation,FRotator(EC_EventParm));
+        P_GET_BYTE_OPTX(NewUpdateType,1);
+        P_FINISH;
+        this->SetSourceSpatial(Position,Orientation,NewUpdateType);
+    }
+    DECLARE_FUNCTION(execSetSourceSpatialMulti)
+    {
+        P_GET_TARRAY(struct FAkSourceSpatial,MultiPositions);
+        P_GET_UBOOL(Additive);
+        P_GET_STRUCT(FVector,PrimaryPosition);
+        P_GET_STRUCT_OPTX(FRotator,PrimaryOrientation,FRotator(EC_EventParm));
+        P_GET_BYTE_OPTX(NewUpdateType,3);
+        P_FINISH;
+        this->SetSourceSpatialMulti(MultiPositions,Additive,PrimaryPosition,PrimaryOrientation,NewUpdateType);
+    }
+    DECLARE_FUNCTION(execSetSourceSpatialRay)
+    {
+        P_GET_STRUCT(FVector,RayOrigin);
+        P_GET_STRUCT(FRotator,RayOrientation);
+        P_GET_STRUCT_OPTX(FRotator,Orientation,FRotator(EC_EventParm));
+        P_GET_BYTE_OPTX(NewUpdateType,1);
+        P_FINISH;
+        this->SetSourceSpatialRay(RayOrigin,RayOrientation,Orientation,NewUpdateType);
+    }
+    DECLARE_FUNCTION(execSetSourceSpatialBeam)
+    {
+        P_GET_STRUCT(FVector,BeamStartPoint);
+        P_GET_STRUCT(FVector,BeamEndPoint);
+        P_GET_STRUCT_OPTX(FRotator,Orientation,FRotator(EC_EventParm));
+        P_GET_BYTE_OPTX(NewUpdateType,1);
+        P_FINISH;
+        this->SetSourceSpatialBeam(BeamStartPoint,BeamEndPoint,Orientation,NewUpdateType);
+    }
+    DECLARE_FUNCTION(execRegisterEnvironments)
+    {
+        P_GET_TARRAY(struct FAkEnvironmentSettings,Envs);
+        P_GET_UBOOL_OPTX(SetListenerEnvironment,FALSE);
+        P_FINISH;
+        this->RegisterEnvironments(Envs,SetListenerEnvironment);
+    }
+    DECLARE_FUNCTION(execUnregisterEnvironments)
+    {
+        P_GET_TARRAY(struct FAkEnvironmentSettings,Envs);
+        P_GET_UBOOL_OPTX(ClearListenerEnvironment,FALSE);
+        P_FINISH;
+        this->UnregisterEnvironments(Envs,ClearListenerEnvironment);
+    }
+    DECLARE_FUNCTION(execRegisterOcclusionMultipliers)
+    {
+        P_GET_FLOAT(Multiplier);
+        P_GET_FLOAT(MultiplierAux);
+        P_FINISH;
+        this->RegisterOcclusionMultipliers(Multiplier,MultiplierAux);
+    }
+    DECLARE_FUNCTION(execUnregisterOcclusionMultipliers)
+    {
+        P_GET_FLOAT(Multiplier);
+        P_GET_FLOAT(MultiplierAux);
+        P_FINISH;
+        this->UnregisterOcclusionMultipliers(Multiplier,MultiplierAux);
+    }
+    DECLARE_FUNCTION(execSetLifetimeEvent)
+    {
+        P_GET_OBJECT(UAkEvent,NewLifetimeEvent);
+        P_GET_UBOOL(SetAutoplayLifetimeTo);
+        P_FINISH;
+        this->SetLifetimeEvent(NewLifetimeEvent,SetAutoplayLifetimeTo);
+    }
+    DECLARE_FUNCTION(execStartLifetimeEvent)
+    {
+        P_GET_UBOOL_OPTX(SetAutoplayLifetimeTo,TRUE);
+        P_FINISH;
+        this->StartLifetimeEvent(SetAutoplayLifetimeTo);
+    }
+    DECLARE_FUNCTION(execStopLifetimeEvent)
+    {
+        P_GET_UBOOL_OPTX(SetAutoplayLifetimeTo,FALSE);
+        P_FINISH;
+        this->StopLifetimeEvent(SetAutoplayLifetimeTo);
+    }
+    DECLARE_FUNCTION(execShouldAutoPlayLifetimeEvent)
+    {
+        P_FINISH;
+        *(UBOOL*)Result=this->ShouldAutoPlayLifetimeEvent();
+    }
+    DECLARE_FUNCTION(execIsPlayingLifetimeEvent)
+    {
+        P_FINISH;
+        *(UBOOL*)Result=this->IsPlayingLifetimeEvent();
+    }
+    DECLARE_FUNCTION(execIsSourceActive)
+    {
+        P_FINISH;
+        *(UBOOL*)Result=this->IsSourceActive();
+    }
+    DECLARE_FUNCTION(execIsAutoUpdateSpatial)
+    {
+        P_FINISH;
+        *(UBOOL*)Result=this->IsAutoUpdateSpatial();
+    }
+    DECLARE_FUNCTION(execEnableEnvironmentalEffects)
+    {
+        P_GET_UBOOL(EnableEnvs);
+        P_FINISH;
+        this->EnableEnvironmentalEffects(EnableEnvs);
+    }
+    DECLARE_FUNCTION(execSetDialogueMeterEffect)
+    {
+        P_GET_UBOOL(EnableMeter);
+        P_GET_OBJECT(UAkEnvironmentName,MeterEffect);
+        P_FINISH;
+        this->SetDialogueMeterEffect(EnableMeter,MeterEffect);
+    }
+    DECLARE_FUNCTION(execEnableOcclusion)
+    {
+        P_FINISH;
+        this->EnableOcclusion();
+    }
+    DECLARE_FUNCTION(execDisableOcclusion)
+    {
+        P_FINISH;
+        this->DisableOcclusion();
+    }
+    DECLARE_FUNCTION(execIsOcclusionEnabled)
+    {
+        P_FINISH;
+        *(UBOOL*)Result=this->IsOcclusionEnabled();
+    }
+    DECLARE_FUNCTION(execApplyFalloffRadiusMultiplier)
+    {
+        P_GET_FLOAT(FalloffMultiplier);
+        P_GET_UBOOL(MixInOut);
+        P_FINISH;
+        this->ApplyFalloffRadiusMultiplier(FalloffMultiplier,MixInOut);
+    }
+    DECLARE_FUNCTION(execEnableFalloffEnhancement)
+    {
+        P_GET_FLOAT(EnhancementRadius);
+        P_GET_UBOOL_OPTX(EaseIn,TRUE);
+        P_FINISH;
+        this->EnableFalloffEnhancement(EnhancementRadius,EaseIn);
+    }
+    DECLARE_FUNCTION(execDisableFalloffEnhancement)
+    {
+        P_FINISH;
+        this->DisableFalloffEnhancement();
+    }
+    DECLARE_FUNCTION(execIsFalloffEnhancementEnabled)
+    {
+        P_FINISH;
+        *(UBOOL*)Result=this->IsFalloffEnhancementEnabled();
+    }
+    DECLARE_FUNCTION(execGetFalloffEnhancementMultiplier)
+    {
+        P_FINISH;
+        *(FLOAT*)Result=this->GetFalloffEnhancementMultiplier();
+    }
+    DECLARE_FUNCTION(execGetPeakAudibilityRadius)
+    {
+        P_FINISH;
+        *(FLOAT*)Result=this->GetPeakAudibilityRadius();
+    }
+    DECLARE_FUNCTION(execResetPeakAudibilityRadius)
+    {
+        P_GET_FLOAT_OPTX(ResetValue,0);
+        P_FINISH;
+        this->ResetPeakAudibilityRadius(ResetValue);
+    }
+    DECLARE_FUNCTION(execGetSourceLODRadius)
+    {
+        P_FINISH;
+        *(FLOAT*)Result=this->GetSourceLODRadius();
+    }
+    DECLARE_FUNCTION(execIsOwnerHidden)
+    {
+        P_FINISH;
+        *(UBOOL*)Result=this->IsOwnerHidden();
+    }
+    DECLARE_FUNCTION(execIsOwnerDead)
+    {
+        P_FINISH;
+        *(UBOOL*)Result=this->IsOwnerDead();
+    }
+    DECLARE_FUNCTION(execIsOwnerSpeaking)
+    {
+        P_FINISH;
+        *(UBOOL*)Result=this->IsOwnerSpeaking();
+    }
+    DECLARE_FUNCTION(execIsOwnerSurveillance)
+    {
+        P_FINISH;
+        *(UBOOL*)Result=this->IsOwnerSurveillance();
+    }
+    DECLARE_FUNCTION(execDebugIsFailedSource)
+    {
+        P_FINISH;
+        *(UBOOL*)Result=this->DebugIsFailedSource();
+    }
+    DECLARE_CLASS(UAkComponent,UActorComponent,0,Engine)
+    NO_DEFAULT_CONSTRUCTOR(UAkComponent)
+};
+
+class UAkPropertySheet : public UActorComponent
+{
+public:
+    //## BEGIN PROPS AkPropertySheet
+    FPointer VfTable_AkStackable;
+    TArrayNoInit<class UAkAudioAction*> Actions;
+    BITFIELD AutoActivation:1;
+    BITFIELD IsActive:1;
+    BITFIELD Suspended:1;
+    class UAkStackName* ActionStackName;
+    INT ActionStackPriority;
+    FLOAT CurrentActivationValue;
+    FLOAT LastActivationValue;
+    //## END PROPS AkPropertySheet
+
+    DECLARE_CLASS(UAkPropertySheet,UActorComponent,0,Engine)
+    NO_DEFAULT_CONSTRUCTOR(UAkPropertySheet)
+};
+
 class UHeightFogComponent : public UActorComponent
 {
 public:
@@ -12245,6 +13354,36 @@ protected:
 public:
 };
 
+class UAkDrawBoundsComponent : public UPrimitiveComponent
+{
+public:
+    //## BEGIN PROPS AkDrawBoundsComponent
+    FColor DrawBoundsColor;
+    FBoxSphereBounds DrawBounds;
+    FVector X_LMH;
+    FVector Y_LMH;
+    FVector Z_LMH;
+    BITFIELD X_Enabled:1;
+    BITFIELD Y_Enabled:1;
+    BITFIELD Z_Enabled:1;
+    SCRIPT_ALIGN;
+    //## END PROPS AkDrawBoundsComponent
+
+    DECLARE_CLASS(UAkDrawBoundsComponent,UPrimitiveComponent,0,Engine)
+    NO_DEFAULT_CONSTRUCTOR(UAkDrawBoundsComponent)
+};
+
+class UAkDrawSoundBoxComponent : public UDrawBoxComponent
+{
+public:
+    //## BEGIN PROPS AkDrawSoundBoxComponent
+    FLOAT DrawScale;
+    //## END PROPS AkDrawSoundBoxComponent
+
+    DECLARE_CLASS(UAkDrawSoundBoxComponent,UDrawBoxComponent,0,Engine)
+    NO_DEFAULT_CONSTRUCTOR(UAkDrawSoundBoxComponent)
+};
+
 class UDrawConeComponent : public UPrimitiveComponent
 {
 public:
@@ -12263,6 +13402,17 @@ public:
 	 */
 	virtual FPrimitiveSceneProxy* CreateSceneProxy();
 	virtual void UpdateBounds();
+};
+
+class UAkDrawSoundRadiusComponent : public UDrawSphereComponent
+{
+public:
+    //## BEGIN PROPS AkDrawSoundRadiusComponent
+    FLOAT DrawScale;
+    //## END PROPS AkDrawSoundRadiusComponent
+
+    DECLARE_CLASS(UAkDrawSoundRadiusComponent,UDrawSphereComponent,0,Engine)
+    NO_DEFAULT_CONSTRUCTOR(UAkDrawSoundRadiusComponent)
 };
 
 class UDrawPylonRadiusComponent : public UDrawSphereComponent
@@ -13373,6 +14523,408 @@ public:
 	virtual UBOOL CanCreateActor( FString& OutErrorMsg, UBOOL bFromAssetOnly = FALSE );
 
 	virtual AActor* GetDefaultActor();
+};
+
+class UAkAudioAction : public UObject
+{
+public:
+    //## BEGIN PROPS AkAudioAction
+    BITFIELD Stacked:1;
+    BITFIELD EnableAction:1;
+    INT ActivationCount;
+    //## END PROPS AkAudioAction
+
+    DECLARE_ABSTRACT_CLASS(UAkAudioAction,UObject,0,Engine)
+    NO_DEFAULT_CONSTRUCTOR(UAkAudioAction)
+};
+
+class UAkAudioActionAltitude : public UAkAudioAction
+{
+public:
+    //## BEGIN PROPS AkAudioActionAltitude
+    BYTE AltitudeFollowListener;
+    class UAkParameterName* AltitudeParameter;
+    FLOAT Highest;
+    FLOAT Lowest;
+    FLOAT AltitudeParameterCurrent;
+    DOUBLE AltitudeParameterLastUpdate;
+    //## END PROPS AkAudioActionAltitude
+
+    DECLARE_CLASS(UAkAudioActionAltitude,UAkAudioAction,0,Engine)
+    NO_DEFAULT_CONSTRUCTOR(UAkAudioActionAltitude)
+};
+
+class UAkAudioActionAmbience : public UAkAudioAction
+{
+public:
+    //## BEGIN PROPS AkAudioActionAmbience
+    class UAkEvent* AmbienceEvent;
+    //## END PROPS AkAudioActionAmbience
+
+    DECLARE_CLASS(UAkAudioActionAmbience,UAkAudioAction,0,Engine)
+    NO_DEFAULT_CONSTRUCTOR(UAkAudioActionAmbience)
+};
+
+class UAkAudioActionEvent : public UAkAudioAction
+{
+public:
+    //## BEGIN PROPS AkAudioActionEvent
+    class AActor* ActionTarget;
+    class UAkEvent* ActionEvent;
+    struct FAkSoundHandle ActionSoundHandle;
+    //## END PROPS AkAudioActionEvent
+
+    DECLARE_CLASS(UAkAudioActionEvent,UAkAudioAction,0,Engine)
+    NO_DEFAULT_CONSTRUCTOR(UAkAudioActionEvent)
+};
+
+class UAkAudioActionParameter : public UAkAudioAction
+{
+public:
+    //## BEGIN PROPS AkAudioActionParameter
+    class AActor* ActionTarget;
+    class UAkParameterName* ActionParameter;
+    FLOAT ActivationValue;
+    FLOAT ActivationInterpolationTime;
+    BITFIELD ActivationIsAbsolute:1;
+    BITFIELD DeactivationIsAbsolute:1;
+    FLOAT DeactivationValue;
+    FLOAT DeactivationInterpolationTime;
+    FLOAT TargetActivationValue;
+    FLOAT TargetDeactivationValue;
+    FLOAT CurrentParameterValue;
+    FLOAT CurrentParameterVelocity;
+    DOUBLE LastUpdateTime;
+    //## END PROPS AkAudioActionParameter
+
+    DECLARE_CLASS(UAkAudioActionParameter,UAkAudioAction,0,Engine)
+    NO_DEFAULT_CONSTRUCTOR(UAkAudioActionParameter)
+};
+
+class UAkAudioActionState : public UAkAudioAction
+{
+public:
+    //## BEGIN PROPS AkAudioActionState
+    class UAkStateName* ActivationState;
+    class UAkStateName* DeactivationState;
+    //## END PROPS AkAudioActionState
+
+    DECLARE_CLASS(UAkAudioActionState,UAkAudioAction,0,Engine)
+    NO_DEFAULT_CONSTRUCTOR(UAkAudioActionState)
+};
+
+class UAkAudioActionSwitch : public UAkAudioAction
+{
+public:
+    //## BEGIN PROPS AkAudioActionSwitch
+    class AActor* ActionTarget;
+    class UAkSwitchName* ActivationSwitch;
+    class UAkSwitchName* DeactivationSwitch;
+    //## END PROPS AkAudioActionSwitch
+
+    DECLARE_CLASS(UAkAudioActionSwitch,UAkAudioAction,0,Engine)
+    NO_DEFAULT_CONSTRUCTOR(UAkAudioActionSwitch)
+};
+
+class UAkHash : public UObject
+{
+public:
+    //## BEGIN PROPS AkHash
+    INT HashValue;
+    //## END PROPS AkHash
+
+    INT GetHashValue();
+    FString GetHashString(const FString& NotFoundResult=TEXT(""));
+    FString GetOriginalNameString();
+    void DetermineHashValue();
+    FString AkHashToString(INT HashValueToLookup,const FString& ResultIfNotFound=TEXT(""));
+    INT StringToAkHash(const FString& StringToHash);
+    DECLARE_FUNCTION(execGetHashValue)
+    {
+        P_FINISH;
+        *(INT*)Result=this->GetHashValue();
+    }
+    DECLARE_FUNCTION(execGetHashString)
+    {
+        P_GET_STR_OPTX(NotFoundResult,TEXT(""));
+        P_FINISH;
+        *(FString*)Result=this->GetHashString(NotFoundResult);
+    }
+    DECLARE_FUNCTION(execGetOriginalNameString)
+    {
+        P_FINISH;
+        *(FString*)Result=this->GetOriginalNameString();
+    }
+    DECLARE_FUNCTION(execDetermineHashValue)
+    {
+        P_FINISH;
+        this->DetermineHashValue();
+    }
+    DECLARE_FUNCTION(execAkHashToString)
+    {
+        P_GET_INT(HashValueToLookup);
+        P_GET_STR_OPTX(ResultIfNotFound,TEXT(""));
+        P_FINISH;
+        *(FString*)Result=this->AkHashToString(HashValueToLookup,ResultIfNotFound);
+    }
+    DECLARE_FUNCTION(execStringToAkHash)
+    {
+        P_GET_STR(StringToHash);
+        P_FINISH;
+        *(INT*)Result=this->StringToAkHash(StringToHash);
+    }
+    DECLARE_CLASS(UAkHash,UObject,0,Engine)
+    NO_DEFAULT_CONSTRUCTOR(UAkHash)
+};
+
+class UAkAssetBase : public UAkHash
+{
+public:
+    //## BEGIN PROPS AkAssetBase
+    BITFIELD AssetMissing:1;
+    SCRIPT_ALIGN;
+    //## END PROPS AkAssetBase
+
+    DECLARE_ABSTRACT_CLASS(UAkAssetBase,UAkHash,0,Engine)
+    NO_DEFAULT_CONSTRUCTOR(UAkAssetBase)
+};
+
+class UAkAsset : public UAkAssetBase
+{
+public:
+    //## BEGIN PROPS AkAsset
+    class UAkAssetPack* RequiredAssetPack;
+    //## END PROPS AkAsset
+
+    DECLARE_ABSTRACT_CLASS(UAkAsset,UAkAssetBase,0,Engine)
+    NO_DEFAULT_CONSTRUCTOR(UAkAsset)
+};
+
+class UAkAssetPrep : public UAkAsset
+{
+public:
+    //## BEGIN PROPS AkAssetPrep
+    BITFIELD PrepRequired:1;
+    SCRIPT_ALIGN;
+    //## END PROPS AkAssetPrep
+
+    DECLARE_ABSTRACT_CLASS(UAkAssetPrep,UAkAsset,0,Engine)
+    NO_DEFAULT_CONSTRUCTOR(UAkAssetPrep)
+};
+
+class UAkEvent : public UAkAssetPrep
+{
+public:
+    //## BEGIN PROPS AkEvent
+    //## END PROPS AkEvent
+
+    DECLARE_CLASS(UAkEvent,UAkAssetPrep,0,Engine)
+    NO_DEFAULT_CONSTRUCTOR(UAkEvent)
+};
+
+class UAkEnvironmentName : public UAkAsset
+{
+public:
+    //## BEGIN PROPS AkEnvironmentName
+    BITFIELD EnableRolloff:1;
+    BITFIELD EnableOcclusionSends:1;
+    FLOAT EnvironmentRolloffDistanceMin;
+    FLOAT EnvironmentRolloffDistanceMax;
+    FLOAT EnvironmentDryMin;
+    FLOAT EnvironmentDryMax;
+    FLOAT EnvironmentRolloffSendMin;
+    FLOAT EnvironmentRolloffSendMax;
+    FLOAT EnvironmentRolloffSendPlayer;
+    FLOAT EnvironmentRolloffSendNoListener;
+    FLOAT EnvironmentRolloffSendOnlyListener;
+    FLOAT EnvironmentRolloffSend2DMode;
+    FLOAT EnhancedWetSendMultiplier;
+    FLOAT EnhancedWetSendFalloff;
+    FLOAT DialogueMeterWetBoost;
+    FLOAT DialogueMeterWetBoostPlayer;
+    FLOAT EnvironmentWetSendOccludedMultiplier;
+    FLOAT EnvironmentWetSendNotOccludedMultiplier;
+    FLOAT EnvironmentDrySendOccludedMultiplier;
+    FLOAT EnvironmentDrySendNotOccludedMultiplier;
+    //## END PROPS AkEnvironmentName
+
+    DECLARE_CLASS(UAkEnvironmentName,UAkAsset,0,Engine)
+    NO_DEFAULT_CONSTRUCTOR(UAkEnvironmentName)
+};
+
+class UAkParameterName : public UAkAsset
+{
+public:
+    //## BEGIN PROPS AkParameterName
+    MS_ALIGN(4) BYTE ParameterType GCC_ALIGN(4); // Extra alignment flags needed because all properties are bytes
+    SCRIPT_ALIGN;
+    //## END PROPS AkParameterName
+
+    DECLARE_CLASS(UAkParameterName,UAkAsset,0,Engine)
+    NO_DEFAULT_CONSTRUCTOR(UAkParameterName)
+};
+
+class UAkStateGroupName : public UAkAsset
+{
+public:
+    //## BEGIN PROPS AkStateGroupName
+    MS_ALIGN(4) BYTE StateGroupType GCC_ALIGN(4); // Extra alignment flags needed because all properties are bytes
+    SCRIPT_ALIGN;
+    //## END PROPS AkStateGroupName
+
+    DECLARE_CLASS(UAkStateGroupName,UAkAsset,0,Engine)
+    NO_DEFAULT_CONSTRUCTOR(UAkStateGroupName)
+};
+
+class UAkStateName : public UAkAsset
+{
+public:
+    //## BEGIN PROPS AkStateName
+    class UAkStateGroupName* ParentStateGroup;
+    //## END PROPS AkStateName
+
+    DECLARE_CLASS(UAkStateName,UAkAsset,0,Engine)
+    NO_DEFAULT_CONSTRUCTOR(UAkStateName)
+};
+
+class UAkSwitchGroupName : public UAkAsset
+{
+public:
+    //## BEGIN PROPS AkSwitchGroupName
+    //## END PROPS AkSwitchGroupName
+
+    DECLARE_CLASS(UAkSwitchGroupName,UAkAsset,0,Engine)
+    NO_DEFAULT_CONSTRUCTOR(UAkSwitchGroupName)
+};
+
+class UAkSwitchName : public UAkAsset
+{
+public:
+    //## BEGIN PROPS AkSwitchName
+    class UAkSwitchGroupName* ParentSwitchGroup;
+    //## END PROPS AkSwitchName
+
+    DECLARE_CLASS(UAkSwitchName,UAkAsset,0,Engine)
+    NO_DEFAULT_CONSTRUCTOR(UAkSwitchName)
+};
+
+class UAkTriggerName : public UAkAsset
+{
+public:
+    //## BEGIN PROPS AkTriggerName
+    //## END PROPS AkTriggerName
+
+    DECLARE_CLASS(UAkTriggerName,UAkAsset,0,Engine)
+    NO_DEFAULT_CONSTRUCTOR(UAkTriggerName)
+};
+
+class UAkBank : public UAkAssetBase
+{
+public:
+    //## BEGIN PROPS AkBank
+    BITFIELD IncludeBankInAssetPack:1;
+    BITFIELD MaxStreamPriority:1;
+    BITFIELD ShouldBeLoaded:1;
+    BITFIELD DoNotFreeBulkData:1;
+    SCRIPT_ALIGN;
+    BYTE BankLoadType;
+    INT LoadCounter;
+    INT HookCounter;
+    INT PreloadStreamsCounter;
+    FPointer LockedMemory;
+    FByteBulkData LoadedBankData;
+    TArrayNoInit<FByteBulkData> StoredBankData;
+    TArrayNoInit<FString> Languages;
+    INT BanksCooked;
+    //## END PROPS AkBank
+
+    UBOOL LoadBank(UBOOL performDeferredLoad);
+    void UnloadBank(UBOOL performDeferredUnload);
+    void ForceUnloadBank();
+    UBOOL IsBankLoadComplete();
+    UBOOL PreloadBankStreams(UBOOL preload,BYTE Priority=2);
+    UBOOL IsBankStreamPreloaded();
+    DECLARE_FUNCTION(execLoadBank)
+    {
+        P_GET_UBOOL(performDeferredLoad);
+        P_FINISH;
+        *(UBOOL*)Result=this->LoadBank(performDeferredLoad);
+    }
+    DECLARE_FUNCTION(execUnloadBank)
+    {
+        P_GET_UBOOL(performDeferredUnload);
+        P_FINISH;
+        this->UnloadBank(performDeferredUnload);
+    }
+    DECLARE_FUNCTION(execForceUnloadBank)
+    {
+        P_FINISH;
+        this->ForceUnloadBank();
+    }
+    DECLARE_FUNCTION(execIsBankLoadComplete)
+    {
+        P_FINISH;
+        *(UBOOL*)Result=this->IsBankLoadComplete();
+    }
+    DECLARE_FUNCTION(execPreloadBankStreams)
+    {
+        P_GET_UBOOL(preload);
+        P_GET_BYTE_OPTX(Priority,2);
+        P_FINISH;
+        *(UBOOL*)Result=this->PreloadBankStreams(preload,Priority);
+    }
+    DECLARE_FUNCTION(execIsBankStreamPreloaded)
+    {
+        P_FINISH;
+        *(UBOOL*)Result=this->IsBankStreamPreloaded();
+    }
+    DECLARE_CLASS(UAkBank,UAkAssetBase,0,Engine)
+	// UObject interface.
+	virtual void Serialize( FArchive& Ar );
+};
+
+class UAkAssetPack : public UAkHash
+{
+public:
+    //## BEGIN PROPS AkAssetPack
+    TArrayNoInit<class UAkBank*> AssetPackBanks;
+    BITFIELD ImportEvents:1;
+    BITFIELD ImportParameters:1;
+    BITFIELD ImportSwitches:1;
+    BITFIELD ImportStates:1;
+    BITFIELD ImportTriggers:1;
+    BITFIELD ImportEnvironments:1;
+    BITFIELD AllEventsPrep:1;
+    BITFIELD IsLoaded:1;
+    BITFIELD ShouldBeLoaded:1;
+    TArrayNoInit<INT> PrepareEventIDs;
+    //## END PROPS AkAssetPack
+
+    void LoadAssetPack();
+    void UnloadAssetPack();
+    DECLARE_FUNCTION(execLoadAssetPack)
+    {
+        P_FINISH;
+        this->LoadAssetPack();
+    }
+    DECLARE_FUNCTION(execUnloadAssetPack)
+    {
+        P_FINISH;
+        this->UnloadAssetPack();
+    }
+    DECLARE_CLASS(UAkAssetPack,UAkHash,0,Engine)
+    NO_DEFAULT_CONSTRUCTOR(UAkAssetPack)
+};
+
+class UAkStackName : public UAkHash
+{
+public:
+    //## BEGIN PROPS AkStackName
+    FColor StackColor;
+    //## END PROPS AkStackName
+
+    DECLARE_CLASS(UAkStackName,UAkHash,0,Engine)
+    NO_DEFAULT_CONSTRUCTOR(UAkStackName)
 };
 
 class UBookMark : public UObject
@@ -20025,6 +21577,7 @@ AUTOGENERATE_FUNCTION(AActor,261,execFinishAnim);
 AUTOGENERATE_FUNCTION(AActor,256,execSleep);
 AUTOGENERATE_FUNCTION(AActor,-1,execConsoleCommand);
 AUTOGENERATE_FUNCTION(AActor,-1,execForceUpdateComponents);
+AUTOGENERATE_FUNCTION(AAkSoundActor,-1,execGetAkComponent);
 AUTOGENERATE_FUNCTION(AVolume,-1,execEncompassesPoint);
 AUTOGENERATE_FUNCTION(AVolume,-1,execEncompasses);
 AUTOGENERATE_FUNCTION(APhysicsVolume,-1,execGetZoneVelocityForActor);
@@ -20113,6 +21666,59 @@ AUTOGENERATE_FUNCTION(APortalTeleporter,-1,execCreatePortalTexture);
 AUTOGENERATE_FUNCTION(APortalTeleporter,-1,execTransformHitLocation);
 AUTOGENERATE_FUNCTION(APortalTeleporter,-1,execTransformVectorDir);
 AUTOGENERATE_FUNCTION(APortalTeleporter,-1,execTransformActor);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execDebugIsFailedSource);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execIsOwnerSurveillance);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execIsOwnerSpeaking);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execIsOwnerDead);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execIsOwnerHidden);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execGetSourceLODRadius);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execResetPeakAudibilityRadius);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execGetPeakAudibilityRadius);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execGetFalloffEnhancementMultiplier);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execIsFalloffEnhancementEnabled);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execDisableFalloffEnhancement);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execEnableFalloffEnhancement);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execApplyFalloffRadiusMultiplier);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execIsOcclusionEnabled);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execDisableOcclusion);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execEnableOcclusion);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execSetDialogueMeterEffect);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execEnableEnvironmentalEffects);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execIsAutoUpdateSpatial);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execIsSourceActive);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execIsPlayingLifetimeEvent);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execShouldAutoPlayLifetimeEvent);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execStopLifetimeEvent);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execStartLifetimeEvent);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execSetLifetimeEvent);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execUnregisterOcclusionMultipliers);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execRegisterOcclusionMultipliers);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execUnregisterEnvironments);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execRegisterEnvironments);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execSetSourceSpatialBeam);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execSetSourceSpatialRay);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execSetSourceSpatialMulti);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execSetSourceSpatial);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execSetSurfaceSwitch);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execSetSourceSwitch);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execSetSourceStickyParameterEx);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execSetSourceStickyParameter);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execSetSourceStickyAudioEventEx);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execSetSourceStickyAudioEvent);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execGetSourceParameter);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execSetSourceParameter);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execKillSounds);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execIsSoundHandleValid);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execStopAudioEvent);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execStartAuxAudioEvent);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execStartAudioEvent);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execGetDistanceToListener);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execCheckListenerProximity);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execGetAuxAudioSourceID);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execGetAudioSourceID);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execHasAudioSource);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execDestroyAudioSource);
+AUTOGENERATE_FUNCTION(UAkComponent,-1,execCreateAudioSource);
 AUTOGENERATE_FUNCTION(UHeightFogComponent,-1,execSetEnabled);
 AUTOGENERATE_FUNCTION(USpriteComponent,-1,execSetSpriteAndUV);
 AUTOGENERATE_FUNCTION(USpriteComponent,-1,execSetUV);
@@ -20130,6 +21736,57 @@ AUTOGENERATE_FUNCTION(USceneCapture2DHitMaskComponent,-1,execSetFadingStartTimeS
 AUTOGENERATE_FUNCTION(USceneCapture2DHitMaskComponent,-1,execSetCaptureParameters);
 AUTOGENERATE_FUNCTION(USceneCapture2DHitMaskComponent,-1,execSetCaptureTargetTexture);
 AUTOGENERATE_FUNCTION(USceneCapturePortalComponent,-1,execSetCaptureParameters);
+AUTOGENERATE_FUNCTION(UAkHash,-1,execStringToAkHash);
+AUTOGENERATE_FUNCTION(UAkHash,-1,execAkHashToString);
+AUTOGENERATE_FUNCTION(UAkHash,-1,execDetermineHashValue);
+AUTOGENERATE_FUNCTION(UAkHash,-1,execGetOriginalNameString);
+AUTOGENERATE_FUNCTION(UAkHash,-1,execGetHashString);
+AUTOGENERATE_FUNCTION(UAkHash,-1,execGetHashValue);
+AUTOGENERATE_FUNCTION(UAkBank,-1,execIsBankStreamPreloaded);
+AUTOGENERATE_FUNCTION(UAkBank,-1,execPreloadBankStreams);
+AUTOGENERATE_FUNCTION(UAkBank,-1,execIsBankLoadComplete);
+AUTOGENERATE_FUNCTION(UAkBank,-1,execForceUnloadBank);
+AUTOGENERATE_FUNCTION(UAkBank,-1,execUnloadBank);
+AUTOGENERATE_FUNCTION(UAkBank,-1,execLoadBank);
+AUTOGENERATE_FUNCTION(UAkAssetPack,-1,execUnloadAssetPack);
+AUTOGENERATE_FUNCTION(UAkAssetPack,-1,execLoadAssetPack);
+AUTOGENERATE_FUNCTION(UAkWwise,-1,execFullReset);
+AUTOGENERATE_FUNCTION(UAkWwise,-1,execGetSurveillanceFocus);
+AUTOGENERATE_FUNCTION(UAkWwise,-1,execIsSurveillanceUIVisible);
+AUTOGENERATE_FUNCTION(UAkWwise,-1,execIsSurveillanceDialogueEnabled);
+AUTOGENERATE_FUNCTION(UAkWwise,-1,execEnableSurveillanceDialogue);
+AUTOGENERATE_FUNCTION(UAkWwise,-1,execIsSurveillanceDialogueActive);
+AUTOGENERATE_FUNCTION(UAkWwise,-1,execResetSurveillanceDialogue);
+AUTOGENERATE_FUNCTION(UAkWwise,-1,execNotifySurveillanceDialogue);
+AUTOGENERATE_FUNCTION(UAkWwise,-1,execSetCustomGlobalState);
+AUTOGENERATE_FUNCTION(UAkWwise,-1,execSetCustomSourceSwitch);
+AUTOGENERATE_FUNCTION(UAkWwise,-1,execSetCustomSourceParameter);
+AUTOGENERATE_FUNCTION(UAkWwise,-1,execSetCustomGlobalParameter);
+AUTOGENERATE_FUNCTION(UAkWwise,-1,execStopCustomAudioEvent);
+AUTOGENERATE_FUNCTION(UAkWwise,-1,execStartCustomAudioEvent);
+AUTOGENERATE_FUNCTION(UAkWwise,-1,execUnregisterMusicCallback);
+AUTOGENERATE_FUNCTION(UAkWwise,-1,execRegisterMusicCallback);
+AUTOGENERATE_FUNCTION(UAkWwise,-1,execResetMusicParameters);
+AUTOGENERATE_FUNCTION(UAkWwise,-1,execSetMusicParameter);
+AUTOGENERATE_FUNCTION(UAkWwise,-1,execSetMusicTrigger);
+AUTOGENERATE_FUNCTION(UAkWwise,-1,execSetMusicGameplayState);
+AUTOGENERATE_FUNCTION(UAkWwise,-1,execSetMusicLevelState);
+AUTOGENERATE_FUNCTION(UAkWwise,-1,execSetMusicChapterState);
+AUTOGENERATE_FUNCTION(UAkWwise,-1,execSetMixChapterState);
+AUTOGENERATE_FUNCTION(UAkWwise,-1,execSetMusicState);
+AUTOGENERATE_FUNCTION(UAkWwise,-1,execStopMusic);
+AUTOGENERATE_FUNCTION(UAkWwise,-1,execStartMusic);
+AUTOGENERATE_FUNCTION(UAkWwise,-1,execCancelAudioCallbacks);
+AUTOGENERATE_FUNCTION(UAkWwise,-1,execIsSoundHandleValid);
+AUTOGENERATE_FUNCTION(UAkWwise,-1,execStartContinuousCollisionAudioEvent);
+AUTOGENERATE_FUNCTION(UAkWwise,-1,execStartCollisionAudioEvent);
+AUTOGENERATE_FUNCTION(UAkWwise,-1,execSetGlobalAudioState);
+AUTOGENERATE_FUNCTION(UAkWwise,-1,execSetGlobalAudioSwitch);
+AUTOGENERATE_FUNCTION(UAkWwise,-1,execSetGlobalStickyParameterEx);
+AUTOGENERATE_FUNCTION(UAkWwise,-1,execSetGlobalStickyParameter);
+AUTOGENERATE_FUNCTION(UAkWwise,-1,execSetGlobalAudioParameter);
+AUTOGENERATE_FUNCTION(UAkWwise,-1,execStopGlobalAudioEvent);
+AUTOGENERATE_FUNCTION(UAkWwise,-1,execStartGlobalAudioEvent);
 AUTOGENERATE_FUNCTION(UCanvas,-1,execDrawTextureDoubleLine);
 AUTOGENERATE_FUNCTION(UCanvas,-1,execDrawTextureLine);
 AUTOGENERATE_FUNCTION(UCanvas,-1,execDraw2DLine);
@@ -20395,6 +22052,8 @@ AUTOGENERATE_FUNCTION(UUIManager,-1,execGetUIManager);
 #define AUTO_INITIALIZE_REGISTRANTS_ENGINE \
 	AActor::StaticClass(); \
 	GNativeLookupFuncs.Set(FName("Actor"), GEngineAActorNatives); \
+	AAkSoundActor::StaticClass(); \
+	GNativeLookupFuncs.Set(FName("AkSoundActor"), GEngineAAkSoundActorNatives); \
 	ABrush::StaticClass(); \
 	ABrushShape::StaticClass(); \
 	AVolume::StaticClass(); \
@@ -20497,22 +22156,28 @@ AUTOGENERATE_FUNCTION(UUIManager,-1,execGetUIManager);
 	ATrigger::StaticClass(); \
 	UActorComponent::StaticClass(); \
 	GNativeLookupFuncs.Set(FName("ActorComponent"), GEngineUActorComponentNatives); \
+	UAkComponent::StaticClass(); \
+	GNativeLookupFuncs.Set(FName("AkComponent"), GEngineUAkComponentNatives); \
+	UAkPropertySheet::StaticClass(); \
 	UAudioComponent::StaticClass(); \
 	GNativeLookupFuncs.Set(FName("AudioComponent"), GEngineUAudioComponentNatives); \
 	UHeightFogComponent::StaticClass(); \
 	GNativeLookupFuncs.Set(FName("HeightFogComponent"), GEngineUHeightFogComponentNatives); \
+	UAkDrawBoundsComponent::StaticClass(); \
 	UArrowComponent::StaticClass(); \
 	UBrushComponent::StaticClass(); \
 	UCameraConeComponent::StaticClass(); \
 	UCylinderComponent::StaticClass(); \
 	GNativeLookupFuncs.Set(FName("CylinderComponent"), GEngineUCylinderComponentNatives); \
 	UDrawBoxComponent::StaticClass(); \
+	UAkDrawSoundBoxComponent::StaticClass(); \
 	UDrawCapsuleComponent::StaticClass(); \
 	UDrawConeComponent::StaticClass(); \
 	UDrawCylinderComponent::StaticClass(); \
 	UDrawFrustumComponent::StaticClass(); \
 	UDrawQuadComponent::StaticClass(); \
 	UDrawSphereComponent::StaticClass(); \
+	UAkDrawSoundRadiusComponent::StaticClass(); \
 	UDrawPylonRadiusComponent::StaticClass(); \
 	UDrawSoundRadiusComponent::StaticClass(); \
 	ULevelGridVolumeRenderingComponent::StaticClass(); \
@@ -20563,6 +22228,33 @@ AUTOGENERATE_FUNCTION(UUIManager,-1,execGetUIManager);
 	UActorFactoryStaticMesh::StaticClass(); \
 	UActorFactoryTrigger::StaticClass(); \
 	UActorFactoryVehicle::StaticClass(); \
+	UAkAudioAction::StaticClass(); \
+	UAkAudioActionAltitude::StaticClass(); \
+	UAkAudioActionAmbience::StaticClass(); \
+	UAkAudioActionEvent::StaticClass(); \
+	UAkAudioActionParameter::StaticClass(); \
+	UAkAudioActionState::StaticClass(); \
+	UAkAudioActionSwitch::StaticClass(); \
+	UAkHash::StaticClass(); \
+	GNativeLookupFuncs.Set(FName("AkHash"), GEngineUAkHashNatives); \
+	UAkAssetBase::StaticClass(); \
+	UAkAsset::StaticClass(); \
+	UAkAssetPrep::StaticClass(); \
+	UAkEvent::StaticClass(); \
+	UAkEnvironmentName::StaticClass(); \
+	UAkParameterName::StaticClass(); \
+	UAkStateGroupName::StaticClass(); \
+	UAkStateName::StaticClass(); \
+	UAkSwitchGroupName::StaticClass(); \
+	UAkSwitchName::StaticClass(); \
+	UAkTriggerName::StaticClass(); \
+	UAkBank::StaticClass(); \
+	GNativeLookupFuncs.Set(FName("AkBank"), GEngineUAkBankNatives); \
+	UAkAssetPack::StaticClass(); \
+	GNativeLookupFuncs.Set(FName("AkAssetPack"), GEngineUAkAssetPackNatives); \
+	UAkStackName::StaticClass(); \
+	UAkWwise::StaticClass(); \
+	GNativeLookupFuncs.Set(FName("AkWwise"), GEngineUAkWwiseNatives); \
 	UBookMark::StaticClass(); \
 	UBookMark2D::StaticClass(); \
 	UKismetBookMark::StaticClass(); \
@@ -20874,6 +22566,12 @@ FNativeFunctionLookup GEngineAActorNatives[] =
 	{NULL, NULL}
 };
 
+FNativeFunctionLookup GEngineAAkSoundActorNatives[] = 
+{ 
+	MAP_NATIVE(AAkSoundActor, execGetAkComponent)
+	{NULL, NULL}
+};
+
 FNativeFunctionLookup GEngineAVolumeNatives[] = 
 { 
 	MAP_NATIVE(AVolume, execEncompassesPoint)
@@ -21086,6 +22784,64 @@ FNativeFunctionLookup GEngineUActorComponentNatives[] =
 	{NULL, NULL}
 };
 
+FNativeFunctionLookup GEngineUAkComponentNatives[] = 
+{ 
+	MAP_NATIVE(UAkComponent, execDebugIsFailedSource)
+	MAP_NATIVE(UAkComponent, execIsOwnerSurveillance)
+	MAP_NATIVE(UAkComponent, execIsOwnerSpeaking)
+	MAP_NATIVE(UAkComponent, execIsOwnerDead)
+	MAP_NATIVE(UAkComponent, execIsOwnerHidden)
+	MAP_NATIVE(UAkComponent, execGetSourceLODRadius)
+	MAP_NATIVE(UAkComponent, execResetPeakAudibilityRadius)
+	MAP_NATIVE(UAkComponent, execGetPeakAudibilityRadius)
+	MAP_NATIVE(UAkComponent, execGetFalloffEnhancementMultiplier)
+	MAP_NATIVE(UAkComponent, execIsFalloffEnhancementEnabled)
+	MAP_NATIVE(UAkComponent, execDisableFalloffEnhancement)
+	MAP_NATIVE(UAkComponent, execEnableFalloffEnhancement)
+	MAP_NATIVE(UAkComponent, execApplyFalloffRadiusMultiplier)
+	MAP_NATIVE(UAkComponent, execIsOcclusionEnabled)
+	MAP_NATIVE(UAkComponent, execDisableOcclusion)
+	MAP_NATIVE(UAkComponent, execEnableOcclusion)
+	MAP_NATIVE(UAkComponent, execSetDialogueMeterEffect)
+	MAP_NATIVE(UAkComponent, execEnableEnvironmentalEffects)
+	MAP_NATIVE(UAkComponent, execIsAutoUpdateSpatial)
+	MAP_NATIVE(UAkComponent, execIsSourceActive)
+	MAP_NATIVE(UAkComponent, execIsPlayingLifetimeEvent)
+	MAP_NATIVE(UAkComponent, execShouldAutoPlayLifetimeEvent)
+	MAP_NATIVE(UAkComponent, execStopLifetimeEvent)
+	MAP_NATIVE(UAkComponent, execStartLifetimeEvent)
+	MAP_NATIVE(UAkComponent, execSetLifetimeEvent)
+	MAP_NATIVE(UAkComponent, execUnregisterOcclusionMultipliers)
+	MAP_NATIVE(UAkComponent, execRegisterOcclusionMultipliers)
+	MAP_NATIVE(UAkComponent, execUnregisterEnvironments)
+	MAP_NATIVE(UAkComponent, execRegisterEnvironments)
+	MAP_NATIVE(UAkComponent, execSetSourceSpatialBeam)
+	MAP_NATIVE(UAkComponent, execSetSourceSpatialRay)
+	MAP_NATIVE(UAkComponent, execSetSourceSpatialMulti)
+	MAP_NATIVE(UAkComponent, execSetSourceSpatial)
+	MAP_NATIVE(UAkComponent, execSetSurfaceSwitch)
+	MAP_NATIVE(UAkComponent, execSetSourceSwitch)
+	MAP_NATIVE(UAkComponent, execSetSourceStickyParameterEx)
+	MAP_NATIVE(UAkComponent, execSetSourceStickyParameter)
+	MAP_NATIVE(UAkComponent, execSetSourceStickyAudioEventEx)
+	MAP_NATIVE(UAkComponent, execSetSourceStickyAudioEvent)
+	MAP_NATIVE(UAkComponent, execGetSourceParameter)
+	MAP_NATIVE(UAkComponent, execSetSourceParameter)
+	MAP_NATIVE(UAkComponent, execKillSounds)
+	MAP_NATIVE(UAkComponent, execIsSoundHandleValid)
+	MAP_NATIVE(UAkComponent, execStopAudioEvent)
+	MAP_NATIVE(UAkComponent, execStartAuxAudioEvent)
+	MAP_NATIVE(UAkComponent, execStartAudioEvent)
+	MAP_NATIVE(UAkComponent, execGetDistanceToListener)
+	MAP_NATIVE(UAkComponent, execCheckListenerProximity)
+	MAP_NATIVE(UAkComponent, execGetAuxAudioSourceID)
+	MAP_NATIVE(UAkComponent, execGetAudioSourceID)
+	MAP_NATIVE(UAkComponent, execHasAudioSource)
+	MAP_NATIVE(UAkComponent, execDestroyAudioSource)
+	MAP_NATIVE(UAkComponent, execCreateAudioSource)
+	{NULL, NULL}
+};
+
 FNativeFunctionLookup GEngineUAudioComponentNatives[] = 
 { 
 	MAP_NATIVE(UAudioComponent, execResetToDefaults)
@@ -21157,6 +22913,77 @@ FNativeFunctionLookup GEngineUSceneCapture2DHitMaskComponentNatives[] =
 FNativeFunctionLookup GEngineUSceneCapturePortalComponentNatives[] = 
 { 
 	MAP_NATIVE(USceneCapturePortalComponent, execSetCaptureParameters)
+	{NULL, NULL}
+};
+
+FNativeFunctionLookup GEngineUAkHashNatives[] = 
+{ 
+	MAP_NATIVE(UAkHash, execStringToAkHash)
+	MAP_NATIVE(UAkHash, execAkHashToString)
+	MAP_NATIVE(UAkHash, execDetermineHashValue)
+	MAP_NATIVE(UAkHash, execGetOriginalNameString)
+	MAP_NATIVE(UAkHash, execGetHashString)
+	MAP_NATIVE(UAkHash, execGetHashValue)
+	{NULL, NULL}
+};
+
+FNativeFunctionLookup GEngineUAkBankNatives[] = 
+{ 
+	MAP_NATIVE(UAkBank, execIsBankStreamPreloaded)
+	MAP_NATIVE(UAkBank, execPreloadBankStreams)
+	MAP_NATIVE(UAkBank, execIsBankLoadComplete)
+	MAP_NATIVE(UAkBank, execForceUnloadBank)
+	MAP_NATIVE(UAkBank, execUnloadBank)
+	MAP_NATIVE(UAkBank, execLoadBank)
+	{NULL, NULL}
+};
+
+FNativeFunctionLookup GEngineUAkAssetPackNatives[] = 
+{ 
+	MAP_NATIVE(UAkAssetPack, execUnloadAssetPack)
+	MAP_NATIVE(UAkAssetPack, execLoadAssetPack)
+	{NULL, NULL}
+};
+
+FNativeFunctionLookup GEngineUAkWwiseNatives[] = 
+{ 
+	MAP_NATIVE(UAkWwise, execFullReset)
+	MAP_NATIVE(UAkWwise, execGetSurveillanceFocus)
+	MAP_NATIVE(UAkWwise, execIsSurveillanceUIVisible)
+	MAP_NATIVE(UAkWwise, execIsSurveillanceDialogueEnabled)
+	MAP_NATIVE(UAkWwise, execEnableSurveillanceDialogue)
+	MAP_NATIVE(UAkWwise, execIsSurveillanceDialogueActive)
+	MAP_NATIVE(UAkWwise, execResetSurveillanceDialogue)
+	MAP_NATIVE(UAkWwise, execNotifySurveillanceDialogue)
+	MAP_NATIVE(UAkWwise, execSetCustomGlobalState)
+	MAP_NATIVE(UAkWwise, execSetCustomSourceSwitch)
+	MAP_NATIVE(UAkWwise, execSetCustomSourceParameter)
+	MAP_NATIVE(UAkWwise, execSetCustomGlobalParameter)
+	MAP_NATIVE(UAkWwise, execStopCustomAudioEvent)
+	MAP_NATIVE(UAkWwise, execStartCustomAudioEvent)
+	MAP_NATIVE(UAkWwise, execUnregisterMusicCallback)
+	MAP_NATIVE(UAkWwise, execRegisterMusicCallback)
+	MAP_NATIVE(UAkWwise, execResetMusicParameters)
+	MAP_NATIVE(UAkWwise, execSetMusicParameter)
+	MAP_NATIVE(UAkWwise, execSetMusicTrigger)
+	MAP_NATIVE(UAkWwise, execSetMusicGameplayState)
+	MAP_NATIVE(UAkWwise, execSetMusicLevelState)
+	MAP_NATIVE(UAkWwise, execSetMusicChapterState)
+	MAP_NATIVE(UAkWwise, execSetMixChapterState)
+	MAP_NATIVE(UAkWwise, execSetMusicState)
+	MAP_NATIVE(UAkWwise, execStopMusic)
+	MAP_NATIVE(UAkWwise, execStartMusic)
+	MAP_NATIVE(UAkWwise, execCancelAudioCallbacks)
+	MAP_NATIVE(UAkWwise, execIsSoundHandleValid)
+	MAP_NATIVE(UAkWwise, execStartContinuousCollisionAudioEvent)
+	MAP_NATIVE(UAkWwise, execStartCollisionAudioEvent)
+	MAP_NATIVE(UAkWwise, execSetGlobalAudioState)
+	MAP_NATIVE(UAkWwise, execSetGlobalAudioSwitch)
+	MAP_NATIVE(UAkWwise, execSetGlobalStickyParameterEx)
+	MAP_NATIVE(UAkWwise, execSetGlobalStickyParameter)
+	MAP_NATIVE(UAkWwise, execSetGlobalAudioParameter)
+	MAP_NATIVE(UAkWwise, execStopGlobalAudioEvent)
+	MAP_NATIVE(UAkWwise, execStartGlobalAudioEvent)
 	{NULL, NULL}
 };
 
@@ -21575,6 +23402,8 @@ FNativeFunctionLookup GEngineUUIManagerNatives[] =
 VERIFY_CLASS_OFFSET_NODIE(AActor,Actor,Components)
 VERIFY_CLASS_OFFSET_NODIE(AActor,Actor,InvestigationPriorityOverride)
 VERIFY_CLASS_SIZE_NODIE(AActor)
+VERIFY_CLASS_OFFSET_NODIE(AAkSoundActor,AkSoundActor,ActorAudioComponent)
+VERIFY_CLASS_SIZE_NODIE(AAkSoundActor)
 VERIFY_CLASS_OFFSET_NODIE(ABrush,Brush,CsgOper)
 VERIFY_CLASS_OFFSET_NODIE(ABrush,Brush,SavedSelections)
 VERIFY_CLASS_SIZE_NODIE(ABrush)
@@ -21757,6 +23586,12 @@ VERIFY_CLASS_OFFSET_NODIE(UActorComponent,ActorComponent,Owner)
 VERIFY_CLASS_OFFSET_NODIE(UActorComponent,ActorComponent,TickGroup)
 VERIFY_CLASS_OFFSET_NODIE(UActorComponent,ActorComponent,ComponentArrayPriority)
 VERIFY_CLASS_SIZE_NODIE(UActorComponent)
+VERIFY_CLASS_OFFSET_NODIE(UAkComponent,AkComponent,LifetimeEvent)
+VERIFY_CLASS_OFFSET_NODIE(UAkComponent,AkComponent,DebugLastFailedSourceCreateTime)
+VERIFY_CLASS_SIZE_NODIE(UAkComponent)
+VERIFY_CLASS_OFFSET_NODIE(UAkPropertySheet,AkPropertySheet,VfTable_AkStackable)
+VERIFY_CLASS_OFFSET_NODIE(UAkPropertySheet,AkPropertySheet,LastActivationValue)
+VERIFY_CLASS_SIZE_NODIE(UAkPropertySheet)
 VERIFY_CLASS_OFFSET_NODIE(UAudioComponent,AudioComponent,SoundCue)
 VERIFY_CLASS_OFFSET_NODIE(UAudioComponent,AudioComponent,CueFirstNode)
 VERIFY_CLASS_OFFSET_NODIE(UAudioComponent,AudioComponent,InstanceParameters)
@@ -21816,6 +23651,9 @@ VERIFY_CLASS_SIZE_NODIE(UAudioComponent)
 VERIFY_CLASS_OFFSET_NODIE(UHeightFogComponent,HeightFogComponent,Height)
 VERIFY_CLASS_OFFSET_NODIE(UHeightFogComponent,HeightFogComponent,StartDistance)
 VERIFY_CLASS_SIZE_NODIE(UHeightFogComponent)
+VERIFY_CLASS_OFFSET_NODIE(UAkDrawBoundsComponent,AkDrawBoundsComponent,DrawBoundsColor)
+VERIFY_CLASS_OFFSET_NODIE(UAkDrawBoundsComponent,AkDrawBoundsComponent,Z_LMH)
+VERIFY_CLASS_SIZE_NODIE(UAkDrawBoundsComponent)
 VERIFY_CLASS_OFFSET_NODIE(UArrowComponent,ArrowComponent,ArrowColor)
 VERIFY_CLASS_OFFSET_NODIE(UArrowComponent,ArrowComponent,ArrowSize)
 VERIFY_CLASS_OFFSET_NODIE(UArrowComponent,ArrowComponent,SpriteCategoryName)
@@ -21836,6 +23674,8 @@ VERIFY_CLASS_OFFSET_NODIE(UDrawBoxComponent,DrawBoxComponent,BoxColor)
 VERIFY_CLASS_OFFSET_NODIE(UDrawBoxComponent,DrawBoxComponent,BoxMaterial)
 VERIFY_CLASS_OFFSET_NODIE(UDrawBoxComponent,DrawBoxComponent,BoxExtent)
 VERIFY_CLASS_SIZE_NODIE(UDrawBoxComponent)
+VERIFY_CLASS_OFFSET_NODIE(UAkDrawSoundBoxComponent,AkDrawSoundBoxComponent,DrawScale)
+VERIFY_CLASS_SIZE_NODIE(UAkDrawSoundBoxComponent)
 VERIFY_CLASS_OFFSET_NODIE(UDrawCapsuleComponent,DrawCapsuleComponent,CapsuleColor)
 VERIFY_CLASS_OFFSET_NODIE(UDrawCapsuleComponent,DrawCapsuleComponent,CapsuleMaterial)
 VERIFY_CLASS_OFFSET_NODIE(UDrawCapsuleComponent,DrawCapsuleComponent,CapsuleHeight)
@@ -21868,6 +23708,8 @@ VERIFY_CLASS_OFFSET_NODIE(UDrawSphereComponent,DrawSphereComponent,SphereMateria
 VERIFY_CLASS_OFFSET_NODIE(UDrawSphereComponent,DrawSphereComponent,SphereRadius)
 VERIFY_CLASS_OFFSET_NODIE(UDrawSphereComponent,DrawSphereComponent,SphereSides)
 VERIFY_CLASS_SIZE_NODIE(UDrawSphereComponent)
+VERIFY_CLASS_OFFSET_NODIE(UAkDrawSoundRadiusComponent,AkDrawSoundRadiusComponent,DrawScale)
+VERIFY_CLASS_SIZE_NODIE(UAkDrawSoundRadiusComponent)
 VERIFY_CLASS_SIZE_NODIE(UDrawPylonRadiusComponent)
 VERIFY_CLASS_SIZE_NODIE(UDrawSoundRadiusComponent)
 VERIFY_CLASS_SIZE_NODIE(ULevelGridVolumeRenderingComponent)
@@ -21961,6 +23803,56 @@ VERIFY_CLASS_SIZE_NODIE(UActorFactoryStaticMesh)
 VERIFY_CLASS_SIZE_NODIE(UActorFactoryTrigger)
 VERIFY_CLASS_OFFSET_NODIE(UActorFactoryVehicle,ActorFactoryVehicle,VehicleClass)
 VERIFY_CLASS_SIZE_NODIE(UActorFactoryVehicle)
+VERIFY_CLASS_OFFSET_NODIE(UAkAudioAction,AkAudioAction,ActivationCount)
+VERIFY_CLASS_SIZE_NODIE(UAkAudioAction)
+VERIFY_CLASS_OFFSET_NODIE(UAkAudioActionAltitude,AkAudioActionAltitude,AltitudeFollowListener)
+VERIFY_CLASS_OFFSET_NODIE(UAkAudioActionAltitude,AkAudioActionAltitude,AltitudeParameterLastUpdate)
+VERIFY_CLASS_SIZE_NODIE(UAkAudioActionAltitude)
+VERIFY_CLASS_OFFSET_NODIE(UAkAudioActionAmbience,AkAudioActionAmbience,AmbienceEvent)
+VERIFY_CLASS_SIZE_NODIE(UAkAudioActionAmbience)
+VERIFY_CLASS_OFFSET_NODIE(UAkAudioActionEvent,AkAudioActionEvent,ActionTarget)
+VERIFY_CLASS_OFFSET_NODIE(UAkAudioActionEvent,AkAudioActionEvent,ActionSoundHandle)
+VERIFY_CLASS_SIZE_NODIE(UAkAudioActionEvent)
+VERIFY_CLASS_OFFSET_NODIE(UAkAudioActionParameter,AkAudioActionParameter,ActionTarget)
+VERIFY_CLASS_OFFSET_NODIE(UAkAudioActionParameter,AkAudioActionParameter,LastUpdateTime)
+VERIFY_CLASS_SIZE_NODIE(UAkAudioActionParameter)
+VERIFY_CLASS_OFFSET_NODIE(UAkAudioActionState,AkAudioActionState,ActivationState)
+VERIFY_CLASS_OFFSET_NODIE(UAkAudioActionState,AkAudioActionState,DeactivationState)
+VERIFY_CLASS_SIZE_NODIE(UAkAudioActionState)
+VERIFY_CLASS_OFFSET_NODIE(UAkAudioActionSwitch,AkAudioActionSwitch,ActionTarget)
+VERIFY_CLASS_OFFSET_NODIE(UAkAudioActionSwitch,AkAudioActionSwitch,DeactivationSwitch)
+VERIFY_CLASS_SIZE_NODIE(UAkAudioActionSwitch)
+VERIFY_CLASS_OFFSET_NODIE(UAkHash,AkHash,HashValue)
+VERIFY_CLASS_SIZE_NODIE(UAkHash)
+VERIFY_CLASS_SIZE_NODIE(UAkAssetBase)
+VERIFY_CLASS_OFFSET_NODIE(UAkAsset,AkAsset,RequiredAssetPack)
+VERIFY_CLASS_SIZE_NODIE(UAkAsset)
+VERIFY_CLASS_SIZE_NODIE(UAkAssetPrep)
+VERIFY_CLASS_SIZE_NODIE(UAkEvent)
+VERIFY_CLASS_OFFSET_NODIE(UAkEnvironmentName,AkEnvironmentName,EnvironmentRolloffDistanceMin)
+VERIFY_CLASS_OFFSET_NODIE(UAkEnvironmentName,AkEnvironmentName,EnvironmentDrySendNotOccludedMultiplier)
+VERIFY_CLASS_SIZE_NODIE(UAkEnvironmentName)
+VERIFY_CLASS_OFFSET_NODIE(UAkParameterName,AkParameterName,ParameterType)
+VERIFY_CLASS_SIZE_NODIE(UAkParameterName)
+VERIFY_CLASS_OFFSET_NODIE(UAkStateGroupName,AkStateGroupName,StateGroupType)
+VERIFY_CLASS_SIZE_NODIE(UAkStateGroupName)
+VERIFY_CLASS_OFFSET_NODIE(UAkStateName,AkStateName,ParentStateGroup)
+VERIFY_CLASS_SIZE_NODIE(UAkStateName)
+VERIFY_CLASS_SIZE_NODIE(UAkSwitchGroupName)
+VERIFY_CLASS_OFFSET_NODIE(UAkSwitchName,AkSwitchName,ParentSwitchGroup)
+VERIFY_CLASS_SIZE_NODIE(UAkSwitchName)
+VERIFY_CLASS_SIZE_NODIE(UAkTriggerName)
+VERIFY_CLASS_OFFSET_NODIE(UAkBank,AkBank,BankLoadType)
+VERIFY_CLASS_OFFSET_NODIE(UAkBank,AkBank,BanksCooked)
+VERIFY_CLASS_SIZE_NODIE(UAkBank)
+VERIFY_CLASS_OFFSET_NODIE(UAkAssetPack,AkAssetPack,AssetPackBanks)
+VERIFY_CLASS_OFFSET_NODIE(UAkAssetPack,AkAssetPack,PrepareEventIDs)
+VERIFY_CLASS_SIZE_NODIE(UAkAssetPack)
+VERIFY_CLASS_OFFSET_NODIE(UAkStackName,AkStackName,StackColor)
+VERIFY_CLASS_SIZE_NODIE(UAkStackName)
+VERIFY_CLASS_OFFSET_NODIE(UAkWwise,AkWwise,__AkSoundCallback__Delegate)
+VERIFY_CLASS_OFFSET_NODIE(UAkWwise,AkWwise,__AkMusicCallback__Delegate)
+VERIFY_CLASS_SIZE_NODIE(UAkWwise)
 VERIFY_CLASS_OFFSET_NODIE(UBookMark,BookMark,Location)
 VERIFY_CLASS_OFFSET_NODIE(UBookMark,BookMark,HiddenLevels)
 VERIFY_CLASS_SIZE_NODIE(UBookMark)

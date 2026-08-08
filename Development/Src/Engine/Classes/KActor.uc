@@ -3,6 +3,7 @@
  */
 class KActor extends DynamicSMActor
 	native(Physics)
+	dependson(AkWwise)
 	nativereplication
 	placeable
 	ClassGroup(Physics)
@@ -26,21 +27,6 @@ cpptext
 
 	virtual void TickSpecial(FLOAT DeltaSeconds);
 }
-
-// BM
-struct native AkSoundHandle_Mirror
-{
-	var int EventInstanceID;
-	var int OriginalEventID;
-	var int SourceID;
-};
-
-// BM
-struct native AkSoundLoop_Mirror
-{
-	var object SoundEvent;
-	var AkSoundHandle_Mirror SoundHandle;
-};
 
 var()	bool	bDamageAppliesImpulse;
 var() repnotify bool bWakeOnLevelStart;
@@ -76,7 +62,7 @@ var				object						ImpactForceComponent;
 // Slide effects
 var				ParticleSystemComponent		SlideEffectComponent;
 // BM
-var				AkSoundLoop_Mirror			SlideSoundLoop;
+var				AkWwise.AkSoundLoop			SlideSoundLoop;
 var				float						LastSlideTime;
 var				PhysEffectInfo				SlideEffectInfo;
 
