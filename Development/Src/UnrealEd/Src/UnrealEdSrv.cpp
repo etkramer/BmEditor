@@ -333,19 +333,20 @@ static void CreateGrapplePoints( UUnrealEdEngine* Editor, FOutputDevice& Ar )
 			continue;
 		}
 
+		if( !Level->bEdgesValid )
+		{
+			Level->BuildEdgeCollections( Level->Model );
+			if( !Level->bEdgesValid )
+			{
+				continue;
+			}
+		}
+
 		TArray<INT>* Handled = HandledCollections.Find( Level );
 		if( !Handled )
 		{
-			// Nothing invalidates edge data yet, so rebuild once per level per run.
-			Level->BuildEdgeCollections( Level->Model );
-
 			HandledCollections.Set( Level, TArray<INT>() );
 			Handled = HandledCollections.Find( Level );
-		}
-
-		if( !Level->bEdgesValid )
-		{
-			continue;
 		}
 
 		for( INT c = 0; c < Actor->Components.Num(); c++ )

@@ -655,6 +655,18 @@ void ULevel::PreSave()
 		// Build bsp-trimesh data for physics engine
 		BuildPhysBSPData();
 
+#if BATMAN
+		// Retail also skips this under its rebuild-map commandlet, which we have no equivalent of.
+		if( !GIsCooking )
+		{
+			ULevelStreaming* StreamingLevel = FLevelUtils::FindStreamingLevel( this );
+			if( !StreamingLevel || FLevelUtils::IsLevelVisible( StreamingLevel ) )
+			{
+				BuildEdgeCollections( Model );
+			}
+		}
+#endif
+
 		// clean up the nav list
 		GWorld->RemoveLevelNavList(this);
         // if one of the pointers are NULL then eliminate both to prevent possible crashes during gameplay before paths are rebuilt

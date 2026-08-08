@@ -295,6 +295,10 @@ void UEditorEngine::csgRebuild()
 	// Empty EdPolys.
 	GWorld->GetModel()->Polys->Element.Empty();
 
+#if BATMAN
+	GWorld->CurrentLevel->BuildEdgeCollections( GWorld->GetModel() );
+#endif
+
 	// Done.
 	FBSPOps::GFastRebuild = 0;
 	GWorld->CurrentLevel->MarkPackageDirty();
