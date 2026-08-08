@@ -3,6 +3,8 @@
  */
 class Trigger_LOS extends Trigger;
 
+// BM
+var() float TimeBetweenChecks;
 var array<PlayerController> PCsWithLOS;
 
 /**
@@ -64,6 +66,7 @@ simulated event Tick(float DeltaTime)
 defaultproperties
 {
 	bStatic=false
+	TimeBetweenChecks=0.25
 
 	SupportedEvents.Empty
 	SupportedEvents.Add(class'SeqEvent_LOS')
