@@ -2748,6 +2748,27 @@ inline FVector FLinePlaneIntersection
 	*	((Plane.W - (Point1|Plane))/((Point2 - Point1)|Plane));
 }
 
+#if BATMAN
+// BM: Intersects two lines in the XY plane, returning how far along each the crossing lies.
+inline UBOOL LineIntersect2D( const FVector& PointA, const FVector& DirA, const FVector& PointB, const FVector& DirB, FLOAT& OutTimeA, FLOAT& OutTimeB )
+{
+	const FLOAT Det = DirA.Y * DirB.X - DirA.X * DirB.Y;
+	if( Abs(Det) < 0.0001f )
+	{
+		OutTimeA = -BIG_NUMBER;
+		OutTimeB = -BIG_NUMBER;
+		return FALSE;
+	}
+
+	const FLOAT DX = PointA.X - PointB.X;
+	const FLOAT DY = PointA.Y - PointB.Y;
+
+	OutTimeA = (DirB.Y * DX - DirB.X * DY) / Det;
+	OutTimeB = (DirA.Y * DX - DirA.X * DY) / Det;
+	return TRUE;
+}
+#endif
+
 /**
  * Determine if a plane and an AABB intersect
  * @param P - the plane to test
@@ -3464,6 +3485,47 @@ public:
 
 	/** Calculate determinant of rotation 3x3 matrix */
 	inline FLOAT RotDeterminant() const;
+
+#if BATMAN
+	// BM: TRUE when the rotation part maps each axis onto an axis.
+	UBOOL IsAxisAligned( FLOAT Tolerance ) const
+	{
+		for( INT Row = 0; Row < 3; Row++ )
+		{
+			INT NumLarge = 0;
+			INT NumSmall = 0;
+			for( INT Col = 0; Col < 3; Col++ )
+			{
+				if( Tolerance <= Abs(M[Row][Col]) )
+				{
+					NumLarge++;
+				}
+				else
+				{
+					NumSmall++;
+				}
+			}
+			if( NumLarge != 1 || NumSmall != 2 )
+			{
+				return FALSE;
+			}
+		}
+
+		// The axes must also be mutually perpendicular.
+		for( INT A = 0; A < 3; A++ )
+		{
+			for( INT B = A + 1; B < 3; B++ )
+			{
+				const FLOAT Dot = M[B][0]*M[A][0] + M[B][1]*M[A][1] + M[B][2]*M[A][2];
+				if( Tolerance <= Abs(Dot) )
+				{
+					return FALSE;
+				}
+			}
+		}
+		return TRUE;
+	}
+#endif
 
 	// Inverse.
 	/** Fast path, doesn't check for nil matrices in final release builds */

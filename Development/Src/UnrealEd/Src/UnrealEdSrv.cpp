@@ -58,6 +58,365 @@ static void PrivateDumpSelection(USelection* Selection)
 	}
 }
 
+#if BATMAN
+
+/** BM2: Reflection handles for RGrapplePoint, which is script-only in our build. */
+struct FGrapplePointProps
+{
+	UClass*			Class;
+	UProperty*		OutwardNormal;
+	UProperty*		PointA;
+	UProperty*		PointB;
+	UProperty*		ExtraCheckRadius;
+	UProperty*		Type;
+	UProperty*		EdgeType;
+	UBoolProperty*	bValid;
+
+	UBOOL Resolve()
+	{
+		Class = FindObject<UClass>( ANY_PACKAGE, TEXT("RGrapplePoint") );
+		if( !Class )
+		{
+			return FALSE;
+		}
+
+		OutwardNormal		= FindField<UProperty>( Class, TEXT("OutwardNormal") );
+		PointA				= FindField<UProperty>( Class, TEXT("PointA") );
+		PointB				= FindField<UProperty>( Class, TEXT("PointB") );
+		ExtraCheckRadius	= FindField<UProperty>( Class, TEXT("ExtraCheckRadius") );
+		Type				= FindField<UProperty>( Class, TEXT("Type") );
+		EdgeType			= FindField<UProperty>( Class, TEXT("EdgeType") );
+		bValid				= FindField<UBoolProperty>( Class, TEXT("bValid") );
+
+		return OutwardNormal && PointA && PointB && ExtraCheckRadius && Type && EdgeType && bValid;
+	}
+};
+
+/** BM2: Per-run tallies, so a build that produces nothing can say why. */
+struct FGrapplePointStats
+{
+	INT Prims;
+	INT PrimsWithEdges;
+	INT Nodes;
+	INT Collections;
+	INT Edges;
+	INT ShimmyOnly;
+	INT RailingsWithoutTops;
+	INT Created;
+
+	FGrapplePointStats()
+	:	Prims(0), PrimsWithEdges(0), Nodes(0), Collections(0), Edges(0)
+	,	ShimmyOnly(0), RailingsWithoutTops(0), Created(0)
+	{}
+};
+
+template< typename T > static void SetGrappleValue( AActor* Point, UProperty* Prop, const T& Value )
+{
+	*(T*)( (BYTE*)Point + Prop->Offset ) = Value;
+}
+
+/** BM2: The railing top this edge helped create, or NULL if it has been optimised away. */
+static const FActorHorizontalEdge* FindRailingTopForEdge( const FActorEdgeCollection& Collection, const FVector& A, const FVector& B )
+{
+	FVector Dir = B - A;
+	const FLOAT Length = Dir.Size();
+	if( Length < KINDA_SMALL_NUMBER )
+	{
+		return NULL;
+	}
+	Dir /= Length;
+
+	const FVector Mid = (A + B) * 0.5f;
+	const FActorHorizontalEdge* Best = NULL;
+	FLOAT BestSeparation = BIG_NUMBER;
+
+	for( INT i = 0; i < Collection.RailingTops.Num(); i++ )
+	{
+		const FActorHorizontalEdge& Top = Collection.RailingTops(i);
+		const FVector TopA( Top.PointAX, Top.PointAY, Top.PointAZ );
+		const FVector TopB = TopA + FVector( Top.PointBX, Top.PointBY, Top.PointBZ );
+
+		FVector TopDir = TopB - TopA;
+		TopDir.Normalize();
+		if( Abs(TopDir | Dir) < 0.99f )
+		{
+			continue;
+		}
+
+		const FLOAT TopStart = (TopA - A) | Dir;
+		const FLOAT TopEnd   = (TopB - A) | Dir;
+		if( Max(TopStart,TopEnd) < 0.f || Min(TopStart,TopEnd) > Length )
+		{
+			continue;
+		}
+
+		// CreateRailingData never puts a top further from its source edges than this.
+		const FVector Delta = (TopA + TopB) * 0.5f - Mid;
+		const FLOAT Separation = (Delta - Dir * (Delta | Dir)).Size();
+		if( Abs(Delta.Z) > 36.f || Separation > 50.f )
+		{
+			continue;
+		}
+
+		if( Separation < BestSeparation )
+		{
+			BestSeparation = Separation;
+			Best = &Top;
+		}
+	}
+
+	return Best;
+}
+
+// BM: Retail resolves a railing top's facing by sweeping the pawn edge search around it; we take
+// the side that drops away instead, which is the side Batman grapples in from.
+static FVector OutwardSideOfRailing( const FVector& A, const FVector& B )
+{
+	FVector Dir = B - A;
+	Dir.Normalize();
+
+	FVector Outward( -Dir.Y, Dir.X, 0.f );
+	Outward.Normalize();
+
+	const FVector Mid = (A + B) * 0.5f;
+	FLOAT Drop[2] = { 512.f, 512.f };
+
+	for( INT Side = 0; Side < 2; Side++ )
+	{
+		const FVector Start = Mid + ( Side ? -Outward : Outward ) * 32.f;
+
+		FCheckResult Hit(1.f);
+		if( !GWorld->SingleLineCheck( Hit, NULL, Start - FVector(0.f,0.f,512.f), Start, TRACE_World ) )
+		{
+			Drop[Side] = Hit.Time * 512.f;
+		}
+	}
+
+	return ( Drop[1] > Drop[0] ) ? -Outward : Outward;
+}
+
+static UBOOL SpawnGrapplePoint( UUnrealEdEngine* Editor, const FGrapplePointProps& Props, ULevel* Level,
+								const FVector& A, const FVector& B, const FVector& Outward, BYTE Type, BYTE EdgeType )
+{
+	const FVector Location = (A + B) * 0.5f - Outward * 14.f;
+
+	AActor* Point = Editor->AddActor( Props.Class, Location, FALSE );
+	if( !Point )
+	{
+		return FALSE;
+	}
+
+	Point->SetLocation( Location );
+	Point->SetRotation( Outward.Rotation() );
+
+	SetGrappleValue( Point, Props.OutwardNormal, Outward );
+	SetGrappleValue( Point, Props.PointA, A );
+	SetGrappleValue( Point, Props.PointB, B );
+	SetGrappleValue( Point, Props.ExtraCheckRadius, (B - A).Size() * 0.5f );
+	SetGrappleValue<BYTE>( Point, Props.Type, Type );
+	SetGrappleValue<BYTE>( Point, Props.EdgeType, EdgeType );
+
+	*(BITFIELD*)( (BYTE*)Point + Props.bValid->Offset ) |= Props.bValid->BitMask;
+
+	// Drop a point that has landed on top of one we already made.
+	for( INT i = 0; i < Level->Actors.Num(); i++ )
+	{
+		AActor* Other = Level->Actors(i);
+		if( !Other || Other == Point || Other->GetClass() != Point->GetClass() )
+		{
+			continue;
+		}
+
+		if( (Other->Location - Point->Location).SizeSquared() < 10.f )
+		{
+			Editor->SelectActor( Point, FALSE, NULL, TRUE );
+			GWorld->EditorDestroyActor( Point, TRUE );
+			return FALSE;
+		}
+	}
+
+	return TRUE;
+}
+
+static void CreateGrapplePointsForCollection( UUnrealEdEngine* Editor, const FGrapplePointProps& Props,
+											  ULevel* Level, const FActorEdgeCollection& Collection,
+											  FGrapplePointStats& Stats )
+{
+	Stats.Collections++;
+	Stats.Edges += Collection.Edges.Num();
+
+	for( INT i = 0; i < Collection.Edges.Num(); i++ )
+	{
+		const FActorHorizontalEdge& Edge = Collection.Edges(i);
+
+		// The editor's edge search runs with shimmy-only edges disallowed.
+		if( Edge.EdgeType & EDGETYPE_ShimmyOnly )
+		{
+			Stats.ShimmyOnly++;
+			continue;
+		}
+
+		FVector A, B;
+		if( !Collection.GetEdge( i, Level->Model, A, B ) )
+		{
+			continue;
+		}
+
+		FVector Outward( -(B.Y - A.Y), B.X - A.X, 0.f );
+		Outward.Normalize();
+
+		BYTE Type = 0;					// GPT_Edge
+		BYTE EdgeType = Edge.EdgeType;
+
+		// A railing's grapple point belongs on the railing top, not on the edge that made it.
+		if( Edge.EdgeType & EDGETYPE_Railing )
+		{
+			const FActorHorizontalEdge* Top = FindRailingTopForEdge( Collection, A, B );
+			if( !Top )
+			{
+				Stats.RailingsWithoutTops++;
+				continue;
+			}
+
+			A = FVector( Top->PointAX, Top->PointAY, Top->PointAZ );
+			B = A + FVector( Top->PointBX, Top->PointBY, Top->PointBZ );
+			Outward = OutwardSideOfRailing( A, B );
+			EdgeType = Top->EdgeType;
+			Type = 3;					// GPT_RailingTop
+		}
+
+		if( SpawnGrapplePoint( Editor, Props, Level, A, B, Outward, Type, EdgeType ) )
+		{
+			Stats.Created++;
+		}
+	}
+}
+
+/** BM2: Places grapple points along every climbable edge belonging to the selected actors. */
+static void CreateGrapplePoints( UUnrealEdEngine* Editor, FOutputDevice& Ar )
+{
+	FGrapplePointProps Props;
+	if( !Props.Resolve() )
+	{
+		Ar.Logf( TEXT("RGrapplePoint is not loaded - grapple points need a map that references BmGame.") );
+		return;
+	}
+
+	TArray<AActor*> SelectedActors;
+	for( USelection::TObjectIterator It = Editor->GetSelectedActors()->ObjectItor(); It; ++It )
+	{
+		AActor* Actor = Cast<AActor>( *It );
+		if( Actor )
+		{
+			SelectedActors.AddItem( Actor );
+		}
+	}
+
+	if( SelectedActors.Num() <= 0 )
+	{
+		return;
+	}
+
+	GWarn->BeginSlowTask( TEXT("Creating grapple points..."), TRUE );
+
+	FGrapplePointStats Stats;
+	TMap<ULevel*,TArray<INT> > HandledCollections;
+
+	for( INT ActorIndex = 0; ActorIndex < SelectedActors.Num(); ActorIndex++ )
+	{
+		GWarn->StatusUpdatef( ActorIndex, SelectedActors.Num(), TEXT("Creating grapple points...") );
+
+		AActor* Actor = SelectedActors(ActorIndex);
+		ULevel* Level = Cast<ULevel>( Actor->GetOuter() );
+		if( !Level )
+		{
+			continue;
+		}
+
+		TArray<INT>* Handled = HandledCollections.Find( Level );
+		if( !Handled )
+		{
+			// Nothing invalidates edge data yet, so rebuild once per level per run.
+			Level->BuildEdgeCollections( Level->Model );
+
+			HandledCollections.Set( Level, TArray<INT>() );
+			Handled = HandledCollections.Find( Level );
+		}
+
+		if( !Level->bEdgesValid )
+		{
+			continue;
+		}
+
+		for( INT c = 0; c < Actor->Components.Num(); c++ )
+		{
+			UPrimitiveComponent* Prim = Cast<UPrimitiveComponent>( Actor->Components(c) );
+			if( !Prim )
+			{
+				continue;
+			}
+			Stats.Prims++;
+
+			if( Prim->LevelEdgeCollectionIndex >= Level->ActorHorizontalEdges.Num() )
+			{
+				continue;
+			}
+			Stats.PrimsWithEdges++;
+
+			if( Handled->FindItemIndex( Prim->LevelEdgeCollectionIndex ) != INDEX_NONE )
+			{
+				continue;
+			}
+			Handled->AddItem( Prim->LevelEdgeCollectionIndex );
+
+			CreateGrapplePointsForCollection( Editor, Props, Level,
+				Level->ActorHorizontalEdges( Prim->LevelEdgeCollectionIndex ), Stats );
+		}
+
+		// BM: Retail only walks components, which leaves BSP out. Brush surfaces reach their
+		// collections through the node table instead.
+		ABrush* Brush = Cast<ABrush>( Actor );
+		UModel* Model = Brush ? Level->Model : NULL;
+
+		for( INT n = 0; Model && n < Model->Nodes.Num() && n < Level->NodeEdgeCollection.Num(); n++ )
+		{
+			if( Model->Surfs( Model->Nodes(n).iSurf ).Actor != Brush )
+			{
+				continue;
+			}
+			Stats.Nodes++;
+
+			const INT Index = Level->NodeEdgeCollection(n);
+			if( Index == 0xFFFF || Index >= Level->ActorHorizontalEdges.Num() )
+			{
+				continue;
+			}
+
+			if( Handled->FindItemIndex( Index ) != INDEX_NONE )
+			{
+				continue;
+			}
+			Handled->AddItem( Index );
+
+			CreateGrapplePointsForCollection( Editor, Props, Level, Level->ActorHorizontalEdges(Index), Stats );
+		}
+	}
+
+	GWarn->EndSlowTask();
+
+	debugf( NAME_Log, TEXT("Grapple points: %d created from %d edges in %d collections"),
+		Stats.Created, Stats.Edges, Stats.Collections );
+	debugf( NAME_Log, TEXT("  %d primitives scanned, %d with edge collections, %d brush nodes"),
+		Stats.Prims, Stats.PrimsWithEdges, Stats.Nodes );
+	debugf( NAME_Log, TEXT("  skipped %d shimmy-only edges, %d railings with no top"),
+		Stats.ShimmyOnly, Stats.RailingsWithoutTops );
+
+	Editor->NoteSelectionChange();
+	Editor->RedrawLevelEditingViewports( TRUE );
+}
+
+#endif
+
 UBOOL UUnrealEdEngine::Exec( const TCHAR* Stream, FOutputDevice& Ar )
 {
 	const TCHAR* Str = Stream;
@@ -333,6 +692,17 @@ UBOOL UUnrealEdEngine::Exec( const TCHAR* Stream, FOutputDevice& Ar )
 		debugf(TEXT("Selected Non-Actors:"));
 		PrivateDumpSelection( GetSelectedObjects() );
 	}
+#if BATMAN
+	const TCHAR* GrappleStr = Str;
+	if( ParseCommand(&GrappleStr, TEXT("CREATE"))
+	&&	ParseCommand(&GrappleStr, TEXT("GRAPPLE"))
+	&&	ParseCommand(&GrappleStr, TEXT("POINTS")) )
+	{
+		CreateGrapplePoints( this, Ar );
+		return TRUE;
+	}
+#endif
+
 	//----------------------------------------------------------------------------------
 	// EDIT
 	//

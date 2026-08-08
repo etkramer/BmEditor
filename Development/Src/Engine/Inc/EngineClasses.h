@@ -3872,6 +3872,11 @@ public:
 	// AActor interface.
 	virtual APawn* GetPlayerPawn() const {return NULL;}
 	virtual UBOOL IsPlayerPawn() const {return false;}
+#if BATMAN
+	// BM: Actors that supply their own climbable edges override this instead of being scanned.
+	virtual UBOOL CustomEdgeCollection( struct FActorEdgeCollection& Collection ) { return FALSE; }
+	virtual UBOOL CanPreBuildClimbableEdges() { return bBatmanCanClimb && (bStatic || !bMovable); }
+#endif
 	virtual UBOOL IgnoreBlockingBy( const AActor *Other) const;
 	UBOOL IsOwnedBy( const AActor *TestOwner ) const;
 	UBOOL IsBlockedBy( const AActor* Other, const UPrimitiveComponent* Primitive ) const;

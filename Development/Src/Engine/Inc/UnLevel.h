@@ -71,7 +71,7 @@ public:
 	virtual void AddPrimitive( UPrimitiveComponent* Primitive )=0;
 	virtual void RemovePrimitive( UPrimitiveComponent* Primitive )=0;
 	virtual FCheckResult* ActorLineCheck( FMemStack& Mem, const FVector& End, const FVector& Start, const FVector& Extent, DWORD TraceFlags, AActor *SourceActor, ULightComponent* SourceLight )=0;
-	virtual FCheckResult* ActorPointCheck( FMemStack& Mem, const FVector& Location, const FVector& Extent, DWORD TraceFlags )=0;
+	virtual FCheckResult* ActorPointCheck( FMemStack& Mem, const FVector& Location, const FVector& Extent, DWORD TraceFlags, AActor* SourceActor = NULL )=0;
 	/**
 	 * Finds all actors that are touched by a sphere (point + radius). If
 	 * bUseOverlap is false, only the centers of the bounding boxes are
@@ -629,10 +629,35 @@ struct FActorHorizontalEdge
 	}
 };
 
+/** BM2: Bits stored in FActorHorizontalEdge::EdgeType */
+enum EEdgeType
+{
+	EDGETYPE_WideRailing		= 0x01,
+	EDGETYPE_Railing			= 0x02,
+	EDGETYPE_ShimmyOnly			= 0x04,
+	EDGETYPE_SlopedEdge			= 0x08,
+	EDGETYPE_WireRailing		= 0x10,
+	EDGETYPE_ExtraSloped		= 0x20,
+	EDGETYPE_SpikeyRailing		= 0x40,
+	EDGETYPE_SpecialRoofEdge	= 0x80,
+};
+
+/** BM2: Uniform edge access shared by BSP and actor edge collections */
+struct FEdgeCollectionBase
+{
+	virtual INT GetNumEdges() const = 0;
+	virtual UBOOL GetEdge( INT Index, const UModel* Model, FVector& OutPointA, FVector& OutPointB ) const = 0;
+};
+
 /** BM2: Collection of horizontal edges from BSP */
-struct FEdgeCollection
+struct FEdgeCollection : public FEdgeCollectionBase
 {
 	TArray<FHorizontalEdge> Edges;
+
+	virtual INT GetNumEdges() const;
+	virtual UBOOL GetEdge( INT Index, const UModel* Model, FVector& OutPointA, FVector& OutPointB ) const;
+
+	void OptimizeEdgeCollection( UModel* Model );
 
 	friend FArchive& operator<<( FArchive& Ar, FEdgeCollection& C )
 	{
@@ -642,18 +667,65 @@ struct FEdgeCollection
 };
 
 /** BM2: Collection of actor horizontal edges */
-struct FActorEdgeCollection
+struct FActorEdgeCollection : public FEdgeCollectionBase
 {
 	FBox BoundingBox;
 	TArray<FActorHorizontalEdge> Edges;
 	TArray<FActorHorizontalEdge> RailingTops;
 	TArray<WORD> ConnectedCollections;
 
+	FActorEdgeCollection()
+	:	BoundingBox(0)
+	{}
+
+	virtual INT GetNumEdges() const;
+	virtual UBOOL GetEdge( INT Index, const UModel* Model, FVector& OutPointA, FVector& OutPointB ) const;
+
+	/** Appends an edge and grows the bounding box around both of its endpoints. */
+	void AddEdge( const FActorHorizontalEdge& Edge );
+
 	friend FArchive& operator<<( FArchive& Ar, FActorEdgeCollection& C )
 	{
 		Ar << C.Edges << C.BoundingBox << C.ConnectedCollections << C.RailingTops;
 		return Ar;
 	}
+};
+
+/** BM2: What fed a given edge collection. Build-time only, never serialized. */
+struct FEdgeCollectionMember
+{
+	enum ECMType
+	{
+		ESMTYPE_BSPNode		= 0,
+		ESMTYPE_PrimComp	= 1,
+	};
+
+	struct MemberContainer
+	{
+		ECMType Type;
+		union
+		{
+			INT							NodeIndex;
+			class UPrimitiveComponent*	PrimComp;
+		};
+
+		MemberContainer()
+		:	Type(ESMTYPE_BSPNode)
+		,	NodeIndex(INDEX_NONE)
+		{}
+
+		MemberContainer( INT InNodeIndex )
+		:	Type(ESMTYPE_BSPNode)
+		,	NodeIndex(InNodeIndex)
+		{}
+
+		MemberContainer( class UPrimitiveComponent* InPrimComp )
+		:	Type(ESMTYPE_PrimComp)
+		,	PrimComp(InPrimComp)
+		{}
+	};
+
+	TArray<MemberContainer> AssociatedMembers;
 };
 #endif
 
@@ -917,6 +989,20 @@ class ULevel : public ULevelBase
 	 * Commits changes made to the UModel's surfaces.
 	 */
 	void CommitModelSurfaces();
+
+#if BATMAN
+	/** BM2: Rebuilds all climbable edge data for this level. */
+	void BuildEdgeCollections( UModel* Model );
+
+	void BuildActorEdgeFromBSPEdges( UModel* Model );
+	void BuildActorEdgeCollections( TArray<FEdgeCollectionMember>& EdgeMembers );
+	void MergeActorEdgeCollections( UModel* Model, TArray<FEdgeCollectionMember>& EdgeMembers );
+	void OptimiseActorEdgeCollections();
+	void ResolveUnlinkedPrimitives( TArray<FEdgeCollectionMember>& EdgeMembers );
+	void ResolveUnlinkedBSPNodes( TArray<FEdgeCollectionMember>& EdgeMembers, UModel* Model );
+	void RemoveUnconnectedShimmyEdges( TArray<FEdgeCollectionMember>& EdgeMembers );
+	void CreateRailingData();
+#endif
 
 	/**
 	 * Discards the cached data used to render the level's UModel.  Assumes that the

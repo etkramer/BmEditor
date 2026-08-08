@@ -340,10 +340,11 @@ public:
 		DWORD TraceFlags, 
 		AActor *SourceActor,
 		class ULightComponent* SourceLight);
-	virtual FCheckResult* ActorPointCheck(FMemStack& Mem, 
-		const FVector& Location, 
-		const FVector& Extent, 
-		DWORD TraceFlags);
+	virtual FCheckResult* ActorPointCheck(FMemStack& Mem,
+		const FVector& Location,
+		const FVector& Extent,
+		DWORD TraceFlags,
+		AActor* SourceActor = NULL);
 
 	/**
 	 * Finds all actors that are touched by a sphere (point + radius). If

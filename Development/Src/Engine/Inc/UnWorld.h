@@ -698,7 +698,8 @@ public:
 	UBOOL SinglePointCheck( FCheckResult& Hit, const FVector& Location, const FVector& Extent, DWORD TraceFlags );
     UBOOL EncroachingWorldGeometry( FCheckResult& Hit, const FVector& Location, const FVector& Extent, UBOOL bUseComplexCollision=FALSE, AActor* TestActor = NULL );
 	UBOOL SingleLineCheck( FCheckResult& Hit, AActor* SourceActor, const FVector& End, const FVector& Start, DWORD TraceFlags, const FVector& Extent=FVector(0,0,0), ULightComponent* SourceLight = NULL );
-	FCheckResult* MultiPointCheck( FMemStack& Mem, const FVector& Location, const FVector& Extent, DWORD TraceFlags );
+	// BM: SourceActor added - BM2 point checks filter hits through ShouldTrace like line checks do.
+	FCheckResult* MultiPointCheck( FMemStack& Mem, const FVector& Location, const FVector& Extent, DWORD TraceFlags, AActor* SourceActor = NULL );
 	FCheckResult* MultiLineCheck( FMemStack& Mem, const FVector& End, const FVector& Start, const FVector& Size, DWORD TraceFlags, AActor* SourceActor, ULightComponent* SourceLight = NULL );
 	UBOOL BSPLineCheck(	FCheckResult& Hit, AActor* Owner, const FVector& End, const FVector& Start, const FVector& Extent, DWORD TraceFlags );
 	UBOOL BSPFastLineCheck( const FVector& End, const FVector& Start );

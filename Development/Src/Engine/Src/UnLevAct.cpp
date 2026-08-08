@@ -2031,7 +2031,7 @@ UBOOL UWorld::EncroachingWorldGeometry( FCheckResult& Hit, const FVector& Locati
 	MultiPointCheck.
 -----------------------------------------------------------------------------*/
 
-FCheckResult* UWorld::MultiPointCheck( FMemStack& Mem, const FVector& Location, const FVector& Extent, DWORD TraceFlags )
+FCheckResult* UWorld::MultiPointCheck( FMemStack& Mem, const FVector& Location, const FVector& Extent, DWORD TraceFlags, AActor* SourceActor )
 {
 	check(Hash);
 	FCheckResult* Result=NULL;
@@ -2060,7 +2060,7 @@ FCheckResult* UWorld::MultiPointCheck( FMemStack& Mem, const FVector& Location, 
 	}
 
 	// Check with actors.
-	FCheckResult* ActorCheckResult = Hash->ActorPointCheck( Mem, Location, Extent, TraceFlags );
+	FCheckResult* ActorCheckResult = Hash->ActorPointCheck( Mem, Location, Extent, TraceFlags, SourceActor );
 	if (Result != NULL)
 	{
 		// Link the actor hit in after the world

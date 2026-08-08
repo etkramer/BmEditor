@@ -1835,7 +1835,7 @@ void FOctreeNode::ActorPointCheck(FPrimitiveOctree* o, const FOctreeNodeBounds& 
 #endif
 				if ((o->bChkExtentIsZero ? TestPrimitive->BlockZeroExtent : TestPrimitive->BlockNonZeroExtent) &&
 					TestPrimitive->ShouldCollide() &&
-					PrimOwner->ShouldTrace(TestPrimitive,NULL, o->ChkTraceFlags) )
+					PrimOwner->ShouldTrace(TestPrimitive,o->ChkActor, o->ChkTraceFlags) )
 				{
 					// Collision test.
 					FCheckResult TestHit(1.f);
@@ -2537,8 +2537,9 @@ FCheckResult* FPrimitiveOctree::ActorLineCheck(FMemStack& Mem,
 //
 FCheckResult* FPrimitiveOctree::ActorPointCheck(FMemStack& Mem, 
 												const FVector& Location, 
-												const FVector& Extent, 
-												DWORD TraceFlags)
+												const FVector& Extent,
+												DWORD TraceFlags,
+												AActor* SourceActor)
 {
 	INC_DWORD_STAT(STAT_PointCheckCount);
 	SCOPE_CYCLE_COUNTER(STAT_PointCheckTime);
@@ -2547,6 +2548,7 @@ FCheckResult* FPrimitiveOctree::ActorPointCheck(FMemStack& Mem,
 	UPrimitiveComponent::CurrentTag++;
 	ChkResult		= NULL;
 	ChkMem			= &Mem;
+	ChkActor		= SourceActor;
 	ChkStart		= Location;
 	ChkExtent		= Extent;
 	bChkExtentIsZero = ChkExtent.IsZero();

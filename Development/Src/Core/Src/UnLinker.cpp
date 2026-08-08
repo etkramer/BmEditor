@@ -3823,8 +3823,6 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 #if BATMAN
         // BM: Skip currently unsupported types.
         if (IsBmCooked() && (
-			// LoadClass->GetName() == "ActorFactoryEmitter" ||
-
 			LoadClass->GetName() == "SceneCapture2DActor" ||
 			LoadClass->GetName() == "FaceFxAsset" ||
             LoadClass->GetName() == "FaceFxAnimSet"

@@ -16,7 +16,9 @@
 #if BATMAN
 #include "EngineLightClasses.h"
 #endif
+#include "EngineMeshClasses.h"
 #include "UnOctree.h"
+#include "LevelUtils.h"
 #include "UnTerrain.h"
 #include "ScenePrivate.h"
 #include "PrecomputedLightVolume.h"
@@ -2518,3 +2520,1902 @@ FPrimitiveSceneProxy* ULineBatchComponent::CreateSceneProxy()
 	return new FLineBatcherSceneProxy(this);
 }
 
+
+#if BATMAN
+
+/*-----------------------------------------------------------------------------
+	BM2: Climbable edge collection building.
+-----------------------------------------------------------------------------*/
+
+INT FEdgeCollection::GetNumEdges() const
+{
+	return Edges.Num();
+}
+
+UBOOL FEdgeCollection::GetEdge( INT Index, const UModel* Model, FVector& OutPointA, FVector& OutPointB ) const
+{
+	if( Index >= Edges.Num() )
+	{
+		return FALSE;
+	}
+
+	const FHorizontalEdge& Edge = Edges(Index);
+	if( Edge.VertexA >= Model->Points.Num() || Edge.VertexB >= Model->Points.Num() )
+	{
+		return FALSE;
+	}
+
+	OutPointA = Model->Points(Edge.VertexA);
+	OutPointB = Model->Points(Edge.VertexB);
+	return TRUE;
+}
+
+INT FActorEdgeCollection::GetNumEdges() const
+{
+	return Edges.Num();
+}
+
+UBOOL FActorEdgeCollection::GetEdge( INT Index, const UModel* Model, FVector& OutPointA, FVector& OutPointB ) const
+{
+	if( Index >= Edges.Num() )
+	{
+		return FALSE;
+	}
+
+	const FActorHorizontalEdge& Edge = Edges(Index);
+	OutPointA = FVector( Edge.PointAX, Edge.PointAY, Edge.PointAZ );
+	OutPointB = OutPointA + FVector( Edge.PointBX, Edge.PointBY, Edge.PointBZ );
+	return TRUE;
+}
+
+void FActorEdgeCollection::AddEdge( const FActorHorizontalEdge& Edge )
+{
+	Edges.AddItem( Edge );
+
+	const FVector PointA( Edge.PointAX, Edge.PointAY, Edge.PointAZ );
+	BoundingBox += PointA;
+	BoundingBox += PointA + FVector( Edge.PointBX, Edge.PointBY, Edge.PointBZ );
+}
+
+/** BM2: Trace flags every climbable-edge probe uses. */
+#define EDGE_TRACE_FLAGS		(TRACE_Level | TRACE_Others | TRACE_Blocking | TRACE_LevelGeometry)
+
+// BM: Retail passes 0xA002CC6 when testing actor collision here. Bits 0x2000000 and
+// 0x8000000 are BM2-only trace flags we have not identified yet.
+#define EDGE_ACTOR_TRACE_FLAGS	( TRACE_Movers | TRACE_Level | TRACE_Blocking | TRACE_LevelGeometry \
+								| TRACE_SingleResult | TRACE_Material | TRACE_Terrain | 0x2000000 | 0x8000000 )
+
+/** BM2: A stretch of an edge still waiting to be probed. */
+struct FRemainingEdgeSection
+{
+	FVector PointA;
+	FVector PointB;
+};
+
+/** BM2: Levels match outright, or are streaming levels differing only by an _LOD suffix. */
+static UBOOL AreEdgeLevelsRelated( ULevel* Level, ULevel* HitLevel )
+{
+	if( Level == HitLevel )
+	{
+		return TRUE;
+	}
+
+	ULevelStreaming* StreamingA = FLevelUtils::FindStreamingLevel( Level );
+	ULevelStreaming* StreamingB = FLevelUtils::FindStreamingLevel( HitLevel );
+	if( !StreamingA || !StreamingB )
+	{
+		return FALSE;
+	}
+
+	FString NameA = StreamingA->PackageName.ToString();
+	FString NameB = StreamingB->PackageName.ToString();
+
+	const INT LodA = NameA.InStr( TEXT("_LOD") );
+	const INT LodB = NameB.InStr( TEXT("_LOD") );
+	if( LodA != INDEX_NONE )
+	{
+		NameA = NameA.Left( LodA );
+	}
+	if( LodB != INDEX_NONE )
+	{
+		NameB = NameB.Left( LodB );
+	}
+
+	return NameA == NameB;
+}
+
+/** BM2: Whether a probe hit counts as geometry obstructing the edge. */
+static UBOOL DoesHitBlockEdge( const FCheckResult* Hit, AActor* Actor, ULevel* Level, UBOOL bRailingTop )
+{
+	AActor* HitActor = Hit->Actor;
+
+	UClass* NoClimbVolumeClass = FindObject<UClass>( ANY_PACKAGE, TEXT("RNoClimbVolume") );
+	if( !NoClimbVolumeClass )
+	{
+		return TRUE;
+	}
+
+	if( HitActor->IsA( NoClimbVolumeClass ) )
+	{
+		return TRUE;
+	}
+
+	AStaticMeshActorBase* MeshActor = Cast<AStaticMeshActorBase>( HitActor );
+	if( MeshActor
+	&&	(	( !bRailingTop && HitActor != Actor && (MeshActor->bRailing || MeshActor->bForceAllowKismetModification) )
+		||	( MeshActor->bGrappleToSlopedRoof && Actor == HitActor ) ) )
+	{
+		return FALSE;
+	}
+
+	if( HitActor == Actor )
+	{
+		return TRUE;
+	}
+
+	if( HitActor->bMovable )
+	{
+		return FALSE;
+	}
+
+	if( HitActor->IsA( AFracturedStaticMeshActor::StaticClass() ) )
+	{
+		return FALSE;
+	}
+
+	ULevel* HitLevel = Hit->Level ? Hit->Level : Cast<ULevel>( HitActor->GetOuter() );
+	return AreEdgeLevelsRelated( Level, HitLevel );
+}
+
+/** BM2: First hit at this point that obstructs the edge, or NULL if the space is clear. */
+static FCheckResult* FirstBlockingPointHit( const FVector& Point, const FVector& Extent, AActor* Actor, ULevel* Level, UBOOL bRailingTop )
+{
+	FCheckResult* Hit = GWorld->MultiPointCheck( GMainThreadMemStack, Point, Extent, EDGE_TRACE_FLAGS, APawn::StaticClass()->GetDefaultActor() );
+	for( ; Hit; Hit = Hit->GetNext() )
+	{
+		if( DoesHitBlockEdge( Hit, Actor, Level, bRailingTop ) )
+		{
+			return Hit;
+		}
+	}
+	return NULL;
+}
+
+/** BM2: First hit along this line that obstructs the edge, or NULL if the sweep is clear. */
+static FCheckResult* FirstBlockingLineHit( const FVector& Start, const FVector& End, const FVector& Extent, AActor* Actor, ULevel* Level, UBOOL bRailingTop )
+{
+	FCheckResult* Hit = GWorld->MultiLineCheck( GMainThreadMemStack, End, Start, Extent, EDGE_TRACE_FLAGS, APawn::StaticClass()->GetDefaultActor() );
+	for( ; Hit; Hit = Hit->GetNext() )
+	{
+		if( DoesHitBlockEdge( Hit, Actor, Level, bRailingTop ) )
+		{
+			return Hit;
+		}
+	}
+	return NULL;
+}
+
+/**
+ * BM2: Probes the space around a candidate ledge and appends whatever parts of it a pawn
+ * could actually hang from. Blocked stretches are re-queued and retried at finer resolution.
+ */
+static UBOOL AddToEdgeCollection( FActorEdgeCollection& Collection, FVector PointA, FVector PointB,
+								  const FVector& InwardRef, ULevel* Level, AActor* Actor,
+								  UBOOL bSlopedEdge, UBOOL bSpikeyRailing, UBOOL bAllowCrevice,
+								  UBOOL bWideRailing, UBOOL bRailingTop )
+{
+	FVector Dir = PointB - PointA;
+	Dir.Normalize();
+
+	FVector Outward( -Dir.Y, Dir.X, 0.f );
+	Outward.Normalize();
+
+	// Keep the outward direction pointing away from the solid side of the edge.
+	if( ((InwardRef - PointA) | Outward) > 0.f )
+	{
+		Outward = -Outward;
+		Dir = -Dir;
+		Exchange( PointA, PointB );
+	}
+
+	const FLOAT AbsDirZ = Abs( Dir.Z );
+	AStaticMeshActorBase* MeshActor = Cast<AStaticMeshActorBase>( Actor );
+
+	UBOOL bNoSplit = bRailingTop;
+	if( AbsDirZ > appSin( 0.3490658402442932f )
+	||	( Actor && Actor->bDisallowShimmy )
+	||	( MeshActor && (MeshActor->bRailing || MeshActor->bUseBoundingBoxForClimbing) ) )
+	{
+		bNoSplit = TRUE;
+	}
+
+	FMemMark Mark( GMainThreadMemStack );
+
+	// Diagonal edges need their probes padded out; this is the 2D L1 length of the outward dir.
+	const FLOAT OutwardSpread = Abs(Outward.X) + Abs(Outward.Y);
+
+	const FLOAT NearDist = OutwardSpread * 16.f + 4.f;
+	const FLOAT FarDist  = OutwardSpread * 16.f + 24.f;
+	const FVector NearOffset( NearDist * Outward.X, NearDist * Outward.Y, NearDist * Outward.Z - 30.f );
+	const FVector FarOffset ( FarDist  * Outward.X, FarDist  * Outward.Y, FarDist  * Outward.Z - 50.f );
+
+	TArray<FRemainingEdgeSection,TMemStackAllocator<GMainThreadMemStack> > Sections;
+	{
+		FRemainingEdgeSection& First = Sections( Sections.Add(1) );
+		First.PointA = PointA;
+		First.PointB = PointB;
+	}
+
+	for( INT i = 0; i < (bNoSplit ? 1 : Sections.Num()); i++ )
+	{
+		const FVector SecA = Sections(i).PointA;
+		const FVector SecB = Sections(i).PointB;
+		const FLOAT SectionLen = (SecB - SecA).Size();
+
+		// The first pass sweeps coarsely; re-queued stretches get a finer one.
+		const FLOAT Step = ( i <= 0 ) ? 40.f : 10.f;
+		const FLOAT ZOffset = AbsDirZ * Step * 2.f + 28.f;
+
+		const FVector StartPoint( SecA.X, SecA.Y, SecA.Z + ZOffset );
+		const FVector EndPoint  ( SecB.X, SecB.Y, SecB.Z + ZOffset );
+		const FVector InwardOffset( -Step * Outward.X, -Step * Outward.Y, -Step * Outward.Z + Step );
+
+		const FVector ExtentBody( 16.f, 16.f, 16.f );
+		const FVector ExtentStep( Step, Step, 16.f );
+		const FVector ExtentFar ( 16.f, 16.f, 30.f );
+		const FVector ExtentNear( 16.f, 16.f, 8.f );
+
+		if( i > 0 && SectionLen < 64.f )
+		{
+			continue;
+		}
+
+		const FLOAT Pad = Step * OutwardSpread;
+
+		if( Pad * 2.f >= SectionLen )
+		{
+			// Too short to walk - one probe at the midpoint decides the whole section.
+			const FVector Mid = (StartPoint + EndPoint) * 0.5f;
+
+			FMemMark ProbeMark( GMainThreadMemStack );
+			const UBOOL bClear =
+				!FirstBlockingPointHit( Mid,                ExtentBody, Actor, Level, bRailingTop )
+			&&	!FirstBlockingPointHit( Mid + InwardOffset, ExtentStep, Actor, Level, bRailingTop )
+			&&	!FirstBlockingPointHit( Mid + FarOffset,    ExtentFar,  Actor, Level, bRailingTop )
+			&&	!FirstBlockingPointHit( Mid + NearOffset,   ExtentNear, Actor, Level, bRailingTop );
+			ProbeMark.Pop();
+
+			if( bClear )
+			{
+				FActorHorizontalEdge Edge;
+				Edge.PointAX = SecA.X;
+				Edge.PointAY = SecA.Y;
+				Edge.PointAZ = SecA.Z;
+				Edge.PointBX = appTrunc( SecB.X - SecA.X );
+				Edge.PointBY = appTrunc( SecB.Y - SecA.Y );
+				Edge.PointBZ = appTrunc( SecB.Z - SecA.Z );
+
+				BYTE EdgeType = 0;
+				if( bSlopedEdge )								EdgeType |= EDGETYPE_SlopedEdge;
+				if( bNoSplit )									EdgeType |= EDGETYPE_ExtraSloped;
+				if( bSpikeyRailing )							EdgeType |= EDGETYPE_SpikeyRailing;
+				if( bWideRailing )								EdgeType |= EDGETYPE_WideRailing;
+				if( bRailingTop || (i > 0 && !bAllowCrevice) )	EdgeType |= EDGETYPE_ShimmyOnly;
+				if( Actor && Actor->bGrappleToSlopedRoof )		EdgeType |= EDGETYPE_SpecialRoofEdge;
+				Edge.EdgeType = EdgeType;
+
+				Collection.AddEdge( Edge );
+			}
+			else if( i == 0 )
+			{
+				// Re-queue so the finer pass gets a chance at it.
+				const FRemainingEdgeSection Whole = Sections(0);
+				Sections.AddItem( Whole );
+			}
+			continue;
+		}
+
+		const FLOAT EndT = SectionLen - Pad;
+		FLOAT T = Pad;
+		FLOAT SegStart = Pad;
+		FLOAT LastExtent = Step;
+		UBOOL bEmittedHere = FALSE;
+
+		while( T < EndT )
+		{
+			FMemMark ProbeMark( GMainThreadMemStack );
+
+			const FVector Probe = StartPoint + Dir * T;
+			UBOOL bClear = TRUE;
+			bEmittedHere = FALSE;
+
+			if( FirstBlockingPointHit( Probe, ExtentBody, Actor, Level, bRailingTop ) )
+			{
+				bClear = FALSE;
+				LastExtent = 16.f;
+			}
+			else if( FirstBlockingPointHit( Probe + InwardOffset, ExtentStep, Actor, Level, bRailingTop ) )
+			{
+				bClear = FALSE;
+				LastExtent = Step;
+			}
+			else if( FirstBlockingPointHit( Probe + FarOffset, ExtentFar, Actor, Level, bRailingTop ) )
+			{
+				bClear = FALSE;
+				LastExtent = 16.f;
+			}
+			else if( FirstBlockingPointHit( Probe + NearOffset, ExtentNear, Actor, Level, bRailingTop ) )
+			{
+				bClear = FALSE;
+				LastExtent = 16.f;
+			}
+			ProbeMark.Pop();
+
+			if( bClear )
+			{
+				// Anything walked over since the last emission was blocked - retry it finer.
+				if( T > SegStart && i == 0 )
+				{
+					const FVector Origin = Sections(0).PointA;
+					FRemainingEdgeSection& Gap = Sections( Sections.Add(1) );
+					Gap.PointA = Origin + Dir * (SegStart - LastExtent * OutwardSpread);
+					Gap.PointB = Origin + Dir * (T        - LastExtent * OutwardSpread);
+				}
+
+				FMemMark SweepMark( GMainThreadMemStack );
+
+				const FVector LineEnd = StartPoint + Dir * EndT;
+				const FLOAT Scale = OutwardSpread / (LineEnd - Probe).Size();
+
+				// Sweep ahead along the edge to find how far this clear run reaches.
+				FLOAT ClearTime = 1.f;
+				FCheckResult* Hit = FirstBlockingLineHit( Probe, LineEnd, ExtentBody, Actor, Level, bRailingTop );
+				if( Hit )
+				{
+					ClearTime = (16.f - Step) * Scale + Hit->Time;
+				}
+				if( ClearTime > 0.f )
+				{
+					Hit = FirstBlockingLineHit( Probe + InwardOffset, LineEnd + InwardOffset, ExtentStep, Actor, Level, bRailingTop );
+					if( Hit )
+					{
+						ClearTime = Min( ClearTime, Hit->Time );
+					}
+				}
+				if( ClearTime > 0.f )
+				{
+					Hit = FirstBlockingLineHit( Probe + FarOffset, LineEnd + FarOffset, ExtentFar, Actor, Level, bRailingTop );
+					if( Hit )
+					{
+						ClearTime = Min( ClearTime, (16.f - Step) * Scale + Hit->Time );
+					}
+				}
+				if( ClearTime > 0.f )
+				{
+					Hit = FirstBlockingLineHit( Probe + NearOffset, LineEnd + NearOffset, ExtentNear, Actor, Level, bRailingTop );
+					if( Hit )
+					{
+						ClearTime = Min( ClearTime, (16.f - Step) * Scale + Hit->Time );
+					}
+				}
+				SweepMark.Pop();
+
+				const FLOAT RunLength = Scale * Step + ClearTime;
+				if( RunLength > 0.f )
+				{
+					const FLOAT RunStart = T - LastExtent * OutwardSpread;
+					const FLOAT RunEnd   = T + (EndT - T) * RunLength;
+
+					const FVector EdgeA = SecA + Dir * RunStart;
+					const FVector EdgeB = SecA + Dir * RunEnd;
+
+					FActorHorizontalEdge Edge;
+					Edge.PointAX = EdgeA.X;
+					Edge.PointAY = EdgeA.Y;
+					Edge.PointAZ = EdgeA.Z;
+					Edge.PointBX = appTrunc( EdgeB.X - EdgeA.X );
+					Edge.PointBY = appTrunc( EdgeB.Y - EdgeA.Y );
+					Edge.PointBZ = appTrunc( EdgeB.Z - EdgeA.Z );
+
+					BYTE EdgeType = 0;
+					if( bSlopedEdge )							EdgeType |= EDGETYPE_SlopedEdge;
+					if( bNoSplit )								EdgeType |= EDGETYPE_ExtraSloped;
+					if( bSpikeyRailing )						EdgeType |= EDGETYPE_SpikeyRailing;
+					if( bWideRailing )							EdgeType |= EDGETYPE_WideRailing;
+					if( i > 0 && !bAllowCrevice )				EdgeType |= EDGETYPE_ShimmyOnly;
+					if( Actor && Actor->bGrappleToSlopedRoof )	EdgeType |= EDGETYPE_SpecialRoofEdge;
+					Edge.EdgeType = EdgeType;
+
+					Collection.AddEdge( Edge );
+
+					SegStart = Pad + RunEnd;
+					T = RunEnd;
+					bEmittedHere = TRUE;
+				}
+			}
+
+			T += 8.f;
+		}
+
+		// The tail past the last emission never got probed - hand it to the finer pass.
+		if( i == 0 && !bEmittedHere )
+		{
+			const FRemainingEdgeSection First = Sections(0);
+			FRemainingEdgeSection& Tail = Sections( Sections.Add(1) );
+			Tail.PointA = First.PointA + Dir * (SegStart - Pad);
+			Tail.PointB = First.PointB;
+		}
+	}
+
+	Mark.Pop();
+	return TRUE;
+}
+
+/**
+ * BM2: Collapses pairs of collinear edges that share a vertex and face the same way
+ * into a single edge spanning both.
+ */
+void FEdgeCollection::OptimizeEdgeCollection( UModel* Model )
+{
+	for( INT i = GetNumEdges() - 1; i > 0; i-- )
+	{
+		FHorizontalEdge& EdgeI = Edges(i);
+		const INT VertA = EdgeI.VertexA;
+		const INT VertB = EdgeI.VertexB;
+
+		FVector DirI = Model->Points(VertB) - Model->Points(VertA);
+		DirI.Normalize();
+
+		for( INT j = i - 1; j >= 0; j-- )
+		{
+			FHorizontalEdge& EdgeJ = Edges(j);
+			const INT OtherA = EdgeJ.VertexA;
+			const INT OtherB = EdgeJ.VertexB;
+
+			// Only edges sharing an endpoint with this one can be merged.
+			if( OtherA != VertA && OtherA != VertB && OtherB != VertA && OtherB != VertB )
+			{
+				continue;
+			}
+
+			FVector DirJ = Model->Points(OtherB) - Model->Points(OtherA);
+			DirJ.Normalize();
+
+			if( Abs( DirI | DirJ ) <= 0.99f )
+			{
+				continue;
+			}
+
+			// Both outward directions must fall on the same side of the shared line.
+			const FLOAT SideJ = EdgeJ.OutwardDir.Y * DirJ.X - EdgeJ.OutwardDir.X * DirJ.Y;
+			const FLOAT SideI = EdgeI.OutwardDir.Y * DirJ.X - EdgeI.OutwardDir.X * DirJ.Y;
+			if( SideJ * SideI <= 0.f )
+			{
+				continue;
+			}
+
+			// Span the two endpoints that aren't shared.
+			INT NewB = VertA;
+			INT NewA = OtherA;
+			if( OtherA == VertA )
+			{
+				NewB = VertB;
+				NewA = OtherB;
+			}
+			else if( OtherA == VertB )
+			{
+				NewA = OtherB;
+			}
+			else if( OtherB == VertA )
+			{
+				NewB = VertB;
+			}
+
+			EdgeI.VertexA = NewA;
+			EdgeI.VertexB = NewB;
+			Edges.Remove( j, 1 );
+			break;
+		}
+	}
+}
+
+/**
+ * BM2: Feeds an edge to the collection if it is long enough and flat enough to hang from.
+ * Lenient actors accept anything up to their slope limit; everything else must be near level.
+ */
+static void AddEdgeIfClimbable( FActorEdgeCollection& Collection, const FVector& A, const FVector& B,
+								const FVector& InwardRef, ULevel* Level, AActor* Actor,
+								FLOAT SlopeLimit, UBOOL bLenient,
+								UBOOL bSpikeyRailing, UBOOL bWideRailing )
+{
+	const FLOAT Len2DSq = Square(B.X - A.X) + Square(B.Y - A.Y);
+	const FLOAT Rise = Abs( B.Z - A.Z );
+	const FLOAT Slope = Rise / appSqrt( Len2DSq );
+
+	if( Len2DSq > 1024.f
+	&&	( (Rise < 10.f && Slope < 0.005f) || (bLenient && SlopeLimit > Slope) ) )
+	{
+		AddToEdgeCollection( Collection, A, B, InwardRef, Level, Actor,
+			Slope > 0.05f, bSpikeyRailing, Actor->bAllowCrevice, bWideRailing, FALSE );
+	}
+}
+
+/**
+ * BM2: Scans every eligible actor's collision geometry for ledges - hull faces that point
+ * up and border a wall - and stores one edge collection per primitive component.
+ */
+void ULevel::BuildActorEdgeCollections( TArray<FEdgeCollectionMember>& EdgeMembers )
+{
+	UClass* NoClimbVolumeClass = FindObject<UClass>( ANY_PACKAGE, TEXT("RNoClimbVolume") );
+
+	for( INT ActorIndex = 0; ActorIndex < Actors.Num(); ActorIndex++ )
+	{
+		AActor* Actor = Actors(ActorIndex);
+		if( !Actor )
+		{
+			continue;
+		}
+
+		// Actors that supply their own edges bypass the geometry scan entirely.
+		FActorEdgeCollection CustomCollection;
+		if( Actor->CustomEdgeCollection( CustomCollection ) )
+		{
+			CustomCollection.BoundingBox.Min -= FVector(16.f,16.f,16.f);
+			CustomCollection.BoundingBox.Max += FVector(16.f,16.f,16.f);
+			const INT CollectionIndex = ActorHorizontalEdges.AddItem( CustomCollection );
+
+			FEdgeCollectionMember Member;
+			for( INT i = 0; i < Actor->Components.Num(); i++ )
+			{
+				UPrimitiveComponent* Prim = Cast<UPrimitiveComponent>( Actor->Components(i) );
+				if( Prim )
+				{
+					Prim->LevelEdgeCollectionIndex = CollectionIndex;
+					Member.AssociatedMembers.AddItem( FEdgeCollectionMember::MemberContainer(Prim) );
+				}
+			}
+			EdgeMembers.AddItem( Member );
+			continue;
+		}
+
+		AActor* PawnDefault = APawn::StaticClass()->GetDefaultActor();
+
+		// Plain BSP brushes are covered by the BSP pass; volumes still need scanning.
+		const UBOOL bEligible =
+			Actor->bCollideActors
+		&&	Actor->bBlockActors
+		&&	( !Actor->IsABrush() || Actor->IsAVolume() )
+		&&	( !NoClimbVolumeClass || !Actor->IsA(NoClimbVolumeClass) )
+		&&	(	!Actor->CollisionComponent
+			||	(	Actor->ShouldTrace( Actor->CollisionComponent, PawnDefault, EDGE_ACTOR_TRACE_FLAGS )
+				&&	PawnDefault->IsBlockedBy( Actor, Actor->CollisionComponent ) ) );
+
+		if( !bEligible )
+		{
+			for( INT i = 0; i < Actor->Components.Num(); i++ )
+			{
+				UPrimitiveComponent* Prim = Cast<UPrimitiveComponent>( Actor->Components(i) );
+				if( Prim )
+				{
+					Prim->LevelEdgeCollectionIndex = 0xFFFF;
+				}
+			}
+			continue;
+		}
+
+		UBOOL bLenient = Actor->bAllowSlopedEdges;
+		FLOAT SlopeLimit = appTan( 0.3490658402442932f );
+		UBOOL bSpikeyRailing = FALSE;
+		UBOOL bWideRailing = FALSE;
+
+		AStaticMeshActorBase* MeshActor = Cast<AStaticMeshActorBase>( Actor );
+		if( MeshActor )
+		{
+			if( MeshActor->bClimbableSlopedRailing )
+			{
+				bLenient = TRUE;
+				SlopeLimit = appTan( 0.8203047513961792f );
+			}
+			bSpikeyRailing = MeshActor->bSpikeyRailing;
+			bWideRailing = MeshActor->bAllowWideRailings;
+		}
+
+		FKAggregateGeom BoundsGeom;
+		appMemzero( &BoundsGeom, sizeof(BoundsGeom) );
+
+		for( INT ComponentIndex = 0; ComponentIndex < Actor->Components.Num(); ComponentIndex++ )
+		{
+			UPrimitiveComponent* Prim = Cast<UPrimitiveComponent>( Actor->Components(ComponentIndex) );
+			if( !Prim )
+			{
+				continue;
+			}
+
+			if( !Actor->CanPreBuildClimbableEdges() || !Prim->BlockNonZeroExtent || !Prim->CollideActors )
+			{
+				Prim->LevelEdgeCollectionIndex = 0xFFFF;
+				continue;
+			}
+
+			UStaticMeshComponent* MeshComp = Cast<UStaticMeshComponent>( Prim );
+			UBrushComponent* BrushComp = Cast<UBrushComponent>( Prim );
+
+			FKAggregateGeom* Geom = NULL;
+			if( MeshComp && MeshComp->StaticMesh && MeshComp->StaticMesh->BodySetup )
+			{
+				Geom = &MeshComp->StaticMesh->BodySetup->AggGeom;
+
+				// Some meshes are too fiddly to hull-scan; use their bounding box instead.
+				if( MeshActor && MeshActor->bUseBoundingBoxForClimbing )
+				{
+					const FBox Box = MeshComp->StaticMesh->Bounds.GetBox();
+
+					BoundsGeom.EmptyElements();
+
+					FKBoxElem BoxElem;
+					appMemzero( &BoxElem, sizeof(BoxElem) );
+					BoxElem.X = Box.Max.X - Box.Min.X;
+					BoxElem.Y = Box.Max.Y - Box.Min.Y;
+					BoxElem.Z = Box.Max.Z - Box.Min.Z;
+					BoxElem.TM = FMatrix::Identity;
+					BoxElem.TM.SetOrigin( (Box.Min + Box.Max) * 0.5f );
+					BoundsGeom.BoxElems.AddItem( BoxElem );
+
+					Geom = &BoundsGeom;
+				}
+			}
+			else if( BrushComp )
+			{
+				Geom = &BrushComp->BrushAggGeom;
+			}
+
+			if( !Geom )
+			{
+				Prim->LevelEdgeCollectionIndex = 0xFFFF;
+				continue;
+			}
+
+			FMatrix LocalToWorld;
+			FVector Scale;
+			Prim->GetTransformAndScale( LocalToWorld, Scale );
+
+			// Normals need the inverse-transpose of the scale, not the scale itself.
+			const FMatrix NormalMatrix = FScaleMatrix(Scale).Inverse().Transpose() * LocalToWorld;
+
+			FActorEdgeCollection Collection;
+
+			for( INT HullIndex = 0; HullIndex < Geom->ConvexElems.Num(); HullIndex++ )
+			{
+				const FKConvexElem& Hull = Geom->ConvexElems(HullIndex);
+				const INT NumTris = Hull.FaceTriData.Num() / 3;
+
+				for( INT TriIndex = 0; TriIndex < NumTris; TriIndex++ )
+				{
+					FVector Verts[3];
+					for( INT Corner = 0; Corner < 3; Corner++ )
+					{
+						Verts[Corner] = Hull.VertexData( Hull.FaceTriData(TriIndex * 3 + Corner) );
+					}
+
+					const FVector LocalNormal = (Verts[1] - Verts[0]) ^ (Verts[2] - Verts[0]);
+					for( INT Corner = 0; Corner < 3; Corner++ )
+					{
+						Verts[Corner] = LocalToWorld.TransformFVector( Verts[Corner] * Scale );
+					}
+
+					FVector WorldNormal = NormalMatrix.TransformNormal( LocalNormal );
+					WorldNormal.Normalize();
+
+					// Only faces you could stand on can contribute a ledge.
+					if( WorldNormal.Z < 0.7f || (!bLenient && WorldNormal.Z < 0.9f) )
+					{
+						continue;
+					}
+
+					for( INT Side = 0; Side < 3; Side++ )
+					{
+						const INT NextSide = (Side + 1) % 3;
+						const INT IndexA = Hull.FaceTriData(TriIndex * 3 + Side);
+						const INT IndexB = Hull.FaceTriData(TriIndex * 3 + NextSide);
+
+						// The edge is only a ledge if the triangle sharing it is a wall.
+						UBOOL bBordersWall = FALSE;
+						for( INT OtherTri = 0; OtherTri < NumTris && !bBordersWall; OtherTri++ )
+						{
+							if( OtherTri == TriIndex )
+							{
+								continue;
+							}
+
+							UBOOL bShares = FALSE;
+							for( INT OtherSide = 0; OtherSide < 3 && !bShares; OtherSide++ )
+							{
+								const INT OtherA = Hull.FaceTriData(OtherTri * 3 + OtherSide);
+								const INT OtherB = Hull.FaceTriData(OtherTri * 3 + (OtherSide + 1) % 3);
+								bShares = (OtherA == IndexA && OtherB == IndexB)
+									   || (OtherA == IndexB && OtherB == IndexA);
+							}
+							if( !bShares )
+							{
+								continue;
+							}
+
+							FVector OtherVerts[3];
+							for( INT Corner = 0; Corner < 3; Corner++ )
+							{
+								OtherVerts[Corner] = Hull.VertexData( Hull.FaceTriData(OtherTri * 3 + Corner) );
+							}
+
+							FVector OtherNormal = NormalMatrix.TransformNormal(
+								(OtherVerts[1] - OtherVerts[0]) ^ (OtherVerts[2] - OtherVerts[0]) );
+							if( OtherNormal.SizeSquared() <= SMALL_NUMBER )
+							{
+								bBordersWall = TRUE;
+								break;
+							}
+
+							OtherNormal.Normalize();
+							if( OtherNormal.Z < 0.35f )
+							{
+								bBordersWall = TRUE;
+							}
+						}
+
+						if( bBordersWall )
+						{
+							// The triangle's remaining corner marks the solid side of the edge.
+							AddEdgeIfClimbable( Collection, Verts[Side], Verts[NextSide], Verts[(Side + 2) % 3],
+								this, Actor, SlopeLimit, bLenient, bSpikeyRailing, bWideRailing );
+						}
+					}
+				}
+			}
+
+			for( INT BoxIndex = 0; BoxIndex < Geom->BoxElems.Num(); BoxIndex++ )
+			{
+				const FKBoxElem& BoxElem = Geom->BoxElems(BoxIndex);
+
+				FVector EffScale = Scale;
+				if( Abs(Scale.X - Scale.Y) >= KINDA_SMALL_NUMBER || Abs(Scale.Y - Scale.Z) >= KINDA_SMALL_NUMBER )
+				{
+					// Non-uniform scale only works out for boxes that stayed axis aligned.
+					const UBOOL bAxisAligned = BoxElem.bHasCookedAlignmentData
+						? BoxElem.bIsAxisAligned
+						: BoxElem.TM.IsAxisAligned( KINDA_SMALL_NUMBER );
+					if( !bAxisAligned )
+					{
+						continue;
+					}
+
+					const FMatrix Inverse = BoxElem.TM.Inverse();
+					for( INT Axis = 0; Axis < 3; Axis++ )
+					{
+						EffScale[Axis] = Abs( Inverse.M[0][Axis] * Scale.X
+											+ Inverse.M[1][Axis] * Scale.Y
+											+ Inverse.M[2][Axis] * Scale.Z );
+					}
+				}
+
+				const FVector Extent( EffScale.X * 0.5f * BoxElem.X,
+									  EffScale.Y * 0.5f * BoxElem.Y,
+									  EffScale.Z * 0.5f * BoxElem.Z );
+
+				FMatrix BoxToWorld = BoxElem.TM;
+				BoxToWorld.SetOrigin( BoxToWorld.GetOrigin() * Scale );
+				BoxToWorld = BoxToWorld * LocalToWorld;
+
+				static const FLOAT CornerU[4] = { -1.f, -1.f,  1.f,  1.f };
+				static const FLOAT CornerV[4] = { -1.f,  1.f,  1.f, -1.f };
+
+				for( INT Face = 0; Face < 6; Face++ )
+				{
+					const INT AxisIndex = Face / 2;
+					const INT AxisU = (AxisIndex + 1) % 3;
+					const INT AxisV = (AxisIndex + 2) % 3;
+					const FLOAT Sign = (Face % 2) ? -1.f : 1.f;
+
+					FVector FaceNormal = BoxToWorld.GetAxis(AxisIndex) * Sign;
+					FaceNormal.Normalize();
+					if( FaceNormal.Z <= 0.7f )
+					{
+						continue;
+					}
+
+					const FVector UAxis = BoxToWorld.GetAxis(AxisU);
+					const FVector VAxis = BoxToWorld.GetAxis(AxisV);
+					const FVector FaceCenter = BoxToWorld.GetOrigin() + FaceNormal * Extent[AxisIndex];
+
+					FVector Previous(0.f,0.f,0.f);
+					for( INT Corner = 0; Corner <= 4; Corner++ )
+					{
+						const INT Sample = Corner & 3;
+						const FVector Point = FaceCenter
+							+ UAxis * Extent[AxisU] * CornerU[Sample]
+							+ VAxis * Extent[AxisV] * CornerV[Sample];
+
+						if( Corner > 0 )
+						{
+							AddEdgeIfClimbable( Collection, Previous, Point, FaceCenter,
+								this, Actor, SlopeLimit, bLenient, bSpikeyRailing, bWideRailing );
+						}
+						Previous = Point;
+					}
+				}
+			}
+
+			if( Collection.Edges.Num() <= 0 )
+			{
+				Prim->LevelEdgeCollectionIndex = 0xFFFF;
+			}
+			else
+			{
+				Collection.BoundingBox.Min -= FVector(16.f,16.f,16.f);
+				Collection.BoundingBox.Max += FVector(16.f,16.f,16.f);
+				Prim->LevelEdgeCollectionIndex = ActorHorizontalEdges.AddItem( Collection );
+
+				FEdgeCollectionMember Member;
+				Member.AssociatedMembers.AddItem( FEdgeCollectionMember::MemberContainer(Prim) );
+				EdgeMembers.AddItem( Member );
+			}
+		}
+	}
+}
+
+/**
+ * BM2: Produces one actor edge collection per BSP edge collection, so BSP-derived
+ * ledges participate in the same queries as actor-derived ones.
+ */
+void ULevel::BuildActorEdgeFromBSPEdges( UModel* Model )
+{
+	const INT NumCollections = HorizontalEdges.Num();
+	for( INT CollectionIndex = 0; CollectionIndex < NumCollections; CollectionIndex++ )
+	{
+		FActorEdgeCollection NewCollection;
+		FEdgeCollection& Source = HorizontalEdges(CollectionIndex);
+
+		FVector PointA, PointB;
+		for( INT EdgeIndex = 0; Source.GetEdge( EdgeIndex, Model, PointA, PointB ); EdgeIndex++ )
+		{
+			const FHorizontalEdge& Edge = Source.Edges(EdgeIndex);
+
+			// Edges with no outward direction never resolved to a climbable face.
+			if( Edge.OutwardDir.X == 0.f && Edge.OutwardDir.Y == 0.f && Edge.OutwardDir.Z == 0.f )
+			{
+				continue;
+			}
+
+			const FLOAT Run = appSqrt( Square(PointB.X - PointA.X) + Square(PointB.Y - PointA.Y) );
+			const UBOOL bSloped = ( Abs(PointB.Z - PointA.Z) / Run ) > 0.05f;
+
+			AddToEdgeCollection( NewCollection, PointA, PointB, PointA - Edge.OutwardDir, this, NULL, bSloped, FALSE, TRUE, FALSE, FALSE );
+		}
+
+		NewCollection.BoundingBox.Min -= FVector(16.f,16.f,16.f);
+		NewCollection.BoundingBox.Max += FVector(16.f,16.f,16.f);
+		ActorHorizontalEdges.AddItem( NewCollection );
+	}
+}
+
+/** BM2: A collection is only mergeable if nothing feeding it can move at runtime. */
+static UBOOL CanMergeEdgeMembers( const TArray<FEdgeCollectionMember>& EdgeMembers, INT Index )
+{
+	const TArray<FEdgeCollectionMember::MemberContainer>& Members = EdgeMembers(Index).AssociatedMembers;
+	for( INT i = 0; i < Members.Num(); i++ )
+	{
+		if( Members(i).Type != FEdgeCollectionMember::ESMTYPE_PrimComp || !Members(i).PrimComp )
+		{
+			continue;
+		}
+
+		AActor* Owner = Members(i).PrimComp->GetOwner();
+		if( Owner && !Owner->CanAlwaysLinkEdges && (!Owner->IsStatic() || Owner->bMovable) )
+		{
+			return FALSE;
+		}
+	}
+	return TRUE;
+}
+
+/** BM2: Whether two edges lie along the same run, optionally requiring the gap between them to be clear. */
+static UBOOL AreEdgesCoincident( const FVector& OtherA, const FVector& A, const FVector& B,
+								 const FVector& OtherB, ULevel* Level, UBOOL bCheckGap )
+{
+	const FVector Delta = B - A;
+
+	FVector Dir = Delta;
+	Dir.Normalize( 1e-8f );
+
+	FVector OtherDir = OtherB - OtherA;
+	OtherDir.Normalize( 1e-8f );
+
+	if( (Dir | OtherDir) < 0.9f )
+	{
+		return FALSE;
+	}
+
+	const FLOAT Length = Delta.Size();
+	const FLOAT TimeA = ((OtherA - A) | Delta) / Length;
+	const FLOAT TimeB = ((OtherB - A) | Delta) / Length;
+
+	if( (TimeA <= -32.f || Length + 32.f <= TimeA)
+	&&	(TimeB <= -32.f || Length + 32.f <= TimeB) )
+	{
+		return FALSE;
+	}
+
+	FVector Outward( -Dir.Y, Dir.X, 0.f );
+	Outward.Normalize( 1e-8f );
+	const FVector Up = Dir ^ Outward;
+
+	const FVector DeltaA = OtherA - A;
+	if( DeltaA.SizeSquared() >= 4.1f
+	&&	( Abs(DeltaA | Outward) >= 4.1f || Abs(DeltaA | Up) >= 4.1f ) )
+	{
+		return FALSE;
+	}
+
+	const FVector DeltaB = OtherB - A;
+	if( DeltaB.SizeSquared() >= 4.1f
+	&&	( Abs(DeltaB | Outward) >= 4.1f || Abs(DeltaB | Up) >= 4.1f ) )
+	{
+		return FALSE;
+	}
+
+	if( !bCheckGap
+	||	( (TimeA <= Length || TimeB <= Length) && (TimeB >= 0.f || TimeA >= 0.f) ) )
+	{
+		return TRUE;
+	}
+
+	const FLOAT MidTime = (TimeA <= 0.f)
+		? Max(TimeA, TimeB) * 0.5f
+		: Length + (Min(TimeA, TimeB) - Length) * 0.5f;
+
+	const FVector Mid = A + Dir * MidTime;
+
+	FMemMark Mark( GMainThreadMemStack );
+
+	const FVector Above( Mid.X, Mid.Y, Mid.Z + Abs(Dir.Z) * 32.f + 24.f );
+	UBOOL bClear = !FirstBlockingPointHit( Above, FVector(16.f,16.f,16.f), NULL, Level, FALSE );
+	if( bClear )
+	{
+		bClear = !FirstBlockingPointHit( Mid + Outward * 32.f, FVector(16.f,16.f,64.f), NULL, Level, FALSE );
+	}
+
+	Mark.Pop();
+	return bClear;
+}
+
+/**
+ * BM2: Folds collections into one another wherever they describe the same continuous ledge,
+ * so a run of geometry ends up as a single collection. Collections that stay apart but are
+ * within reach record each other in ConnectedCollections instead.
+ */
+void ULevel::MergeActorEdgeCollections( UModel* Model, TArray<FEdgeCollectionMember>& EdgeMembers )
+{
+	for( INT i = ActorHorizontalEdges.Num() - 1; i > 0; i-- )
+	{
+		if( !ActorHorizontalEdges(i).BoundingBox.IsValid
+		||	!CanMergeEdgeMembers( EdgeMembers, i )
+		||	ActorHorizontalEdges(i).Edges.Num() == 0 )
+		{
+			continue;
+		}
+
+		for( INT j = i - 1; j >= 0; j-- )
+		{
+			FActorEdgeCollection& CollA = ActorHorizontalEdges(i);
+			FActorEdgeCollection& CollB = ActorHorizontalEdges(j);
+
+			if( !CollB.BoundingBox.IsValid || !CanMergeEdgeMembers( EdgeMembers, j ) )
+			{
+				continue;
+			}
+
+			const TArray<FEdgeCollectionMember::MemberContainer>& MembersA = EdgeMembers(i).AssociatedMembers;
+			const TArray<FEdgeCollectionMember::MemberContainer>& MembersB = EdgeMembers(j).AssociatedMembers;
+
+			// Collections sharing a coplanar BSP node are always the same surface.
+			UBOOL bMerge = FALSE;
+			for( INT b = 0; b < MembersB.Num() && !bMerge; b++ )
+			{
+				if( MembersB(b).Type != FEdgeCollectionMember::ESMTYPE_BSPNode )
+				{
+					continue;
+				}
+
+				const INT NodeIndex = MembersB(b).NodeIndex;
+				for( INT Coplanar = Model->Nodes(NodeIndex).iPlane;
+					 Coplanar != INDEX_NONE && Coplanar != NodeIndex && !bMerge;
+					 Coplanar = Model->Nodes(Coplanar).iPlane )
+				{
+					for( INT a = 0; a < MembersA.Num(); a++ )
+					{
+						if( MembersA(a).Type == FEdgeCollectionMember::ESMTYPE_BSPNode
+						&&	MembersA(a).NodeIndex == Coplanar )
+						{
+							bMerge = TRUE;
+							break;
+						}
+					}
+				}
+			}
+
+			if( !bMerge && !CollA.BoundingBox.Intersect( CollB.BoundingBox ) )
+			{
+				continue;
+			}
+
+			FBox ExpandedA = CollA.BoundingBox;
+			ExpandedA.Min -= FVector(128.f,128.f,64.f);
+			ExpandedA.Max += FVector(128.f,128.f,64.f);
+
+			FBox ExpandedB = CollB.BoundingBox;
+			ExpandedB.Min -= FVector(128.f,128.f,64.f);
+			ExpandedB.Max += FVector(128.f,128.f,64.f);
+
+			UBOOL bClose = ExpandedB.IsInside( CollA.BoundingBox.Min ) && ExpandedB.IsInside( CollA.BoundingBox.Max );
+			if( !bClose )
+			{
+				bClose = ExpandedA.IsInside( CollB.BoundingBox.Min ) && ExpandedA.IsInside( CollB.BoundingBox.Max );
+			}
+
+			if( !bClose )
+			{
+				FVector A0, A1, B0, B1;
+				for( INT ea = 0; !bClose && CollA.GetEdge( ea, Model, A0, A1 ); ea++ )
+				{
+					for( INT eb = 0; CollB.GetEdge( eb, Model, B0, B1 ); eb++ )
+					{
+						if( AreEdgesCoincident( B0, A0, A1, B1, this, FALSE ) )
+						{
+							bClose = TRUE;
+							break;
+						}
+					}
+				}
+
+				// Near enough to reach between, but not the same surface.
+				if( !bClose )
+				{
+					CollB.ConnectedCollections.AddUniqueItem( (WORD)i );
+					CollA.ConnectedCollections.AddUniqueItem( (WORD)j );
+					continue;
+				}
+			}
+
+			for( INT e = 0; e < CollA.Edges.Num(); e++ )
+			{
+				CollB.Edges.AddItem( CollA.Edges(e) );
+			}
+			for( INT e = 0; e < CollA.RailingTops.Num(); e++ )
+			{
+				CollB.RailingTops.AddItem( CollA.RailingTops(e) );
+			}
+			for( INT e = 0; e < CollA.ConnectedCollections.Num(); e++ )
+			{
+				CollB.ConnectedCollections.AddUniqueItem( CollA.ConnectedCollections(e) );
+			}
+			CollB.BoundingBox += CollA.BoundingBox;
+
+			ActorHorizontalEdges.Remove( i );
+			if( i < HorizontalEdges.Num() )
+			{
+				HorizontalEdges.Remove( i );
+			}
+
+			// Everything that fed the removed collection now feeds the surviving one.
+			TArray<FEdgeCollectionMember::MemberContainer>& MoveFrom = EdgeMembers(i).AssociatedMembers;
+			TArray<FEdgeCollectionMember::MemberContainer>& MoveTo = EdgeMembers(j).AssociatedMembers;
+			for( INT m = 0; m < MoveFrom.Num(); m++ )
+			{
+				const FEdgeCollectionMember::MemberContainer& Member = MoveFrom(m);
+				if( Member.Type == FEdgeCollectionMember::ESMTYPE_BSPNode )
+				{
+					NodeEdgeCollection( Member.NodeIndex ) = j;
+				}
+				else if( Member.Type == FEdgeCollectionMember::ESMTYPE_PrimComp )
+				{
+					Member.PrimComp->LevelEdgeCollectionIndex = j;
+				}
+				MoveTo.AddItem( Member );
+			}
+			EdgeMembers.Remove( i );
+
+			// Removing index i shifted every later collection down by one.
+			for( INT n = i; n < EdgeMembers.Num(); n++ )
+			{
+				TArray<FEdgeCollectionMember::MemberContainer>& Members = EdgeMembers(n).AssociatedMembers;
+				for( INT m = 0; m < Members.Num(); m++ )
+				{
+					if( Members(m).Type == FEdgeCollectionMember::ESMTYPE_BSPNode )
+					{
+						NodeEdgeCollection( Members(m).NodeIndex )--;
+					}
+					else if( Members(m).Type == FEdgeCollectionMember::ESMTYPE_PrimComp )
+					{
+						Members(m).PrimComp->LevelEdgeCollectionIndex--;
+					}
+				}
+			}
+
+			for( INT k = 0; k < ActorHorizontalEdges.Num(); k++ )
+			{
+				TArray<WORD>& Connected = ActorHorizontalEdges(k).ConnectedCollections;
+				for( INT c = 0; c < Connected.Num(); c++ )
+				{
+					if( Connected(c) == i )
+					{
+						Connected.Remove( c );
+						Connected.AddUniqueItem( (WORD)j );
+						k--;
+						break;
+					}
+				}
+			}
+
+			for( INT k = 0; k < ActorHorizontalEdges.Num(); k++ )
+			{
+				TArray<WORD>& Connected = ActorHorizontalEdges(k).ConnectedCollections;
+				for( INT c = 0; c < Connected.Num(); c++ )
+				{
+					if( Connected(c) > i )
+					{
+						Connected(c)--;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+}
+
+/** BM2: Joins edges within a collection that continue one another into single longer edges. */
+void ULevel::OptimiseActorEdgeCollections()
+{
+	for( INT c = ActorHorizontalEdges.Num() - 1; c >= 0; c-- )
+	{
+		TArray<FActorHorizontalEdge>& Edges = ActorHorizontalEdges(c).Edges;
+		for( INT i = Edges.Num() - 1; i > 0; i-- )
+		{
+			const FVector A0( Edges(i).PointAX, Edges(i).PointAY, Edges(i).PointAZ );
+			const FVector A1 = A0 + FVector( Edges(i).PointBX, Edges(i).PointBY, Edges(i).PointBZ );
+
+			for( INT k = i - 1; k >= 0; k-- )
+			{
+				const FVector B0( Edges(k).PointAX, Edges(k).PointAY, Edges(k).PointAZ );
+				const FVector B1 = B0 + FVector( Edges(k).PointBX, Edges(k).PointBY, Edges(k).PointBZ );
+
+				if( Edges(i).EdgeType != Edges(k).EdgeType
+				||	!AreEdgesCoincident( B0, A0, A1, B1, this, TRUE ) )
+				{
+					continue;
+				}
+
+				// Span from the furthest point back to the furthest point forward.
+				const FVector Dir = A1 - A0;
+				const FVector Points[4] = { A0, A1, B0, B1 };
+
+				FVector MinPoint = A0, MaxPoint = A0;
+				FLOAT MinProj = BIG_NUMBER, MaxProj = -BIG_NUMBER;
+				for( INT p = 0; p < 4; p++ )
+				{
+					const FLOAT Proj = (Points[p] - A0) | Dir;
+					if( Proj > MaxProj ) { MaxProj = Proj; MaxPoint = Points[p]; }
+					if( MinProj > Proj ) { MinProj = Proj; MinPoint = Points[p]; }
+				}
+
+				FActorHorizontalEdge& Merged = Edges(k);
+				Merged.PointAX = MinPoint.X;
+				Merged.PointAY = MinPoint.Y;
+				Merged.PointAZ = MinPoint.Z;
+				Merged.PointBX = (SWORD)( MaxPoint.X - Merged.PointAX );
+				Merged.PointBY = (SWORD)( MaxPoint.Y - Merged.PointAY );
+				Merged.PointBZ = (SWORD)( MaxPoint.Z - Merged.PointAZ );
+
+				Edges.Remove( i );
+				break;
+			}
+		}
+	}
+}
+
+/**
+ * BM2: Attaches primitives that produced no edges of their own to the nearest collection
+ * they overlap, and records the rest of the overlapping collections as neighbours.
+ */
+void ULevel::ResolveUnlinkedPrimitives( TArray<FEdgeCollectionMember>& EdgeMembers )
+{
+	for( INT ActorIndex = 0; ActorIndex < Actors.Num(); ActorIndex++ )
+	{
+		AActor* Actor = Actors(ActorIndex);
+		if( !Actor
+		||	!Actor->bBlockActors
+		||	!Actor->bCollideActors
+		||	( Actor->IsABrush() && !Actor->IsAVolume() ) )
+		{
+			continue;
+		}
+
+		for( INT ComponentIndex = 0; ComponentIndex < Actor->Components.Num(); ComponentIndex++ )
+		{
+			UPrimitiveComponent* Prim = Cast<UPrimitiveComponent>( Actor->Components(ComponentIndex) );
+			if( !Prim
+			||	!Actor->CanPreBuildClimbableEdges()
+			||	!Prim->BlockNonZeroExtent
+			||	!Prim->CollideActors
+			||	!Actor->IsStatic()
+			||	Actor->bMovable )
+			{
+				continue;
+			}
+
+			UStaticMeshComponent* MeshComp = Cast<UStaticMeshComponent>( Prim );
+			UBrushComponent* BrushComp = Cast<UBrushComponent>( Prim );
+
+			const UBOOL bHasGeom = ( MeshComp && MeshComp->StaticMesh && MeshComp->StaticMesh->BodySetup )
+								|| ( !MeshComp && BrushComp );
+			if( !bHasGeom )
+			{
+				continue;
+			}
+
+			FBox Bounds = Prim->Bounds.GetBox();
+			Bounds.Min -= FVector(16.f,16.f,16.f);
+			Bounds.Max += FVector(16.f,16.f,64.f);
+
+			TArray<INT> Nearby;
+			INT NearestCollection = INDEX_NONE;
+			FLOAT NearestDistSq = BIG_NUMBER;
+
+			for( INT n = ActorHorizontalEdges.Num() - 1; n >= 0; n-- )
+			{
+				if( n == Prim->LevelEdgeCollectionIndex || !CanMergeEdgeMembers( EdgeMembers, n ) )
+				{
+					continue;
+				}
+
+				const FBox& CollBox = ActorHorizontalEdges(n).BoundingBox;
+				if( !CollBox.IsValid || !Bounds.Intersect( CollBox ) )
+				{
+					continue;
+				}
+
+				// Ignore collections sitting well below this primitive.
+				if( CollBox.Max.Z - Bounds.Max.Z <= -128.f )
+				{
+					continue;
+				}
+
+				Nearby.AddUniqueItem( n );
+
+				const FVector CollCenter = CollBox.GetCenter();
+				const FVector MyCenter = Bounds.GetCenter();
+				const FLOAT DistSq = Square(MyCenter.X - CollCenter.X) + Square(MyCenter.Y - CollCenter.Y);
+				if( NearestDistSq > DistSq )
+				{
+					NearestDistSq = DistSq;
+					NearestCollection = n;
+				}
+			}
+
+			if( NearestCollection == INDEX_NONE )
+			{
+				continue;
+			}
+
+			if( Prim->LevelEdgeCollectionIndex == 0xFFFF )
+			{
+				Prim->LevelEdgeCollectionIndex = NearestCollection;
+				EdgeMembers(NearestCollection).AssociatedMembers.AddItem( FEdgeCollectionMember::MemberContainer(Prim) );
+			}
+
+			for( INT p = 0; p < Nearby.Num(); p++ )
+			{
+				if( Nearby(p) == Prim->LevelEdgeCollectionIndex )
+				{
+					continue;
+				}
+
+				ActorHorizontalEdges( Nearby(p) ).ConnectedCollections.AddUniqueItem( (WORD)Prim->LevelEdgeCollectionIndex );
+				ActorHorizontalEdges( Prim->LevelEdgeCollectionIndex ).ConnectedCollections.AddUniqueItem( (WORD)Nearby(p) );
+			}
+		}
+	}
+}
+
+/**
+ * BM2: Collections left with no edges of their own only ever held BSP nodes. Hand those nodes
+ * to the nearest overlapping collection, then drop the empty collection.
+ */
+void ULevel::ResolveUnlinkedBSPNodes( TArray<FEdgeCollectionMember>& EdgeMembers, UModel* Model )
+{
+	for( INT i = ActorHorizontalEdges.Num() - 1; i >= 0; i-- )
+	{
+		if( ActorHorizontalEdges(i).Edges.Num() > 0 || ActorHorizontalEdges(i).RailingTops.Num() > 0 )
+		{
+			continue;
+		}
+
+		FBox Box(0);
+		FVector P0, P1;
+		for( INT e = 0; HorizontalEdges(i).GetEdge( e, Model, P0, P1 ); e++ )
+		{
+			Box += P0;
+			Box += P1;
+		}
+
+		INT Nearest = INDEX_NONE;
+		FLOAT NearestDistSq = BIG_NUMBER;
+		TArray<INT> Nearby;
+
+		if( Box.IsValid )
+		{
+			Box.Min -= FVector(32.f,32.f,32.f);
+			Box.Max += FVector(32.f,32.f,32.f);
+
+			for( INT j = ActorHorizontalEdges.Num() - 1; j >= 0; j-- )
+			{
+				if( j == i || !CanMergeEdgeMembers( EdgeMembers, j ) )
+				{
+					continue;
+				}
+
+				const TArray<FEdgeCollectionMember::MemberContainer>& MembersI = EdgeMembers(i).AssociatedMembers;
+				const TArray<FEdgeCollectionMember::MemberContainer>& MembersJ = EdgeMembers(j).AssociatedMembers;
+
+				// Coplanar with something already in the other collection means the same surface.
+				UBOOL bAccept = FALSE;
+				for( INT m = 0; m < MembersI.Num() && !bAccept; m++ )
+				{
+					check( MembersI(m).Type == FEdgeCollectionMember::ESMTYPE_BSPNode );
+
+					const INT NodeIndex = MembersI(m).NodeIndex;
+					for( INT Coplanar = Model->Nodes(NodeIndex).iPlane;
+						 Coplanar != INDEX_NONE && Coplanar != NodeIndex && !bAccept;
+						 Coplanar = Model->Nodes(Coplanar).iPlane )
+					{
+						for( INT n = 0; n < MembersJ.Num(); n++ )
+						{
+							if( MembersJ(n).Type == FEdgeCollectionMember::ESMTYPE_BSPNode
+							&&	MembersJ(n).NodeIndex == Coplanar )
+							{
+								bAccept = TRUE;
+								break;
+							}
+						}
+					}
+				}
+
+				const FBox& OtherBox = ActorHorizontalEdges(j).BoundingBox;
+				if( !bAccept )
+				{
+					bAccept = OtherBox.IsValid
+						&& Box.Intersect( OtherBox )
+						&& (OtherBox.Max.Z - Box.Max.Z) > -32.f;
+				}
+
+				if( !bAccept )
+				{
+					continue;
+				}
+
+				Nearby.AddUniqueItem( j );
+
+				const FLOAT DX = (Box.Min.X + Box.Max.X) * 0.5f - (OtherBox.Min.X + OtherBox.Max.X) * 0.5f;
+				const FLOAT DY = (Box.Max.Y + Box.Min.Y) * 0.5f - (OtherBox.Max.Y + OtherBox.Min.Y) * 0.5f;
+				if( NearestDistSq > DX*DX + DY*DY )
+				{
+					NearestDistSq = DX*DX + DY*DY;
+					Nearest = j;
+				}
+			}
+		}
+
+		TArray<FEdgeCollectionMember::MemberContainer>& Members = EdgeMembers(i).AssociatedMembers;
+		if( Nearest != INDEX_NONE )
+		{
+			for( INT a = 0; a < Nearby.Num() - 1; a++ )
+			{
+				for( INT b = a + 1; b < Nearby.Num(); b++ )
+				{
+					ActorHorizontalEdges( Nearby(a) ).ConnectedCollections.AddUniqueItem( (WORD)Nearby(b) );
+					ActorHorizontalEdges( Nearby(b) ).ConnectedCollections.AddUniqueItem( (WORD)Nearby(a) );
+				}
+			}
+
+			for( INT m = 0; m < Members.Num(); m++ )
+			{
+				check( Members(m).Type == FEdgeCollectionMember::ESMTYPE_BSPNode );
+				NodeEdgeCollection( Members(m).NodeIndex ) = Nearest;
+				EdgeMembers(Nearest).AssociatedMembers.AddItem( Members(m) );
+			}
+		}
+		else
+		{
+			for( INT m = 0; m < Members.Num(); m++ )
+			{
+				check( Members(m).Type == FEdgeCollectionMember::ESMTYPE_BSPNode );
+				NodeEdgeCollection( Members(m).NodeIndex ) = 0xFFFF;
+			}
+		}
+
+		// Removing index i shifts every later collection down by one.
+		for( INT m = 0; m < ActorHorizontalEdges.Num(); m++ )
+		{
+			TArray<WORD>& Connected = ActorHorizontalEdges(m).ConnectedCollections;
+			for( INT n = 0; n < Connected.Num(); n++ )
+			{
+				if( Connected(n) >= i )
+				{
+					Connected(n)--;
+				}
+			}
+
+			if( m > i )
+			{
+				TArray<FEdgeCollectionMember::MemberContainer>& Later = EdgeMembers(m).AssociatedMembers;
+				for( INT n = 0; n < Later.Num(); n++ )
+				{
+					if( Later(n).Type == FEdgeCollectionMember::ESMTYPE_BSPNode )
+					{
+						NodeEdgeCollection( Later(n).NodeIndex )--;
+					}
+					else if( Later(n).Type == FEdgeCollectionMember::ESMTYPE_PrimComp )
+					{
+						Later(n).PrimComp->LevelEdgeCollectionIndex--;
+					}
+				}
+			}
+		}
+
+		ActorHorizontalEdges.Remove( i );
+		EdgeMembers.Remove( i );
+	}
+}
+
+/** BM2: A collection of nothing but shimmy edges is useless if there is no way to reach it. */
+void ULevel::RemoveUnconnectedShimmyEdges( TArray<FEdgeCollectionMember>& EdgeMembers )
+{
+	for( INT i = ActorHorizontalEdges.Num() - 1; i > 0; i-- )
+	{
+		FActorEdgeCollection& Coll = ActorHorizontalEdges(i);
+		if( Coll.RailingTops.Num() > 0 || Coll.ConnectedCollections.Num() > 0 )
+		{
+			continue;
+		}
+
+		UBOOL bAllShimmy = TRUE;
+		for( INT e = 0; e < Coll.Edges.Num(); e++ )
+		{
+			if( !(Coll.Edges(e).EdgeType & EDGETYPE_ShimmyOnly) )
+			{
+				bAllShimmy = FALSE;
+				break;
+			}
+		}
+
+		if( !bAllShimmy )
+		{
+			continue;
+		}
+
+		ActorHorizontalEdges.Remove( i );
+		if( i < HorizontalEdges.Num() )
+		{
+			HorizontalEdges.Remove( i );
+		}
+
+		TArray<FEdgeCollectionMember::MemberContainer>& Members = EdgeMembers(i).AssociatedMembers;
+		for( INT m = 0; m < Members.Num(); m++ )
+		{
+			if( Members(m).Type == FEdgeCollectionMember::ESMTYPE_BSPNode )
+			{
+				NodeEdgeCollection( Members(m).NodeIndex ) = 0xFFFF;
+			}
+			else if( Members(m).Type == FEdgeCollectionMember::ESMTYPE_PrimComp )
+			{
+				Members(m).PrimComp->LevelEdgeCollectionIndex = 0xFFFF;
+			}
+		}
+		EdgeMembers.Remove( i );
+
+		// Removing index i shifts every later collection down by one.
+		for( INT n = i; n < EdgeMembers.Num(); n++ )
+		{
+			TArray<FEdgeCollectionMember::MemberContainer>& Later = EdgeMembers(n).AssociatedMembers;
+			for( INT m = 0; m < Later.Num(); m++ )
+			{
+				if( Later(m).Type == FEdgeCollectionMember::ESMTYPE_BSPNode )
+				{
+					NodeEdgeCollection( Later(m).NodeIndex )--;
+				}
+				else if( Later(m).Type == FEdgeCollectionMember::ESMTYPE_PrimComp )
+				{
+					Later(m).PrimComp->LevelEdgeCollectionIndex--;
+				}
+			}
+		}
+
+		for( INT k = 0; k < ActorHorizontalEdges.Num(); k++ )
+		{
+			TArray<WORD>& Connected = ActorHorizontalEdges(k).ConnectedCollections;
+			for( INT c = 0; c < Connected.Num(); c++ )
+			{
+				if( Connected(c) > i )
+				{
+					Connected(c)--;
+				}
+			}
+		}
+	}
+}
+
+/**
+ * BM2: Pairs of parallel edges facing each other are the two sides of a railing. Records the
+ * line down the middle as a railing top, caps each end, then extends tops to meet at corners.
+ */
+void ULevel::CreateRailingData()
+{
+	for( INT c = ActorHorizontalEdges.Num() - 1; c >= 0; c-- )
+	{
+		FActorEdgeCollection& Coll = ActorHorizontalEdges(c);
+
+		for( INT i = Coll.Edges.Num() - 1; i > 0; i-- )
+		{
+			if( Coll.Edges(i).EdgeType & EDGETYPE_ShimmyOnly )
+			{
+				continue;
+			}
+
+			const FVector A0( Coll.Edges(i).PointAX, Coll.Edges(i).PointAY, Coll.Edges(i).PointAZ );
+			const FVector A1 = A0 + FVector( Coll.Edges(i).PointBX, Coll.Edges(i).PointBY, Coll.Edges(i).PointBZ );
+
+			for( INT k = i - 1; k >= 0; k-- )
+			{
+				if( Coll.Edges(k).EdgeType & EDGETYPE_ShimmyOnly )
+				{
+					continue;
+				}
+
+				const FVector B0( Coll.Edges(k).PointAX, Coll.Edges(k).PointAY, Coll.Edges(k).PointAZ );
+				const FVector B1 = B0 + FVector( Coll.Edges(k).PointBX, Coll.Edges(k).PointBY, Coll.Edges(k).PointBZ );
+
+				FVector DirA = A1 - A0;
+				DirA.Normalize( 1e-8f );
+
+				// The far side of a railing runs the opposite way round.
+				FVector DirB = B0 - B1;
+				DirB.Normalize( 1e-8f );
+
+				if( (DirA | DirB) <= 0.99f )
+				{
+					continue;
+				}
+
+				FVector Mid = (DirA + DirB) * 0.5f;
+				Mid.Normalize( 1e-8f );
+
+				FVector Perp( -Mid.Y, Mid.X, 0.f );
+				Perp.Normalize( 1e-8f );
+
+				const FVector OffsetStart = A0 - B1;
+				const FVector OffsetEnd = A1 - B0;
+
+				const FLOAT SepStart = OffsetStart | Perp;
+				const FLOAT SepEnd = OffsetEnd | Perp;
+				const FLOAT HeightDiff = Abs( OffsetEnd.Z - (OffsetEnd | DirB) * DirB.Z )
+									   + Abs( OffsetStart.Z - DirB.Z * (OffsetStart | DirB) );
+
+				FLOAT MaxSep = 34.f;
+				FLOAT MaxHeight = 12.f;
+				if( (Coll.Edges(i).EdgeType & EDGETYPE_WideRailing) && (Coll.Edges(k).EdgeType & EDGETYPE_WideRailing) )
+				{
+					MaxSep = 100.f;
+					MaxHeight = 36.f;
+				}
+
+				if( MaxHeight <= HeightDiff
+				||	SepEnd <= 0.f || MaxSep <= SepEnd
+				||	SepStart <= 0.f || MaxSep <= SepStart )
+				{
+					continue;
+				}
+
+				const FLOAT HalfSep = (SepStart + SepEnd) * 0.25f;
+				const FLOAT LengthA = (A1 - A0).Size();
+
+				FLOAT TimeStart = (B1 - A0) | Mid;
+				FLOAT TimeEnd = (B0 - A0) | Mid;
+				if( LengthA <= TimeStart || TimeEnd <= 0.f )
+				{
+					continue;
+				}
+
+				TimeStart = Max( TimeStart, 0.f );
+				TimeEnd = Min( TimeEnd, LengthA );
+
+				const FVector Offset = Perp * HalfSep;
+				const FVector Start = A0 + Mid * TimeStart - Offset;
+				const FVector End = A0 + Mid * TimeEnd - Offset;
+
+				FActorHorizontalEdge Top;
+				Top.PointAX = Start.X;
+				Top.PointAY = Start.Y;
+				Top.PointAZ = Start.Z;
+				Top.PointBX = (SWORD)( End.X - Start.X );
+				Top.PointBY = (SWORD)( End.Y - Start.Y );
+				Top.PointBZ = (SWORD)( End.Z - Start.Z );
+				Top.EdgeType = Coll.Edges(k).EdgeType & Coll.Edges(i).EdgeType;
+				Coll.RailingTops.AddItem( Top );
+
+				Coll.Edges(i).EdgeType |= EDGETYPE_Railing;
+				Coll.Edges(k).EdgeType |= EDGETYPE_Railing;
+
+				// Cap both ends with a short edge running across the railing.
+				const FVector StoredStart( Top.PointAX, Top.PointAY, Top.PointAZ );
+				const FVector StoredEnd = StoredStart + FVector( Top.PointBX, Top.PointBY, Top.PointBZ );
+
+				FVector Cap( -(StoredEnd.Y - StoredStart.Y), StoredEnd.X - StoredStart.X, 0.f );
+				Cap.Normalize( 1e-8f );
+				Cap *= 16.f;
+
+				const FVector Middle = (StoredStart + StoredEnd) * 0.5f;
+				AddToEdgeCollection( Coll, StoredStart - Cap, StoredStart + Cap, Middle, this, NULL, FALSE, FALSE, TRUE, FALSE, TRUE );
+				AddToEdgeCollection( Coll, StoredEnd + Cap, StoredEnd - Cap, Middle, this, NULL, FALSE, FALSE, TRUE, FALSE, TRUE );
+			}
+		}
+	}
+
+	// Railing tops that stop short of a crossing railing get extended to meet it.
+	for( INT c = ActorHorizontalEdges.Num() - 1; c >= 0; c-- )
+	{
+		FActorEdgeCollection& Coll = ActorHorizontalEdges(c);
+
+		for( INT r = Coll.RailingTops.Num() - 1; r >= 0; r-- )
+		{
+			FVector R0( Coll.RailingTops(r).PointAX, Coll.RailingTops(r).PointAY, Coll.RailingTops(r).PointAZ );
+			const FVector Delta( Coll.RailingTops(r).PointBX, Coll.RailingTops(r).PointBY, Coll.RailingTops(r).PointBZ );
+			FVector R1 = R0 + Delta;
+
+			const FLOAT Len2DSq = Square(Delta.X) + Square(Delta.Y);
+			const FLOAT Len2D = appSqrt( Len2DSq );
+			const FVector Dir( Delta.X / Len2D, Delta.Y / Len2D, 0.f );
+
+			FBox Box(0);
+			Box += R0;
+			Box += R1;
+			Box.Min -= FVector(128.f,128.f,34.f);
+			Box.Max += FVector(128.f,128.f,34.f);
+
+			FLOAT BestStart = -BIG_NUMBER, BestEnd = BIG_NUMBER;
+			FLOAT DotStart = 1.f, DotEnd = 1.f;
+
+			for( INT p = -1; p < Coll.ConnectedCollections.Num(); p++ )
+			{
+				FActorEdgeCollection& Other = (p < 0) ? Coll : ActorHorizontalEdges( Coll.ConnectedCollections(p) );
+
+				for( INT k = Other.RailingTops.Num() - 1; k >= 0; k-- )
+				{
+					const FVector O0( Other.RailingTops(k).PointAX, Other.RailingTops(k).PointAY, Other.RailingTops(k).PointAZ );
+					const FVector ODelta( Other.RailingTops(k).PointBX, Other.RailingTops(k).PointBY, Other.RailingTops(k).PointBZ );
+					const FVector O1 = O0 + ODelta;
+
+					const FLOAT OLen2D = appSqrt( Square(ODelta.X) + Square(ODelta.Y) );
+					const FVector ODir( ODelta.X / OLen2D, ODelta.Y / OLen2D, 0.f );
+
+					FBox OBox(0);
+					OBox += O0;
+					OBox += O1;
+					OBox.Min -= FVector(128.f,128.f,34.f);
+					OBox.Max += FVector(128.f,128.f,34.f);
+
+					const FLOAT Dot = Abs( ODir | Dir );
+					if( !Box.Intersect( OBox ) || Dot >= 0.995f )
+					{
+						continue;
+					}
+
+					const FLOAT Pad = Dot * 75.f + 75.f;
+					const FLOAT Reach = Min( Dot * 75.f, Len2D );
+
+					FLOAT TimeThis, TimeOther;
+					LineIntersect2D( R0, Dir, O0, ODir, TimeThis, TimeOther );
+
+					// The crossing has to land on the other railing.
+					if( TimeOther <= -Pad || (Pad + OLen2D) <= TimeOther )
+					{
+						continue;
+					}
+
+					if( Reach > TimeThis && TimeThis > -Pad && TimeThis > BestStart )
+					{
+						BestStart = TimeThis;
+						DotStart = Dot;
+					}
+					if( TimeThis > (Len2D - Reach) && (Pad + Len2D) > TimeThis && BestEnd > TimeThis )
+					{
+						BestEnd = TimeThis;
+						DotEnd = Dot;
+					}
+				}
+			}
+
+			const FLOAT InvLength = appInvSqrt( Square(Delta.Z) + Len2DSq );
+			if( BestEnd < BIG_NUMBER && BestEnd > Len2D && DotEnd < 0.99f )
+			{
+				R1 = R0 + Delta * InvLength * BestEnd;
+			}
+			if( BestStart > -BIG_NUMBER && BestStart < 0.f && DotStart < 0.99f )
+			{
+				R0 = R0 + Delta * InvLength * BestStart;
+			}
+
+			FActorHorizontalEdge& Top = Coll.RailingTops(r);
+			Top.PointAX = R0.X;
+			Top.PointAY = R0.Y;
+			Top.PointAZ = R0.Z;
+			Top.PointBX = (SWORD)( R1.X - Top.PointAX );
+			Top.PointBY = (SWORD)( R1.Y - Top.PointAY );
+			Top.PointBZ = (SWORD)( R1.Z - Top.PointAZ );
+		}
+	}
+}
+
+/** BM2: Rebuilds every piece of climbable edge data for this level from scratch. */
+void ULevel::BuildEdgeCollections( UModel* Model )
+{
+	ULevelStreaming* StreamingLevel = FLevelUtils::FindStreamingLevel( this );
+	if( StreamingLevel && !FLevelUtils::IsLevelVisible( StreamingLevel ) )
+	{
+		return;
+	}
+
+	const DOUBLE StartTime = appSeconds();
+	const INT NumNodes = Model->Nodes.Num();
+
+	HorizontalEdges.Empty();
+	NodeEdgeCollection.Empty();
+	NodeEdgeCollection.AddZeroed( NumNodes );
+
+	TArray<BYTE> Visited;
+	Visited.AddZeroed( NumNodes );
+
+	TArray<FEdgeCollectionMember> EdgeMembers;
+
+	const FLOAT SlopeLimit = appTan( 0.3490658402442932f );
+
+	// One collection per BSP node, holding every near-level edge of its polygon.
+	for( INT NodeIndex = 0; NodeIndex < NumNodes; NodeIndex++ )
+	{
+		if( Visited(NodeIndex) )
+		{
+			continue;
+		}
+
+		FEdgeCollection NewCollection;
+		FEdgeCollectionMember NewMember;
+
+		const FBspNode& Node = Model->Nodes(NodeIndex);
+		NodeEdgeCollection(NodeIndex) = HorizontalEdges.Num();
+		NewMember.AssociatedMembers.AddItem( FEdgeCollectionMember::MemberContainer(NodeIndex) );
+		Visited(NodeIndex) = 1;
+
+		if( Node.NumVertices > 0 )
+		{
+			FVector PrevPoint( 0.f, 0.f, 0.f );
+			INT PrevVertex = 0;
+
+			for( INT v = 0; v <= Node.NumVertices; v++ )
+			{
+				const FVert& Vert = Model->Verts( Node.iVertPool + (v % Node.NumVertices) );
+				const FVector Point = Model->Points( Vert.pVertex );
+
+				if( v > 0 && Vert.pVertex != PrevVertex )
+				{
+					const FLOAT Run = appSqrt( Square(Point.X - PrevPoint.X) + Square(Point.Y - PrevPoint.Y) );
+					if( SlopeLimit > Abs(Point.Z - PrevPoint.Z) / Run )
+					{
+						FHorizontalEdge Edge;
+						Edge.VertexA = PrevVertex;
+						Edge.VertexB = Vert.pVertex;
+						Edge.OutwardDir = FVector(0.f,0.f,0.f);
+
+						// A near-vertical node sharing both vertices is the wall below this ledge.
+						if( Abs(Node.Plane.Z) >= 0.5f )
+						{
+							for( INT Other = 0; Other < NumNodes; Other++ )
+							{
+								if( Other == NodeIndex )
+								{
+									continue;
+								}
+
+								const FBspNode& OtherNode = Model->Nodes(Other);
+								if( Abs(OtherNode.Plane.Z) > 0.5f )
+								{
+									continue;
+								}
+
+								UBOOL bHasPrev = FALSE, bHasCurrent = FALSE;
+								for( INT ov = 0; ov < OtherNode.NumVertices && !(bHasPrev && bHasCurrent); ov++ )
+								{
+									const INT OtherVertex = Model->Verts( OtherNode.iVertPool + ov ).pVertex;
+									if( PrevVertex == OtherVertex )			{ bHasPrev = TRUE; }
+									else if( Vert.pVertex == OtherVertex )	{ bHasCurrent = TRUE; }
+								}
+
+								if( bHasPrev && bHasCurrent )
+								{
+									Edge.OutwardDir = FVector( OtherNode.Plane.X, OtherNode.Plane.Y, OtherNode.Plane.Z );
+									break;
+								}
+							}
+						}
+
+						NewCollection.Edges.AddItem( Edge );
+					}
+				}
+
+				PrevPoint = Point;
+				PrevVertex = Vert.pVertex;
+			}
+		}
+
+		HorizontalEdges.AddItem( NewCollection );
+		EdgeMembers.AddItem( NewMember );
+	}
+
+	for( INT i = 0; i < HorizontalEdges.Num(); i++ )
+	{
+		HorizontalEdges(i).OptimizeEdgeCollection( Model );
+	}
+
+	ActorHorizontalEdges.Empty();
+
+	UClass* NoClimbVolumeClass = FindObject<UClass>( ANY_PACKAGE, TEXT("RNoClimbVolume") );
+
+	// No-climb volumes only collide while the edges are being built.
+	for( INT i = 0; NoClimbVolumeClass && i < Actors.Num(); i++ )
+	{
+		ABrush* Volume = Cast<ABrush>( Actors(i) );
+		if( Volume && Volume->IsA(NoClimbVolumeClass) && Volume->BrushComponent )
+		{
+			Volume->SetCollision( TRUE, TRUE, TRUE );
+		}
+	}
+
+	BuildActorEdgeFromBSPEdges( Model );
+	BuildActorEdgeCollections( EdgeMembers );
+	MergeActorEdgeCollections( Model, EdgeMembers );
+	OptimiseActorEdgeCollections();
+	ResolveUnlinkedPrimitives( EdgeMembers );
+	ResolveUnlinkedBSPNodes( EdgeMembers, Model );
+	RemoveUnconnectedShimmyEdges( EdgeMembers );
+	CreateRailingData();
+
+	HorizontalEdges.Empty();
+
+	for( INT i = 0; NoClimbVolumeClass && i < Actors.Num(); i++ )
+	{
+		ABrush* Volume = Cast<ABrush>( Actors(i) );
+		if( Volume && Volume->IsA(NoClimbVolumeClass) && Volume->BrushComponent )
+		{
+			Volume->SetCollision( FALSE, FALSE, TRUE );
+		}
+	}
+
+	FArchiveCountMem CountMem( NULL );
+	CountMem << NodeEdgeCollection;
+	CountMem << ActorHorizontalEdges;
+
+	debugf( NAME_Log, TEXT("************************************************") );
+	debugf( NAME_Log, TEXT("Edges built for %s - memory: %dkb - time: %.1f secs"),
+		*GetFullName(), (INT)(CountMem.GetNum() >> 10), (FLOAT)(appSeconds() - StartTime) );
+	debugf( NAME_Log, TEXT("************************************************") );
+
+	bEdgesValid = TRUE;
+}
+
+#endif // BATMAN

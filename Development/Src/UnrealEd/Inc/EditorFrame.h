@@ -476,6 +476,9 @@ private:
 	void UpdateUIConsoleSpecific( wxUpdateUIEvent& In );
 	void OnMenuOpen(wxMenuEvent& In);
 	void MenuBuild( wxCommandEvent& In );
+#if BATMAN
+	void MenuCreateGrapplePoints( wxCommandEvent& In );
+#endif
 	void MenuBuildAndSubmit( wxCommandEvent& In );
 	void MenuRedrawAllViewports( wxCommandEvent& In );
 	void MenuAlignWall( wxCommandEvent& In );
