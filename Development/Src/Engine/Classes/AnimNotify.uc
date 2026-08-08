@@ -8,9 +8,6 @@ class AnimNotify extends Object
 	hidecategories(Object)
 	collapsecategories;
 
-/** Color of Notify in editor */
-var editoronly Color NotifyColor;
-
 cpptext
 {
 	// AnimNotify interface.
@@ -19,7 +16,7 @@ cpptext
 	virtual void NotifyEnd( class UAnimNodeSequence* NodeSeq, FLOAT AnimCurrentTime ) {}
 
 	virtual FString GetEditorComment() { return TEXT(""); }
-	virtual FColor GetEditorColor() { return NotifyColor; }
+	virtual FColor GetEditorColor() { return FColor(255,200,200,255); }
 }
 
 simulated function bool FindNextNotifyOfClass(AnimNodeSequence AnimSeqInstigator, class<AnimNotify> NotifyClass, out AnimNotifyEvent OutEvent)
@@ -52,9 +49,4 @@ simulated function bool FindNextNotifyOfClass(AnimNodeSequence AnimSeqInstigator
 	}
 	
 	return false;
-}
-
-defaultproperties
-{
-	NotifyColor=(R=255,G=200,B=200,A=255)
 }

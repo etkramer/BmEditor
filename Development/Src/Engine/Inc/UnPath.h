@@ -2485,6 +2485,8 @@ typedef TMultiMap<FMeshVertex,VERTID> FVertHash;
 #define VER_SERIALIZE_OBSTACLEPOLYID 31
 // 1/26/2011 - removed edgelength
 #define VER_REMOVED_EDGELENGTH 32
+// BM: BM2 landed the edgelength removal at its own version instead
+#define VER_BM_REMOVED_EDGELENGTH 35
 // 1/31/2011 - fixed cross-pylon edge generation
 #define VER_FIXED_CROSS_PYLON_EDGES 33
 // 2/2/2011 - fixed edges near cross pylon edges not getting generated correctly

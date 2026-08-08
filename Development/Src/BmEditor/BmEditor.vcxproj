@@ -59,6 +59,7 @@
   <ItemDefinitionGroup>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <None Include="Classes\ExtractPackagesCommandlet.uc" />
     <None Include="Classes\UIContainerThumbnailRenderer.uc" />
   </ItemGroup>
   <ItemGroup>
@@ -66,6 +67,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Src\BmEditor.cpp" />
+    <ClCompile Include="Src\BmEditorCommandlets.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="..\..\..\UE3.natvis" />

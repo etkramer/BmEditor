@@ -1001,7 +1001,8 @@ void UTexture2D::SetLinker( ULinkerLoad* LinkerLoad, INT LinkerIndex )
 	// We never change linkers in the case of seekfree loading though will reset them/ set them to NULL
 	// and don't want to load the texture data in this case.
 #if BATMAN
-	if( GetLinker() && GetLinker()->IsBmCooked() )
+	// BM: check the incoming linker too, since ResetLoaders() leaves objects without one
+	if( (GetLinker() && GetLinker()->IsBmCooked()) || (LinkerLoad && LinkerLoad->IsBmCooked()) )
 #else
 	if( GUseSeekFreeLoading )
 #endif

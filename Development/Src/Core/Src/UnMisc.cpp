@@ -3929,10 +3929,14 @@ UBOOL FMapPackageFileCache::CachePackage( const TCHAR* InPathName, UBOOL InOverr
 			warnf( NAME_Error, TEXT("Ambiguous package name: Using \'%s\', not \'%s\'"), *FullExistingEntry, *FullFixedPathName);
 			CLEAR_WARN_COLOR();
 
+#if BATMAN
+			// BM: Extracted packages are expected to shadow (and be shadowed by) other paths.
+#else
 			if( GIsUnattended == FALSE && !ParseParam(appCmdLine(),TEXT("DEMOMODE")) )
 			{
 				appMsgf(AMT_OK,TEXT("Ambiguous package name: Using \'%s\', not \'%s\'"), *FullExistingEntry, *FullFixedPathName);
 			}
+#endif
 		}
 
 		return FALSE;
@@ -3968,6 +3972,17 @@ void FMapPackageFileCache::CachePaths()
 
 	// get the list of script package directories
 	appGetScriptPackageDirectories(Paths);
+
+#if BATMAN
+	// BM: Cache script packages first, so extracted packages (which include the game's own
+	// script packages) can't shadow the ones we compile ourselves.
+	TArray<FString> ScriptPaths;
+	appGetScriptPackageDirectories(ScriptPaths);
+	for (INT PathIndex = 0; PathIndex < ScriptPaths.Num(); PathIndex++)
+	{
+		CachePath(*ScriptPaths(PathIndex));
+	}
+#endif
 
 	// loop through the specified paths and cache all packages found therein
 	for (INT PathIndex = 0; PathIndex < Paths.Num(); PathIndex++)

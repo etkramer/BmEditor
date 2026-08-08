@@ -22,7 +22,6 @@ cpptext
 
 defaultproperties
 {
-	NotifyColor=(R=200,G=255,B=200)
 	
 	StartScale = 1;
 	EndScale = 1;

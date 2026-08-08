@@ -2973,6 +2973,13 @@ void UParticleSystem::PostLoad()
 		for (INT EmitterIndex = 0; EmitterIndex < Emitters.Num(); EmitterIndex++)
 		{
 			UParticleEmitter* Emitter  = Emitters(EmitterIndex);
+#if BATMAN
+			// BM: cooked-out emitters have no LOD levels by design, so they'd skew the fixup
+			if (Emitter && Emitter->bCookedOut)
+			{
+				continue;
+			}
+#endif
 			if (Emitter)
 			{
 				if (LODCount_0 == -1)
@@ -3239,6 +3246,13 @@ void UParticleSystem::SetupSoloing()
 			for (INT EmitterIdx = 0; EmitterIdx < Emitters.Num(); EmitterIdx++)
 			{
 				UParticleEmitter* Emitter = Emitters(EmitterIdx);
+#if BATMAN
+				// BM: cooked-out emitters have no LOD levels, so they'd size the solo tracks to zero
+				if ((Emitter != NULL) && Emitter->bCookedOut)
+				{
+					continue;
+				}
+#endif
 				if ((Emitter != NULL) && (ZeroEmitter == NULL))
 				{
 					ZeroEmitter = Emitter;
@@ -3251,8 +3265,15 @@ void UParticleSystem::SetupSoloing()
 			for (INT SoloIdx = 0; SoloIdx < SoloTracking.Num(); SoloIdx++)
 			{
 				FLODSoloTrack& SoloTrack = SoloTracking(SoloIdx);
+#if BATMAN
+				// BM: every emitter can be cooked out, leaving no ZeroEmitter at all
+				const INT ZeroLODCount = (ZeroEmitter != NULL) ? ZeroEmitter->LODLevels.Num() : 0;
+				SoloTrack.SoloEnableSetting.Empty(ZeroLODCount);
+				SoloTrack.SoloEnableSetting.AddZeroed(ZeroLODCount);
+#else
 				SoloTrack.SoloEnableSetting.Empty(ZeroEmitter->LODLevels.Num());
 				SoloTrack.SoloEnableSetting.AddZeroed(ZeroEmitter->LODLevels.Num());
+#endif
 			}
 
 			for (INT EmitterIdx = 0; EmitterIdx < Emitters.Num(); EmitterIdx++)

@@ -2659,6 +2659,19 @@ void FEditorFileUtils::LoadSimpleMapAtStartup ()
 
 
 
+// BM: Native script packages are linked into the executable, so the game always has them resident.
+static UBOOL BmIsAlwaysLoadedPackage( UPackage* Package )
+{
+	static TArray<FString> AlwaysLoadedPackages;
+	if( AlwaysLoadedPackages.Num() == 0 )
+	{
+		appGetEngineScriptPackageNames( AlwaysLoadedPackages, FALSE );
+		appGetGameNativeScriptPackageNames( AlwaysLoadedPackages, FALSE );
+	}
+
+	return AlwaysLoadedPackages.ContainsItem( Package->GetName() );
+}
+
 void BmMarkSeekFreeForceExports( UPackage* DestPackage )
 {
 	for( FObjectIterator It; It; ++It )
@@ -2667,7 +2680,7 @@ void BmMarkSeekFreeForceExports( UPackage* DestPackage )
 		if( !Object->HasAnyFlags( RF_Transient )
 			&&	!Object->IsIn( UObject::GetTransientPackage() )
 			&&	!Object->IsIn( DestPackage )
-			&&	!(Object->GetOutermost()->PackageFlags & PKG_ContainsScript) )
+			&&	!BmIsAlwaysLoadedPackage( Object->GetOutermost() ) )
 		{
 			Object->SetFlags( RF_ForceTagExp );
 		}

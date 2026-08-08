@@ -641,6 +641,15 @@ void FUntypedBulkData::Serialize( FArchive& Ar, UObject* Owner, INT Idx )
 			// Offset in file.
 			Ar << BulkDataOffsetInFile;
 
+#if BATMAN
+			// BM: remember the status record so re-saving a cooked package keeps pointing at the
+			// original .tfc payload instead of writing out the uninitialized defaults.
+			SavedBulkDataFlags			= BulkDataFlags;
+			SavedElementCount			= ElementCount;
+			SavedBulkDataSizeOnDisk		= BulkDataSizeOnDisk;
+			SavedBulkDataOffsetInFile	= BulkDataOffsetInFile;
+#endif
+
 			// Skip serialization of bulk data if it's stored in a separate file
 #if BATMAN
             if ( !(BulkDataFlags & BULKDATA_StoreInSeparateFile) && (BulkDataOffsetInFile != INDEX_NONE) )

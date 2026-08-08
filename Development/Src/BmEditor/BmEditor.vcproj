@@ -44,6 +44,10 @@
 			Name="Classes"
 			>
 			<File
+				RelativePath=".\Classes\ExtractPackagesCommandlet.uc"
+				>
+			</File>
+			<File
 				RelativePath=".\Classes\UIContainerThumbnailRenderer.uc"
 				>
 			</File>
@@ -61,6 +65,10 @@
 			>
 			<File
 				RelativePath=".\Src\BmEditor.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Src\BmEditorCommandlets.cpp"
 				>
 			</File>
 		</Filter>

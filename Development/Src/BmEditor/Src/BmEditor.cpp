@@ -5,8 +5,7 @@
 //=============================================================================
 
 #if _WINDOWS
-#include "Core.h"
-//#include "UnrealEd.h"
+#include "UnrealEd.h"
 #include "BmEditorClasses.h"
 
 #define STATIC_LINKING_MOJO 1
@@ -41,7 +40,7 @@
  */
 void AutoInitializeRegistrantsBmEditor( INT& Lookup )
 {
-	//AUTO_INITIALIZE_REGISTRANTS_BMEDITOR;
+	AUTO_INITIALIZE_REGISTRANTS_BMEDITOR;
 }
 
 /**
@@ -82,5 +81,7 @@ void AutoCheckNativeClassSizesBmEditor( UBOOL& Mismatch )
 #pragma optimize( "", on )
 #endif
 #endif
+
+IMPLEMENT_CLASS(UUIContainerThumbnailRenderer);
 
 #endif

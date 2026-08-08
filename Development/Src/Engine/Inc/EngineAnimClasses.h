@@ -1701,7 +1701,6 @@ class UAnimNotify : public UObject
 {
 public:
     //## BEGIN PROPS AnimNotify
-    FColor NotifyColor;
     //## END PROPS AnimNotify
 
     DECLARE_ABSTRACT_CLASS(UAnimNotify,UObject,0,Engine)
@@ -1711,7 +1710,7 @@ public:
 	virtual void NotifyEnd( class UAnimNodeSequence* NodeSeq, FLOAT AnimCurrentTime ) {}
 
 	virtual FString GetEditorComment() { return TEXT(""); }
-	virtual FColor GetEditorColor() { return NotifyColor; }
+	virtual FColor GetEditorColor() { return FColor(255,200,200,255); }
 };
 
 class UAnimNotify_CameraEffect : public UAnimNotify
@@ -5484,7 +5483,6 @@ VERIFY_CLASS_OFFSET_NODIE(UAnimMetaData_SkelControl,AnimMetaData_SkelControl,Ske
 VERIFY_CLASS_SIZE_NODIE(UAnimMetaData_SkelControl)
 VERIFY_CLASS_OFFSET_NODIE(UAnimMetaData_SkelControlKeyFrame,AnimMetaData_SkelControlKeyFrame,KeyFrames)
 VERIFY_CLASS_SIZE_NODIE(UAnimMetaData_SkelControlKeyFrame)
-VERIFY_CLASS_OFFSET_NODIE(UAnimNotify,AnimNotify,NotifyColor)
 VERIFY_CLASS_SIZE_NODIE(UAnimNotify)
 VERIFY_CLASS_OFFSET_NODIE(UAnimNotify_CameraEffect,AnimNotify_CameraEffect,CameraLensEffect)
 VERIFY_CLASS_SIZE_NODIE(UAnimNotify_CameraEffect)

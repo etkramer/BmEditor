@@ -3900,9 +3900,8 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 		}
 		else if( Export.HasAnyFlags( EF_ForcedExport )
 #if BATMAN
-		// BM: Treat all BM Packages as forced exports.
-		// Otherwise, Package Batman_OZ might end up with the path Playable_Batman_Std_SF.Batman_OZ.
-		|| (IsBmCooked() && LoadClass == UPackage::StaticClass())
+		// BM: Check RF_ForceTagExp too, as EF_ForcedExport seemingly isn't used.
+		|| (IsBmCooked() && (Export.ObjectFlags & RF_ForceTagExp) != 0)
 #endif
 		)
 		{

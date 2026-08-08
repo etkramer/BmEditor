@@ -29,5 +29,4 @@ defaultproperties
 	PitchMultiplier=1.f
 	bFollowActor=TRUE
 
-	NotifyColor=(R=200,G=200,B=255)
 }

@@ -14,6 +14,9 @@ var()	String			AnimName;
 /** The sound cue to play for the this animation**/
 var() SoundCue SoundCueToPlay;
 
+// BM: RDialogueEvent
+var() object DialogueEvent;
+
 /** If a FaceFX animation is already playing, then override if TRUE, skip is FALSE */
 var() bool		bOverridePlayingAnim;
 /** Chance to play. 0 - 1.f */

@@ -155,5 +155,4 @@ defaultproperties
 	ControlPointSocketName=MidControl
 	SecondEdgeSocketName=StartControl
 
-	NotifyColor=(R=255,G=64,B=255)
 }

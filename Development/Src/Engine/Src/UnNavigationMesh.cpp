@@ -8530,7 +8530,12 @@ FArchive& FNavMeshEdgeBase::Serialize( FArchive& Ar )
 	Ar << Poly1;
 
 	// if this is old data account for edgelength float still being in the stream
+#if BATMAN
+	const DWORD RemovedEdgeLengthVer = Ar.IsBmCooked(TRUE) ? VER_BM_REMOVED_EDGELENGTH : VER_REMOVED_EDGELENGTH;
+	if( NavMesh != NULL && NavMesh->NavMeshVersionNum < RemovedEdgeLengthVer )
+#else
 	if( NavMesh != NULL && NavMesh->NavMeshVersionNum < VER_REMOVED_EDGELENGTH )
+#endif
 	{
 		FLOAT DummyFloat;
 		Ar << DummyFloat;

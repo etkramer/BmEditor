@@ -98,6 +98,7 @@
       "BATMAN=1",
       "_DEBUG",
       "WITH_MANAGED_CODE=1",
+      "WITH_EDITOR=1",
 
       "WIN32=1",
       "_MSC_VER=1400",
@@ -173,6 +174,19 @@
         "stopAtEntry": false,
         "cwd": "${workspaceFolder}",
         "environment": [],
+        "visualizerFile": "${workspaceFolder}/UE3.natvis",
+        "internalConsoleOptions": "openOnSessionStart"
+      },
+      {
+        "name": "Launch ExtractPackages",
+        "type": "cppvsdbg",
+        "request": "launch",
+        "program": "${workspaceFolder}/Binaries/Win32/Debug-BmGame.exe",
+        "args": ["ExtractPackages", "-d3d11", "-forcelogflush", "-nopause", "-nogadwarning", "-nocontentbrowser"],
+        "stopAtEntry": false,
+        "cwd": "${workspaceFolder}",
+        "environment": [],
+        "preLaunchTask": "Build Editor (Debug)",
         "visualizerFile": "${workspaceFolder}/UE3.natvis",
         "internalConsoleOptions": "openOnSessionStart"
       },

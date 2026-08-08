@@ -10,7 +10,7 @@
 /BmGame/Config/Bm*
 /BmGame/Content/*
 /BmGame/CookedPCConsole/*
-/BmGame/Logs/*
+/BmGame/Packages/*
 /BmGame/Logs/*
 /Development/External/GFx/*
 !**/MISSING_FILES.txt
