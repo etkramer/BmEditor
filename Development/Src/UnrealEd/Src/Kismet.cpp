@@ -1398,6 +1398,11 @@ void WxKismet::InitSeqObjClasses()
 	{
 		if ( It->IsChildOf(USequenceObject::StaticClass()) && IsValidSequenceClass(*It) && (Editor == NULL || !Editor->HiddenKismetClassNames.ContainsItem(It->GetFName())))
 		{
+#if BATMAN
+			// BM: CDOs don't reliably get PostLoad'd, so apply the ObjName fallback here too
+			It->GetDefaultObject<USequenceObject>()->FixupStrippedObjName();
+#endif
+
 			SeqObjClasses.AddItem(*It);
 		}
 	}
@@ -2077,7 +2082,8 @@ static UBOOL CanConnectVarToLink(FSeqVarLink* VarLink, USequenceVariable* Var)
 	}		
 
 	// Check we are not trying to attach something new to a variable which is at capacity already.
-	if(VarLink->LinkedVariables.Num() == VarLink->MaxVars)
+	// BM: cooked packages strip editoronly MaxVars, so treat zero as unlimited
+	if(VarLink->MaxVars > 0 && VarLink->LinkedVariables.Num() >= VarLink->MaxVars)
 	{
 		return FALSE;
 	}

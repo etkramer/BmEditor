@@ -234,6 +234,9 @@ public:
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent);
 	virtual void UpdateStatus() {}
 
+	// BM
+	void FixupStrippedObjName();
+
 	/**
 	 * Get the name of the class to use for handling user interaction events (such as mouse-clicks) with this sequence object
 	 * in the kismet editor.

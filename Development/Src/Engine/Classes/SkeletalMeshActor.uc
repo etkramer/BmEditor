@@ -516,7 +516,6 @@ event bool PlayParticleEffect( const AnimNotify_PlayParticleEffect AnimNotifyDat
 	local vector Loc;
 	local rotator Rot;
 	local ParticleSystemComponent PSC;
-	local bool bPlayNonExtreme;
 
 	if (WorldInfo.NetMode == NM_DedicatedServer)
 	{
@@ -524,13 +523,9 @@ event bool PlayParticleEffect( const AnimNotify_PlayParticleEffect AnimNotifyDat
 		return true;
 	}
 
-	// should I play non extreme content?
-	bPlayNonExtreme = ( AnimNotifyData.bIsExtremeContent == TRUE ) && ( WorldInfo.GRI.ShouldShowGore() == FALSE ) ;
-
 	// if we should not respond to anim notifies OR if this is extreme content and we can't show extreme content then return
 	if( ( bShouldDoAnimNotifies == FALSE )
-		// if playing non extreme but no data is set, just return
-		|| ( bPlayNonExtreme && AnimNotifyData.PSNonExtremeContentTemplate==None )
+		|| ( ( AnimNotifyData.bIsExtremeContent == TRUE ) && ( WorldInfo.GRI.ShouldShowGore() == FALSE ) )
 		)
 	{
 		// Return TRUE to prevent the SkelMeshComponent from playing it as well!
@@ -541,14 +536,7 @@ event bool PlayParticleEffect( const AnimNotify_PlayParticleEffect AnimNotifyDat
 	if( AnimNotifyData.bAttach == TRUE )
 	{
 		PSC = new(self) class'ParticleSystemComponent';  // move this to the object pool once it can support attached to bone/socket and relative translation/rotation
-		if ( bPlayNonExtreme )
-		{
-			PSC.SetTemplate( AnimNotifyData.PSNonExtremeContentTemplate );
-		}
-		else
-		{
-			PSC.SetTemplate( AnimNotifyData.PSTemplate );
-		}
+		PSC.SetTemplate( AnimNotifyData.PSTemplate );
 
 		if( AnimNotifyData.SocketName != '' )
 		{
@@ -583,11 +571,6 @@ event bool PlayParticleEffect( const AnimNotify_PlayParticleEffect AnimNotifyDat
 		}
 
 		PSC = WorldInfo.MyEmitterPool.SpawnEmitter( AnimNotifyData.PSTemplate, Loc,  Rot);
-	}
-
-	if( PSC != None && AnimNotifyData.BoneSocketModuleActorName != '' )
-	{
-		PSC.SetActorParameter(AnimNotifyData.BoneSocketModuleActorName, self);
 	}
 
 	return true;

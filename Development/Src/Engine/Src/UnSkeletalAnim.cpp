@@ -4271,40 +4271,7 @@ void UAnimSet::OutputAnimationUsage()
 //
 void UAnimNotify_Sound::Notify( UAnimNodeSequence* NodeSeq )
 {
-	USkeletalMeshComponent* SkelComp = NodeSeq->SkelComponent;
-	check( SkelComp );
-
-	AActor* Owner = SkelComp->GetOwner();
-	const UBOOL bIsOwnerHidden = Owner != NULL && Owner->bHidden;
-
-	if( !bIgnoreIfActorHidden || !bIsOwnerHidden )
-	{
-		if( ( PercentToPlay >= 1.0f ) || ( appFrand() < PercentToPlay ) )
-		{
-			UAudioComponent* AudioComponent = UAudioDevice::CreateComponent( SoundCue, SkelComp->GetScene(), Owner, 0 );
-			if( AudioComponent )
-			{
-				if( BoneName != NAME_None )
-				{
-					AudioComponent->bUseOwnerLocation	= 0;
-					AudioComponent->Location			= SkelComp->GetBoneLocation( BoneName );
-				}
-				else if( !(bFollowActor && Owner) )
-				{	
-					AudioComponent->bUseOwnerLocation	= 0;
-					AudioComponent->Location			= SkelComp->LocalToWorld.GetOrigin();
-				}
-
-				AudioComponent->VolumeMultiplier		= VolumeMultiplier;
-				AudioComponent->PitchMultiplier			= PitchMultiplier;
-				AudioComponent->bAllowSpatialization	&= GIsGame;
-				AudioComponent->bIsUISound				= !GIsGame;
-				AudioComponent->bAutoDestroy			= 1;
-				AudioComponent->SubtitlePriority		= SUBTITLE_PRIORITY_ANIMNOTIFY;
-				AudioComponent->Play();
-			}
-		}
-	}
+	// BM: not ported yet - BM2 posts EventName through the owner's AkComponent, gated on CharacterFilter
 }
 IMPLEMENT_CLASS(UAnimNotify_Sound);
 
@@ -4765,17 +4732,17 @@ void UAnimNotify_Trails::PostLoad()
 	Super::PostLoad();
 	if (GetLinkerVersion() < VER_ANIMNOTIFY_TRAIL_SAMPLEFRAMERATE)
 	{
-		SamplesPerSecond = 1.0f / SampleTimeStep_DEPRECATED;
+		SamplesPerSecond = 1.0f / SampleTimeStep;
 	}
 
 	if ((GetLinkerVersion() < VER_ANIMNOTIFY_TRAILS_REMOVED_VELOCITY) && (IsTemplate() == FALSE))
 	{
 		// Copy the results from the old to the new
-		TrailSampledData.Empty(TrailSampleData_DEPRECATED.Num());
-		TrailSampledData.AddZeroed(TrailSampleData_DEPRECATED.Num());
-		for (INT CopyIdx = 0; CopyIdx < TrailSampleData_DEPRECATED.Num(); CopyIdx++)
+		TrailSampledData.Empty(TrailSampleData.Num());
+		TrailSampledData.AddZeroed(TrailSampleData.Num());
+		for (INT CopyIdx = 0; CopyIdx < TrailSampleData.Num(); CopyIdx++)
 		{
-			FTrailSamplePoint& SrcSample = TrailSampleData_DEPRECATED(CopyIdx);
+			FTrailSamplePoint& SrcSample = TrailSampleData(CopyIdx);
 			FTrailSample& DestSample = TrailSampledData(CopyIdx);
 
 			DestSample.RelativeTime = SrcSample.RelativeTime;
@@ -4783,7 +4750,7 @@ void UAnimNotify_Trails::PostLoad()
 			DestSample.SecondEdgeSample = SrcSample.SecondEdgeSample.Position;
 			DestSample.ControlPointSample = SrcSample.ControlPointSample.Position;
 		}
-		TrailSampleData_DEPRECATED.Empty();
+		TrailSampleData.Empty();
 	}
 }
 

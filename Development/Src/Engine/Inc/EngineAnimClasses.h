@@ -1790,10 +1790,8 @@ public:
     BITFIELD bAttach:1;
     BITFIELD bPreview:1;
     BITFIELD bSkipIfOwnerIsHidden:1;
-    class UParticleSystem* PSNonExtremeContentTemplate;
     FName SocketName;
     FName BoneName;
-    FName BoneSocketModuleActorName;
     //## END PROPS AnimNotify_PlayParticleEffect
 
     DECLARE_CLASS(UAnimNotify_PlayParticleEffect,UAnimNotify,0,Engine)
@@ -1908,17 +1906,38 @@ public:
 	virtual void PostLoad();
 };
 
+struct FSoundCharacterFilter
+{
+    BITFIELD Batman:1;
+    BITFIELD Robin:1;
+    BITFIELD Nightwing:1;
+    BITFIELD Catwoman:1;
+    BITFIELD Ras:1;
+    BITFIELD Ninja:1;
+    BITFIELD BruceWayne:1;
+    BITFIELD TygerGuard:1;
+    BITFIELD Thug:1;
+    SCRIPT_ALIGN;
+
+    /** Constructors */
+    FSoundCharacterFilter() {}
+    FSoundCharacterFilter(EEventParm)
+    {
+        appMemzero(this, sizeof(FSoundCharacterFilter));
+    }
+};
+
 class UAnimNotify_Sound : public UAnimNotify
 {
 public:
     //## BEGIN PROPS AnimNotify_Sound
-    class USoundCue* SoundCue;
+    class UAkEvent* EventName;
     BITFIELD bFollowActor:1;
     BITFIELD bIgnoreIfActorHidden:1;
+    BITFIELD bTempMute:1;
+    BITFIELD CharacterFilter_Enabled:1;
     FName BoneName;
-    FLOAT PercentToPlay;
-    FLOAT VolumeMultiplier;
-    FLOAT PitchMultiplier;
+    struct FSoundCharacterFilter CharacterFilter;
     //## END PROPS AnimNotify_Sound
 
     DECLARE_CLASS(UAnimNotify_Sound,UAnimNotify,0,Engine)
@@ -1985,8 +2004,8 @@ public:
     FName SecondEdgeSocketName;
     FLOAT LastStartTime;
     FLOAT EndTime;
-    FLOAT SampleTimeStep_DEPRECATED;
-    TArrayNoInit<struct FTrailSamplePoint> TrailSampleData_DEPRECATED;
+    FLOAT SampleTimeStep;
+    TArrayNoInit<struct FTrailSamplePoint> TrailSampleData;
     FLOAT SamplesPerSecond;
     TArrayNoInit<struct FTrailSample> TrailSampledData;
     FLOAT CurrentTime;
@@ -5497,7 +5516,7 @@ VERIFY_CLASS_SIZE_NODIE(UAnimNotify_ForceField)
 VERIFY_CLASS_OFFSET_NODIE(UAnimNotify_Kismet,AnimNotify_Kismet,NotifyName)
 VERIFY_CLASS_SIZE_NODIE(UAnimNotify_Kismet)
 VERIFY_CLASS_OFFSET_NODIE(UAnimNotify_PlayParticleEffect,AnimNotify_PlayParticleEffect,PSTemplate)
-VERIFY_CLASS_OFFSET_NODIE(UAnimNotify_PlayParticleEffect,AnimNotify_PlayParticleEffect,BoneSocketModuleActorName)
+VERIFY_CLASS_OFFSET_NODIE(UAnimNotify_PlayParticleEffect,AnimNotify_PlayParticleEffect,BoneName)
 VERIFY_CLASS_SIZE_NODIE(UAnimNotify_PlayParticleEffect)
 VERIFY_CLASS_OFFSET_NODIE(UAnimNotify_Rumble,AnimNotify_Rumble,PredefinedWaveForm)
 VERIFY_CLASS_OFFSET_NODIE(UAnimNotify_Rumble,AnimNotify_Rumble,EffectRadius)
@@ -5511,8 +5530,8 @@ VERIFY_CLASS_SIZE_NODIE(UAnimNotify_PawnMaterialParam)
 VERIFY_CLASS_OFFSET_NODIE(UAnimNotify_ViewShake,AnimNotify_ViewShake,Duration)
 VERIFY_CLASS_OFFSET_NODIE(UAnimNotify_ViewShake,AnimNotify_ViewShake,ShakeParams)
 VERIFY_CLASS_SIZE_NODIE(UAnimNotify_ViewShake)
-VERIFY_CLASS_OFFSET_NODIE(UAnimNotify_Sound,AnimNotify_Sound,SoundCue)
-VERIFY_CLASS_OFFSET_NODIE(UAnimNotify_Sound,AnimNotify_Sound,PitchMultiplier)
+VERIFY_CLASS_OFFSET_NODIE(UAnimNotify_Sound,AnimNotify_Sound,EventName)
+VERIFY_CLASS_OFFSET_NODIE(UAnimNotify_Sound,AnimNotify_Sound,CharacterFilter)
 VERIFY_CLASS_SIZE_NODIE(UAnimNotify_Sound)
 VERIFY_CLASS_OFFSET_NODIE(UAnimNotify_Trails,AnimNotify_Trails,PSTemplate)
 VERIFY_CLASS_OFFSET_NODIE(UAnimNotify_Trails,AnimNotify_Trails,AnimNodeSeq)

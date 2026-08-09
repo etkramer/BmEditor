@@ -2296,6 +2296,10 @@ void USequenceObject::PostLoad()
 		ParentSequence = Cast<USequence>(GetOuter());
 	}
 
+#if BATMAN
+	FixupStrippedObjName();
+#endif
+
 #if CONSOLE
 	// If this is running on console clear out comment string to save memory
 	// Cant cook this out as it destroys data for USeqAct_Log which should still be able to log messages to the screen on consoles
@@ -2304,6 +2308,21 @@ void USequenceObject::PostLoad()
 
 	Super::PostLoad();
 }
+
+#if BATMAN
+// BM: cooked packages strip editoronly ObjName/ObjCategory, so fall back to the class name
+void USequenceObject::FixupStrippedObjName()
+{
+	if (ObjName.Len() == 0 || ObjName.StartsWith(TEXT("Undefined")) || ObjName.StartsWith(TEXT("Unknown")))
+	{
+		ObjName = GetClass()->GetName();
+		if (ObjCategory.Len() == 0)
+		{
+			ObjCategory = TEXT("Rocksteady");
+		}
+	}
+}
+#endif
 
 void USequenceObject::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {

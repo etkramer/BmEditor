@@ -5,40 +5,6 @@
 class AnimNotify_Trails extends AnimNotify
 	native(Anim);
 
-/** The Particle system to play */
-var(Trails) ParticleSystem PSTemplate;
-
-/** If this effect should be considered extreme content */
-var(Trails) bool bIsExtremeContent;
-
-/** The first edge socket - with the second edge defines the edges of the trail */
-var(Trails) name FirstEdgeSocketName;
-
-/**
- *	The control point socket - controls the UV tiling as well as
- *	tapering the two edges to this point.
- */
-var(Trails) name ControlPointSocketName;
-
-/** The second edge socket - with the first edge defines the edges of the trail */
-var(Trails) name SecondEdgeSocketName;
-
-
-/** If TRUE, the particle system will play in the viewer as well as in game */
-var() editoronly bool bPreview;
-
-/** If Owner is hidden, skip particle effect */
-var() bool bSkipIfOwnerIsHidden;
-
-/** Locally store 'start' time to determine when regenerating the curve data is required. */
-var float LastStartTime;
-
-/** The end time (will auto-adjust Duration setting, and vice-versa) */
-var float EndTime;
-
-/** The timestep at which to sample the animation for trail points */
-var deprecated float SampleTimeStep;
-
 struct native TrailSocketSamplePoint
 {
 	/** Position of the socket relative to the root-bone at the sample point */
@@ -59,13 +25,6 @@ struct native TrailSamplePoint
 	var TrailSocketSamplePoint	SecondEdgeSample;
 };
 
-var deprecated array<TrailSamplePoint> TrailSampleData;
-
-var bool bResampleRequired;
-
-/** The frame rate (FPS) to sample the animation at for trail points */
-var(Trails) float SamplesPerSecond;
-
 struct native TrailSample
 {
 	/** The time value at this sample point, relative to the starting time. */
@@ -77,6 +36,46 @@ struct native TrailSample
 	/** The sample for the second edge */
 	var vector SecondEdgeSample;
 };
+
+/** The Particle system to play */
+var(Trails) ParticleSystem PSTemplate;
+
+/** If this effect should be considered extreme content */
+var(Trails) bool bIsExtremeContent;
+
+/** If TRUE, the particle system will play in the viewer as well as in game */
+var() editoronly bool bPreview;
+
+/** If Owner is hidden, skip particle effect */
+var() bool bSkipIfOwnerIsHidden;
+
+var bool bResampleRequired;
+
+/** The first edge socket - with the second edge defines the edges of the trail */
+var(Trails) name FirstEdgeSocketName;
+
+/**
+ *	The control point socket - controls the UV tiling as well as
+ *	tapering the two edges to this point.
+ */
+var(Trails) name ControlPointSocketName;
+
+/** The second edge socket - with the first edge defines the edges of the trail */
+var(Trails) name SecondEdgeSocketName;
+
+/** Locally store 'start' time to determine when regenerating the curve data is required. */
+var float LastStartTime;
+
+/** The end time (will auto-adjust Duration setting, and vice-versa) */
+var float EndTime;
+
+/** The timestep at which to sample the animation for trail points */
+var float SampleTimeStep;
+
+var array<TrailSamplePoint> TrailSampleData;
+
+/** The frame rate (FPS) to sample the animation at for trail points */
+var(Trails) float SamplesPerSecond;
 
 /** The sampled data for the trail */
 var array<TrailSample> TrailSampledData;
@@ -145,14 +144,9 @@ public:
 defaultproperties
 {
 	bSkipIfOwnerIsHidden=TRUE
-	LastStartTime=0.0f
 	SamplesPerSecond=60
-	SampleTimeStep=0.016f
-
-	bResampleRequired=false
 
 	FirstEdgeSocketName=EndControl
 	ControlPointSocketName=MidControl
 	SecondEdgeSocketName=StartControl
-
 }

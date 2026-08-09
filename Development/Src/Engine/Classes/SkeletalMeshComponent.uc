@@ -1316,7 +1316,6 @@ event bool PlayParticleEffect( const AnimNotify_PlayParticleEffect AnimNotifyDat
 	local rotator Rot;
 	local WorldInfo WI;
 	local ParticleSystemComponent PSC;
-	local bool bPlayNonExtreme;
 
 	WI = class'WorldInfo'.static.GetWorldInfo();
 	if (WI.NetMode == NM_DedicatedServer)
@@ -1330,12 +1329,8 @@ event bool PlayParticleEffect( const AnimNotify_PlayParticleEffect AnimNotifyDat
 		return false;
 	}
 
-	// should I play non extreme content?
-	bPlayNonExtreme = ( AnimNotifyData.bIsExtremeContent && class'Engine'.static.IsGame() && !WI.GRI.ShouldShowGore() ) ;
-
-
-	// if we should not respond to anim notifies OR if this is extreme content and we can't show extreme content then return
-	if ( bPlayNonExtreme && AnimNotifyData.PSNonExtremeContentTemplate==None )
+	// if this is extreme content and we can't show extreme content then return
+	if ( AnimNotifyData.bIsExtremeContent && class'Engine'.static.IsGame() && !WI.GRI.ShouldShowGore() )
 	{
 		return false;
 	}
@@ -1344,14 +1339,7 @@ event bool PlayParticleEffect( const AnimNotify_PlayParticleEffect AnimNotifyDat
 	if (AnimNotifyData.bAttach)
 	{
 		PSC = new(self) class'ParticleSystemComponent';  // move this to the object pool once it can support attached to bone/socket and relative translation/rotation
-		if ( bPlayNonExtreme )
-		{
-			PSC.SetTemplate( AnimNotifyData.PSNonExtremeContentTemplate );
-		}
-		else
-		{
-			PSC.SetTemplate( AnimNotifyData.PSTemplate );
-		}
+		PSC.SetTemplate( AnimNotifyData.PSTemplate );
 
 		if( AnimNotifyData.SocketName != '' )
 		{
@@ -1387,15 +1375,7 @@ event bool PlayParticleEffect( const AnimNotify_PlayParticleEffect AnimNotifyDat
 
 		if (Owner != None && Owner.WorldInfo != None && Owner.WorldInfo.MyEmitterPool != None)
 		{
-
-			if ( bPlayNonExtreme )
-			{
-				Owner.WorldInfo.MyEmitterPool.SpawnEmitter( AnimNotifyData.PSNonExtremeContentTemplate, Loc, Rot );
-			}
-			else
-			{
-				Owner.WorldInfo.MyEmitterPool.SpawnEmitter( AnimNotifyData.PSTemplate, Loc, Rot );
-			}
+			Owner.WorldInfo.MyEmitterPool.SpawnEmitter( AnimNotifyData.PSTemplate, Loc, Rot );
 		}
 		else
 		{
@@ -1437,11 +1417,6 @@ event bool PlayParticleEffect( const AnimNotify_PlayParticleEffect AnimNotifyDat
 				return false;
 			}
 		}
-	}
-
-	if( PSC != None && AnimNotifyData.BoneSocketModuleActorName != '' && Owner != None )
-	{
-		PSC.SetActorParameter(AnimNotifyData.BoneSocketModuleActorName, Owner);
 	}
 
 	return true;

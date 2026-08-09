@@ -4,15 +4,26 @@
 class AnimNotify_Sound extends AnimNotify
 	native(Anim);
 
-var()	SoundCue	SoundCue;
-var()	bool		bFollowActor;
-var()	Name		BoneName;
-var()	bool		bIgnoreIfActorHidden;
+struct native SoundCharacterFilter
+{
+	var() bool Batman;
+	var() bool Robin;
+	var() bool Nightwing;
+	var() bool Catwoman;
+	var() bool Ras;
+	var() bool Ninja;
+	var() bool BruceWayne;
+	var() bool TygerGuard;
+	var() bool Thug;
+};
 
-/** This is the percent to play this Sound.  Defaults to 100% (aka 1.0f) **/
-var()   float       PercentToPlay;
-var()   float		VolumeMultiplier;
-var()	float		PitchMultiplier;
+var()	AkEvent					EventName;
+var()	bool					bFollowActor;
+var()	bool					bIgnoreIfActorHidden;
+var()	editoronly bool			bTempMute;
+var		bool					CharacterFilter_Enabled;
+var()	name					BoneName;
+var()	SoundCharacterFilter	CharacterFilter;
 
 cpptext
 {
@@ -24,9 +35,5 @@ cpptext
 
 defaultproperties
 {
-	PercentToPlay=1.0f
-	VolumeMultiplier=1.f
-	PitchMultiplier=1.f
 	bFollowActor=TRUE
-
 }

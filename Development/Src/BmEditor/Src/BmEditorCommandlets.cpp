@@ -111,8 +111,8 @@ INT UExtractPackagesCommandlet::Main(const FString& Params)
 				continue;
 			}
 
-			// Skip non-BM packages and maps, which are extracted as-is
-			if (!Package->IsBmCooked() || Package->ContainsMap())
+			// Skip non-forced export packages and maps, which are extracted as-is
+			if (Package->GetForcedExportBasePackageName() == NAME_None || Package->ContainsMap())
 			{
 				continue;
 			}
