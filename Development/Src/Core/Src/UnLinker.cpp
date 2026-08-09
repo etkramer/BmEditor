@@ -4215,15 +4215,6 @@ UObject* ULinkerLoad::CreateImport( INT Index )
 
 	if( Import.XObject == NULL )
 	{
-#if BATMAN
-		// BM: Seekfree resolves imports by path first; do the same so references to forced exports embedded
-		// in this package (which have no separate .upk on disk) resolve in the editor.
-		if( IsBmCooked(TRUE) )
-		{
-			Import.XObject = StaticFindObject( UObject::StaticClass(), NULL, *GetImportPathName(Index) );
-		}
-#endif
-
 		// Look in memory first.
 		if ((!GIsEditor && !GIsUCC)
 #if SUPPORTS_SCRIPTPATCH_CREATION
@@ -4236,14 +4227,24 @@ UObject* ULinkerLoad::CreateImport( INT Index )
 			)
 		{
 			// Try to find existing version in memory first.
-			UObject* ClassPackage = StaticFindObjectFast( UPackage::StaticClass(), NULL, Import.ClassPackage, FALSE, FALSE ); 
+			UObject* ClassPackage = StaticFindObjectFast( UPackage::StaticClass(), NULL, Import.ClassPackage, FALSE, FALSE );
 			if( ClassPackage )
 			{
-				UClass*	FindClass = (UClass*) StaticFindObjectFast( UClass::StaticClass(), ClassPackage, Import.ClassName, FALSE, FALSE ); 
+				UClass*	FindClass = (UClass*) StaticFindObjectFast( UClass::StaticClass(), ClassPackage, Import.ClassName, FALSE, FALSE );
 				if( FindClass )
 				{
 					UObject*	FindObject		= NULL;
-	
+
+#if BATMAN
+					// BM: Seekfree resolves imports by path first; do the same so references to forced exports embedded
+					// in this package (which have no separate .upk on disk) resolve in the editor. Must filter on the
+					// import's class - BM2 packages can hold same-named objects of different classes in one outer.
+					if( IsBmCooked(TRUE) )
+					{
+						Import.XObject = StaticFindObject( FindClass, NULL, *GetImportPathName(Index) );
+					}
+#endif
+
 					// Import is a toplevel package.
 					if( Import.OuterIndex == ROOTPACKAGE_INDEX )
 					{
