@@ -4088,6 +4088,14 @@ void* UObject::GetInterfaceAddress( UClass* InterfaceClass )
 						if ( VfTableProperty != NULL )
 						{
 							checkSlow(VfTableProperty->ArrayDim == 1);
+#if BATMAN
+							// BM: cooked native classes don't actually have C++ counterparts,
+							// so make sure we don't try to read their native vtables.
+							if ( !CurrentClass->IsNativelyBound() )
+							{
+								break;
+							}
+#endif
 							Result = (BYTE*)this + VfTableProperty->Offset;
 							break;
 						}

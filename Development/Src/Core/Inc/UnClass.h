@@ -732,6 +732,14 @@ class UClass : public UState
 	// UField interface.
 	void Bind();
 
+#if BATMAN
+	// BM: whether this class has a C++ implementation of its own, rather than having inherited one in Bind().
+	UBOOL IsNativelyBound() const
+	{
+		return ClassConstructor != NULL && (GetSuperClass() == NULL || ClassConstructor != GetSuperClass()->ClassConstructor);
+	}
+#endif
+
 	// UStruct interface.
 	void PropagateStructDefaults();
 	BYTE* GetDefaults()
