@@ -37,6 +37,14 @@ struct FExtractedPackage
 	FString		FilePath;
 };
 
+// BM: Total heap use, including the allocator's own per-allocation overhead.
+static SIZE_T GetAllocatedMemory()
+{
+	FMemoryAllocationStats MemStats;
+	GMalloc->GetAllocationInfo(MemStats);
+	return MemStats.TotalAllocated;
+}
+
 // BM
 INT UExtractPackagesCommandlet::Main(const FString& Params)
 {
@@ -51,11 +59,12 @@ INT UExtractPackagesCommandlet::Main(const FString& Params)
 	const FString OutputDir = appGameDir() * TEXT("Packages");
 
 	// There are far too many cooked packages to hold in memory at once, so work through them in
-	// batches, merging each subpackage with whatever we've already written out for it.
-	// TODO: Start a new batch after ~3GB memory use rather than some fixed number of upks
-	INT BatchSize = 400;
-	Parse(*Params, TEXT("BATCH="), BatchSize);
-	BatchSize = Max(BatchSize, 1);
+	// batches, merging each subpackage with whatever we've already written out for it. We're a 32-bit
+	// process, so the batch ends once we're near enough to running out of address space. Merging and
+	// saving grow it further on top, so this needs to leave a good deal of headroom.
+	INT MemoryLimitMB = 2048;
+	Parse(*Params, TEXT("MEMORY="), MemoryLimitMB);
+	const SIZE_T MemoryLimit = (SIZE_T)Max(MemoryLimitMB, 64) * 1024 * 1024;
 
 	FString Filter;
 	Parse(*Params, TEXT("FILTER="), Filter);
@@ -74,17 +83,17 @@ INT UExtractPackagesCommandlet::Main(const FString& Params)
 		}
 	}
 
-	warnf(TEXT("Extracting subpackages from %i cooked packages in batches of %i"), Files.Num(), BatchSize);
+	warnf(TEXT("Extracting subpackages from %i cooked packages, %i MB per batch"), Files.Num(), MemoryLimitMB);
 	GFileManager->MakeDirectory(*OutputDir, TRUE);
 
-	for (INT BatchStart = 0; BatchStart < Files.Num(); BatchStart += BatchSize)
+	INT FileIndex = 0;
+	while (FileIndex < Files.Num())
 	{
-		const INT BatchEnd = Min(BatchStart + BatchSize, Files.Num());
-		warnf(TEXT("Batch %i-%i of %i"), BatchStart + 1, BatchEnd, Files.Num());
+		const INT BatchStart = FileIndex;
 
 		// Load the cooked packages, remembering their roots so we don't extract them over themselves.
 		TArray<UPackage*> Roots;
-		for (INT FileIndex = BatchStart; FileIndex < BatchEnd; FileIndex++)
+		while (FileIndex < Files.Num())
 		{
 			warnf(TEXT("  Loading '%s'"), *Files(FileIndex));
 
@@ -97,7 +106,15 @@ INT UExtractPackagesCommandlet::Main(const FString& Params)
 			{
 				warnf(NAME_Warning, TEXT("  Failed to load '%s'"), *Files(FileIndex));
 			}
+
+			FileIndex++;
+			if (GetAllocatedMemory() >= MemoryLimit)
+			{
+				break;
+			}
 		}
+
+		warnf(TEXT("Batch %i-%i of %i (%i MB allocated)"), BatchStart + 1, FileIndex, Files.Num(), (INT)(GetAllocatedMemory() / 1024 / 1024));
 
 		// Gather the forced-export subpackages the cooked packages brought in with them.
 		TArray<FExtractedPackage> Subpackages;
@@ -145,6 +162,8 @@ INT UExtractPackagesCommandlet::Main(const FString& Params)
 		GCookingTarget = UE3::PLATFORM_WindowsConsole;
 		GPackageFileLicenseeVersion = VER_BATMAN2;
 
+		// Never collect in here - a package holds no references to its own contents, so there's no way
+		// to keep the objects we still have to save alive across one.
 		for (INT SubIndex = 0; SubIndex < Subpackages.Num(); SubIndex++)
 		{
 			const FExtractedPackage& Subpackage = Subpackages(SubIndex);
@@ -154,7 +173,7 @@ INT UExtractPackagesCommandlet::Main(const FString& Params)
 			Subpackage.Package->PackageFlags |= PKG_Cooked;
 			Subpackage.Package->PackageFlags &= ~PKG_StoreCompressed;
 
-			SavePackage(Subpackage.Package, NULL, RF_Standalone, *Subpackage.FilePath, GWarn);
+			SavePackage(Subpackage.Package, NULL, RF_Standalone, *Subpackage.FilePath, GWarn, NULL, FALSE, FALSE);
 		}
 
 		GIsCooking = OldIsCooking;

@@ -3823,7 +3823,6 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 #if BATMAN
         // BM: Skip currently unsupported types.
         if (IsBmCooked() && (
-			LoadClass->GetName() == "SceneCapture2DActor" ||
 			LoadClass->GetName() == "FaceFxAsset" ||
             LoadClass->GetName() == "FaceFxAnimSet"
         ))
@@ -5151,6 +5150,13 @@ void ULinkerSave::Detach()
 		delete Saver;
 	}
 	Saver = NULL;
+
+#if BATMAN
+	// BM: these are the bulk of the linker and it's finished with once detached - don't hold
+	// on to them until the next collection, which may be a long way off in a commandlet.
+	ObjectIndices.Empty();
+	NameIndices.Empty();
+#endif
 }
 
 void ULinkerSave::BeginDestroy()

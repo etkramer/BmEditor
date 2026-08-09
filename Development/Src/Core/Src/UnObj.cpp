@@ -7348,7 +7348,13 @@ void UObject::DissociateImportsAndForcedExports()
 				FObjectExport& Export = Linker->ExportMap(ExportIndex);
 				if( Export._Object && Export.HasAnyFlags(EF_ForcedExport) )
 				{
-					Export._Object->SetLinker( NULL, INDEX_NONE );
+#if BATMAN
+					// BM: a forced export can alias an object owned by another package - don't steal its linker
+					if( Export._Object->GetLinker() == Linker )
+#endif
+					{
+						Export._Object->SetLinker( NULL, INDEX_NONE );
+					}
 					Export._Object = NULL;
 				}
 			}
