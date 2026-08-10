@@ -7,5 +7,12 @@
 #include "EngineAnimClasses.h"
 #include "BmGameClasses.h"
 
+#if BATMAN
+#include "RSkeletalMeshActor.h"
+
+// BM: native lookup table registration for extended script classes.
+extern void RegisterRSkeletalMeshActorNatives();
+#endif
+
 
 

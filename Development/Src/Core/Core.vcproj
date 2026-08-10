@@ -200,6 +200,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Src\UnClassExtension.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\Src\UnCoreNative.cpp"
 				>
 			</File>

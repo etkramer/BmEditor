@@ -2057,6 +2057,18 @@ void UClass::Bind()
 		// propagate casting flags.
 		ClassCastFlags |= GetSuperClass()->ClassCastFlags;
 	}
+#if BATMAN
+	// BM: adopt a native implementation registered for this class, so instances get
+	// our vtable rather than the ancestor constructor chased down above. Runs after
+	// the super pass so cast flags still propagate.
+	{
+		FClassExtension* Extension = FindClassExtension(this);
+		if( Extension )
+		{
+			ClassConstructor = Extension->ClassConstructor;
+		}
+	}
+#endif
 #if WITH_LIBFFI
 	if( DLLBindName != NAME_None )
 	{
@@ -2374,6 +2386,19 @@ void UClass::PostLoad()
 void UClass::Link( FArchive& Ar, UBOOL Props )
 {
 	Super::Link( Ar, Props );
+#if BATMAN
+	// BM: a class extension is constructed into storage sized by the script class, so it
+	// must not declare data members of its own. Only meaningful once properties are linked.
+	if( Props )
+	{
+		FClassExtension* Extension = FindClassExtension(this);
+		if( Extension )
+		{
+			checkf(Extension->ClassSize <= PropertiesSize, TEXT("Class extension %s is %i bytes but the script class is only %i - it must not declare data members"),
+				*GetPathName(), Extension->ClassSize, PropertiesSize);
+		}
+	}
+#endif
 	if( !GIsEditor )
 	{
 		NetFields.Empty();

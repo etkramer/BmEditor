@@ -65,6 +65,12 @@ void AutoCheckNativeClassSizesBmGame( UBOOL& Mismatch )
 void AutoInitializeRegistrantsBmGame( INT& Lookup )
 {
 	AUTO_INITIALIZE_REGISTRANTS_BMGAME;
+
+#if BATMAN
+	// BM: native lookup tables for classes loaded from _BmGame.upk. Must run before
+	// the script packages are bound, which is why it lives here.
+	RegisterRSkeletalMeshActorNatives();
+#endif
 }
 
 /**

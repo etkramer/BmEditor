@@ -2094,6 +2094,7 @@ public:
 };
 
 #include "UnCoreNative.h"
+#include "UnClassExtension.h"
 
 
 /**
