@@ -145,7 +145,7 @@ public:
 	FDynamicLightEnvironmentState(UDynamicLightEnvironmentComponent* InComponent);
 
 	/** Computes the bounds and various lighting relevance attributes of the owner and its primitives. */
-	void UpdateOwner();
+	UBOOL UpdateOwner();
 
 	/** Updates the contribution of static lights to the light environment. */
 	void UpdateStaticEnvironment(ULightComponent* NewAffectingDominantLight);
@@ -268,14 +268,20 @@ private:
 	TArray<FVector> LightVisibilitySamplePoints;
 
 #if BATMAN
+	/** Whether the gathered lighting changed, so the AP3D interpolation needs a new target. */
+	BITFIELD bInterpolationTargetUpdateRequired : 1;
+
 	TArray<FDirectionalApproximation> StaticDirectionalApproximations;
 	TArray<FDirectionalApproximation> DynamicDirectionalApproximations;
 	FLinearColor StaticAmbientColour;
 	FLinearColor DynamicAmbientColour;
 	FLOAT AccumulatedAlpha;
 	F3DPlusAState Previous3DPlusAState;
+	FLightEnvShadowInfo Previous3DPlusAShadowInfo;
 	F3DPlusAState Current3DPlusAState;
+	FLightEnvShadowInfo Current3DPlusAShadowInfo;
 	F3DPlusAState Next3DPlusAState;
+	FLightEnvShadowInfo Next3DPlusAShadowInfo;
 #endif
 
 	//@todo - remove these in a shipping build
@@ -328,10 +334,9 @@ private:
 		);
 
 #if BATMAN
-	void AddAPlus3DDirectionalApproximation(const FLinearColor& Colour,const FVector& Direction,UBOOL bIsDynamic);
 	void AddAPlus3DAmbient(const FLinearColor& Colour,UBOOL bIsDynamic);
-	void AddAPlus3DFromSH(const FSHVectorRGB& InIncidentRadiance,UBOOL bIsDynamic);
-	void RebuildAPlus3DState(UBOOL bSnapToTarget);
+	void RebuildAPlus3DState();
+	void BuildAPlus3DShadowInfo(const TArray<FDirectionalApproximation>& Approximations,const FLinearColor& AmbientColour);
 	void InterpolateAPlus3DState(FLOAT Alpha);
 #endif
 

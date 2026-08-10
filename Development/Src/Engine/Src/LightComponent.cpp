@@ -6,6 +6,7 @@
 #include "EnginePrivate.h"
 #include "ScenePrivate.h"
 #include "EngineLightClasses.h"
+#include "LightComponentOctree.h"
 
 IMPLEMENT_CLASS(ULightComponent);
 IMPLEMENT_CLASS(ULightFunction);
@@ -667,6 +668,15 @@ static void UpdateLightEnvironments(const ULightComponent* Light)
  */
 void ULightComponent::AddToLightList()
 {
+#if BATMAN
+	// BM: cheap lights are drawn through their own mesh path and never enter the light lists,
+	// except for shadow-casting spot lights.
+	if (bCheapLight && !(GetLightType() == LightType_Spot && CastShadows && CastDynamicShadows))
+	{
+		return;
+	}
+#endif
+
 	UWorld* World = Scene->GetWorld();
 
 	// Add the light to the world's light set.
@@ -687,7 +697,14 @@ void ULightComponent::AddToLightList()
 		// Insert the light into the correct list
 		else if( HasStaticLighting() )
 		{
+#if BATMAN
+			World->LightOctree->AddElement(this);
+			World->NumStaticLights++;
+			// The octree tracks its own element id, so the index only needs to mark us as static.
+			SetStaticLightListIndex(1);
+#else
 			SetStaticLightListIndex( World->StaticLightList.AddItem(this) );
+#endif
 		}
 		else
 		{
@@ -941,7 +958,12 @@ void ULightComponent::Detach( UBOOL bWillReattach )
 			}
 			else if( IsInStaticLightList() )
 			{
+#if BATMAN
+				World->LightOctree->RemoveElement( OctreeId );
+				World->NumStaticLights--;
+#else
 				World->StaticLightList.Remove( GetLightListIndex() );
+#endif
 			}
 			// Update light environments to include the updated lighting.
 			if(!GIsGame && GetLightType() != LightType_SphericalHarmonic)

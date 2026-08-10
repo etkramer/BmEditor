@@ -18,6 +18,7 @@
 #include "PerfMem.h"
 #include "Database.h"
 #include "NetworkProfiler.h"
+#include "LightComponentOctree.h"
 
 #if WITH_NOVODEX
 #include "UnNovodexSupport.h"
@@ -148,6 +149,12 @@ void UWorld::FinishDestroy()
 		// Delete navigation octree.
 		delete NavigationOctree;
 		NavigationOctree = NULL;
+
+#if BATMAN
+		delete LightOctree;
+		LightOctree = NULL;
+		NumStaticLights = 0;
+#endif
 
 		// sweep sweep that away
 		if ( GWorld == this )
@@ -457,6 +464,10 @@ void UWorld::Init()
 	// Allocate the world's hash, navigation octree and scene.
 	Hash				= new FPrimitiveOctree();
 	NavigationOctree	= new FNavigationOctree();
+#if BATMAN
+	LightOctree			= new FLightComponentOctreeType(FVector(0,0,0),HALF_WORLD_MAX);
+	NumStaticLights		= 0;
+#endif
 	NavMeshWorld		= NULL; // lazy new'd later on if the level has pylons
 	Scene				= AllocateScene( this, FALSE, TRUE );
 

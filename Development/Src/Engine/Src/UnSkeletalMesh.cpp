@@ -1923,6 +1923,10 @@ void USkeletalMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 		ULevel::TriggerStreamingDataRebuild();
 	}
 
+#if BATMAN
+	CalculateBounds();
+#endif
+
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 
@@ -1957,31 +1961,8 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 
 	Ar << Bounds;
 #if BATMAN
-	// BM2 populates ConservativeBounds and PerBoneBounds in USkeletalMesh::
-	// CalculateBounds(): per-bone bounding boxes in bone-local space plus a
-	// worst-case (BoneDistFromRoot + localVertexLen) used for frustum culling.
-	// When the editor resaves a mesh we can't easily replay the full skinning
-	// pass, so write conservative values that keep the game's culling/use
-	// paths happy: one FBoneBounds entry per bone with a generous box, and a
-	// ConservativeBounds large enough to never cull.
 	if (Ar.IsBmCooked(TRUE))
 	{
-		if (Ar.IsSaving())
-		{
-			ConservativeBounds = Bounds.SphereRadius * 2.0f;
-
-			const FVector BigMin(-BIG_NUMBER, -BIG_NUMBER, -BIG_NUMBER);
-			const FVector BigMax( BIG_NUMBER,  BIG_NUMBER,  BIG_NUMBER);
-			PerBoneBounds.Empty(RefSkeleton.Num());
-			for (INT BoneIdx = 0; BoneIdx < RefSkeleton.Num(); ++BoneIdx)
-			{
-				FBoneBounds& BB = *new(PerBoneBounds) FBoneBounds;
-				BB.BoneIndex = BoneIdx;
-				BB.BoxMin = BigMin;
-				BB.BoxMax = BigMax;
-			}
-		}
-
 		Ar << ConservativeBounds << PerBoneBounds;
 	}
 #endif
@@ -2402,6 +2383,105 @@ FMatrix USkeletalMesh::GetRefPoseMatrix( INT BoneIndex ) const
 	check( BoneIndex >= 0 && BoneIndex < RefSkeleton.Num() );
 	return FQuatRotationTranslationMatrix( RefSkeleton(BoneIndex).BonePos.Orientation, RefSkeleton(BoneIndex).BonePos.Position );
 }
+
+#if BATMAN
+
+// BM: accumulates one vertex/bone influence into the per-bone and overall bounds.
+static void AddBoundsVertex( const FVector& Position, INT BoneIndex, const TArray<FMatrix>& RefPoseInv,
+	const TArray<FLOAT>& BoneDistFromRoot, TArray<FBox>& BoneBoxes, FBox& BoundingBox, FLOAT& ConservativeBounds )
+{
+	const FVector LocalPosition = RefPoseInv(BoneIndex).TransformFVector(Position);
+
+	BoneBoxes(BoneIndex) += LocalPosition;
+	ConservativeBounds = Max( ConservativeBounds, BoneDistFromRoot(BoneIndex) + LocalPosition.Size() );
+	BoundingBox += Position;
+}
+
+// BM: ported from BM2's USkeletalMesh::CalculateBounds().
+void USkeletalMesh::CalculateBounds()
+{
+	// Cooked packages no longer carry the source vertices these are built from.
+	if( GetOutermost()->PackageFlags & PKG_Cooked )
+	{
+		return;
+	}
+
+	ConservativeBounds = 0.0f;
+	PerBoneBounds.Empty();
+	Bounds = FBoxSphereBounds( FVector(0,0,0), FVector(0,0,0), 0.0f );
+
+	if( RefSkeleton.Num() <= 0 || LODModels.Num() <= 0 )
+	{
+		return;
+	}
+
+	TArray<FBox> BoneBoxes;
+	BoneBoxes.AddZeroed( RefSkeleton.Num() );
+
+	// Cumulative bone length from the root, the reach half of the conservative radius.
+	TArray<FLOAT> BoneDistFromRoot;
+	BoneDistFromRoot.Add( RefSkeleton.Num() );
+	BoneDistFromRoot(0) = 0.0f;
+	for( INT BoneIndex = 1; BoneIndex < RefSkeleton.Num(); BoneIndex++ )
+	{
+		const FMeshBone& Bone = RefSkeleton(BoneIndex);
+		BoneDistFromRoot(BoneIndex) = BoneDistFromRoot(Bone.ParentIndex) + Bone.BonePos.Position.Size();
+	}
+
+	TArray<FMatrix> RefPose;
+	TArray<FMatrix> RefPoseInv;
+	RefPose.Add( RefSkeleton.Num() );
+	RefPoseInv.Add( RefSkeleton.Num() );
+	for( INT BoneIndex = 0; BoneIndex < RefSkeleton.Num(); BoneIndex++ )
+	{
+		FMatrix BoneMatrix = GetRefPoseMatrix(BoneIndex);
+		if( BoneIndex > 0 )
+		{
+			BoneMatrix = BoneMatrix * RefPose( RefSkeleton(BoneIndex).ParentIndex );
+		}
+
+		RefPose(BoneIndex) = BoneMatrix;
+		RefPoseInv(BoneIndex) = BoneMatrix.Inverse();
+	}
+
+	FBox BoundingBox(0);
+	const FStaticLODModel& LODModel = LODModels(0);
+	for( INT ChunkIndex = 0; ChunkIndex < LODModel.Chunks.Num(); ChunkIndex++ )
+	{
+		const FSkelMeshChunk& Chunk = LODModel.Chunks(ChunkIndex);
+
+		for( INT VertIndex = 0; VertIndex < Chunk.RigidVertices.Num(); VertIndex++ )
+		{
+			const FRigidSkinVertex& Vertex = Chunk.RigidVertices(VertIndex);
+			AddBoundsVertex( Vertex.Position, Chunk.BoneMap(Vertex.Bone), RefPoseInv, BoneDistFromRoot, BoneBoxes, BoundingBox, ConservativeBounds );
+		}
+
+		for( INT VertIndex = 0; VertIndex < Chunk.SoftVertices.Num(); VertIndex++ )
+		{
+			const FSoftSkinVertex& Vertex = Chunk.SoftVertices(VertIndex);
+			for( INT InfluenceIndex = 0; InfluenceIndex < MAX_INFLUENCES; InfluenceIndex++ )
+			{
+				AddBoundsVertex( Vertex.Position, Chunk.BoneMap(Vertex.InfluenceBones[InfluenceIndex]), RefPoseInv, BoneDistFromRoot, BoneBoxes, BoundingBox, ConservativeBounds );
+			}
+		}
+	}
+
+	for( INT BoneIndex = 0; BoneIndex < RefSkeleton.Num(); BoneIndex++ )
+	{
+		const FBox& BoneBox = BoneBoxes(BoneIndex);
+		if( BoneBox.IsValid )
+		{
+			FBoneBounds& BoneBounds = PerBoneBounds( PerBoneBounds.Add(1) );
+			BoneBounds.BoneIndex = BoneIndex;
+			BoneBounds.BoxMin = BoneBox.Min;
+			BoneBounds.BoxMax = BoneBox.Max;
+		}
+	}
+
+	Bounds = FBoxSphereBounds( BoundingBox );
+}
+
+#endif
 
 /*-----------------------------------------------------------------------------
 USkeletalMeshSocket

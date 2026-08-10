@@ -1623,6 +1623,15 @@ static void SetDefaultSkeletalMesh( AActor* Default, const TCHAR* ComponentName,
 	}
 }
 
+static void SetDefaultPhysicsAsset( AActor* Default, const TCHAR* ComponentName, const TCHAR* AssetName )
+{
+	USkeletalMeshComponent* Component = Cast<USkeletalMeshComponent>( FindDefaultComponent( Default, ComponentName ) );
+	if( Component != NULL && Component->PhysicsAsset == NULL )
+	{
+		Component->PhysicsAsset = LoadObject<UPhysicsAsset>( NULL, AssetName, NULL, LOAD_None, NULL );
+	}
+}
+
 // Updates CDOs to add editor-specific preview components.
 // Be careful with BmScript classes, as these might get cooked in.
 void SetDefaultsForEditorPreview( UClass* Class )
@@ -1645,11 +1654,21 @@ void SetDefaultsForEditorPreview( UClass* Class )
 			CastChecked<ANavigationPoint>( Default )->GoodSprite = CastChecked<USpriteComponent>( Sprite );
 		}
 	}
+	// Give TargetPoint's sprite to RDummyTarget
+	if( ClassName == TEXT("RDummyTarget") )
+	{
+		if( FindDefaultComponent( Default, TEXT("Sprite") ) == NULL )
+		{
+			AActor* Source = ATargetPoint::StaticClass()->GetDefaultActor();
+			UActorComponent* Sprite = AddDefaultComponent( Default, FindDefaultComponent( Source, TEXT("Sprite") ) );
+		}
+	}
 	// Give preview meshes to RCinematicBatman (and co.)
 	else if( ClassName == TEXT("RCinematicBatman") || ClassName == TEXT("RCinematicRobin") || ClassName == TEXT("RCinematicCatwoman") )
 	{
 		SetDefaultSkeletalMesh( Default, TEXT("SkeletalMeshComponent0"), TEXT("Batman_V3.Mesh.Batman_Head_Skin") );
 		SetDefaultSkeletalMesh( Default, TEXT("ExtraSkeletalMeshComponent1"), TEXT("Batman_V3.Mesh.Batman_Body_Skin") );
+		SetDefaultPhysicsAsset( Default, TEXT("SkeletalMeshComponent0"), TEXT("Batman_Ragdoll.Physics.BatmanRagdoll") );
 	}
 }
 

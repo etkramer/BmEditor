@@ -262,7 +262,7 @@ var native transient const bool bIsRefreshingDecals;
 
 var native transient bool bAllowDecalAutomaticReAttach;
 
-var bool bContributesToLightEnvironmentBounds;
+var(Rendering) bool bContributesToLightEnvironmentBounds;
 
 // Lighting flags
 
@@ -766,6 +766,7 @@ defaultproperties
 	Scale3D=(X=1.0,Y=1.0,Z=1.0)
 	DepthPriorityGroup=SDPG_World
 	bAllowCullDistanceVolume=TRUE
+	bContributesToLightEnvironmentBounds=TRUE
 	bUseAsOccluder=FALSE
 	CastShadow=FALSE
 	bCastDynamicShadow=TRUE

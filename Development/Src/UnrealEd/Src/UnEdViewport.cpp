@@ -5113,7 +5113,12 @@ void FEditorLevelViewportClient::UpdateLightingShowFlags()
 			UBOOL bAnyLights = FALSE;
 			{
 				UWorld* World = GetScene()->GetWorld();
-				if( World->StaticLightList.Num() > 0 ||
+				if(
+#if BATMAN
+					World->NumStaticLights > 0 ||
+#else
+					World->StaticLightList.Num() > 0 ||
+#endif
 					World->DynamicLightList.Num() > 0 ||
 					World->DominantDirectionalLight != NULL ||
 					World->DominantSpotLights.Num() > 0 ||

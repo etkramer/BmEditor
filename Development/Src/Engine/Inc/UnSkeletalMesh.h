@@ -350,6 +350,30 @@ struct FBM2StretchInstances
 	FBM2StretchPhaseInstances Phases[2];
 };
 
+#if BATMAN
+// BM: RSkeletalMeshComponent_Export isn't native, so UHT doesn't export these.
+enum ESkeletalMeshComponentBoundsType
+{
+	SMCBT_Automatic = 0,
+	SMCBT_Conservative,
+	SMCBT_PerBone,
+	SMCBT_PhysicsAsset,
+	SMCBT_ReferencePose,
+	SMCBT_ApproximatePerBone,
+	SMCBT_Editor,
+	SMCBT_Fixed,
+};
+
+enum EParentAnimComponentMode
+{
+	PACM_Original = 0,
+	PACM_Add,
+	PACM_Replace,
+	PACM_CapeReplace,
+	PACM_CapeReplaceAtomsTranslationOnly,
+};
+#endif
+
 //
 //	USkeletalMeshComponent
 //
@@ -1037,6 +1061,11 @@ class USkeletalMeshComponent : public UMeshComponent
 	void SetAnimTreeTemplate(UAnimTree* NewTemplate);
 
 	void UpdateParentBoneMap();
+
+#if BATMAN
+	// BM: rebuilds the BoneToBody/BodyToBone mapping from the current mesh and physics asset.
+	void UpdateBodyBoneMap();
+#endif
 
 	/** forces an update to the mesh's skeleton/attachments, even if bUpdateSkelWhenNotRendered is false and it has not been recently rendered
 	* @note if bUpdateSkelWhenNotRendered is true, there is no reason to call this function (but doing so anyway will have no effect)
@@ -4131,6 +4160,11 @@ class USkeletalMesh : public UObject
 	class USkeletalMeshSocket* FindSocket(FName InSocketName);
 
 	FMatrix	GetRefPoseMatrix( INT BoneIndex ) const;
+
+#if BATMAN
+	// BM: rebuilds Bounds, ConservativeBounds and PerBoneBounds from LOD0 vertices.
+	void CalculateBounds();
+#endif
 
 	/** Allocate and initialise bone mirroring table for this skeletal mesh. Default is source = destination for each bone. */
 	void InitBoneMirrorInfo();

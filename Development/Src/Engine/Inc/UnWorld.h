@@ -12,6 +12,11 @@ template<typename,typename> class TOctree;
 /** The type of crowd attractor octree. */
 typedef TOctree<class ACrowdAttractor*, struct FCrowdAttractorOctreeSemantics> FCrowdAttractorOctreeType;
 
+#if BATMAN
+// BM: BM2 stores the world's static lights in an octree instead of a flat list.
+typedef TOctree<class ULightComponent*, struct FLightComponentOctreeSemantics> FLightComponentOctreeType;
+#endif
+
 /**
  * UWorld is the global world abstraction containing several levels.
  */
@@ -119,8 +124,15 @@ public:
 	/** Whether world object has been initialized via Init()																	*/
 	UBOOL										bIsWorldInitialized;
 	
+#if BATMAN
+	/** All static light component's attached to the world's scene. */
+	FLightComponentOctreeType*					LightOctree;
+	/** Number of light components in LightOctree. */
+	INT											NumStaticLights;
+#else
 	/** All static light component's attached to the world's scene. */
 	TSparseArray<ULightComponent*>				StaticLightList;
+#endif
 	/** All dynamic light component's attached to the world's scene. */
 	TSparseArray<ULightComponent*>				DynamicLightList;
 	/** All light environment components that need to be notified when a static light changes. */

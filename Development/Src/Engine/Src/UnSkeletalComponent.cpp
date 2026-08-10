@@ -322,6 +322,9 @@ void USkeletalMeshComponent::Attach()
 	bUpdatedFixedClothVerts = FALSE;
 
 	UpdateParentBoneMap();
+#if BATMAN
+	UpdateBodyBoneMap();
+#endif
 	UpdateLODStatus();
 	UpdateSkelPose();
 
@@ -4089,6 +4092,130 @@ UBOOL USkeletalMeshComponent::LegLineCheck(const FVector& Start, const FVector& 
 extern UBOOL GShouldLogOutAFrameOfPhysAssetBoundsUpdate;
 #endif // !FINAL_RELEASE
 
+#if BATMAN
+
+// BM: bounds modes ported from BmGame/Src/RSkeletalComponent.cpp.
+static void DoReferencePoseBounds(USkeletalMeshComponent* SkelComponent)
+{
+	USkeletalMesh* SkeletalMesh = SkelComponent->SkeletalMesh;
+	if (!SkeletalMesh)
+	{
+		SkelComponent->Bounds = FBoxSphereBounds(SkelComponent->LocalToWorld.GetOrigin(), FVector(0,0,0), 0.0f);
+		return;
+	}
+
+	FBoxSphereBounds ReferenceBounds = SkeletalMesh->Bounds;
+	if (SkelComponent->SpaceBases.Num() > 0 && SkeletalMesh->RefSkeleton.Num() > 0)
+	{
+		ReferenceBounds.Origin += SkelComponent->SpaceBases(0).GetOrigin() - SkeletalMesh->RefSkeleton(0).BonePos.Position;
+	}
+
+	SkelComponent->Bounds = ReferenceBounds.TransformBy(SkelComponent->LocalToWorld);
+}
+
+static UBOOL DoPerBoneBounds(USkeletalMeshComponent* SkelComponent, UBOOL bMustSucceed)
+{
+	USkeletalMesh* SkeletalMesh = SkelComponent->SkeletalMesh;
+	if (SkeletalMesh->PerBoneBounds.Num())
+	{
+		// The per-bone boxes accumulate in component space; LocalToWorld is applied once at the end.
+		FBox AccumulatedBox(0);
+		for (INT BoundsIndex = 0; BoundsIndex < SkeletalMesh->PerBoneBounds.Num(); BoundsIndex++)
+		{
+			const FBoneBounds& BoneBounds = SkeletalMesh->PerBoneBounds(BoundsIndex);
+			if (BoneBounds.BoneIndex >= 0 && BoneBounds.BoneIndex < SkelComponent->SpaceBases.Num())
+			{
+				const FMatrix BoneMatrix = SkelComponent->SpaceBases(BoneBounds.BoneIndex).ToMatrix();
+				AccumulatedBox += FBox(BoneBounds.BoxMin, BoneBounds.BoxMax).TransformBy(BoneMatrix);
+			}
+		}
+
+		if (AccumulatedBox.IsValid)
+		{
+			SkelComponent->Bounds = FBoxSphereBounds(AccumulatedBox.TransformBy(SkelComponent->LocalToWorld));
+			return TRUE;
+		}
+	}
+
+	if (bMustSucceed)
+	{
+		DoReferencePoseBounds(SkelComponent);
+	}
+	return FALSE;
+}
+
+static UBOOL DoPhysicsAssetBounds(USkeletalMeshComponent* SkelComponent, UBOOL bMustSucceed)
+{
+	UPhysicsAsset* PhysicsAsset = SkelComponent->PhysicsAsset;
+	if (!PhysicsAsset)
+	{
+		if (!bMustSucceed)
+		{
+			return FALSE;
+		}
+		warnf(NAME_Warning, TEXT("%s: BoundsType is set to physics asset, but there's no physics asset assigned."), *SkelComponent->GetPathName());
+		DoReferencePoseBounds(SkelComponent);
+		return FALSE;
+	}
+
+	if (SkelComponent->bConsiderAllBodiesForBounds)
+	{
+		warnf(NAME_Warning, TEXT("%s: bConsiderAllBodiesForBounds is not currently implemented."), *SkelComponent->GetPathName());
+	}
+
+	check(PhysicsAsset->Bounds.Num() == PhysicsAsset->BoundsBodies.Num());
+
+	if (SkelComponent->BodyToBone.Num() != PhysicsAsset->BodySetup.Num())
+	{
+		if (!bMustSucceed)
+		{
+			return FALSE;
+		}
+		warnf(NAME_Warning, TEXT("%s: BodyToBone has not been initialised before call to DoPhysicsAssetBounds."), *SkelComponent->GetPathName());
+		DoReferencePoseBounds(SkelComponent);
+		return FALSE;
+	}
+
+	if (!PhysicsAsset->Bounds.Num())
+	{
+		if (!bMustSucceed)
+		{
+			return FALSE;
+		}
+		warnf(NAME_Warning, TEXT("%s: PhysicsAsset %s doesn't have any bodies with bounds."), *SkelComponent->GetPathName(), *PhysicsAsset->GetPathName());
+		DoReferencePoseBounds(SkelComponent);
+		return FALSE;
+	}
+
+	check(SkelComponent->SpaceBases.Num() == SkelComponent->SkeletalMesh->RefSkeleton.Num());
+
+	FBox Box(0);
+	for (INT BoundsIndex = 0; BoundsIndex < PhysicsAsset->Bounds.Num(); BoundsIndex++)
+	{
+		const INT BoneIndex = SkelComponent->BodyToBone(PhysicsAsset->BoundsBodies(BoundsIndex));
+		if (BoneIndex >= 0 && BoneIndex < SkelComponent->SpaceBases.Num())
+		{
+			const FSimpleBox& BodyBounds = PhysicsAsset->Bounds(BoundsIndex);
+			const FMatrix BoneToWorld = SkelComponent->SpaceBases(BoneIndex).ToMatrix() * SkelComponent->LocalToWorld;
+			Box += FBox(BodyBounds.Min, BodyBounds.Max).TransformBy(BoneToWorld);
+		}
+	}
+
+	if (!Box.IsValid)
+	{
+		if (bMustSucceed)
+		{
+			DoReferencePoseBounds(SkelComponent);
+		}
+		return FALSE;
+	}
+
+	SkelComponent->Bounds = FBoxSphereBounds(Box);
+	return TRUE;
+}
+
+#endif
+
 void USkeletalMeshComponent::UpdateBounds()
 {
 	SCOPE_CYCLE_COUNTER(STAT_UpdateSkelMeshBounds);
@@ -4105,6 +4232,48 @@ void USkeletalMeshComponent::UpdateBounds()
 		Bounds = ParentAnimComponent->Bounds;
 		return;
 	}
+
+#if BATMAN
+	if( ParentAnimComponent && ParentAnimComponentMode == PACM_Original )
+	{
+		DoReferencePoseBounds(this);
+		return;
+	}
+
+	// BM: BoundsType dispatch. The modes that aren't ported yet fall through to the stock chain below.
+	UBOOL bBoundsTypeHandled = FALSE;
+	if( SkeletalMesh && SpaceBases.Num() == SkeletalMesh->RefSkeleton.Num() && !SkeletalMesh->PreviewBoundsPhysicsAsset )
+	{
+		bBoundsTypeHandled = TRUE;
+		switch( BoundsType )
+		{
+		case SMCBT_Automatic:
+			if( !DoPhysicsAssetBounds(this,FALSE) && !DoPerBoneBounds(this,FALSE) )
+			{
+				DoReferencePoseBounds(this);
+			}
+			break;
+		case SMCBT_PerBone:
+			DoPerBoneBounds(this,TRUE);
+			break;
+		case SMCBT_PhysicsAsset:
+			DoPhysicsAssetBounds(this,TRUE);
+			break;
+		case SMCBT_ReferencePose:
+			DoReferencePoseBounds(this);
+			break;
+		case SMCBT_Fixed:
+			Bounds = FixedBounds;
+			Bounds.Origin += LocalToWorld.GetOrigin();
+			break;
+		default:
+			bBoundsTypeHandled = FALSE;
+			break;
+		}
+	}
+#else
+	const UBOOL bBoundsTypeHandled = FALSE;
+#endif
 
 	FVector DrawScale = Scale * Scale3D;
 	if (Owner != NULL)
@@ -4128,8 +4297,12 @@ void USkeletalMeshComponent::UpdateBounds()
 		}
 	}
 
+	if(bBoundsTypeHandled)
+	{
+		// BM: BoundsType above already produced the bounds.
+	}
 	// For AnimSet Viewer, use 'bounds preview' physics asset if present.
-	if(SkeletalMesh && SkeletalMesh->PreviewBoundsPhysicsAsset && bCanUsePhysicsAsset)
+	else if(SkeletalMesh && SkeletalMesh->PreviewBoundsPhysicsAsset && bCanUsePhysicsAsset)
 	{
 		Bounds = FBoxSphereBounds(SkeletalMesh->PreviewBoundsPhysicsAsset->CalcAABB(this));
 	}
@@ -4570,6 +4743,9 @@ void USkeletalMeshComponent::SetSkeletalMesh(USkeletalMesh* InSkelMesh, UBOOL bK
 			// If this component refers to some parent, make sure it is up to date.
 			// No way to tell if other things refer to this - that has to be done manually by user unfortuntalely.
 			UpdateParentBoneMap();
+#if BATMAN
+			UpdateBodyBoneMap();
+#endif
 
 			// Indicate that 'required bones' array will need to be recalculated.
 			bRequiredBonesUpToDate = FALSE;
@@ -4995,6 +5171,41 @@ void USkeletalMeshComponent::SetAnimTreeTemplate(UAnimTree* NewTemplate)
 		Owner->eventAnimTreeUpdated(this);
 	}
 }
+
+#if BATMAN
+
+// BM: BodyToBone maps physics body -> bone, BoneToBody the reverse. DoPhysicsAssetBounds needs BodyToBone.
+void USkeletalMeshComponent::UpdateBodyBoneMap()
+{
+	BoneToBody.Empty();
+	BodyToBone.Empty();
+
+	if( !SkeletalMesh || !PhysicsAsset )
+	{
+		return;
+	}
+
+	BoneToBody.Add( SkeletalMesh->RefSkeleton.Num() );
+	for( INT BoneIndex = 0; BoneIndex < BoneToBody.Num(); BoneIndex++ )
+	{
+		BoneToBody(BoneIndex) = INDEX_NONE;
+	}
+
+	BodyToBone.Add( PhysicsAsset->BodySetup.Num() );
+	for( INT BodyIndex = 0; BodyIndex < BodyToBone.Num(); BodyIndex++ )
+	{
+		const URB_BodySetup* BodySetup = PhysicsAsset->BodySetup(BodyIndex);
+		const INT BoneIndex = BodySetup ? SkeletalMesh->MatchRefBone(BodySetup->BoneName) : INDEX_NONE;
+
+		BodyToBone(BodyIndex) = BoneIndex;
+		if( BoneIndex != INDEX_NONE )
+		{
+			BoneToBody(BoneIndex) = BodyIndex;
+		}
+	}
+}
+
+#endif
 
 /** Update mapping table between. Call whenever you change this or the ParentAnimComponent skeletal mesh. */
 void USkeletalMeshComponent::UpdateParentBoneMap()
