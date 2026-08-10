@@ -1589,6 +1589,72 @@ UBOOL AActor::IsReadyForFinishDestroy()
 	return Super::IsReadyForFinishDestroy() && DetachFence.GetNumPendingFences() == 0;
 }
 
+#if BATMAN
+
+// Returns a component template on a class default actor by subobject name.
+static UActorComponent* FindDefaultComponent( AActor* Default, const TCHAR* ComponentName )
+{
+	for( INT ComponentIndex = 0; ComponentIndex < Default->Components.Num(); ComponentIndex++ )
+	{
+		UActorComponent* Component = Default->Components(ComponentIndex);
+		if( Component != NULL && Component->GetFName() == ComponentName )
+		{
+			return Component;
+		}
+	}
+	return NULL;
+}
+
+// Copies a component template onto a class default actor and registers it for instancing.
+static UActorComponent* AddDefaultComponent( AActor* Default, UActorComponent* Template )
+{
+	UActorComponent* Component = ConstructObject<UActorComponent>( Template->GetClass(), Default, Template->GetFName(), RF_Public, Template );
+	Default->Components.AddItem( Component );
+	Default->GetClass()->ComponentNameToDefaultObjectMap.Set( Component->GetFName(), (UComponent*)Component );
+	return Component;
+}
+
+static void SetDefaultSkeletalMesh( AActor* Default, const TCHAR* ComponentName, const TCHAR* MeshName )
+{
+	USkeletalMeshComponent* Component = Cast<USkeletalMeshComponent>( FindDefaultComponent( Default, ComponentName ) );
+	if( Component != NULL && Component->SkeletalMesh == NULL )
+	{
+		Component->SkeletalMesh = LoadObject<USkeletalMesh>( NULL, MeshName, NULL, LOAD_None, NULL );
+	}
+}
+
+// Updates CDOs to add editor-specific preview components.
+// Be careful with BmScript classes, as these might get cooked in.
+void SetDefaultsForEditorPreview( UClass* Class )
+{
+	if( !GIsEditor || !Class->IsChildOf( AActor::StaticClass() ) )
+	{
+		return;
+	}
+
+	AActor* Default = Class->GetDefaultActor();
+	const FName ClassName = Class->GetFName();
+
+	// Give PlayerStart's sprite to RPlayerStartInLevel
+	if( ClassName == TEXT("RPlayerStartInLevel") )
+	{
+		if( FindDefaultComponent( Default, TEXT("Sprite") ) == NULL )
+		{
+			AActor* Source = APlayerStart::StaticClass()->GetDefaultActor();
+			UActorComponent* Sprite = AddDefaultComponent( Default, FindDefaultComponent( Source, TEXT("Sprite") ) );
+			CastChecked<ANavigationPoint>( Default )->GoodSprite = CastChecked<USpriteComponent>( Sprite );
+		}
+	}
+	// Give preview meshes to RCinematicBatman (and co.)
+	else if( ClassName == TEXT("RCinematicBatman") || ClassName == TEXT("RCinematicRobin") || ClassName == TEXT("RCinematicCatwoman") )
+	{
+		SetDefaultSkeletalMesh( Default, TEXT("SkeletalMeshComponent0"), TEXT("Batman_V3.Mesh.Batman_Head_Skin") );
+		SetDefaultSkeletalMesh( Default, TEXT("ExtraSkeletalMeshComponent1"), TEXT("Batman_V3.Mesh.Batman_Body_Skin") );
+	}
+}
+
+#endif
+
 void AActor::PostLoad()
 {
 	Super::PostLoad();

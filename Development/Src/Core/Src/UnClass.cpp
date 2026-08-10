@@ -2351,6 +2351,11 @@ void UClass::FinishDestroy()
 
 	Super::FinishDestroy();
 }
+#if BATMAN
+// UnActor.cpp
+void SetDefaultsForEditorPreview( UClass* Class );
+#endif
+
 void UClass::PostLoad()
 {
 	check(ClassWithin);
@@ -2361,6 +2366,10 @@ void UClass::PostLoad()
 	{
 		GetSuperClass()->ConditionalPostLoad();
 	}
+
+#if BATMAN
+	SetDefaultsForEditorPreview( this );
+#endif
 }
 void UClass::Link( FArchive& Ar, UBOOL Props )
 {
