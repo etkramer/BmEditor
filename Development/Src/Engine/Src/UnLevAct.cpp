@@ -1977,10 +1977,10 @@ UBOOL UWorld::CheckEncroachment
 // Check for nearest hit.
 // Return 1 if no hit, 0 if hit.
 //
-UBOOL UWorld::SinglePointCheck( FCheckResult&	Hit, const FVector& Location, const FVector& Extent, DWORD TraceFlags )
+UBOOL UWorld::SinglePointCheck( FCheckResult&	Hit, const FVector& Location, const FVector& Extent, DWORD TraceFlags, AActor* SourceActor )
 {
 	FMemMark Mark(GMainThreadMemStack);
-	FCheckResult* Hits = MultiPointCheck( GMainThreadMemStack, Location, Extent, TraceFlags );
+	FCheckResult* Hits = MultiPointCheck( GMainThreadMemStack, Location, Extent, TraceFlags, SourceActor );
 	if( !Hits )
 	{
 		Mark.Pop();

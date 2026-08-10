@@ -707,7 +707,7 @@ public:
 	UBOOL FindSpot( const FVector& Extent, FVector& Location, UBOOL bUseComplexCollision, AActor* TestActor = NULL );
 	UBOOL CheckSlice( FVector& Location, const FVector& Extent, INT& bKeepTrying, AActor* TestActor );
 	UBOOL CheckEncroachment( AActor* Actor, FVector TestLocation, FRotator TestRotation, UBOOL bTouchNotify );
-	UBOOL SinglePointCheck( FCheckResult& Hit, const FVector& Location, const FVector& Extent, DWORD TraceFlags );
+	UBOOL SinglePointCheck( FCheckResult& Hit, const FVector& Location, const FVector& Extent, DWORD TraceFlags, AActor* SourceActor = NULL );
     UBOOL EncroachingWorldGeometry( FCheckResult& Hit, const FVector& Location, const FVector& Extent, UBOOL bUseComplexCollision=FALSE, AActor* TestActor = NULL );
 	UBOOL SingleLineCheck( FCheckResult& Hit, AActor* SourceActor, const FVector& End, const FVector& Start, DWORD TraceFlags, const FVector& Extent=FVector(0,0,0), ULightComponent* SourceLight = NULL );
 	// BM: SourceActor added - BM2 point checks filter hits through ShouldTrace like line checks do.

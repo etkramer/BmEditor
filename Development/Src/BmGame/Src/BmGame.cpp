@@ -70,6 +70,7 @@ void AutoInitializeRegistrantsBmGame( INT& Lookup )
 	// BM: native lookup tables for classes loaded from _BmGame.upk. Must run before
 	// the script packages are bound, which is why it lives here.
 	RegisterRSkeletalMeshActorNatives();
+	RegisterRHidePointNatives();
 #endif
 }
 

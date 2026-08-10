@@ -67,6 +67,10 @@
 				RelativePath=".\Src\RSkeletalMeshActor.cpp"
 				>
 			</File>
+			<File
+				RelativePath=".\Src\RHidePoint.cpp"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Inc"

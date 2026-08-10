@@ -70,17 +70,17 @@ struct TExtensionProperty
 	TExtensionProperty()
 	:	Offset(INDEX_NONE)
 	,	ArrayDim(0)
+	,	bAttempted(FALSE)
 	{}
 
+	// Binds once and stays bound - callers resolve lazily, so retrying would just repeat the warning.
 	UBOOL Bind( UClass* Cls, const TCHAR* PropertyName, INT ExpectedArrayDim=1 )
 	{
-		if (IsBound())
+		if( bAttempted )
 		{
-			return TRUE;
+			return IsBound();
 		}
-
-		Offset = INDEX_NONE;
-		ArrayDim = 0;
+		bAttempted = TRUE;
 
 		UProperty* Prop = FindField<UProperty>(Cls, PropertyName);
 		if( !Prop )
@@ -120,8 +120,61 @@ struct TExtensionProperty
 		return *(T*)((BYTE*)Obj + Offset + Index * sizeof(T));
 	}
 
-	INT Offset;
-	INT ArrayDim;
+	INT		Offset;
+	INT		ArrayDim;
+	UBOOL	bAttempted;
+};
+
+/** As TExtensionProperty, but for bools - they live in a bitfield, so they need the mask too. */
+struct FExtensionBoolProperty
+{
+	FExtensionBoolProperty()
+	:	Offset(INDEX_NONE)
+	,	BitMask(0)
+	,	bAttempted(FALSE)
+	{}
+
+	UBOOL Bind( UClass* Cls, const TCHAR* PropertyName )
+	{
+		if( bAttempted )
+		{
+			return IsBound();
+		}
+		bAttempted = TRUE;
+
+		UBoolProperty* Prop = FindField<UBoolProperty>(Cls, PropertyName);
+		if( !Prop )
+		{
+			warnf(NAME_Warning, TEXT("ClassExtension: %s has no bool property '%s'"), *Cls->GetName(), PropertyName);
+			return FALSE;
+		}
+
+		Offset = Prop->Offset;
+		BitMask = Prop->BitMask;
+		return TRUE;
+	}
+
+	UBOOL IsBound() const
+	{
+		return Offset != INDEX_NONE;
+	}
+
+	UBOOL operator()( UObject* Obj ) const
+	{
+		checkSlow(IsBound());
+		return (*(BITFIELD*)((BYTE*)Obj + Offset) & BitMask) != 0;
+	}
+
+	void Set( UObject* Obj, UBOOL Value ) const
+	{
+		checkSlow(IsBound());
+		BITFIELD& Bits = *(BITFIELD*)((BYTE*)Obj + Offset);
+		Bits = Value ? (Bits | BitMask) : (Bits & ~BitMask);
+	}
+
+	INT			Offset;
+	BITFIELD	BitMask;
+	UBOOL		bAttempted;
 };
 
 #endif // BATMAN
