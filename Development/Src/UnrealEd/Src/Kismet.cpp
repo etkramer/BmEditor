@@ -1600,6 +1600,11 @@ void WxKismet::ChangeActiveSequence(USequence *NewSeq, UBOOL bNotifyTree /*= TRU
 			// Slight hack to ensure all Sequences and SequenceObjects are RF_Transactional
 			Sequence->SetFlags( RF_Transactional );
 
+#if BATMAN
+			// BM: cooked packages have no object positions, so generate some
+			AutoLayoutSequence( Sequence, MaxSequenceSize );
+#endif
+
 			for (INT Idx = 0; Idx < Sequence->SequenceObjects.Num(); Idx++)
 			{
 				USequenceObject *Obj = Sequence->SequenceObjects(Idx);

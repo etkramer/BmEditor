@@ -282,6 +282,9 @@
     <ClCompile Include="Src\Kismet.cpp">
       <Filter>Src</Filter>
     </ClCompile>
+    <ClCompile Include="Src\KismetLayout.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
     <ClCompile Include="Src\KismetMenus.cpp">
       <Filter>Src</Filter>
     </ClCompile>

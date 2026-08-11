@@ -261,6 +261,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Src\KismetLayout.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\Src\KismetMenus.cpp"
 				>
 			</File>

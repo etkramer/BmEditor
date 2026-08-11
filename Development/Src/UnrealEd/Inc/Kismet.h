@@ -479,6 +479,11 @@ struct FExposeVarLinkInfo
 //FIXME: change this to a configurable value maybe?
 #define KISMET_GRIDSIZE			8
 
+#if BATMAN
+// BM: lays out a sequence whose objects are all stacked at the origin, as in BM2 cooked packages
+void AutoLayoutSequence(class USequence* InSequence, INT MaxSequenceSize);
+#endif
+
 class WxKismet : public WxLinkedObjEd, public FCallbackEventDevice
 {
 public:

@@ -146,6 +146,7 @@
     <ClCompile Include="Src\InterpEditorTools.cpp" />
     <ClCompile Include="Src\ItemPropertyNode.cpp" />
     <ClCompile Include="Src\Kismet.cpp" />
+    <ClCompile Include="Src\KismetLayout.cpp" />
     <ClCompile Include="Src\KismetMenus.cpp" />
     <ClCompile Include="Src\LandscapeEdMode.cpp" />
     <ClCompile Include="Src\LayerBrowser.cpp" />

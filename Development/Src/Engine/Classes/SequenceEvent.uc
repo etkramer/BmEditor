@@ -15,6 +15,8 @@ cpptext
 	// USequenceObject interface
 	virtual void DrawSeqObj(FCanvas* Canvas, UBOOL bSelected, UBOOL bMouseOver, INT MouseOverConnType, INT MouseOverConnIndex, FLOAT MouseOverTime);
 	virtual FIntRect GetSeqObjBoundingBox();
+	// BM
+	virtual FIntPoint GetLayoutSize();
 	FIntPoint GetCenterPoint(FCanvas* Canvas);
 
 	virtual UBOOL CheckActivate(AActor *InOriginator, AActor *InInstigator, UBOOL bTest=FALSE, TArray<INT>* ActivateIndices = NULL, UBOOL bPushTop = FALSE);

@@ -1524,7 +1524,6 @@
      5 SceneCapturePortalActor Engine [P] []
       6 PortalTeleporter Engine [A] []
    3 SkeletalMeshActor Engine [P] [SkeletalMeshes]
-    4 RSkeletalMeshActor BmGame [] []
     4 SkeletalMeshActorBasedOnExtremeContent Engine [P] []
     4 SkeletalMeshActorSpawnable Engine [] []
     4 SkeletalMeshCinematicActor Engine [P] []

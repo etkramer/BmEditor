@@ -177,6 +177,8 @@ public:
 	virtual void OnExport();
 
 	virtual FIntRect GetSeqObjBoundingBox();
+	// BM: size of this object as it would draw, valid before the first draw pass
+	virtual FIntPoint GetLayoutSize();
 	void SnapPosition(INT Gridsize, INT MaxSequenceSize);
 	FString GetSeqObjFullName();
 
@@ -768,6 +770,8 @@ public:
 
 	FIntPoint GetLogicConnectorsSize(FCanvas* Canvas, INT* InputY=0, INT* OutputY=0);
 	FIntPoint GetVariableConnectorsSize(FCanvas* Canvas);
+	// BM
+	virtual FIntPoint GetLayoutSize();
 	FColor GetVarConnectorColor(INT LinkIndex);
 
 	virtual void OnVariableConnect(USequenceVariable *Var, INT LinkIdx) {}
@@ -3922,6 +3926,8 @@ public:
 	// USequenceObject interface
 	virtual void DrawSeqObj(FCanvas* Canvas, UBOOL bSelected, UBOOL bMouseOver, INT MouseOverConnType, INT MouseOverConnIndex, FLOAT MouseOverTime);
 	virtual FIntRect GetSeqObjBoundingBox();
+	// BM
+	virtual FIntPoint GetLayoutSize();
 	FIntPoint GetCenterPoint(FCanvas* Canvas);
 
 	virtual UBOOL CheckActivate(AActor *InOriginator, AActor *InInstigator, UBOOL bTest=FALSE, TArray<INT>* ActivateIndices = NULL, UBOOL bPushTop = FALSE);
@@ -4250,6 +4256,8 @@ public:
 	// USequenceObject interface
 	virtual void DrawSeqObj(FCanvas* Canvas, UBOOL bSelected, UBOOL bMouseOver, INT MouseOverConnType, INT MouseOverConnIndex, FLOAT MouseOverTime);
 	virtual FIntRect GetSeqObjBoundingBox();
+	// BM
+	virtual FIntPoint GetLayoutSize();
 
 	virtual UObject** GetObjectRef( INT Idx )
 	{

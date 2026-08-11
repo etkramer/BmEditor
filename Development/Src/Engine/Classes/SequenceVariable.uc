@@ -14,6 +14,8 @@ cpptext
 	// USequenceObject interface
 	virtual void DrawSeqObj(FCanvas* Canvas, UBOOL bSelected, UBOOL bMouseOver, INT MouseOverConnType, INT MouseOverConnIndex, FLOAT MouseOverTime);
 	virtual FIntRect GetSeqObjBoundingBox();
+	// BM
+	virtual FIntPoint GetLayoutSize();
 
 	virtual UObject** GetObjectRef( INT Idx )
 	{

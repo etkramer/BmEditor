@@ -228,6 +228,12 @@ FIntRect USequenceObject::GetSeqObjBoundingBox()
 	return FIntRect(ObjPosX, ObjPosY, ObjPosX + DrawWidth, ObjPosY + DrawHeight);
 }
 
+// BM
+FIntPoint USequenceObject::GetLayoutSize()
+{
+	return FIntPoint(DrawWidth, DrawHeight);
+}
+
 //-----------------------------------------------------------------------------
 //	USequenceOp
 //-----------------------------------------------------------------------------
@@ -434,6 +440,16 @@ INT USequenceOp::VisibleIndexToActualIndex(INT ConnType, INT VisibleIndex)
 
 	// Shouldn't get here!
 	return 0;
+}
+
+// BM: mirrors the size math in USequenceOp::DrawSeqObj
+FIntPoint USequenceOp::GetLayoutSize()
+{
+	const FIntPoint TitleSize = GetTitleBarSize(NULL);
+	const FIntPoint LogicSize = GetLogicConnectorsSize(NULL);
+	const FIntPoint VarSize = GetVariableConnectorsSize(NULL);
+
+	return FIntPoint(Max3(TitleSize.X, LogicSize.X, VarSize.X), TitleSize.Y + LogicSize.Y + VarSize.Y + 3);
 }
 
 FIntPoint USequenceOp::GetLogicConnectorsSize(FCanvas* Canvas, INT* InputY, INT* OutputY)
@@ -959,6 +975,28 @@ void USequenceOp::DrawSeqObj(FCanvas* Canvas, UBOOL bSelected, UBOOL bMouseOver,
 //	USequenceEvent
 //-----------------------------------------------------------------------------
 
+#define TRIANGLE_SIZE 32
+
+// BM: mirrors the size math in USequenceEvent::DrawSeqObj
+FIntPoint USequenceEvent::GetLayoutSize()
+{
+	const FIntPoint TitleSize = GetTitleBarSize(NULL);
+	const FIntPoint LogicSize = GetLogicConnectorsSize(NULL);
+	const FIntPoint VarSize = GetVariableConnectorsSize(NULL);
+
+	INT NumVisibleVarLinks = 0;
+	for (INT Idx = 0; Idx < VariableLinks.Num(); Idx++)
+	{
+		if (!VariableLinks(Idx).bHidden)
+		{
+			NumVisibleVarLinks++;
+		}
+	}
+
+	const INT Height = TitleSize.Y + 1 + TRIANGLE_SIZE * 2 + LogicSize.Y + (NumVisibleVarLinks > 0 ? VarSize.Y + 3 : 0);
+	return FIntPoint(Max3(TitleSize.X, LogicSize.X, VarSize.X), Height);
+}
+
 FIntPoint USequenceEvent::GetCenterPoint(FCanvas* Canvas)
 {
 	return FIntPoint(ObjPosX + MaxWidth / 2, ObjPosY);
@@ -984,8 +1022,6 @@ void USequenceEvent::DrawSeqObj(FCanvas* Canvas, UBOOL bSelected, UBOOL bMouseOv
 	if(Canvas->IsHitTesting()) Canvas->SetHitProxy( new HLinkedObjProxy(this) );
 
 	DrawTitleBar(Canvas, bSelected, bMouseOver, FIntPoint(ObjPosX, ObjPosY), FIntPoint(MaxWidth, TitleSize.Y));
-
-#define TRIANGLE_SIZE 32
 
 	const INT CenterX = ObjPosX + MaxWidth / 2;
 	const INT TriangleTop = ObjPosY + TitleSize.Y + 1;
@@ -1188,6 +1224,12 @@ void USequenceVariable::DrawSeqObj(FCanvas* Canvas, UBOOL bSelected, UBOOL bMous
 	}
 
 	if(Canvas->IsHitTesting()) Canvas->SetHitProxy( NULL );
+}
+
+// BM
+FIntPoint USequenceVariable::GetLayoutSize()
+{
+	return FIntPoint(LO_MIN_SHAPE_SIZE, LO_MIN_SHAPE_SIZE);
 }
 
 FIntPoint USequenceVariable::GetVarConnectionLocation()

@@ -38,6 +38,8 @@ public:
 	virtual void OnExport();
 
 	virtual FIntRect GetSeqObjBoundingBox();
+	// BM: size of this object as it would draw, valid before the first draw pass
+	virtual FIntPoint GetLayoutSize();
 	void SnapPosition(INT Gridsize, INT MaxSequenceSize);
 	FString GetSeqObjFullName();
 

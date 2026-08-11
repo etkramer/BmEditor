@@ -115,6 +115,8 @@ cpptext
 
 	FIntPoint GetLogicConnectorsSize(FCanvas* Canvas, INT* InputY=0, INT* OutputY=0);
 	FIntPoint GetVariableConnectorsSize(FCanvas* Canvas);
+	// BM
+	virtual FIntPoint GetLayoutSize();
 	FColor GetVarConnectorColor(INT LinkIndex);
 
 	virtual void OnVariableConnect(USequenceVariable *Var, INT LinkIdx) {}
