@@ -787,11 +787,13 @@ bool WxUnrealEdApp::OnInit()
 				StartupConfig,
 				InitErrorMessageText );	// Out
 
+#if !BATMAN
 		if( InitErrorMessageText.Len() > 0 &&
 			!ParseParam( appCmdLine(), TEXT( "NoGADWarning" ) ) )
 		{
 			appMsgf( AMT_OK, *LocalizeUnrealEd( "UnrealEdStartup_GameAssetDatabaseStartupWarnings" ) );
 		}
+#endif
 
 		GWarn->StatusUpdatef( -1, -1, *LocalizeUnrealEd( TEXT( "SplashScreen_DefaultLoading" ) ) );
 	}

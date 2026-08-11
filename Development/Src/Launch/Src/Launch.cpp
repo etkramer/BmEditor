@@ -146,7 +146,11 @@ void SetShouldPauseBeforeExit(INT ErrorLevel)
 #endif
 
 		// Either close log window manually or press CTRL-C to exit if not in "silent" or "nopause" mode.
+#if BATMAN && _DEBUG
+		GShouldPauseBeforeExit = FALSE;
+#else
 		GShouldPauseBeforeExit = !bInheritConsole && !GIsSilent && !ParseParam(appCmdLine(),TEXT("NOPAUSE"));
+#endif
 		// if it was specified to not pause if successful, then check that here
 		if (ParseParam(appCmdLine(),TEXT("NOPAUSEONSUCCESS")) && ErrorLevel == 0)
 		{

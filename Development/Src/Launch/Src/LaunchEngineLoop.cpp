@@ -1972,7 +1972,11 @@ INT FEngineLoop::PreInit( const TCHAR* CmdLine )
 #endif
 
 	// Force a log flush after each line
+#if BATMAN && _DEBUG
+	GForceLogFlush = TRUE;
+#else
 	GForceLogFlush = ParseParam( CmdLine, TEXT("FORCELOGFLUSH") );
+#endif
 
 	// Force a complete recook of all sounds
 	GForceSoundRecook = ParseParam( CmdLine, TEXT("FORCESOUNDRECOOK") );
