@@ -5582,6 +5582,8 @@ UBOOL FMaterial::Compile(FStaticParameterSet* StaticParameters, EShaderPlatform 
 {
 #if !CONSOLE
 #if BATMAN
+	// Cooked uniform expressions index into the package's texture array, so keep it over the translated one
+	const UBOOL bKeepSerializedTextures = IsBmCookedMaterialResource();
 	const TArray<UTexture*> SerializedUniformExpressionTextures = UniformExpressionTextures;
 #endif
 	// Generate the material shader code.
@@ -5594,14 +5596,14 @@ UBOOL FMaterial::Compile(FStaticParameterSet* StaticParameters, EShaderPlatform 
 		const FString MaterialShaderCode = MaterialTranslator.GetMaterialShaderCode();
 		bSuccess = CompileShaderMap(StaticParameters, Platform, NewUniformExpressionSet, OutShaderMap, MaterialShaderCode, bForceCompile, bDebugDump);
 #if BATMAN
-		if (bValidCompilationOutput)
+		if (bKeepSerializedTextures)
 		{
 			UniformExpressionTextures = SerializedUniformExpressionTextures;
 		}
 #endif
 	}
 #if BATMAN
-	else
+	else if (bKeepSerializedTextures)
 	{
 		UniformExpressionTextures = SerializedUniformExpressionTextures;
 	}
