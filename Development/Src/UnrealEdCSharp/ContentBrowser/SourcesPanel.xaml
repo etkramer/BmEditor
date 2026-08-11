@@ -49,9 +49,10 @@
 			<MenuItem Command="{x:Static cb:PackageCommands.LocExport}" />
 			<!--<MenuItem Command="{x:Static cb:PackageCommands.ResliceFracturedMeshes}"/>-->
 			<Separator/>
+			<!-- BM: Source control and error checking don't apply to this project.
 				<StaticResource ResourceKey="SourceControlSubmenu" />
 			<Separator/>
-			<MenuItem Header="{DynamicResource ContentBrowser_PackageList_MenuItem_CheckErrors}" Command="{x:Static cb:PackageCommands.CheckErrors}"/>
+			<MenuItem Header="{DynamicResource ContentBrowser_PackageList_MenuItem_CheckErrors}" Command="{x:Static cb:PackageCommands.CheckErrors}"/>-->
 			<MenuItem Command="{x:Static cb:PackageCommands.OpenExplorer}" />
 			
 			<!--<Separator/>

@@ -504,7 +504,12 @@ namespace ContentBrowser
 		private void DisableFiltering()
 		{
 			ListCollectionView PackagesCollectionView = (ListCollectionView)CollectionViewSource.GetDefaultView(this.mPackagesView.Root.Children);
-			PackagesCollectionView.Filter = null;
+
+			// BM: Assigning Filter always refreshes the view, and the resulting Reset sends the tree back to the top.
+			if ( PackagesCollectionView.Filter != null )
+			{
+				PackagesCollectionView.Filter = null;
+			}
 		}
 
 		/// Called when the user types in the Filter textbox

@@ -5167,7 +5167,25 @@ void MContentBrowserControl::PopulatePackageListMenuItems( ItemCollection^ OutPa
 	ContextMenu^ PackageListCM = nullptr;
 
 	PackageListCM = (ContextMenu^)ContentBrowserCtrl->MySourcesPanel->FindResource("PackageListContextMenu");
-	
+
+#if BATMAN
+	// BM: Commands that don't apply to cooked or force-exported packages are hidden below.
+	UBOOL bAnyCooked = FALSE;
+	UBOOL bAnyForcedExport = FALSE;
+	{
+		TArray<UPackage*> SelectedPackages;
+		TArray<FString>* pUnusedNames = NULL;
+		GetSelectedRootPackages( SelectedPackages, pUnusedNames, TRUE );
+
+		for ( INT PkgIndex = 0; PkgIndex < SelectedPackages.Num(); PkgIndex++ )
+		{
+			UPackage* Pkg = SelectedPackages(PkgIndex);
+			bAnyCooked = bAnyCooked || (Pkg->PackageFlags & PKG_Cooked) != 0;
+			bAnyForcedExport = bAnyForcedExport || Pkg->GetForcedExportBasePackageName() != NAME_None;
+		}
+	}
+#endif
+
 	if( PackageListCM != nullptr )
 	{
 		for each( Object^ Obj in PackageListCM->Items )
@@ -5182,6 +5200,18 @@ void MContentBrowserControl::PopulatePackageListMenuItems( ItemCollection^ OutPa
 				MenuItem^ SourceItem = dynamic_cast< MenuItem^ > ( Obj );
 				if( SourceItem != nullptr )
 				{
+#if BATMAN
+					// BM: Cooked packages can't be imported into, and force-exported packages have no file to explore to.
+					const bool bIsImportCommand =
+						SourceItem->Command == ContentBrowser::PackageCommands::ImportAsset ||
+						SourceItem->Command == ContentBrowser::PackageCommands::BulkImport;
+					if( ( bIsImportCommand && bAnyCooked )
+					||	( SourceItem->Command == ContentBrowser::PackageCommands::OpenExplorer && bAnyForcedExport ) )
+					{
+						continue;
+					}
+#endif
+
 					// this object is a MenuItem
 					MenuItem^ ItemCopy = gcnew MenuItem();
 					ItemCopy->Command = SourceItem->Command;
@@ -5249,7 +5279,24 @@ void MContentBrowserControl::PopulatePackageListMenuItems( ItemCollection^ OutPa
 	{
 		OutPackageListMenuItems->Add( Obj );
 	}
-	
+
+#if BATMAN
+	// BM: Drop the separators left dangling by any command we hid.
+	for ( int ItemIndex = OutPackageListMenuItems->Count - 1; ItemIndex >= 0; ItemIndex-- )
+	{
+		if ( dynamic_cast< Separator^ >( OutPackageListMenuItems[ItemIndex] ) == nullptr )
+		{
+			continue;
+		}
+
+		const bool bIsTrailing = ItemIndex == OutPackageListMenuItems->Count - 1;
+		const bool bFollowsSeparator = ItemIndex == 0 || dynamic_cast< Separator^ >( OutPackageListMenuItems[ItemIndex - 1] ) != nullptr;
+		if ( bIsTrailing || bFollowsSeparator )
+		{
+			OutPackageListMenuItems->RemoveAt( ItemIndex );
+		}
+	}
+#endif
 }
 
 
@@ -5279,6 +5326,7 @@ void MContentBrowserControl::QueryPackageTreeContextMenuItems( TArray<FObjectSup
 	// Should be no elements before starting
 	OutSupportedCommands.Empty();
 
+#if !BATMAN
 	// Create the batch proces menu item first so the sound class menu items are parented correctly.
 	FObjectSupportedCommandType BatchProcess( IDMN_PackageContext_BatchProcess, LocalizeUnrealEd( "PackageContext_BatchProcess") );
 	INT BatchIndex = OutSupportedCommands.AddItem( BatchProcess ); 
@@ -5293,6 +5341,7 @@ void MContentBrowserControl::QueryPackageTreeContextMenuItems( TArray<FObjectSup
 	OutSupportedCommands.AddItem ( ClusterCommand );
 	OutSupportedCommands.AddItem ( ClusterAttCommand );
 	OutSupportedCommands.AddItem ( InsertChirpCommand );
+#endif
 
 }
 /**
