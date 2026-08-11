@@ -37,7 +37,10 @@ namespace ContentBrowser
 			UnrealEd.Utils.Localize("ContentBrowser_PackageList_MenuItem_FullyLoad"), "FullyLoad", typeof(PackageCommands));
         private static RoutedUICommand mUnloadPackage = new RoutedUICommand(
 			UnrealEd.Utils.Localize("ContentBrowser_PackageList_MenuItem_UnloadPackage"), "Unload", typeof(PackageCommands));
-        
+		// BM
+		private static RoutedUICommand mCookPackage = new RoutedUICommand(
+			"Cook Package...", "CookPackage", typeof(PackageCommands));
+
 		private static RoutedUICommand mImportAsset = new RoutedUICommand(
 			UnrealEd.Utils.Localize("ContentBrowser_PackageList_MenuItem_Import"), "ImportAsset", typeof(PackageCommands));
         private static RoutedUICommand mOpenPackage = new RoutedUICommand(
@@ -65,7 +68,9 @@ namespace ContentBrowser
 		public static RoutedUICommand SaveAsset              { get { return mSaveAsset; } }
         public static RoutedUICommand FullyLoadPackage       { get { return mFullyLoad; } }
         public static RoutedUICommand UnloadPackage          { get { return mUnloadPackage; } }
-        
+		// BM
+		public static RoutedUICommand CookPackage            { get { return mCookPackage; } }
+
 		public static RoutedUICommand ImportAsset            { get { return mImportAsset; } }
         public static RoutedUICommand OpenPackage            { get { return mOpenPackage; } }
         public static RoutedUICommand BulkExport             { get { return mBulkExport; } }

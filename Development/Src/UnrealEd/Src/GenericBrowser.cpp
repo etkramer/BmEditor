@@ -2071,67 +2071,6 @@ UBOOL WxGenericBrowser::SaveAsSelectedPackages()
 	return bAllPackagesWereSaved;
 }
 
-// BM: Saves SourcePackage as a standalone seekfree package, matching the layout the retail cooker produces for _SF packages.
-static UBOOL BmSaveStandaloneSeekFreePackage( UPackage* SourcePackage, const TCHAR* DstFilename )
-{
-	const FString DestPackageName = FFilename( DstFilename ).GetBaseFilename();
-	if( FindObject<UPackage>( NULL, *DestPackageName ) != NULL )
-	{
-		appMsgf( AMT_OK, TEXT("A package named '%s' is already loaded - pick a different filename."), *DestPackageName );
-		return FALSE;
-	}
-
-	const UBOOL OldIsCooking = GIsCooking;
-	const UE3::EPlatformType OldCookingTarget = GCookingTarget;
-	const INT OldLicenseeVersion = GPackageFileLicenseeVersion;
-
-	GIsCooking = TRUE;
-	GCookingTarget = UE3::PLATFORM_WindowsConsole;
-	GPackageFileLicenseeVersion = VER_BATMAN2;
-
-	UPackage* DestPackage = UObject::CreatePackage( NULL, *DestPackageName );
-	DestPackage->MakeNewGuid();
-	DestPackage->PackageFlags |= SourcePackage->PackageFlags & (PKG_AllowDownload | PKG_ClientOptional | PKG_ServerSideOnly);
-	DestPackage->PackageFlags |= PKG_Cooked | PKG_DisallowLazyLoading | PKG_RequireImportsAlreadyLoaded | PKG_StoreCompressed;
-	if( !(DestPackage->PackageFlags & PKG_ServerSideOnly) )
-	{
-		DestPackage->CreateEmptyNetInfo();
-	}
-
-	// Root every object of the source package so SavePackage walks out from there.
-	UObjectReferencer* Referencer = ConstructObject<UObjectReferencer>( UObjectReferencer::StaticClass(), DestPackage, NAME_None, RF_Cooked );
-	for( FObjectIterator It; It; ++It )
-	{
-		if( It->IsIn( SourcePackage ) )
-		{
-			Referencer->ReferencedObjects.AddItem( *It );
-		}
-	}
-
-	BmMarkSeekFreeForceExports( DestPackage );
-
-	const UBOOL bSaved = UObject::SavePackage( DestPackage, Referencer, RF_Standalone, DstFilename, GError );
-
-	for( FObjectIterator It; It; ++It )
-	{
-		It->ClearFlags( RF_ForceTagExp | RF_Saved );
-	}
-
-	// Move the temporary package aside so repeat saves of the same filename start clean.
-	Referencer->ClearFlags( RF_Standalone | RF_Public );
-	DestPackage->ClearFlags( RF_Standalone | RF_Public );
-	DestPackage->Rename(
-		*UObject::MakeUniqueObjectName( UObject::GetTransientPackage(), UPackage::StaticClass(), *DestPackageName ).ToString(),
-		UObject::GetTransientPackage(),
-		REN_ForceNoResetLoaders | REN_DoNotDirty );
-
-	GIsCooking = OldIsCooking;
-	GCookingTarget = OldCookingTarget;
-	GPackageFileLicenseeVersion = OldLicenseeVersion;
-
-	return bSaved;
-}
-
 UBOOL WxGenericBrowser::SaveAsCookedSelectedPackages()
 {
 	// Generate a list of unique packages.

@@ -242,4 +242,7 @@ void BmMarkSeekFreeForceExports( UPackage* DestPackage );
 // BM: Saves World and everything it references as a standalone cooked map, matching the layout the retail cooker produces.
 UBOOL BmSaveCookedLevel( UWorld* World, const TCHAR* DstFilename );
 
+// BM: Saves SourcePackage as a standalone seekfree package, matching the layout the retail cooker produces for _SF packages.
+UBOOL BmSaveStandaloneSeekFreePackage( UPackage* SourcePackage, const TCHAR* DstFilename );
+
 #endif

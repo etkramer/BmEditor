@@ -2524,6 +2524,7 @@ protected:
 		else if ( EvtArgs->Command == ContentBrowser::PackageCommands::UnloadPackage
 			||	EvtArgs->Command == Input::ApplicationCommands::Save 
 			||	EvtArgs->Command == ContentBrowser::PackageCommands::SaveAsset
+			||	EvtArgs->Command == ContentBrowser::PackageCommands::CookPackage
 			||	EvtArgs->Command == ContentBrowser::PackageCommands::CheckErrors )
 		{
 			bCanExecute = false;
@@ -8232,6 +8233,74 @@ void MContentBrowserControl::ExecutePackageCommand( System::Object^ Sender, Syst
 		SavePackages( Packages, FALSE );
 		RequestPackageListUpdate( false, NULL );
 		ContentBrowserCtrl->MyAssets->UpdateStatusForAllAssetsInView( ContentBrowser::AssetStatusUpdateFlags::LoadedStatus );
+	}
+	// BM: Mirrors WxGenericBrowser::SaveAsCookedSelectedPackages.
+	else if ( Command == ContentBrowser::PackageCommands::CookPackage )
+	{
+		EvtArgs->Handled = true;
+
+		// Get outermost packages, in case groups were selected.
+		TArray<UPackage*> CookPackages;
+		for ( INT PackageIndex = 0; PackageIndex < Packages.Num(); PackageIndex++ )
+		{
+			UPackage* Package = Packages(PackageIndex);
+			if ( Package != NULL )
+			{
+				CookPackages.AddUniqueItem( Package->GetOutermost() ? (UPackage*)Package->GetOutermost() : Package );
+			}
+		}
+
+		for ( INT PackageIndex = 0; PackageIndex < CookPackages.Num(); PackageIndex++ )
+		{
+			UPackage* Package = CookPackages(PackageIndex);
+			Package->FullyLoad();
+
+			// Maps are cooked from the level editor instead, where the world can be laid out properly.
+			if ( FindObject<UWorld>( Package, TEXT("TheWorld") ) != NULL )
+			{
+				appMsgf( AMT_OK, LocalizeSecure(LocalizeUnrealEd("Error_CantSaveMapViaGB"), *Package->GetName()) );
+				continue;
+			}
+
+			const FString File = FString::Printf( TEXT("%s%s.upk"), *Package->GetName(), STANDALONE_SEEKFREE_SUFFIX );
+
+			WxFileDialog SaveFileDialog( GApp->EditorFrame,
+				TEXT("Cook Package"),
+				*GApp->LastDir[LD_GENERIC_SAVE_COOKED],
+				*File,
+				TEXT("Unreal Packages (*.upk)|*.upk|All Files|*.*"),
+				wxSAVE,
+				wxDefaultPosition );
+
+			if ( SaveFileDialog.ShowModal() != wxID_OK )
+			{
+				continue;
+			}
+
+			GApp->LastDir[LD_GENERIC_SAVE_COOKED] = SaveFileDialog.GetDirectory();
+			FString SaveFileName = FString( SaveFileDialog.GetPath() );
+			if ( SaveFileName.Len() > 0 && FFilename( SaveFileName ).GetExtension().Len() == 0 )
+			{
+				SaveFileName += TEXT(".upk");
+			}
+
+			if ( GFileManager->IsReadOnly( *SaveFileName ) )
+			{
+				appMsgf( AMT_OK, *FString::Printf( LocalizeSecure(LocalizeUnrealEd("Error_CouldntWriteToFile_F"), *SaveFileName) ) );
+			}
+			else
+			{
+				const FScopedBusyCursor BusyCursor;
+				GWarn->BeginSlowTask( *FString::Printf( TEXT("Cooking %s..."), *Package->GetName() ), TRUE );
+				const UBOOL bCooked = BmSaveStandaloneSeekFreePackage( Package, *SaveFileName );
+				GWarn->EndSlowTask();
+
+				if ( !bCooked )
+				{
+					appMsgf( AMT_OK, *LocalizeUnrealEd("Error_CouldntSavePackage") );
+				}
+			}
+		}
 	}
 	else if ( Command == ContentBrowser::PackageCommands::FullyLoadPackage )
 	{

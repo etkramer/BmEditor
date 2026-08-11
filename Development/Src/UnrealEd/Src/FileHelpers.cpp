@@ -2715,6 +2715,18 @@ static void BmAddMaterialChain( UMaterialInterface* MaterialInterface, TArray<UM
 	}
 }
 
+// BM: Collects every material in a content package.
+static void BmGatherPackageMaterials( UPackage* SourcePackage, TArray<UMaterialInterface*>& OutMaterials )
+{
+	for( TObjectIterator<UMaterialInterface> It; It; ++It )
+	{
+		if( !It->HasAnyFlags( RF_ClassDefaultObject ) && It->IsIn( SourcePackage ) )
+		{
+			BmAddMaterialChain( *It, OutMaterials );
+		}
+	}
+}
+
 // BM: Collects the materials the level actually renders with. Everything being cooked lives under the
 // destination package by this point, so components outside it belong to something else entirely.
 static void BmGatherLevelMaterials( UPackage* DestPackage, TArray<UMaterialInterface*>& OutMaterials )
@@ -2739,8 +2751,7 @@ static void BmGatherLevelMaterials( UPackage* DestPackage, TArray<UMaterialInter
 
 // BM: The game can only compile the materials it shipped with, so anything it can't already resolve
 // needs its shaders cooked alongside the level. What it can resolve is exactly what sits in its
-// reference cache - and since editing a BM2 material changes its Id, doing so drops it back out of
-// there and it gets cooked in like any other custom material.
+// reference cache.
 static void BmAddMaterialShaderMaps( UShaderCache* ShaderCache, EShaderPlatform ShaderPlatform, const TArray<UMaterialInterface*>& Materials )
 {
 	UShaderCache* RefShaderCache = GetReferenceShaderCache( ShaderPlatform );
@@ -2813,14 +2824,11 @@ static void BmAddMaterialShaderMaps( UShaderCache* ShaderCache, EShaderPlatform 
 		NumSkipped );
 }
 
-// BM: Builds the shader caches the game picks up when it loads the level. Stock UE3 only does this for
+// BM: Builds the shader caches the game picks up when it loads the package. Stock UE3 only does this for
 // consoles, but the loader has no such restriction - every export in a seekfree package is serialized
 // before any material's PostLoad runs, so the shader maps are registered by the time they're looked up.
-static void BmCreateSeekFreeShaderCaches( UPackage* DestPackage, TArray<UShaderCache*>& OutShaderCaches )
+static void BmCreateSeekFreeShaderCaches( UPackage* DestPackage, const TArray<UMaterialInterface*>& Materials, TArray<UShaderCache*>& OutShaderCaches )
 {
-	TArray<UMaterialInterface*> Materials;
-	BmGatherLevelMaterials( DestPackage, Materials );
-
 	for( INT PlatformIndex = 0; PlatformIndex < ARRAY_COUNT(BmCookedShaderPlatforms); PlatformIndex++ )
 	{
 		const EShaderPlatform ShaderPlatform = BmCookedShaderPlatforms[PlatformIndex];
@@ -2894,8 +2902,11 @@ UBOOL BmSaveCookedLevel( UWorld* World, const TCHAR* DstFilename )
 
 	BmMarkSeekFreeForceExports( DestPackage );
 
+	TArray<UMaterialInterface*> Materials;
+	BmGatherLevelMaterials( DestPackage, Materials );
+
 	TArray<UShaderCache*> ShaderCaches;
-	BmCreateSeekFreeShaderCaches( DestPackage, ShaderCaches );
+	BmCreateSeekFreeShaderCaches( DestPackage, Materials, ShaderCaches );
 
 	const UBOOL bSaved = UObject::SavePackage( DestPackage, World, RF_Standalone, DstFilename, GError );
 
@@ -2923,6 +2934,78 @@ UBOOL BmSaveCookedLevel( UWorld* World, const TCHAR* DstFilename )
 		REN_ForceNoResetLoaders | REN_DoNotDirty );
 
 	SourcePackage->Rename( *SourcePackageName, NULL, REN_ForceNoResetLoaders | REN_DoNotDirty );
+
+	GIsCooking = OldIsCooking;
+	GCookingTarget = OldCookingTarget;
+	GPackageFileLicenseeVersion = OldLicenseeVersion;
+
+	return bSaved;
+}
+
+UBOOL BmSaveStandaloneSeekFreePackage( UPackage* SourcePackage, const TCHAR* DstFilename )
+{
+	const FString DestPackageName = FFilename( DstFilename ).GetBaseFilename();
+	if( FindObject<UPackage>( NULL, *DestPackageName ) != NULL )
+	{
+		appMsgf( AMT_OK, TEXT("A package named '%s' is already loaded - pick a different filename."), *DestPackageName );
+		return FALSE;
+	}
+
+	const UBOOL OldIsCooking = GIsCooking;
+	const UE3::EPlatformType OldCookingTarget = GCookingTarget;
+	const INT OldLicenseeVersion = GPackageFileLicenseeVersion;
+
+	GIsCooking = TRUE;
+	GCookingTarget = UE3::PLATFORM_WindowsConsole;
+	GPackageFileLicenseeVersion = VER_BATMAN2;
+
+	UPackage* DestPackage = UObject::CreatePackage( NULL, *DestPackageName );
+	DestPackage->MakeNewGuid();
+	DestPackage->PackageFlags |= SourcePackage->PackageFlags & (PKG_AllowDownload | PKG_ClientOptional | PKG_ServerSideOnly);
+	DestPackage->PackageFlags |= PKG_Cooked | PKG_DisallowLazyLoading | PKG_RequireImportsAlreadyLoaded | PKG_StoreCompressed;
+	if( !(DestPackage->PackageFlags & PKG_ServerSideOnly) )
+	{
+		DestPackage->CreateEmptyNetInfo();
+	}
+
+	// Root every object of the source package so SavePackage walks out from there.
+	UObjectReferencer* Referencer = ConstructObject<UObjectReferencer>( UObjectReferencer::StaticClass(), DestPackage, NAME_None, RF_Cooked );
+	for( FObjectIterator It; It; ++It )
+	{
+		if( It->IsIn( SourcePackage ) )
+		{
+			Referencer->ReferencedObjects.AddItem( *It );
+		}
+	}
+
+	BmMarkSeekFreeForceExports( DestPackage );
+
+	// Unlike a map cook, the contents stay put and only the referencer lives under the destination package.
+	TArray<UMaterialInterface*> Materials;
+	BmGatherPackageMaterials( SourcePackage, Materials );
+
+	TArray<UShaderCache*> ShaderCaches;
+	BmCreateSeekFreeShaderCaches( DestPackage, Materials, ShaderCaches );
+
+	const UBOOL bSaved = UObject::SavePackage( DestPackage, Referencer, RF_Standalone, DstFilename, GError );
+
+	for( FObjectIterator It; It; ++It )
+	{
+		It->ClearFlags( RF_ForceTagExp | RF_Saved );
+	}
+
+	for( INT CacheIndex = 0; CacheIndex < ShaderCaches.Num(); CacheIndex++ )
+	{
+		ShaderCaches(CacheIndex)->ClearFlags( RF_Standalone );
+	}
+
+	// Move the temporary package aside so repeat saves of the same filename start clean.
+	Referencer->ClearFlags( RF_Standalone | RF_Public );
+	DestPackage->ClearFlags( RF_Standalone | RF_Public );
+	DestPackage->Rename(
+		*UObject::MakeUniqueObjectName( UObject::GetTransientPackage(), UPackage::StaticClass(), *DestPackageName ).ToString(),
+		UObject::GetTransientPackage(),
+		REN_ForceNoResetLoaders | REN_DoNotDirty );
 
 	GIsCooking = OldIsCooking;
 	GCookingTarget = OldCookingTarget;
