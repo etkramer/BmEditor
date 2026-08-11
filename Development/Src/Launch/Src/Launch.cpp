@@ -380,11 +380,9 @@ static void SetupDPIAwareness( void )
 
 	if( SetAwarenessContext != NULL )
 	{
-		// DPI_AWARENESS_CONTEXT_UNAWARE_GDISCALED (Win10 1809+), falling back to DPI_AWARENESS_CONTEXT_UNAWARE
-		if( !SetAwarenessContext( (HANDLE)-5 ) )
-		{
-			SetAwarenessContext( (HANDLE)-1 );
-		}
+		// DPI_AWARENESS_CONTEXT_UNAWARE. GDISCALED (-5) renders sharper, but corrupts WPF's layered
+		// popup windows (context menus only repaint their dirty rect).
+		SetAwarenessContext( (HANDLE)-1 );
 	}
 }
 #endif

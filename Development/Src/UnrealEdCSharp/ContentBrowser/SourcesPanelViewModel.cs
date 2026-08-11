@@ -741,6 +741,13 @@ namespace ContentBrowser
 				SourceTreeNode NodeAtFoundLocation = ( (SourceTreeNode)Children[FoundIndex] );
 				if (NodeAtFoundLocation.Name == NewChild.Name)
 				{
+					// BM: Keep the existing node when it's equivalent. Replacing it forces the tree view to regenerate
+					// its containers, which loses the scroll position on every refresh.
+					if ( NodeAtFoundLocation.GetType() == NewChild.GetType() )
+					{
+						return (TNodeType)NodeAtFoundLocation;
+					}
+
 					NewChild.InitializeNode( m_Children[FoundIndex] );
 					m_Children[FoundIndex] = NewChild;
 				}
@@ -1079,10 +1086,11 @@ namespace ContentBrowser
 		{
 			ObjectContainerNode This = Sender as ObjectContainerNode;
 
-			foreach ( GroupPackage ChildPackage in This.Children )
+			// BM: Children may be Packages as well as GroupPackages (forced exports are nested under their containing package).
+			foreach ( ObjectContainerNode ChildPackage in This.Children )
 			{
 				ChildPackage.Status = (PackageStatus)e.NewValue;
-			}			 
+			}
 		}
 
 		/// <summary>
@@ -1107,7 +1115,7 @@ namespace ContentBrowser
 			}
 		}
 
-		public String ObjectPathName
+		virtual public String ObjectPathName
 		{
 			get
 			{
@@ -1128,7 +1136,8 @@ namespace ContentBrowser
 		{
 			if ( info == "Status" )
 			{
-				foreach ( GroupPackage group in m_Children )
+				// BM: See PackageStatusChanged.
+				foreach ( ObjectContainerNode group in m_Children )
 				{
 					group.Status = Status;
 				}
@@ -1215,6 +1224,12 @@ namespace ContentBrowser
 		override public Package OutermostPackage
 		{
 			get { return this; }
+		}
+
+		// BM: A Package is always a top-level UPackage, even when nested under the package file that force-exported it.
+		override public String ObjectPathName
+		{
+			get { return Name; }
 		}
 
 		#endregion

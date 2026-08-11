@@ -2158,6 +2158,10 @@ public:
 		FString NewPackageFolderName(TEXT("..\\..\\NewPackages\\"));
 		FString ExternalPackageFolderName(TEXT("..\\..\\External\\"));
 
+#if BATMAN
+		TArray<UPackage*> ForcedExportPackages;
+#endif
+
 		for (int PkgIdx=0; PkgIdx<LoadedPackageList.Num(); PkgIdx++)
 		{
 			FString OutFilename;
@@ -2166,6 +2170,23 @@ public:
 			const FGuid PackageGuid = Pkg->GetGuid();
 
 			GPackageFileCache->FindPackageFile(*PackageName, &PackageGuid, OutFilename);
+
+#if BATMAN
+			// BM: Skip the editor's scratch world packages (Untitled_N), which are created on startup and on every
+			// map load by UWorld::CreateNew and never contain browsable content.
+			if ( OutFilename.Len() == 0 && Pkg->ContainsMap() )
+			{
+				continue;
+			}
+
+			// BM: Force-exported packages have no file of their own, so nest them under the package containing them.
+			// Deferred until the rest of the tree is built, as the containing package's node has to exist first.
+			if ( OutFilename.Len() == 0 && !IsUsingFlatView && Pkg->GetForcedExportBasePackageName() != NAME_None )
+			{
+				ForcedExportPackages.AddItem( Pkg );
+				continue;
+			}
+#endif
 
 			if ( OutFilename.Len() == 0 )
 			{
@@ -2197,6 +2218,38 @@ public:
 				}
 			}
 		}
+
+#if BATMAN
+		for ( INT PkgIdx = 0; PkgIdx < ForcedExportPackages.Num(); PkgIdx++ )
+		{
+			UPackage* Pkg = ForcedExportPackages(PkgIdx);
+			ContentBrowser::ObjectContainerNode^ BaseNode = Sources->FindPackage( CLRTools::ToString( Pkg->GetForcedExportBasePackageName().ToString() ) );
+
+			ContentBrowser::Package^ PackageViewModel;
+			if ( BaseNode != nullptr )
+			{
+				PackageViewModel = BaseNode->AddChildNode<ContentBrowser::Package^>(
+					gcnew ContentBrowser::Package( BaseNode, CLRTools::ToString( Pkg->GetName() ) ) );
+			}
+			else
+			{
+				// Containing package isn't in the tree, so fall back to treating this as an unsaved package.
+				PackageViewModel = Sources->AddPackage( CLRTools::ToString( NewPackageFolderName + Pkg->GetName() ), IsUsingFlatView );
+			}
+
+			if ( PackageViewModel == nullptr )
+			{
+				continue;
+			}
+
+			PackageMap.Add( (IntPtr)Pkg, PackageViewModel );
+
+			if ( !bPackageListUpdateUIRequested )
+			{
+				UpdatePackagesTreeUI(PackageViewModel, Pkg);
+			}
+		}
+#endif
 
 
 		// Since objects (and hence, packages) can appear in any order in memory, we need to add the group packages to the tree
