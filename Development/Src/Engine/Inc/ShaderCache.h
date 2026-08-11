@@ -254,9 +254,16 @@ public:
 	}
 
 	/**
-	 * Returns a list of all material shader maps residing in this shader cache.	 
+	 * Returns a list of all material shader maps residing in this shader cache.
 	 */
 	TArray<TRefCountPtr<class FMaterialShaderMap> > GetMaterialShaderMap() const;
+
+	// BM
+	/** @return TRUE if this cache holds a shader map for the given material. */
+	UBOOL HasMaterialShaderMap( const FStaticParameterSet& StaticParameters ) const
+	{
+		return MaterialShaderMap.Find( StaticParameters ) != NULL;
+	}
 
 private:
 

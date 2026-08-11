@@ -2699,6 +2699,148 @@ static void BmMoveObjectToPackage( UObject* Object, UPackage* NewOuter )
 	}
 }
 
+// BM: Shader platforms a cooked level carries material shaders for.
+static const EShaderPlatform BmCookedShaderPlatforms[] = { SP_PCD3D_SM3, SP_PCD3D_SM5 };
+
+// BM: An instance without a static permutation of its own renders with the resource of whichever
+// parent has one, so the whole chain has to be considered.
+static void BmAddMaterialChain( UMaterialInterface* MaterialInterface, TArray<UMaterialInterface*>& OutMaterials )
+{
+	while( MaterialInterface )
+	{
+		OutMaterials.AddUniqueItem( MaterialInterface );
+
+		UMaterialInstance* MaterialInstance = Cast<UMaterialInstance>( MaterialInterface );
+		MaterialInterface = MaterialInstance ? MaterialInstance->Parent : NULL;
+	}
+}
+
+// BM: Collects the materials the level actually renders with. Everything being cooked lives under the
+// destination package by this point, so components outside it belong to something else entirely.
+static void BmGatherLevelMaterials( UPackage* DestPackage, TArray<UMaterialInterface*>& OutMaterials )
+{
+	for( TObjectIterator<UPrimitiveComponent> It; It; ++It )
+	{
+		UPrimitiveComponent* Primitive = *It;
+		if( Primitive->HasAnyFlags( RF_ClassDefaultObject ) || !Primitive->IsIn( DestPackage ) )
+		{
+			continue;
+		}
+
+		TArray<UMaterialInterface*> UsedMaterials;
+		Primitive->GetUsedMaterials( UsedMaterials );
+
+		for( INT MaterialIndex = 0; MaterialIndex < UsedMaterials.Num(); MaterialIndex++ )
+		{
+			BmAddMaterialChain( UsedMaterials(MaterialIndex), OutMaterials );
+		}
+	}
+}
+
+// BM: The game can only compile the materials it shipped with, so anything it can't already resolve
+// needs its shaders cooked alongside the level. What it can resolve is exactly what sits in its
+// reference cache - and since editing a BM2 material changes its Id, doing so drops it back out of
+// there and it gets cooked in like any other custom material.
+static void BmAddMaterialShaderMaps( UShaderCache* ShaderCache, EShaderPlatform ShaderPlatform, const TArray<UMaterialInterface*>& Materials )
+{
+	UShaderCache* RefShaderCache = GetReferenceShaderCache( ShaderPlatform );
+
+	INT NumAdded = 0;
+	INT NumSkipped = 0;
+
+	for( INT MaterialIndex = 0; MaterialIndex < Materials.Num(); MaterialIndex++ )
+	{
+		UMaterialInterface* MaterialInterface = Materials(MaterialIndex);
+
+		FMaterialResource* MaterialResource = MaterialInterface->GetMaterialResource( MSP_SM3 );
+		if( !MaterialResource )
+		{
+			continue;
+		}
+
+		UMaterialInstance* MaterialInstance = Cast<UMaterialInstance>( MaterialInterface );
+		if( MaterialInstance )
+		{
+			// Only instances with a static permutation have shaders of their own. Caching is cheap when
+			// the shaders already exist, and it's the only way to learn the instance's shader map id.
+			if( !MaterialInstance->bHasStaticPermutationResource )
+			{
+				continue;
+			}
+
+			MaterialInstance->CacheResourceShaders( ShaderPlatform, FALSE, FALSE );
+			if( FMaterialShaderMap* ShaderMap = MaterialResource->GetShaderMap() )
+			{
+				if( RefShaderCache && RefShaderCache->HasMaterialShaderMap( ShaderMap->GetMaterialId() ) )
+				{
+					NumSkipped++;
+					continue;
+				}
+
+				ShaderCache->AddMaterialShaderMap( ShaderMap );
+				debugf( NAME_Log, TEXT("  Cooking shaders for %s"), *MaterialInterface->GetPathName() );
+				NumAdded++;
+				continue;
+			}
+		}
+		else
+		{
+			FStaticParameterSet EmptySet( MaterialResource->GetId() );
+			if( RefShaderCache && RefShaderCache->HasMaterialShaderMap( EmptySet ) )
+			{
+				NumSkipped++;
+				continue;
+			}
+
+			TRefCountPtr<FMaterialShaderMap> ShaderMap;
+			if( MaterialResource->Compile( &EmptySet, ShaderPlatform, ShaderMap, FALSE ) )
+			{
+				ShaderCache->AddMaterialShaderMap( ShaderMap );
+				debugf( NAME_Log, TEXT("  Cooking shaders for %s"), *MaterialInterface->GetPathName() );
+				NumAdded++;
+				continue;
+			}
+		}
+
+		warnf( NAME_Warning, TEXT("Failed to compile %s for %s, the game will use DefaultMaterial instead."),
+			*MaterialInterface->GetPathName(),
+			ShaderPlatformToText( ShaderPlatform ) );
+	}
+
+	debugf( NAME_Log, TEXT("Cooked %i material shader maps for %s (%i already in RefShaderCache)"),
+		NumAdded,
+		ShaderPlatformToText( ShaderPlatform ),
+		NumSkipped );
+}
+
+// BM: Builds the shader caches the game picks up when it loads the level. Stock UE3 only does this for
+// consoles, but the loader has no such restriction - every export in a seekfree package is serialized
+// before any material's PostLoad runs, so the shader maps are registered by the time they're looked up.
+static void BmCreateSeekFreeShaderCaches( UPackage* DestPackage, TArray<UShaderCache*>& OutShaderCaches )
+{
+	TArray<UMaterialInterface*> Materials;
+	BmGatherLevelMaterials( DestPackage, Materials );
+
+	for( INT PlatformIndex = 0; PlatformIndex < ARRAY_COUNT(BmCookedShaderPlatforms); PlatformIndex++ )
+	{
+		const EShaderPlatform ShaderPlatform = BmCookedShaderPlatforms[PlatformIndex];
+		const FString CacheName = FString::Printf( TEXT("SeekFreeShaderCache-%s"), ShaderPlatformToText( ShaderPlatform ) );
+
+		UShaderCache* ShaderCache = new( DestPackage, *CacheName, RF_Standalone ) UShaderCache( ShaderPlatform );
+		BmAddMaterialShaderMaps( ShaderCache, ShaderPlatform, Materials );
+
+		if( ShaderCache->IsEmpty() )
+		{
+			// Nothing to ship for this platform, so keep it out of the package entirely.
+			ShaderCache->ClearFlags( RF_Standalone );
+		}
+		else
+		{
+			OutShaderCaches.AddItem( ShaderCache );
+		}
+	}
+}
+
 UBOOL BmSaveCookedLevel( UWorld* World, const TCHAR* DstFilename )
 {
 	UPackage* SourcePackage = World->GetOutermost();
@@ -2752,11 +2894,20 @@ UBOOL BmSaveCookedLevel( UWorld* World, const TCHAR* DstFilename )
 
 	BmMarkSeekFreeForceExports( DestPackage );
 
+	TArray<UShaderCache*> ShaderCaches;
+	BmCreateSeekFreeShaderCaches( DestPackage, ShaderCaches );
+
 	const UBOOL bSaved = UObject::SavePackage( DestPackage, World, RF_Standalone, DstFilename, GError );
 
 	for( FObjectIterator It; It; ++It )
 	{
 		It->ClearFlags( RF_ForceTagExp | RF_Saved );
+	}
+
+	// Let the caches go with the temporary package now that they've been written out.
+	for( INT CacheIndex = 0; CacheIndex < ShaderCaches.Num(); CacheIndex++ )
+	{
+		ShaderCaches(CacheIndex)->ClearFlags( RF_Standalone );
 	}
 
 	// Move the temporary package aside before restoring the source name, in case the two match.

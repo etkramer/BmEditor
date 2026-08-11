@@ -1090,9 +1090,11 @@ void BM2ProcessNoLightCompatibleBasePassMesh(
 	const ProcessActionType& Action
 	)
 {
+	// Editor-compiled materials cache FNoLightMapPolicy shaders, so only substitute when they're missing
 	if (Parameters.LightingModel != MLM_Unlit
 		&& Parameters.Mesh.VertexFactory->GetType()->SupportsStaticLighting()
-		&& (Parameters.Material->IsUsedWithStaticLighting() || Parameters.Material->IsSpecialEngineMaterial()))
+		&& (Parameters.Material->IsUsedWithStaticLighting() || Parameters.Material->IsSpecialEngineMaterial())
+		&& !BM2HasCookedBasePassNoSkyLightShaders<FNoLightMapPolicy>(Parameters.Material, Parameters.Mesh.VertexFactory->GetType()))
 	{
 		ProcessBasePassMesh_LightMapped<ProcessActionType, FDirectionalLightMapTexturePolicy>(
 			Parameters,
