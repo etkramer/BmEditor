@@ -68,6 +68,8 @@ public:
 	/// and must be sorted by increasing time.
 	/// \note Internal Use Only
 	void SetKeys( const FxReal* pKeys, FxSize numKeys );
+	// BM: only implemented on consoles, where FxAnimKey is stored compressed.
+	void SetCompressedKeys( const FxByte* pKeys, FxSize numKeys, FxSize numBytes );
 	/// Removes the key at index.
 	void RemoveKey( FxSize index );
 	/// Removes all the keys from the curve.

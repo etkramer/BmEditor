@@ -3817,17 +3817,6 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 			LoadClass = UClass::StaticClass();
 		}
 
-#if BATMAN
-        // BM: Skip currently unsupported types.
-        if (IsBmCooked() && (
-			LoadClass->GetName() == "FaceFxAsset" ||
-            LoadClass->GetName() == "FaceFxAnimSet"
-        ))
-        {
-            return NULL;
-        }
-#endif
-
 #if SUPPORTS_SCRIPTPATCH_CREATION
 		//@script patcher: when running the patch commandlet, we'll have multiple versions of native classes in memory, but only the first will
 		// receive the correct ClassConstructor, so if we're about to create a class that already exists in memory (in another package), copy its class

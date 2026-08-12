@@ -245,6 +245,12 @@ public:
 	 */
 	void MergeVisibleLevels( UBOOL bDiscardHiddenLevels );
 
+	// BM
+	/**
+	 * Merges the contents (actors and Kismet) of the specified level into the current level, then removes it.
+	 */
+	void MergeLevelIntoCurrentLevel( ULevel* SrcLevel );
+
 	/**
 	 * Selects all actors in the selected levels.
 	 */
@@ -491,6 +497,9 @@ private:
 	void ShowSelectedLevelsInContentBrowser(wxCommandEvent& In);
 
 	void MoveActorsToThisLevel(wxCommandEvent& In);
+
+	// BM
+	void OnMergeLevelIntoCurrentLevel(wxCommandEvent& In);
 
 	/**
 	 * Selects all actors in the selected levels.

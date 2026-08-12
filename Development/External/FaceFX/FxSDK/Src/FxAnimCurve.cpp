@@ -123,6 +123,10 @@ void FxAnimCurve::SetKeys( const FxReal* pKeys, FxSize numKeys )
 	}
 }
 
+void FxAnimCurve::SetCompressedKeys( const FxByte* /*pKeys*/, FxSize /*numKeys*/, FxSize /*numBytes*/ )
+{
+}
+
 void FxAnimCurve::RemoveKey( FxSize index )
 {
 	_keys.Remove(index);

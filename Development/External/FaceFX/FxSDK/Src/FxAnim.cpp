@@ -25,7 +25,8 @@ FxArchive& operator<<( FxArchive& arc, FxAnimBoneWeight& animBoneWeight )
 	return arc;
 }
 
-#define kCurrentFxAnimVersion 6
+// BM: version 7 adds the compressed key flag
+#define kCurrentFxAnimVersion 7
 
 FX_IMPLEMENT_CLASS(FxAnim, kCurrentFxAnimVersion, FxNamedObject)
 
@@ -190,6 +191,10 @@ void FxAnim::Serialize( FxArchive& arc )
 			numKeys += tempNumKeys;
 		}
 
+		// BM: compressed key saving is console-only, so always save uncompressed.
+		FxBool bUseCompressedKeys = FxFalse;
+		arc << bUseCompressedKeys;
+
 		arc << numKeys;
 
 		if( numKeys > 0 )
@@ -236,29 +241,59 @@ void FxAnim::Serialize( FxArchive& arc )
 		if( version >= 6 )
 		{
 			// Optimized key loading.
+			FxBool bUseCompressedKeys = FxFalse;
+			if( version >= 7 )
+			{
+				arc << bUseCompressedKeys;
+			}
 			FxSize numKeys;
 			arc << numKeys;
 
 			if( numKeys > 0 )
 			{
-				// Allocate the POD array.
-				FxReal* pKeys = static_cast<FxReal*>(FxAlloc(numKeys * 4 * sizeof(FxReal), "OptimizedKeyLoading"));
-
-				arc.SerializePODArray(pKeys, numKeys * 4);
-
-				FxArray<FxSize> curveNumKeys;
-				arc << curveNumKeys;
-
-				FxSize keysOffset = 0;
-				FxSize numCurves  = _animCurves.Length();
-				for( FxSize i = 0; i < numCurves; ++i )
+				if( bUseCompressedKeys )
 				{
-					_animCurves[i].SetKeys(pKeys + keysOffset, curveNumKeys[i]);
-					keysOffset += 4 * curveNumKeys[i];
-				}
+					// BM: 8 bytes per key (time, value, slopeIn, slopeOut as 16-bit).
+					FxByte* pKeys = static_cast<FxByte*>(FxAlloc(numKeys * 8, "CompressedKeyLoading"));
 
-				// Cleanup.
-				FxFree(pKeys, numKeys * 4 * sizeof(FxReal));
+					arc.SerializePODArray(pKeys, numKeys * 8);
+
+					FxArray<FxSize> curveNumKeys;
+					arc << curveNumKeys;
+
+					FxSize keysOffset = 0;
+					FxSize numCurves  = _animCurves.Length();
+					for( FxSize i = 0; i < numCurves; ++i )
+					{
+						FxSize numCurveBytes = 8 * curveNumKeys[i];
+						_animCurves[i].SetCompressedKeys(pKeys + keysOffset, curveNumKeys[i], numCurveBytes);
+						keysOffset += numCurveBytes;
+					}
+
+					// Cleanup.
+					FxFree(pKeys, numKeys * 8);
+				}
+				else
+				{
+					// Allocate the POD array.
+					FxReal* pKeys = static_cast<FxReal*>(FxAlloc(numKeys * 4 * sizeof(FxReal), "OptimizedKeyLoading"));
+
+					arc.SerializePODArray(pKeys, numKeys * 4);
+
+					FxArray<FxSize> curveNumKeys;
+					arc << curveNumKeys;
+
+					FxSize keysOffset = 0;
+					FxSize numCurves  = _animCurves.Length();
+					for( FxSize i = 0; i < numCurves; ++i )
+					{
+						_animCurves[i].SetKeys(pKeys + keysOffset, curveNumKeys[i]);
+						keysOffset += 4 * curveNumKeys[i];
+					}
+
+					// Cleanup.
+					FxFree(pKeys, numKeys * 4 * sizeof(FxReal));
+				}
 			}
 		}
 		if( version < 5 )

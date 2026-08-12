@@ -1179,6 +1179,12 @@ void WxLevelPane::WxLevelWindow::OnRightButtonDown(wxMouseEvent& In)
 				{
 					Append( IDM_LB_MoveSelectedActorsToThisLevel, *LocalizeUnrealEd("LevelBrowser_MakeCurrentMoveActorsToThisLevel"), TEXT("") );
 				}
+
+				// BM
+				if( !bLevelItemIsCurrent && Level != GWorld->PersistentLevel )
+				{
+					Append( IDM_LB_MergeLevelIntoCurrentLevel, *LocalizeUnrealEd("LevelBrowser_MergeLevelIntoCurrentLevel"), TEXT("") );
+				}
 			}
 			else if( InLevelItem.IsLevelGridVolume() )
 			{
@@ -1473,6 +1479,9 @@ BEGIN_EVENT_TABLE( WxLevelBrowser, WxBrowser )
 	EVT_MENU( IDM_LB_InvertLevelSelection, WxLevelBrowser::OnInvertSelection )
 
 	EVT_MENU( IDM_LB_MoveSelectedActorsToThisLevel, WxLevelBrowser::MoveActorsToThisLevel )
+
+	// BM
+	EVT_MENU( IDM_LB_MergeLevelIntoCurrentLevel, WxLevelBrowser::OnMergeLevelIntoCurrentLevel )
 
 	EVT_MENU( IDM_LB_AddSelectedLevelsToLevelStreamingVolumes, WxLevelBrowser::OnAddStreamingLevelVolumes )
 	EVT_MENU( IDM_LB_SetSelectedLevelsToLevelStreamingVolumes, WxLevelBrowser::OnSetStreamingLevelVolumes )
@@ -2712,6 +2721,146 @@ void WxLevelBrowser::MergeVisibleLevels( UBOOL bDiscardHiddenLevels )
 	FEditorFileUtils::SaveAs( GWorld );
 }
 
+// BM
+/**
+ * Moves the contents of the source level's Kismet sequence into the destination level's sequence.
+ *
+ * @param	ActorReplacementMap		Maps actors that were moved out of the source level to their replacements in the destination level
+ */
+static void MergeLevelKismetIntoLevel( ULevel* SrcLevel, ULevel* DestLevel, const TMap<AActor*,AActor*>& ActorReplacementMap )
+{
+	USequence* SrcSequence = SrcLevel->GetGameSequence();
+	if( !SrcSequence || SrcSequence->SequenceObjects.Num() == 0 )
+	{
+		return;
+	}
+
+	USequence* DestSequence = DestLevel->GetGameSequence();
+	if( !DestSequence )
+	{
+		DestSequence = ConstructObject<USequence>( USequence::StaticClass(), DestLevel, TEXT("Main_Sequence"), RF_Transactional );
+		GWorld->SetGameSequence( DestSequence, DestLevel );
+	}
+
+	// Repoint references to actors that the actor merge replaced with copies in the destination level.
+	if( ActorReplacementMap.Num() > 0 )
+	{
+		FArchiveReplaceObjectRef<AActor> ReplaceAr( SrcSequence, ActorReplacementMap, FALSE, FALSE, FALSE );
+	}
+
+	// Place the merged objects to the right of the existing graph so they don't overlap it.
+	INT OffsetX = 0;
+	for( INT ObjIndex = 0 ; ObjIndex < DestSequence->SequenceObjects.Num() ; ++ObjIndex )
+	{
+		const USequenceObject* DestObj = DestSequence->SequenceObjects( ObjIndex );
+		if( DestObj )
+		{
+			OffsetX = Max( OffsetX, DestObj->ObjPosX + DestObj->DrawWidth + 256 );
+		}
+	}
+
+	SrcSequence->Modify();
+	DestSequence->Modify();
+
+	// Reparent rather than copy so that all links and variable bindings survive intact.
+	TArray<USequenceObject*> ObjectsToMove = SrcSequence->SequenceObjects;
+	for( INT ObjIndex = 0 ; ObjIndex < ObjectsToMove.Num() ; ++ObjIndex )
+	{
+		USequenceObject* SeqObj = ObjectsToMove( ObjIndex );
+		if( !SeqObj )
+		{
+			continue;
+		}
+
+		FName NewName = SeqObj->GetFName();
+		if( UObject::StaticFindObject( NULL, DestSequence, *NewName.ToString() ) )
+		{
+			NewName = UObject::MakeUniqueObjectName( DestSequence, SeqObj->GetClass(), NewName );
+		}
+
+		SeqObj->Rename( *NewName.ToString(), DestSequence );
+		SeqObj->ObjPosX += OffsetX;
+		DestSequence->AddSequenceObject( SeqObj );
+	}
+
+	SrcSequence->SequenceObjects.Empty();
+	DestSequence->MarkPackageDirty();
+}
+
+// BM
+/**
+ * Merges the contents (actors and Kismet) of the specified level into the current level, then removes it.
+ */
+void WxLevelBrowser::MergeLevelIntoCurrentLevel( ULevel* SrcLevel )
+{
+	ULevel* DestLevel = GWorld->CurrentLevel;
+	if( !SrcLevel || !DestLevel || SrcLevel == DestLevel )
+	{
+		return;
+	}
+
+	// The move works off the selection, so the source level has to be visible. It's removed below anyway.
+	if( !FLevelUtils::IsLevelVisible( SrcLevel ) )
+	{
+		FLevelUtils::SetLevelVisibility( FLevelUtils::FindStreamingLevel( SrcLevel ), SrcLevel, TRUE, FALSE );
+	}
+
+	// Select everything in the source level, skipping its WorldInfo and default brush.
+	GEditor->SelectNone( FALSE, TRUE );
+	TMap<FName,AActor*> OldActorsByName;
+	for( INT ActorIndex = 2 ; ActorIndex < SrcLevel->Actors.Num() ; ++ActorIndex )
+	{
+		AActor* Actor = SrcLevel->Actors( ActorIndex );
+		if( Actor )
+		{
+			OldActorsByName.Set( Actor->GetFName(), Actor );
+			GEditor->SelectActor( Actor, TRUE, NULL, FALSE, TRUE );
+		}
+	}
+
+	const UBOOL bUseCurrentLevelGridVolume = FALSE;
+	GEditor->MoveSelectedActorsToCurrentLevel( bUseCurrentLevelGridVolume );
+
+	// The move leaves the newly created actors selected; pair them up with the originals by name.
+	TMap<AActor*,AActor*> ActorReplacementMap;
+	for( FSelectionIterator It( GEditor->GetSelectedActorIterator() ) ; It ; ++It )
+	{
+		AActor* NewActor = static_cast<AActor*>( *It );
+		AActor** OldActor = OldActorsByName.Find( NewActor->GetFName() );
+		if( OldActor && *OldActor != NewActor )
+		{
+			ActorReplacementMap.Set( *OldActor, NewActor );
+		}
+	}
+
+	MergeLevelKismetIntoLevel( SrcLevel, DestLevel, ActorReplacementMap );
+
+	// Deselect any actors left behind in the source level, as they're about to become invalid.
+	for( INT ActorIndex = 0 ; ActorIndex < SrcLevel->Actors.Num() ; ++ActorIndex )
+	{
+		GEditor->SelectActor( SrcLevel->Actors( ActorIndex ), FALSE, NULL, FALSE );
+	}
+
+	// Disassociate the level from any streaming volumes, since it's about to be removed.
+	ULevelStreaming* SrcStreamingLevel = FLevelUtils::FindStreamingLevel( SrcLevel );
+	if( SrcStreamingLevel )
+	{
+		for( INT VolumeIndex = 0 ; VolumeIndex < SrcStreamingLevel->EditorStreamingVolumes.Num() ; ++VolumeIndex )
+		{
+			ALevelStreamingVolume* LevelStreamingVolume = SrcStreamingLevel->EditorStreamingVolumes( VolumeIndex );
+			if( LevelStreamingVolume )
+			{
+				LevelStreamingVolume->Modify();
+				LevelStreamingVolume->StreamingLevels.RemoveItem( SrcStreamingLevel );
+			}
+		}
+		SrcStreamingLevel->EditorStreamingVolumes.Empty();
+	}
+
+	DeselectLevelItem( SrcLevel );
+	EditorLevelUtils::RemoveLevelFromWorld( SrcLevel );
+}
+
 /**
  * Selects all actors in the selected levels.
  */
@@ -3102,6 +3251,77 @@ void WxLevelBrowser::MoveActorsToThisLevel(wxCommandEvent& In)
 
 		GEditor->MoveSelectedActorsToCurrentLevel( TRUE );
 	}
+}
+
+// BM
+void WxLevelBrowser::OnMergeLevelIntoCurrentLevel(wxCommandEvent& In)
+{
+	ULevel* DestLevel = GWorld->CurrentLevel;
+	if( !DestLevel )
+	{
+		return;
+	}
+
+	// Gather the levels to merge, ignoring the current level and the persistent level.
+	TArray<ULevel*> LevelsToMerge;
+	for ( TSelectedLevelItemIterator It = SelectedLevelItemIterator() ; It ; ++It )
+	{
+		if( It->IsLevel() )
+		{
+			ULevel* CurLevel = It->GetLevel();
+			if( CurLevel && CurLevel != DestLevel && CurLevel != GWorld->PersistentLevel )
+			{
+				LevelsToMerge.AddUniqueItem( CurLevel );
+			}
+		}
+	}
+
+	if( LevelsToMerge.Num() == 0 )
+	{
+		return;
+	}
+
+	// Disallow if any level involved is cooked or locked.
+	if( ( DestLevel->GetOutermost()->PackageFlags & PKG_Cooked ) != 0 )
+	{
+		appMsgf( AMT_OK, *LocalizeUnrealEd("Error_OperationDisallowedOnCookedContent") );
+		return;
+	}
+	if( FLevelUtils::IsLevelLocked( DestLevel ) )
+	{
+		appMsgf( AMT_OK, *LocalizeUnrealEd("Error_OperationDisallowedOnLockedLevel") );
+		return;
+	}
+	for( INT LevelIndex = 0 ; LevelIndex < LevelsToMerge.Num() ; ++LevelIndex )
+	{
+		ULevel* CurLevel = LevelsToMerge( LevelIndex );
+		if( ( CurLevel->GetOutermost()->PackageFlags & PKG_Cooked ) != 0 )
+		{
+			appMsgf( AMT_OK, *LocalizeUnrealEd("Error_OperationDisallowedOnCookedContent") );
+			return;
+		}
+		if( FLevelUtils::IsLevelLocked( CurLevel ) )
+		{
+			appMsgf( AMT_OK, *LocalizeUnrealEd("Error_OperationDisallowedOnLockedLevel") );
+			return;
+		}
+	}
+
+	if( !appMsgf( AMT_YesNo, *LocalizeUnrealEd("LevelBrowser_MergeLevelIntoCurrentLevelPrompt"), LevelsToMerge.Num(), *DestLevel->GetOutermost()->GetName() ) )
+	{
+		return;
+	}
+
+	const FScopedBusyCursor BusyCursor;
+
+	for( INT LevelIndex = 0 ; LevelIndex < LevelsToMerge.Num() ; ++LevelIndex )
+	{
+		MergeLevelIntoCurrentLevel( LevelsToMerge( LevelIndex ) );
+	}
+
+	GCallbackEvent->Send( CALLBACK_RefreshEditor_Kismet );
+	GCallbackEvent->Send( CALLBACK_RefreshEditor_AllBrowsers );
+	GCallbackEvent->Send( CALLBACK_RedrawAllViewports );
 }
 
 void WxLevelBrowser::OnMergeVisibleLevels(wxCommandEvent& In)

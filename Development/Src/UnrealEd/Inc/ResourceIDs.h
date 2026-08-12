@@ -1951,6 +1951,8 @@ enum
 	IDM_LB_ShowOnlySelectedLevels,
 	IDM_LB_ShowOnlyUnselectedLevels,
 	IDM_LB_MoveSelectedActorsToThisLevel,
+	// BM
+	IDM_LB_MergeLevelIntoCurrentLevel,
 	IDM_LB_SetSelectedLevelsToLevelStreamingVolumes,
 	IDM_LB_AddSelectedLevelsToLevelStreamingVolumes,
 	IDM_LB_ClearLevelStreamingVolumeAssignments,

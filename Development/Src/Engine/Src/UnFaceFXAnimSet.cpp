@@ -261,6 +261,31 @@ void UFaceFXAnimSet::PostLoad()
 {
 	Super::PostLoad();
 
+#if BATMAN
+	// BM: the FaceFX data is loaded here rather than in Serialize.
+#if WITH_FACEFX
+	FxAnimSet* AnimSet = GetFxAnimSet();
+	if( AnimSet )
+	{
+		delete AnimSet;
+	}
+	AnimSet = new FxAnimSet();
+	InternalFaceFXAnimSet = AnimSet;
+
+	if( !FxLoadAnimSetFromMemory(*AnimSet, static_cast<FxByte*>(RawFaceFXAnimSetBytes.GetData()), RawFaceFXAnimSetBytes.Num()) )
+	{
+		warnf(TEXT("FaceFX: Failed to load animset for %s"), *GetPathName());
+	}
+#endif
+
+	// Flush raw bytes that are only needed in the editor and ucc.
+	if( !GIsEditor && !GIsUCC )
+	{
+		RawFaceFXAnimSetBytes.Empty();
+		RawFaceFXMiniSessionBytes.Empty();
+	}
+#endif
+
 	if( ( GIsEditor == TRUE ) && ( GIsCooking == FALSE ) && ( GIsUCC == FALSE ) )
 	{
 		FixupReferencedSoundCues();
@@ -344,6 +369,8 @@ void UFaceFXAnimSet::Serialize(FArchive& Ar)
 		Ar << RawFaceFXAnimSetBytes;
 		Ar << RawFaceFXMiniSessionBytes;
 
+		// BM: the FaceFX data is loaded in PostLoad instead.
+#if !BATMAN
 #if WITH_FACEFX
 		if( AnimSet )
 		{
@@ -375,10 +402,11 @@ void UFaceFXAnimSet::Serialize(FArchive& Ar)
 		}
 
 #if LOG_FACEFX_PERF
-		debugf(TEXT("DevFaceFX_Perf: Loading animset %s : (Total Bytes: %d) Serialization: %f ms"), 
+		debugf(TEXT("DevFaceFX_Perf: Loading animset %s : (Total Bytes: %d) Serialization: %f ms"),
 			*GetPathName(),
 			NumBytes,
 			(EndSerialization-StartSerialization)*GSecondsPerCycle*1000.0f);
+#endif
 #endif
 	}
 	else if( Ar.IsCountingMemory() )

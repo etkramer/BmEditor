@@ -53,3 +53,13 @@ Plugins/**/Intermediate/*
 
 # Cache files for the editor to use
 DerivedDataCache/*
+
+# FaceFX SDK build output
+Development/External/FaceFX/FxSDK/intermediate/*
+Development/External/FaceFX/FxSDK/lib/**/*.idb
+Development/External/FaceFX/FxSDK/lib/**/*.pdb
+
+# FaceFX Studio per-user state
+/Engine/EditorResources/FaceFX/FxStudioConfig.ini
+/Engine/EditorResources/FaceFX/Logs/*
+!/Engine/EditorResources/FaceFX/Logs/placeholder.txt
