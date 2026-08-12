@@ -242,6 +242,13 @@ void UModel::Serialize( FArchive& Ar )
  	if (Ar.Ver() >= VER_INTEGRATED_LIGHTMASS)
  	{
  		Ar << LightmassSettings;
+
+		// BM: cooked packages serialize an empty array, so fall back to defaults
+		if (LightmassSettings.Num() == 0)
+		{
+			FLightmassPrimitiveSettings TempSettings(EC_NativeConstructor);
+			LightmassSettings.AddItem(TempSettings);
+		}
  	}
 	else
 	{
