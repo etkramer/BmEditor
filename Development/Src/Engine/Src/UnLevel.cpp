@@ -764,7 +764,7 @@ void ULevel::PostLoad()
 		}
 	}
 
-#if BATMAN && 0
+#if BATMAN
 	// Expand AStaticLightCollectionActors on load
 	if (GIsEditor)
 	{
@@ -827,23 +827,25 @@ void ULevel::PostLoad()
 					// Add actor to level
 					if (LightActor)
 					{
-						// Destroy default component for newly-created actor
-						LightActor->Components.Remove(0);
-
 						Actors.AddItem(LightActor);
 						LightActor->WorldInfo = GetWorldInfo();
 						LightActor->Location = LightToWorld.GetOrigin();
 						LightActor->Rotation = LightToWorld.Rotator();
 
-						// Copy light properties from original
-						LightActor->LightComponent->LightGuid = LightComp->LightGuid;
-						LightActor->LightComponent->LightmapGuid = LightComp->LightmapGuid;
-						LightActor->LightComponent->CastShadows = LightComp->CastShadows;
-						LightActor->LightComponent->CastStaticShadows = LightComp->CastStaticShadows;
-						LightActor->LightComponent->CastDynamicShadows = LightComp->CastDynamicShadows;
+						// Assign light component to actor
+						UPointLightComponent* DefaultPointLight = Cast<UPointLightComponent>(LightActor->LightComponent);
+						UPointLightComponent* PointLightComp = Cast<UPointLightComponent>(LightComp);
+						if (DefaultPointLight && PointLightComp)
+						{
+							PointLightComp->PreviewLightRadius = DefaultPointLight->PreviewLightRadius;
+							PointLightComp->PreviewLightSourceRadius = DefaultPointLight->PreviewLightSourceRadius;
+						}
 
-						LightActor->LightComponent->SetLightProperties(LightComp->Brightness, LightComp->LightColor, LightComp->Function);
-						LightActor->LightComponent->SetEnabled(LightComp->bEnabled);
+						LightActor->Components.RemoveItem(LightActor->LightComponent);
+
+						LightComp->Rename(NULL, LightActor, REN_ForceNoResetLoaders);
+						LightActor->LightComponent = LightComp;
+						LightActor->Components.AddItem(LightComp);
 
 						LightCollection->Components.Remove(CompIndex--);
 					}
@@ -872,7 +874,7 @@ void ULevel::PostLoad()
 
 				for (INT CompIndex = 0; CompIndex < MeshCollection->Components.Num(); CompIndex++)
 				{
-					UStaticMeshComponent* MeshComp = (UStaticMeshComponent*)MeshCollection->Components(CompIndex);
+					UStaticMeshComponent* MeshComp = Cast<UStaticMeshComponent>(MeshCollection->Components(CompIndex));
 					if (!MeshComp)
 					{
 						continue;
@@ -892,7 +894,7 @@ void ULevel::PostLoad()
 
 				if (!MeshCollection->Components.Num())
 				{
-					Actors.RemoveItem(MeshCollection);
+					Actors.Remove(ActorIndex--);
 				}
 			}
 		}
