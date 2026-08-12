@@ -633,6 +633,9 @@ public:
 		ShaderMap(NULL),
 		Id(0,0,0,0),
 		LegacyUniformExpressions(NULL),
+#if BATMAN
+		bBmCookedUniformExpressionTextures(FALSE),
+#endif
 		UsingTransforms(UsedCoord_None),
 		bUsesSceneColor(FALSE),
 		bUsesSceneDepth(FALSE),
@@ -968,6 +971,10 @@ protected:
 
 	UBOOL HasLegacyUniformExpressions() const { return LegacyUniformExpressions != NULL; }
 
+#if BATMAN
+	UBOOL HasBmCookedUniformExpressionTextures() const { return bBmCookedUniformExpressionTextures; }
+#endif
+
 	/** Useful for debugging. */
 	virtual FString GetBaseMaterialPathName() const { return TEXT(""); }
 
@@ -1001,6 +1008,11 @@ private:
 
 	/** If non-NULL, contains legacy uniform expressions. */
 	FUniformExpressionSet* LegacyUniformExpressions;
+
+#if BATMAN
+	// Set when UniformExpressionTextures was deserialized from a retail BM2 package
+	UBOOL bBmCookedUniformExpressionTextures;
+#endif
 
 	/** Information about each texture lookup in the pixel shader. */
 	FTextureLookupInfo	TextureLookups;

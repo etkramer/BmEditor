@@ -989,6 +989,13 @@ void FMaterial::Serialize(FArchive& Ar)
 	else
 	{
 		Ar << UniformExpressionTextures;
+#if BATMAN
+		if (Ar.IsLoading())
+		{
+			// Only retail packages index these by cooked uniform expressions; editor-made ones are retranslated
+			bBmCookedUniformExpressionTextures = Ar.IsBmCooked();
+		}
+#endif
 	}
 	
 	UBOOL bUsesSceneColorTemp = bUsesSceneColor;
@@ -5582,8 +5589,8 @@ UBOOL FMaterial::Compile(FStaticParameterSet* StaticParameters, EShaderPlatform 
 {
 #if !CONSOLE
 #if BATMAN
-	// Cooked uniform expressions index into the package's texture array, so keep it over the translated one
-	const UBOOL bKeepSerializedTextures = IsBmCookedMaterialResource();
+	// Cooked uniform expressions index into the serialized texture array, so keep it over the translated one
+	const UBOOL bKeepSerializedTextures = HasBmCookedUniformExpressionTextures();
 	const TArray<UTexture*> SerializedUniformExpressionTextures = UniformExpressionTextures;
 #endif
 	// Generate the material shader code.
