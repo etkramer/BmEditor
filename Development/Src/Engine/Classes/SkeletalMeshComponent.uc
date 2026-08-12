@@ -1159,6 +1159,12 @@ native final function SetFaceFXRegister( string RegName, float RegVal, EFaceFXRe
 /** Set the value and operation of the specified FaceFX register. */
 native final function SetFaceFXRegisterEx( string RegName, EFaceFXRegOp RegOp, float FirstValue, float FirstInterpDuration, float NextValue, float NextInterpDuration );
 
+// BM
+/** Set the value of the specified FaceFX register, tracked per owner so that owners don't stomp each other. */
+native final function SetFaceFXRegisterByOwner( string RegName, float RegVal, RSkeletalMeshComponent_Export.EFaceFXRegisterOwner RegOwner, optional float InterpDuration );
+/** Clear every owner-driven FaceFX register. */
+native final function ResetAllFaceFXRegisters();
+
 /**
  *	Hides the specified bone.  Currently this just enforces a scale of 0 for the hidden bones.
  *	@param	PhysBodyOption		Option for physics bodies that attach to the bones to be hidden

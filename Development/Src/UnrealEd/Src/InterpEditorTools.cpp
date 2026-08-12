@@ -13,6 +13,11 @@
 #include "DlgGenericComboEntry.h"
 #include "LevelViewportToolbar.h"
 
+#if WITH_FACEFX
+// BM
+#include "../../../External/FaceFX/FxSDK/Inc/FxActor.h"
+#endif
+
 static const FColor ActiveCamColor(255, 255, 0);
 static const FColor SelectedCurveColor(255, 255, 0);
 static const INT	DuplicateKeyOffset(10);
@@ -4495,6 +4500,10 @@ void WxInterpEd::DisableCameraPostProcessFlags( UInterpTrack* Track, AActor* Gro
 // Common FName used just for storing name information while adding Keyframes to tracks.
 static FName		KeyframeAddDataName = NAME_None;
 static UAkEvent	*KeyframeAddSoundCue = NULL;
+// BM
+static URDialogueEvent *KeyframeAddDialogueEvent = NULL;
+static FString		FaceFXRegisterName = FString(TEXT(""));
+IMPLEMENT_COMPARE_CONSTREF( FString, InterpEditorTools_FaceFXRegisters, { return appStricmp(*A,*B); } )
 static FName		TrackAddPropName = NAME_None;
 static FName		AnimSlotName = NAME_None;
 static FString		FaceFXGroupName = FString(TEXT(""));
@@ -4863,6 +4872,99 @@ void  UInterpTrackSoundHelper::PostCreateKeyframe( UInterpTrack *Track, INT KeyI
 }
 
 IMPLEMENT_CLASS(UInterpTrackSoundHelper);
+
+// BM
+UBOOL URInterpTrackDialogueHelper::PreCreateKeyframe( UInterpTrack *Track, FLOAT KeyTime ) const
+{
+	GCallbackEvent->Send( CALLBACK_LoadSelectedAssetsIfNeeded );
+	KeyframeAddDialogueEvent = GEditor->GetSelectedObjects()->GetTop<URDialogueEvent>();
+	if ( KeyframeAddDialogueEvent )
+	{
+		return TRUE;
+	}
+
+	appMsgf( AMT_OK, *LocalizeUnrealEd("NoSoundCueSelected") );
+	return FALSE;
+}
+
+void  URInterpTrackDialogueHelper::PostCreateKeyframe( UInterpTrack *Track, INT KeyIndex ) const
+{
+	URInterpTrackDialogue *DialogueTrack = CastChecked<URInterpTrackDialogue>(Track);
+
+	// Assign the chosen dialogue event to the new key.
+	FDialogueTrackKey& NewDialogueKey = DialogueTrack->Dialogues( KeyIndex );
+	NewDialogueKey.Line = KeyframeAddDialogueEvent;
+	KeyframeAddDialogueEvent = NULL;
+}
+
+IMPLEMENT_CLASS(URInterpTrackDialogueHelper);
+
+// BM
+UBOOL UInterpTrackFaceFXRegisterHelper::PreCreateTrack( UInterpGroup* Group, const UInterpTrack *TrackDef, UBOOL bDuplicatingTrack, UBOOL bAllowPrompts ) const
+{
+	FEdModeInterpEdit* mode = (FEdModeInterpEdit*)GEditorModeTools().GetActiveMode( EM_InterpEdit );
+	check(mode != NULL);
+
+	WxInterpEd	*InterpEd = mode->InterpEd;
+	check(InterpEd != NULL);
+
+	UInterpGroupInst* GrInst = InterpEd->Interp->FindFirstGroupInst(Group);
+	check(GrInst);
+
+	AActor* Actor = GrInst->GetGroupActor();
+	if( !Actor )
+	{
+		return FALSE;
+	}
+
+	UFaceFXAsset* Asset = Actor->PreviewGetActorFaceFXAsset();
+	if( !Asset )
+	{
+		appMsgf( AMT_OK, TEXT("ERROR: %s doesn't have a FaceFX asset."), *Actor->GetName() );
+		return FALSE;
+	}
+
+#if WITH_FACEFX
+	if( !Asset->GetFxActor() )
+	{
+		appMsgf( AMT_OK, TEXT("ERROR: %s doesn't have a FaceFX asset."), *Actor->GetName() );
+		return FALSE;
+	}
+
+	// Every face graph node is a potential register.
+	TArray<FString> RegisterNames;
+	OC3Ent::Face::FxCompiledFaceGraph& CompiledFaceGraph = Asset->GetFxActor()->GetCompiledFaceGraph();
+	for( OC3Ent::Face::FxSize i=0; i<CompiledFaceGraph.nodes.Length(); i++ )
+	{
+		RegisterNames.AddItem( FString(ANSI_TO_TCHAR(CompiledFaceGraph.nodes[i].name.GetAsCstr())) );
+	}
+
+	Sort<USE_COMPARE_CONSTREF(FString,InterpEditorTools_FaceFXRegisters)>( RegisterNames.GetTypedData(), RegisterNames.Num() );
+
+	if( RegisterNames.Num() > 0 )
+	{
+		WxDlgGenericComboEntry dlg;
+		if( dlg.ShowModal( TEXT("Choose Register"), TEXT("Register"), RegisterNames, 0, FALSE ) != wxID_OK )
+		{
+			return FALSE;
+		}
+
+		FaceFXRegisterName = dlg.GetSelectedString();
+	}
+#endif // WITH_FACEFX
+
+	return TRUE;
+}
+
+void  UInterpTrackFaceFXRegisterHelper::PostCreateTrack( UInterpTrack *Track, UBOOL bDuplicatingTrack, INT TrackIndex ) const
+{
+	UInterpTrackFaceFXRegister* RegisterTrack = CastChecked<UInterpTrackFaceFXRegister>(Track);
+
+	RegisterTrack->Register = FaceFXRegisterName;
+	RegisterTrack->TrackTitle = FString::Printf( TEXT("FaceFX Register %s"), *FaceFXRegisterName );
+}
+
+IMPLEMENT_CLASS(UInterpTrackFaceFXRegisterHelper);
 
 /** Checks track-dependent criteria prior to adding a new track.
  * Responsible for any message-boxes or dialogs for selecting track-specific parameters.

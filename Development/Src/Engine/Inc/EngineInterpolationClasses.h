@@ -338,7 +338,7 @@ public:
 	/** 
 	 *	Initialze this Group instance from Seq Variable
 	 */
-	void UpdatePreviewPawnFromSeqVarCharacter( UInterpGroup* InGroup, const USeqVar_Character* InGroupObject );
+	void UpdatePreviewPawnFromSeqVarCharacter( UInterpGroup* InGroup, const class USeqVar_Character* InGroupObject );
 
 	/**
 	 * Create Preview Pawn/Destroy Preview Pawn
@@ -876,6 +876,26 @@ public:
 
 	/** Calculate the index of this Track within its Slot (for when multiple tracks are using same slot). */
 	INT CalcChannelIndex();
+};
+
+class UInterpTrackFaceFXRegister : public UInterpTrackFloatBase
+{
+public:
+    //## BEGIN PROPS InterpTrackFaceFXRegister
+    FStringNoInit Register;
+    //## END PROPS InterpTrackFaceFXRegister
+
+    DECLARE_CLASS(UInterpTrackFaceFXRegister,UInterpTrackFloatBase,0,Engine)
+	// InterpTrack interface
+	virtual INT AddKeyframe(FLOAT Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode);
+
+	virtual void PreviewUpdateTrack(FLOAT NewPosition, UInterpTrackInst* TrInst);
+	virtual void UpdateTrack(FLOAT NewPosition, UInterpTrackInst* TrInst, UBOOL bJump);
+
+	/** Get the name of the class used to help out when adding tracks, keys, etc. in UnrealEd. */
+	virtual const FString GetEdHelperClassName() const;
+
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent);
 };
 
 class UInterpTrackFade : public UInterpTrackFloatBase
@@ -1791,7 +1811,7 @@ struct FSoundTrackKey
 {
     FLOAT Time;
     class UAkEvent* WwiseEvent;
-    class UObject* Line;
+    class URDialogueEvent* Line;
     FLOAT WwiseDuration;
 
     /** Constructors */
@@ -1898,6 +1918,71 @@ public:
 	virtual const FString	GetEdHelperClassName() const;
 
 	virtual class UMaterial* GetTrackIcon() const;
+};
+
+struct FDialogueTrackKey
+{
+    FLOAT Time;
+    class URDialogueEvent* Line;
+    FLOAT WwiseDuration;
+    FLOAT SubtitleDuration;
+
+    /** Constructors */
+    FDialogueTrackKey() {}
+    FDialogueTrackKey(EEventParm)
+    {
+        appMemzero(this, sizeof(FDialogueTrackKey));
+    }
+};
+
+class URInterpTrackDialogue : public UInterpTrackVectorBase
+{
+public:
+    //## BEGIN PROPS RInterpTrackDialogue
+    TArrayNoInit<struct FDialogueTrackKey> Dialogues;
+    BITFIELD bContinueDialogueOnMatineeEnd:1;
+    BITFIELD bSuppressSubtitles:1;
+    BITFIELD bSubTitlesOnly:1;
+    BITFIELD bTVSubtitles:1;
+    BITFIELD bStopDialogueOnMatineeSkip:1;
+    BITFIELD bHighPriorityStream:1;
+    FLOAT SubtitleTimeOffset;
+    //## END PROPS RInterpTrackDialogue
+
+    DECLARE_CLASS(URInterpTrackDialogue,UInterpTrackVectorBase,0,Engine)
+	virtual void PostLoad();
+
+	// InterpTrack interface
+	virtual INT GetNumKeyframes() const;
+	virtual void GetTimeRange(FLOAT& StartTime, FLOAT& EndTime) const;
+	virtual FLOAT GetKeyframeTime(INT KeyIndex) const;
+	virtual INT AddKeyframe(FLOAT Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode);
+	virtual INT SetKeyframeTime(INT KeyIndex, FLOAT NewKeyTime, UBOOL bUpdateOrder=true);
+	virtual void RemoveKeyframe(INT KeyIndex);
+	virtual INT DuplicateKeyframe(INT KeyIndex, FLOAT NewKeyTime);
+	virtual UBOOL GetClosestSnapPosition(FLOAT InPosition, TArray<INT> &IgnoreKeys, FLOAT& OutPosition);
+
+	virtual void PreviewUpdateTrack(FLOAT NewPosition, UInterpTrackInst* TrInst);
+	virtual void UpdateTrack(FLOAT NewPosition, UInterpTrackInst* TrInst, UBOOL bJump);
+	virtual void PreviewStopPlayback(class UInterpTrackInst* TrInst);
+
+	/** Get the name of the class used to help out when adding tracks, keys, etc. in UnrealEd. */
+	virtual const FString GetEdHelperClassName() const;
+
+	virtual class UMaterial* GetTrackIcon() const;
+	virtual void DrawTrack( FCanvas* Canvas, UInterpGroup* Group, const FInterpTrackDrawParams& Params );
+
+	/** Whether or not this track is allowed to be used on static actors. */
+	virtual UBOOL AllowStaticActors() { return TRUE; }
+
+	// RInterpTrackDialogue interface
+	/** Returns the key at the specified position in the track. */
+	struct FDialogueTrackKey& GetDialogueTrackKeyAtPosition(FLOAT InPosition);
+
+	/** Get the FaceFX animation and dialogue event active at the given time. */
+	void GetSeqInfoForTime( FLOAT InTime, FString& OutGroupName, FString& OutSeqName, FLOAT& OutPosition, FLOAT& OutSeqStart, class URDialogueEvent*& OutLine );
+
+	virtual void SetTrackToSensibleDefault();
 };
 
 struct FVisibilityTrackKey
@@ -2059,6 +2144,16 @@ public:
 	virtual void TermTrackInst(UInterpTrack* Track);
 	virtual void SaveActorState(UInterpTrack* Track);
 	virtual void RestoreActorState(UInterpTrack* Track);
+};
+
+class UInterpTrackInstFaceFXRegister : public UInterpTrackInst
+{
+public:
+    //## BEGIN PROPS InterpTrackInstFaceFXRegister
+    //## END PROPS InterpTrackInstFaceFXRegister
+
+    DECLARE_CLASS(UInterpTrackInstFaceFXRegister,UInterpTrackInst,0,Engine)
+    NO_DEFAULT_CONSTRUCTOR(UInterpTrackInstFaceFXRegister)
 };
 
 class UInterpTrackInstFade : public UInterpTrackInst
@@ -2405,6 +2500,25 @@ public:
 	virtual void InitTrackInst(UInterpTrack* Track);
 };
 
+class URInterpTrackInstDialogue : public UInterpTrackInst
+{
+public:
+    //## BEGIN PROPS RInterpTrackInstDialogue
+    FLOAT LastUpdatePosition;
+    class UAkComponent* WwiseMatineeDialogueAudioComp;
+    struct FAkSoundHandle WwiseMatineeDialogueSoundHandle;
+    FLOAT fSeekPos;
+    class URDialogueEvent* LastSubtitle;
+    BITFIELD LoadedBanks:1;
+    BITFIELD bFirstUpdate:1;
+    SCRIPT_ALIGN;
+    //## END PROPS RInterpTrackInstDialogue
+
+    DECLARE_CLASS(URInterpTrackInstDialogue,UInterpTrackInst,0,Engine)
+	virtual void InitTrackInst(UInterpTrack* Track);
+	virtual void TermTrackInst(UInterpTrack* Track);
+};
+
 #undef DECLARE_CLASS
 #undef DECLARE_CASTED_CLASS
 #undef DECLARE_ABSTRACT_CLASS
@@ -2437,6 +2551,7 @@ public:
 	UInterpTrackFaceFX::StaticClass(); \
 	UInterpTrackFloatBase::StaticClass(); \
 	UInterpTrackAnimControl::StaticClass(); \
+	UInterpTrackFaceFXRegister::StaticClass(); \
 	UInterpTrackFade::StaticClass(); \
 	UInterpTrackFloatMaterialParam::StaticClass(); \
 	UInterpTrackFloatParticleParam::StaticClass(); \
@@ -2458,6 +2573,7 @@ public:
 	UInterpTrackSound::StaticClass(); \
 	UInterpTrackVectorMaterialParam::StaticClass(); \
 	UInterpTrackVectorProp::StaticClass(); \
+	URInterpTrackDialogue::StaticClass(); \
 	UInterpTrackVisibility::StaticClass(); \
 	UInterpTrackInst::StaticClass(); \
 	UInterpTrackInstAnimControl::StaticClass(); \
@@ -2466,6 +2582,7 @@ public:
 	UInterpTrackInstDirector::StaticClass(); \
 	UInterpTrackInstEvent::StaticClass(); \
 	UInterpTrackInstFaceFX::StaticClass(); \
+	UInterpTrackInstFaceFXRegister::StaticClass(); \
 	UInterpTrackInstFade::StaticClass(); \
 	UInterpTrackInstFloatMaterialParam::StaticClass(); \
 	UInterpTrackInstFloatParticleParam::StaticClass(); \
@@ -2485,6 +2602,7 @@ public:
 	UInterpTrackInstToggle::StaticClass(); \
 	UInterpTrackInstVectorMaterialParam::StaticClass(); \
 	UInterpTrackInstVisibility::StaticClass(); \
+	URInterpTrackInstDialogue::StaticClass(); \
 
 #endif // ENGINE_INTERPOLATION_NATIVE_DEFS
 
@@ -2531,6 +2649,8 @@ VERIFY_CLASS_SIZE_NODIE(UInterpTrackFloatBase)
 VERIFY_CLASS_OFFSET_NODIE(UInterpTrackAnimControl,InterpTrackAnimControl,AnimSets)
 VERIFY_CLASS_OFFSET_NODIE(UInterpTrackAnimControl,InterpTrackAnimControl,AnimSeqs)
 VERIFY_CLASS_SIZE_NODIE(UInterpTrackAnimControl)
+VERIFY_CLASS_OFFSET_NODIE(UInterpTrackFaceFXRegister,InterpTrackFaceFXRegister,Register)
+VERIFY_CLASS_SIZE_NODIE(UInterpTrackFaceFXRegister)
 VERIFY_CLASS_SIZE_NODIE(UInterpTrackFade)
 VERIFY_CLASS_OFFSET_NODIE(UInterpTrackFloatMaterialParam,InterpTrackFloatMaterialParam,Materials)
 VERIFY_CLASS_OFFSET_NODIE(UInterpTrackFloatMaterialParam,InterpTrackFloatMaterialParam,ParamName)
@@ -2577,6 +2697,9 @@ VERIFY_CLASS_OFFSET_NODIE(UInterpTrackVectorMaterialParam,InterpTrackVectorMater
 VERIFY_CLASS_SIZE_NODIE(UInterpTrackVectorMaterialParam)
 VERIFY_CLASS_OFFSET_NODIE(UInterpTrackVectorProp,InterpTrackVectorProp,PropertyName)
 VERIFY_CLASS_SIZE_NODIE(UInterpTrackVectorProp)
+VERIFY_CLASS_OFFSET_NODIE(URInterpTrackDialogue,RInterpTrackDialogue,Dialogues)
+VERIFY_CLASS_OFFSET_NODIE(URInterpTrackDialogue,RInterpTrackDialogue,SubtitleTimeOffset)
+VERIFY_CLASS_SIZE_NODIE(URInterpTrackDialogue)
 VERIFY_CLASS_OFFSET_NODIE(UInterpTrackVisibility,InterpTrackVisibility,VisibilityTrack)
 VERIFY_CLASS_SIZE_NODIE(UInterpTrackVisibility)
 VERIFY_CLASS_SIZE_NODIE(UInterpTrackInst)
@@ -2590,6 +2713,7 @@ VERIFY_CLASS_OFFSET_NODIE(UInterpTrackInstEvent,InterpTrackInstEvent,LastUpdateP
 VERIFY_CLASS_SIZE_NODIE(UInterpTrackInstEvent)
 VERIFY_CLASS_OFFSET_NODIE(UInterpTrackInstFaceFX,InterpTrackInstFaceFX,LastUpdatePosition)
 VERIFY_CLASS_SIZE_NODIE(UInterpTrackInstFaceFX)
+VERIFY_CLASS_SIZE_NODIE(UInterpTrackInstFaceFXRegister)
 VERIFY_CLASS_SIZE_NODIE(UInterpTrackInstFade)
 VERIFY_CLASS_OFFSET_NODIE(UInterpTrackInstFloatMaterialParam,InterpTrackInstFloatMaterialParam,MICInfos)
 VERIFY_CLASS_OFFSET_NODIE(UInterpTrackInstFloatMaterialParam,InterpTrackInstFloatMaterialParam,InstancedTrack)
@@ -2637,6 +2761,9 @@ VERIFY_CLASS_SIZE_NODIE(UInterpTrackInstVectorMaterialParam)
 VERIFY_CLASS_OFFSET_NODIE(UInterpTrackInstVisibility,InterpTrackInstVisibility,Action)
 VERIFY_CLASS_OFFSET_NODIE(UInterpTrackInstVisibility,InterpTrackInstVisibility,LastUpdatePosition)
 VERIFY_CLASS_SIZE_NODIE(UInterpTrackInstVisibility)
+VERIFY_CLASS_OFFSET_NODIE(URInterpTrackInstDialogue,RInterpTrackInstDialogue,LastUpdatePosition)
+VERIFY_CLASS_OFFSET_NODIE(URInterpTrackInstDialogue,RInterpTrackInstDialogue,LastSubtitle)
+VERIFY_CLASS_SIZE_NODIE(URInterpTrackInstDialogue)
 #endif // VERIFY_CLASS_SIZES
 #endif // !ENUMS_ONLY
 

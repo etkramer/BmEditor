@@ -112,6 +112,8 @@ FNativeFunctionLookup GEngineUSkeletalMeshComponentNatives[] =
 	MAP_NATIVE(USkeletalMeshComponent, execIsBoneHidden)
 	MAP_NATIVE(USkeletalMeshComponent, execUnHideBone)
 	MAP_NATIVE(USkeletalMeshComponent, execHideBone)
+	MAP_NATIVE(USkeletalMeshComponent, execResetAllFaceFXRegisters)
+	MAP_NATIVE(USkeletalMeshComponent, execSetFaceFXRegisterByOwner)
 	MAP_NATIVE(USkeletalMeshComponent, execSetFaceFXRegisterEx)
 	MAP_NATIVE(USkeletalMeshComponent, execSetFaceFXRegister)
 	MAP_NATIVE(USkeletalMeshComponent, execGetFaceFXRegister)

@@ -721,7 +721,7 @@ FxBool FxStudioSession::SaveActor( const FxString& filename )
 		_pFaceFXAsset->RawFaceFXActorBytes.Add(NumActorMemoryBytes);
 		appMemcpy(_pFaceFXAsset->RawFaceFXActorBytes.GetData(), ActorMemory, NumActorMemoryBytes);
 		FxFree(ActorMemory, NumActorMemoryBytes);
-		_pFaceFXAsset->ReferencedSoundCues.Empty();
+		_pFaceFXAsset->ReferencedDialogueCues.Empty();
 		_pFaceFXAsset->FixupReferencedSoundCues();
 		FxArchiveProgressDisplay::End();
 #endif

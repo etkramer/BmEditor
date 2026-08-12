@@ -2838,7 +2838,11 @@ void WxLevelBrowser::MergeLevelIntoCurrentLevel( ULevel* SrcLevel )
 	// Deselect any actors left behind in the source level, as they're about to become invalid.
 	for( INT ActorIndex = 0 ; ActorIndex < SrcLevel->Actors.Num() ; ++ActorIndex )
 	{
-		GEditor->SelectActor( SrcLevel->Actors( ActorIndex ), FALSE, NULL, FALSE );
+		AActor* Actor = SrcLevel->Actors( ActorIndex );
+		if( Actor )
+		{
+			GEditor->SelectActor( Actor, FALSE, NULL, FALSE );
+		}
 	}
 
 	// Disassociate the level from any streaming volumes, since it's about to be removed.
@@ -3282,11 +3286,13 @@ void WxLevelBrowser::OnMergeLevelIntoCurrentLevel(wxCommandEvent& In)
 	}
 
 	// Disallow if any level involved is cooked or locked.
+#if !BATMAN
 	if( ( DestLevel->GetOutermost()->PackageFlags & PKG_Cooked ) != 0 )
 	{
 		appMsgf( AMT_OK, *LocalizeUnrealEd("Error_OperationDisallowedOnCookedContent") );
 		return;
 	}
+#endif
 	if( FLevelUtils::IsLevelLocked( DestLevel ) )
 	{
 		appMsgf( AMT_OK, *LocalizeUnrealEd("Error_OperationDisallowedOnLockedLevel") );
@@ -3295,11 +3301,13 @@ void WxLevelBrowser::OnMergeLevelIntoCurrentLevel(wxCommandEvent& In)
 	for( INT LevelIndex = 0 ; LevelIndex < LevelsToMerge.Num() ; ++LevelIndex )
 	{
 		ULevel* CurLevel = LevelsToMerge( LevelIndex );
+#if !BATMAN
 		if( ( CurLevel->GetOutermost()->PackageFlags & PKG_Cooked ) != 0 )
 		{
 			appMsgf( AMT_OK, *LocalizeUnrealEd("Error_OperationDisallowedOnCookedContent") );
 			return;
 		}
+#endif
 		if( FLevelUtils::IsLevelLocked( CurLevel ) )
 		{
 			appMsgf( AMT_OK, *LocalizeUnrealEd("Error_OperationDisallowedOnLockedLevel") );

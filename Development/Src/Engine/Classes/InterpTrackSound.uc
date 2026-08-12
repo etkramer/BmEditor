@@ -52,8 +52,8 @@ struct native SoundTrackKey
 	var		float		Time;
 	// BM
 	var()	AkEvent		WwiseEvent;
-	// BM: RDialogueEvent
-	var()	Object		Line;
+	// BM
+	var()	RDialogueEvent	Line;
 	// BM
 	var		float		WwiseDuration;
 

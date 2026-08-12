@@ -6,7 +6,10 @@
 #include "Engine.h"
 #include "EngineAnimClasses.h"
 #include "EngineMeshClasses.h"
+#include "EngineInterpolationClasses.h"
 #include "BmGameClasses.h"
+// BM
+#include "RAnimUtil.h"
 
 #if BATMAN
 #include "RSkeletalMeshActor.h"

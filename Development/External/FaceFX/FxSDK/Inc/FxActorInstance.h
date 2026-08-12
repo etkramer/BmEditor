@@ -236,6 +236,11 @@ public:
 	///   not found.
 	FxReal GetOriginalRegisterValue( const FxName& regName );
 
+	// BM: direct register access, indexed to match the compiled face graph nodes.
+	FX_INLINE FxArray<FxRegister>& GetRegisters( void ) { return _registers; }
+	// BM: needed to drive FxCompiledFaceGraph::Tick directly.
+	FX_INLINE FxBool& GetHasBeenTicked( void ) { return _hasBeenTicked; }
+
 protected:
 	/// An animation player.
 	/// Each FxActorInstance has its own animation player.

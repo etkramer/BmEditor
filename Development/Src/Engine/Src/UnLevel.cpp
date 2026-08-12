@@ -842,8 +842,7 @@ void ULevel::PostLoad()
 						LightActor->LightComponent->CastStaticShadows = LightComp->CastStaticShadows;
 						LightActor->LightComponent->CastDynamicShadows = LightComp->CastDynamicShadows;
 
-						// TODO: 10 isn't based on anything, what's the real reason lights are so bright otherwise?
-						LightActor->LightComponent->SetLightProperties(LightComp->Brightness / 10, LightComp->LightColor, LightComp->Function);
+						LightActor->LightComponent->SetLightProperties(LightComp->Brightness, LightComp->LightColor, LightComp->Function);
 						LightActor->LightComponent->SetEnabled(LightComp->bEnabled);
 
 						LightCollection->Components.Remove(CompIndex--);

@@ -2764,6 +2764,20 @@ public:
 	virtual void  PostCreateKeyframe( UInterpTrack *Track, INT KeyIndex ) const;
 };
 
+class UInterpTrackFaceFXRegisterHelper : public UInterpTrackHelper
+{
+public:
+    //## BEGIN PROPS InterpTrackFaceFXRegisterHelper
+    //## END PROPS InterpTrackFaceFXRegisterHelper
+
+    DECLARE_CLASS(UInterpTrackFaceFXRegisterHelper,UInterpTrackHelper,0,UnrealEd)
+	/** Prompts for the FaceFX register the new track should drive. */
+	virtual	UBOOL PreCreateTrack( UInterpGroup* Group, const UInterpTrack *TrackDef, UBOOL bDuplicatingTrack, UBOOL bAllowPrompts ) const;
+
+	/** Assigns the chosen register to the newly added track. */
+	virtual void  PostCreateTrack( UInterpTrack *Track, UBOOL bDuplicatingTrack, INT TrackIndex ) const;
+};
+
 class UInterpTrackFloatPropHelper : public UInterpTrackHelper
 {
 public:
@@ -3018,6 +3032,31 @@ public:
 	 * @param Track		Pointer to the currently selected track.
 	 * @param KeyIndex	The index of the keyframe that as just added.  This is the index returned by AddKeyframe.
 	 */
+	virtual void  PostCreateKeyframe( UInterpTrack *Track, INT KeyIndex ) const;
+};
+
+class URInterpTrackDialogueHelper : public UInterpTrackHelper
+{
+public:
+    //## BEGIN PROPS RInterpTrackDialogueHelper
+    //## END PROPS RInterpTrackDialogueHelper
+
+    DECLARE_CLASS(URInterpTrackDialogueHelper,UInterpTrackHelper,0,UnrealEd)
+	/** Checks track-dependent criteria prior to adding a new keyframe.
+	* Responsible for any message-boxes or dialogs for selecting key-specific parameters.
+	* Optionally creates/references a key-specific data object to be used in PostCreateKeyframe.
+	*
+	* @param Track		Pointer to the currently selected track.
+	* @param KeyTime	The time that this Key becomes active.
+	* @return	Returns true if this key can be created and false if some criteria is not met (i.e. No related item selected in browser).
+	*/
+	virtual	UBOOL PreCreateKeyframe( UInterpTrack *Track, FLOAT KeyTime ) const;
+
+	/** Uses the key-specific data object from PreCreateKeyframe to initialize the newly added key.
+	*
+	* @param Track		Pointer to the currently selected track.
+	* @param KeyIndex	The index of the keyframe that as just added.  This is the index returned by AddKeyframe.
+	*/
 	virtual void  PostCreateKeyframe( UInterpTrack *Track, INT KeyIndex ) const;
 };
 
@@ -5336,6 +5375,7 @@ AUTOGENERATE_FUNCTION(UGameStatsDBUploader,-1,execPostProcessStream);
 	UInterpTrackDirectorHelper::StaticClass(); \
 	UInterpTrackEventHelper::StaticClass(); \
 	UInterpTrackFaceFXHelper::StaticClass(); \
+	UInterpTrackFaceFXRegisterHelper::StaticClass(); \
 	UInterpTrackFloatPropHelper::StaticClass(); \
 	UInterpTrackHeadTrackingHelper::StaticClass(); \
 	UInterpTrackParticleReplayHelper::StaticClass(); \
@@ -5345,6 +5385,7 @@ AUTOGENERATE_FUNCTION(UGameStatsDBUploader,-1,execPostProcessStream);
 	UInterpTrackColorPropHelper::StaticClass(); \
 	UInterpTrackLinearColorPropHelper::StaticClass(); \
 	UInterpTrackVisibilityHelper::StaticClass(); \
+	URInterpTrackDialogueHelper::StaticClass(); \
 	UKismetBindings::StaticClass(); \
 	ULensFlareEditorOptions::StaticClass(); \
 	ULensFlareEditorPropertyWrapper::StaticClass(); \
@@ -5800,6 +5841,7 @@ VERIFY_CLASS_SIZE_NODIE(UInterpTrackBoolPropHelper)
 VERIFY_CLASS_SIZE_NODIE(UInterpTrackDirectorHelper)
 VERIFY_CLASS_SIZE_NODIE(UInterpTrackEventHelper)
 VERIFY_CLASS_SIZE_NODIE(UInterpTrackFaceFXHelper)
+VERIFY_CLASS_SIZE_NODIE(UInterpTrackFaceFXRegisterHelper)
 VERIFY_CLASS_SIZE_NODIE(UInterpTrackFloatPropHelper)
 VERIFY_CLASS_SIZE_NODIE(UInterpTrackHeadTrackingHelper)
 VERIFY_CLASS_SIZE_NODIE(UInterpTrackParticleReplayHelper)
@@ -5809,6 +5851,7 @@ VERIFY_CLASS_SIZE_NODIE(UInterpTrackVectorPropHelper)
 VERIFY_CLASS_SIZE_NODIE(UInterpTrackColorPropHelper)
 VERIFY_CLASS_SIZE_NODIE(UInterpTrackLinearColorPropHelper)
 VERIFY_CLASS_SIZE_NODIE(UInterpTrackVisibilityHelper)
+VERIFY_CLASS_SIZE_NODIE(URInterpTrackDialogueHelper)
 VERIFY_CLASS_OFFSET_NODIE(UKismetBindings,KismetBindings,Bindings)
 VERIFY_CLASS_OFFSET_NODIE(UKismetBindings,KismetBindings,CommentPresets)
 VERIFY_CLASS_SIZE_NODIE(UKismetBindings)

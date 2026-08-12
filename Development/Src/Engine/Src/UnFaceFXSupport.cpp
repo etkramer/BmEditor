@@ -164,7 +164,8 @@ FFaceFXRegMapEntry* FFaceFXRegMap::GetRegisterMapping( const FName& RegName )
 			return &RegMap(i);
 		}
 	}
-	return NULL;
+
+	return &RegMap(RegMap.AddItem(FFaceFXRegMapEntry(RegName, FxName(TCHAR_TO_ANSI(*RegName.ToString())))));
 }
 
 void FFaceFXRegMap::AddRegisterMapping( const FName& RegName )

@@ -306,6 +306,18 @@ struct FBM2BreathingFixer
 	FLOAT Amount;
 };
 
+enum EFaceFXRegisterOwner
+{
+	FXREGISTEROWNER_Code,
+	FXREGISTEROWNER_CodeBlink,
+	FXREGISTEROWNER_CodeLookAt,
+	FXREGISTEROWNER_CodeCheat,
+	FXREGISTEROWNER_MatineeRegisterTrack,
+	FXREGISTEROWNER_MatineeLookAtTrack,
+	FXREGISTEROWNER_Kismet,
+	FXREGISTEROWNER_Tweak,
+};
+
 struct FBM2FaceFXRegisterTransition
 {
 	INT Index;
@@ -974,6 +986,10 @@ class USkeletalMeshComponent : public UMeshComponent
 	FLOAT	GetFaceFXRegister( const FString& RegName );
 	void	SetFaceFXRegister( const FString& RegName, FLOAT RegVal, BYTE RegOp, FLOAT InterpDuration );
 	void	SetFaceFXRegisterEx( const FString& RegName, BYTE RegOp, FLOAT FirstValue, FLOAT FirstInterpDuration, FLOAT NextValue, FLOAT NextInterpDuration );
+	// BM
+	void	SetFaceFXRegisterByOwner( const FString& RegName, FLOAT RegVal, BYTE RegOwner, FLOAT InterpDuration );
+	void	ResetAllFaceFXRegisters();
+	void	UpdateFaceFXRegisters( FLOAT DeltaTime );
 
 	/** Update the PredictedLODLevel and MaxDistanceFactor in the component from its MeshObject. */
 	UBOOL UpdateLODStatus();
@@ -1605,6 +1621,9 @@ public:
 	DECLARE_FUNCTION(execGetFaceFXRegister);
 	DECLARE_FUNCTION(execSetFaceFXRegister);
 	DECLARE_FUNCTION(execSetFaceFXRegisterEx);
+	// BM
+	DECLARE_FUNCTION(execSetFaceFXRegisterByOwner);
+	DECLARE_FUNCTION(execResetAllFaceFXRegisters);
 	DECLARE_FUNCTION(execSetEnableClothingSimulation);
 	DECLARE_FUNCTION(execSetEnableClothSimulation);
 	DECLARE_FUNCTION(execSetClothFrozen);

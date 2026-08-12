@@ -9,6 +9,13 @@
 
 #include "BmGame.h"
 
+#if WITH_FACEFX
+#include "../../../External/FaceFX/FxSDK/Inc/FxActor.h"
+#include "../../../External/FaceFX/FxSDK/Inc/FxActorInstance.h"
+using namespace OC3Ent;
+using namespace Face;
+#endif
+
 IMPLEMENT_CLASS_EXTENSION(ARSkeletalMeshActor, "BmGame.RSkeletalMeshActor");
 
 TExtensionProperty<UAnimNodeSequence*> ARSkeletalMeshActor::SequenceNodeProp;
@@ -311,6 +318,71 @@ void ARSkeletalMeshActor::PreviewFinishAnimControl(UInterpGroup* InInterpGroup)
 
 	// Update space bases to reset back to ref pose.
 	SkeletalMeshComponent->UpdateSkelPose(0.f, FALSE);
+	SkeletalMeshComponent->ConditionalUpdateTransform();
+}
+
+/**
+ * PreviewUpdateFaceFX - as ASkeletalMeshActor's, but the force-tick is inlined so it can skip
+ * FxActorInstance::ForceTick's SetAllRegisters() call, which would wipe the registers Matinee's
+ * look-at/register tracks just wrote. The pose update is also unconditional.
+ */
+void ARSkeletalMeshActor::PreviewUpdateFaceFX(UBOOL bForceAnim, const FString& GroupName, const FString& SeqName, FLOAT InPosition)
+{
+	check(SkeletalMeshComponent);
+
+#if WITH_FACEFX
+	if( bForceAnim && SkeletalMeshComponent->FaceFXActorInstance )
+	{
+		FxActorInstance* ActorInstance = SkeletalMeshComponent->FaceFXActorInstance;
+		FxActor* fActor = ActorInstance->GetActor();
+
+		const FxSize GroupIndex = fActor ? fActor->FindAnimGroup(TCHAR_TO_ANSI(*GroupName)) : FxInvalidIndex;
+		if( FxInvalidIndex != GroupIndex )
+		{
+			FxAnimGroup& fGroup = fActor->GetAnimGroup(GroupIndex);
+			const FxSize SeqIndex = fGroup.FindAnim(TCHAR_TO_ANSI(*SeqName));
+			if( FxInvalidIndex != SeqIndex )
+			{
+				// FaceFX anims start at a negative time, so offset to put zero where the audio begins.
+				const FxReal ForcedTime = fGroup.GetAnim(SeqIndex).GetStartTime() + InPosition;
+
+				ActorInstance->PlayAnim(FxName(TCHAR_TO_ANSI(*SeqName)), FxName(TCHAR_TO_ANSI(*GroupName)));
+
+				const FxAnim* pAnim = ActorInstance->GetCurrentAnim();
+				if( pAnim )
+				{
+					FxMasterBoneList& MasterBoneList = fActor->GetMasterBoneList();
+					MasterBoneList.ResetRefBoneWeights();
+
+					const FxSize NumBoneWeights = pAnim->GetNumBoneWeights();
+					for( FxSize i = 0; i < NumBoneWeights; ++i )
+					{
+						const FxAnimBoneWeight& BoneWeight = pAnim->GetBoneWeight(i);
+						MasterBoneList.SetRefBoneCurrentWeight(BoneWeight.boneName, BoneWeight.boneWeight);
+					}
+
+					FxCompiledFaceGraph& cg = fActor->GetCompiledFaceGraph();
+					const FxSize NumCurves = pAnim->GetNumAnimCurves();
+					for( FxSize i = 0; i < NumCurves; ++i )
+					{
+						const FxAnimCurve& Curve = pAnim->GetAnimCurve(i);
+						const FxSize NodeIndex = cg.FindNodeIndex(Curve.GetName());
+						if( FxInvalidIndex != NodeIndex )
+						{
+							cg.nodes[NodeIndex].trackValue = Curve.EvaluateAt(ForcedTime);
+						}
+					}
+
+					cg.Tick(ForcedTime, ActorInstance->GetRegisters(), ActorInstance->GetHasBeenTicked());
+				}
+
+				ActorInstance->StopAnim();
+			}
+		}
+	}
+#endif // WITH_FACEFX
+
+	SkeletalMeshComponent->UpdateSkelPose(0.f, !bForceAnim);
 	SkeletalMeshComponent->ConditionalUpdateTransform();
 }
 

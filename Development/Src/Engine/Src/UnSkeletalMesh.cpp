@@ -3183,6 +3183,19 @@ UFaceFXAsset* ASkeletalMeshActor::PreviewGetActorFaceFXAsset()
 	return NULL;
 }
 
+// BM
+void ASkeletalMeshActor::PreviewSetFaceFXRegister(const FString& RegisterName, FLOAT Value, BYTE RegisterOwner)
+{
+	check(SkeletalMeshComponent);
+	SkeletalMeshComponent->SetFaceFXRegisterByOwner(RegisterName, Value, RegisterOwner, 0.f);
+}
+
+void ASkeletalMeshActor::PreviewResetAllFaceFXRegisters()
+{
+	check(SkeletalMeshComponent);
+	SkeletalMeshComponent->ResetAllFaceFXRegisters();
+}
+
 /** Check SkeletalMeshActor for errors. */
 #if WITH_EDITOR
 void ASkeletalMeshActor::CheckForErrors()

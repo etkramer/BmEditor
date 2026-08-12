@@ -65,15 +65,15 @@ void UFaceFXAnimSet::FixupReferencedSoundCues()
 		const FxAnimGroup& AnimGroup = AnimSet->GetAnimGroup();
 		FxSize NumAnims = AnimGroup.GetNumAnims();
 
-		// If ReferencedSoundCues is empty and there are Anims to add we need to build it first.
-		if( 0 == ReferencedSoundCues.Num() && NumAnims > 0)
+		// If ReferencedDialogueCues is empty and there are Anims to add we need to build it first.
+		if( 0 == ReferencedDialogueCues.Num() && NumAnims > 0)
 		{
 #if CONSOLE
-			debugf(NAME_Warning,TEXT("%s has %i anims but no referenced sound cues."), *GetFullName(), NumAnims);
+			debugf(NAME_Warning,TEXT("%s has %i anims but no referenced dialogue cues."), *GetFullName(), NumAnims);
 #else
-			// Build the ReferencedSoundCues array and set the indices in each
+			// Build the ReferencedDialogueCues array and set the indices in each
 			// animation.
-			ReferencedSoundCues.Reserve(NumAnims);
+			ReferencedDialogueCues.Reserve(NumAnims);
 			for( FxSize i = 0; i < NumAnims; ++i )
 			{
 				FxAnim* Anim = AnimSet->GetAnimPtr(i);
@@ -83,29 +83,25 @@ void UFaceFXAnimSet::FixupReferencedSoundCues()
 					FxString SoundCuePath = Anim->GetSoundCuePath();
 					if( SoundCuePath.Length() > 0 )
 					{
-						USoundCue* SoundCue = LoadObject<USoundCue>(NULL, ANSI_TO_TCHAR(SoundCuePath.GetData()), NULL, LOAD_NoWarn, NULL);
-						if( SoundCue )
+						URDialogueEvent* DialogueCue = LoadObject<URDialogueEvent>(NULL, ANSI_TO_TCHAR(SoundCuePath.GetData()), NULL, LOAD_NoWarn, NULL);
+						if( DialogueCue )
 						{
-							ReferencedSoundCues.AddItem(SoundCue);
-							Anim->SetSoundCueIndex(ReferencedSoundCues.Num()-1);
-							Anim->SetSoundCuePointer(SoundCue);
+							if( DialogueCue->IsA(URDialogueEvent::StaticClass()) )
+							{
+								ReferencedDialogueCues.AddItem(DialogueCue);
+								Anim->SetSoundCueIndex(ReferencedDialogueCues.Num()-1);
+								Anim->SetSoundCuePointer(DialogueCue);
+							}
 						}
 						else
 						{
 							NumLoadErrors++;
-							FString ExpectedPath(ANSI_TO_TCHAR(SoundCuePath.GetData()));
-							debugf(NAME_Warning, TEXT("FaceFX: Found lost sound cue in FaceFXAnimSet %s for animation %s.%s.%s (expected path %s)"),
-								*GetFullName(),
-								ANSI_TO_TCHAR(AnimSet->GetNameAsCstr()), 
-								ANSI_TO_TCHAR(AnimGroup.GetNameAsCstr()), 
-								ANSI_TO_TCHAR(Anim->GetNameAsCstr()), 
-								*ExpectedPath);
 						}
 					}
 				}
 			}
 
-			if( ReferencedSoundCues.Num() > 0 )
+			if( ReferencedDialogueCues.Num() > 0 )
 			{
 				// Update the RawFaceFXAnimSetBytes (checking for cooking and byte ordering here is
 				// probably a little overkill).
@@ -137,7 +133,7 @@ void UFaceFXAnimSet::FixupReferencedSoundCues()
 		}
 		else
 		{
-			// ReferencedSoundCues was valid so link up each animation.
+			// ReferencedDialogueCues was valid so link up each animation.
 			UBOOL bMadeCorrections = FALSE;
 			for( FxSize i = 0; i < NumAnims; ++i )
 			{
@@ -148,62 +144,47 @@ void UFaceFXAnimSet::FixupReferencedSoundCues()
 					const FxString& SoundCuePath = Anim->GetSoundCuePath();
 					if( FxInvalidIndex != SoundCueIndex)
 					{
-						if( SoundCueIndex < static_cast<FxSize>(ReferencedSoundCues.Num()) )  
-						{  
-							USoundCue* SoundCue = ReferencedSoundCues(SoundCueIndex);
-							Anim->SetSoundCuePointer(SoundCue);
+						if( SoundCueIndex < static_cast<FxSize>(ReferencedDialogueCues.Num()) )
+						{
+							URDialogueEvent* DialogueCue = ReferencedDialogueCues(SoundCueIndex);
+							if( DialogueCue && DialogueCue->IsA(URDialogueEvent::StaticClass()) )
+							{
+								Anim->SetSoundCuePointer(DialogueCue);
 #if !CONSOLE
-							if( SoundCue && SoundCuePath.Length() > 0 )
-							{
-								FString ExpectedPath(ANSI_TO_TCHAR(SoundCuePath.GetData()));
-								FString ActualPath = SoundCue->GetPathName();
-								if( ExpectedPath != ActualPath )
+								if( SoundCuePath.Length() > 0 )
 								{
-									bMadeCorrections = TRUE;
-									Anim->SetSoundCuePath(FxString(TCHAR_TO_ANSI(*ActualPath)));
-									debugf(NAME_Warning, TEXT("FaceFX: Corrected inconsistent sound cue linkage in FaceFXAnimSet %s for animation %s.%s.%s (expected path %s -> actual path %s)"),
-										*GetFullName(),
-										ANSI_TO_TCHAR(AnimSet->GetNameAsCstr()), 
-										ANSI_TO_TCHAR(AnimGroup.GetNameAsCstr()), 
-										ANSI_TO_TCHAR(Anim->GetNameAsCstr()), 
-										*ExpectedPath, 
-										*ActualPath);
+									FString ExpectedPath(ANSI_TO_TCHAR(SoundCuePath.GetData()));
+									FString ActualPath = DialogueCue->GetPathName();
+									if( ExpectedPath != ActualPath )
+									{
+										bMadeCorrections = TRUE;
+										Anim->SetSoundCuePath(FxString(TCHAR_TO_ANSI(*ActualPath)));
+										debugf(NAME_Warning, TEXT("FaceFX: Corrected inconsistent sound cue linkage in FaceFXAnimSet %s for animation %s.%s.%s (expected path %s -> actual path %s)"),
+											*GetFullName(),
+											ANSI_TO_TCHAR(AnimSet->GetNameAsCstr()),
+											ANSI_TO_TCHAR(AnimGroup.GetNameAsCstr()),
+											ANSI_TO_TCHAR(Anim->GetNameAsCstr()),
+											*ExpectedPath,
+											*ActualPath);
+									}
 								}
-							}
-							else if( !SoundCue && SoundCuePath.Length() > 0 )
-							{
-								NumLoadErrors++;
-								FString ExpectedPath(ANSI_TO_TCHAR(SoundCuePath.GetData()));
-								debugf(NAME_Warning, TEXT("FaceFX: Found lost sound cue in FaceFXAnimSet %s for animation %s.%s.%s (expected path %s)"),
-									*GetFullName(),
-									ANSI_TO_TCHAR(AnimSet->GetNameAsCstr()), 
-									ANSI_TO_TCHAR(AnimGroup.GetNameAsCstr()), 
-									ANSI_TO_TCHAR(Anim->GetNameAsCstr()), 
-									*ExpectedPath);
-							}
 #endif
-						}  
-						else  
-						{  
-							Anim->SetSoundCueIndex(FxInvalidIndex);  
-							Anim->SetSoundCuePointer(NULL);  
-							GWarn->Logf( TEXT("Error finding SoundCue for FaceFX Anim: %s.%s.%s. Open and resave FaceFXAnimSet (%s)."), 
-								ANSI_TO_TCHAR(AnimSet->GetNameAsCstr()), 
-								ANSI_TO_TCHAR(AnimGroup.GetNameAsCstr()), 
+							}
+						}
+						else
+						{
+							Anim->SetSoundCueIndex(FxInvalidIndex);
+							Anim->SetSoundCuePointer(NULL);
+							GWarn->Logf( TEXT("Error finding SoundCue for FaceFX Anim: %s.%s.%s. Open and resave FaceFXAnimSet (%s)."),
+								ANSI_TO_TCHAR(AnimSet->GetNameAsCstr()),
+								ANSI_TO_TCHAR(AnimGroup.GetNameAsCstr()),
 								ANSI_TO_TCHAR(Anim->GetNameAsCstr()),
 								*GetFullName());
-						}  
+						}
 					}
 					else if(SoundCuePath.Length() > 0)
 					{
 						NumLoadErrors++;
-						FString ExpectedPath(ANSI_TO_TCHAR(SoundCuePath.GetData()));
-						debugf(NAME_Warning, TEXT("FaceFX: Found lost sound cue in FaceFXAnimSet %s for animation %s.%s.%s (expected path %s)"),
-							*GetFullName(),
-							ANSI_TO_TCHAR(AnimSet->GetNameAsCstr()), 
-							ANSI_TO_TCHAR(AnimGroup.GetNameAsCstr()), 
-							ANSI_TO_TCHAR(Anim->GetNameAsCstr()), 
-							*ExpectedPath);
 					}
 				}
 			}
@@ -449,7 +430,7 @@ INT UFaceFXAnimSet::GetResourceSize()
 	{	
 		FArchiveCountMem CountBytesSize( this );
 		CountBytesSize << RawFaceFXAnimSetBytes;
-		CountBytesSize << ReferencedSoundCues;	
+		CountBytesSize << ReferencedDialogueCues;	
 		Size += CountBytesSize.GetNum();
 	}
 

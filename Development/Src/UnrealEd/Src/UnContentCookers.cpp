@@ -6438,7 +6438,7 @@ UPackage* UCookPackagesCommandlet::LoadPackageForCooking(const TCHAR* Filename)
 		for (TObjectIterator<UFaceFXAnimSet> FFXASIt; FFXASIt; ++FFXASIt)
 		{
 			UFaceFXAnimSet* AnimSet = *FFXASIt;
-			AnimSet->ReferencedSoundCues.Empty();
+			AnimSet->ReferencedDialogueCues.Empty();
 		}
 	}
 #endif

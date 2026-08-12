@@ -868,7 +868,7 @@ INT UContentComparisonCommandlet::Main( const FString& Params )
 			for (TObjectIterator<UFaceFXAnimSet> FFXIt; FFXIt; ++FFXIt)
 			{
 				UFaceFXAnimSet* FaceFXAnimSet = *FFXIt;
-				FaceFXAnimSet->ReferencedSoundCues.Empty();
+				FaceFXAnimSet->ReferencedDialogueCues.Empty();
 			}
 
 			TArray<UClass*> DerivedClasses;

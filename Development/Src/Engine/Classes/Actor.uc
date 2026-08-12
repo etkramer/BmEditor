@@ -19,6 +19,7 @@ class Actor extends StateObject
 	abstract
 	native
 	nativereplication
+	dependson(RSkeletalMeshComponent_Export)
 	hidecategories(Navigation);
 
 /** List of extra trace flags */
@@ -1226,6 +1227,14 @@ cpptext
 
 	/** Get the UFaceFXAsset that is currently being used by this Actor when playing facial animations. */
 	virtual class UFaceFXAsset* PreviewGetActorFaceFXAsset() { return NULL; }
+
+	// BM
+	/** Called each frame by Matinee to drive one of this Actor's FaceFX registers. */
+	virtual void PreviewSetFaceFXRegister(const FString& RegisterName, FLOAT Value, BYTE RegisterOwner) {}
+
+	// BM
+	/** Called by Matinee to clear every FaceFX register it has been driving. */
+	virtual void PreviewResetAllFaceFXRegisters() {}
 
 	/** Called each frame by Matinee to update the weight of a particular MorphNodeWeight. */
 	virtual void PreviewSetMorphWeight(FName MorphNodeName, FLOAT MorphWeight) {}
@@ -3600,6 +3609,10 @@ event bool PlayActorFaceFXAnim(FaceFXAnimSet AnimSet, String GroupName, String S
 
 /** Stop any matinee FaceFX animations on this Actor. */
 event StopActorFaceFXAnim();
+
+// BM
+/** Called each frame by Matinee to drive one of this Actor's FaceFX registers. */
+event MatineeSetFaceFXRegister(string RegisterName, float Value, RSkeletalMeshComponent_Export.EFaceFXRegisterOwner RegisterOwner);
 
 /** Called each frame by Matinee to update the weight of a particular MorphNodeWeight. */
 event SetMorphWeight(name MorphNodeName, float MorphWeight);

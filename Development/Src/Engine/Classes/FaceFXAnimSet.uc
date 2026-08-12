@@ -25,9 +25,9 @@ var const native array<byte> RawFaceFXAnimSetBytes;
 var const native array<byte> RawFaceFXMiniSessionBytes;
 
 /**
- *  Array of SoundCue objects that the FaceFXAnimSet references.
+ *  Array of RDialogueEvent objects that the FaceFXAnimSet references.
  */
-var editoronly notforconsole array<SoundCue> ReferencedSoundCues;
+var editoronly notforconsole array<RDialogueEvent> ReferencedDialogueCues;
 
 /**
  *  Internal use.  The number of errors generated during load.

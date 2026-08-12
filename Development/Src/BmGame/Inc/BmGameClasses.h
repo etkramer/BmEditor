@@ -37,12 +37,30 @@
 #include "UnObjBas.h"
 #undef ENABLE_DECLARECLASS_MACRO
 
+class URInterpTrackFaceFXLookAt : public UInterpTrackFloatBase
+{
+public:
+    //## BEGIN PROPS RInterpTrackFaceFXLookAt
+    class AActor* Target;
+    FStringNoInit YawRegisterName;
+    FStringNoInit PitchRegisterName;
+    //## END PROPS RInterpTrackFaceFXLookAt
+
+    DECLARE_CLASS(URInterpTrackFaceFXLookAt,UInterpTrackFloatBase,0,BmGame)
+	// InterpTrack interface
+	virtual INT AddKeyframe(FLOAT Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode);
+
+	virtual void PreviewUpdateTrack(FLOAT NewPosition, UInterpTrackInst* TrInst);
+	virtual void UpdateTrack(FLOAT NewPosition, UInterpTrackInst* TrInst, UBOOL bJump);
+};
+
 #undef DECLARE_CLASS
 #undef DECLARE_CASTED_CLASS
 #undef DECLARE_ABSTRACT_CLASS
 #undef DECLARE_ABSTRACT_CASTED_CLASS
 #endif // !INCLUDED_BMGAME_CLASSES
 #endif // !NAMES_ONLY
+
 
 #ifndef NAMES_ONLY
 #undef AUTOGENERATE_FUNCTION
@@ -52,14 +70,19 @@
 #ifndef BMGAME_NATIVE_DEFS
 #define BMGAME_NATIVE_DEFS
 
-// BM: BmGame declares no script classes of its own - BM2's classes are loaded from
-// _BmGame.upk and extended natively via class extensions (see UnClassExtension.h).
 #define AUTO_INITIALIZE_REGISTRANTS_BMGAME \
+	URInterpTrackFaceFXLookAt::StaticClass(); \
 
 #endif // BMGAME_NATIVE_DEFS
+
+#ifdef NATIVES_ONLY
+#endif // NATIVES_ONLY
 #endif // STATIC_LINKING_MOJO
 
 #ifdef VERIFY_CLASS_SIZES
+VERIFY_CLASS_OFFSET_NODIE(URInterpTrackFaceFXLookAt,RInterpTrackFaceFXLookAt,Target)
+VERIFY_CLASS_OFFSET_NODIE(URInterpTrackFaceFXLookAt,RInterpTrackFaceFXLookAt,PitchRegisterName)
+VERIFY_CLASS_SIZE_NODIE(URInterpTrackFaceFXLookAt)
 #endif // VERIFY_CLASS_SIZES
 #endif // !ENUMS_ONLY
 

@@ -1207,7 +1207,7 @@ FxBool _ReadActorFromXML (const FxString& xmlpath, FxActor* pActor)
 														FxSessionProxy::GetFaceFXAsset(&pFaceFXAsset);
 														if( pFaceFXAsset )
 														{
-															pFaceFXAsset->ReferencedSoundCues.Empty();
+															pFaceFXAsset->ReferencedDialogueCues.Empty();
 															pFaceFXAsset->FixupReferencedSoundCues();
 														}
 #endif // __UNREAL__

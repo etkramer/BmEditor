@@ -82,6 +82,9 @@ cpptext
 	virtual void PreviewActorStopFaceFX();
 	virtual UAudioComponent* PreviewGetFaceFXAudioComponent();
 	virtual class UFaceFXAsset* PreviewGetActorFaceFXAsset();
+	// BM
+	virtual void PreviewSetFaceFXRegister(const FString& RegisterName, FLOAT Value, BYTE RegisterOwner);
+	virtual void PreviewResetAllFaceFXRegisters();
 
 	/** Called each from while the Matinee action is running, to set the animation weights for the actor. */
 	virtual void SetAnimWeights( const TArray<struct FAnimSlotInfo>& SlotInfos );

@@ -32,7 +32,7 @@ cpptext
 	/** 
 	 *	Initialze this Group instance from Seq Variable
 	 */
-	void UpdatePreviewPawnFromSeqVarCharacter( UInterpGroup* InGroup, const USeqVar_Character* InGroupObject );
+	void UpdatePreviewPawnFromSeqVarCharacter( UInterpGroup* InGroup, const class USeqVar_Character* InGroupObject );
 
 	/**
 	 * Create Preview Pawn/Destroy Preview Pawn

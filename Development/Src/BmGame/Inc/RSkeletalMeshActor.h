@@ -17,6 +17,7 @@ public:
 	virtual void PreviewSetAnimPosition(FName SlotName, INT ChannelIndex, FName InAnimSeqName, FLOAT InPosition, UBOOL bLooping, UBOOL bFireNotifies, UBOOL bEnableRootMotion, FLOAT DeltaTime);
 	virtual void PreviewSetAnimWeights(TArray<FAnimSlotInfo>& SlotInfos);
 	virtual void PreviewFinishAnimControl(class UInterpGroup* InInterpGroup);
+	virtual void PreviewUpdateFaceFX(UBOOL bForceAnim, const FString& GroupName, const FString& SeqName, FLOAT InPosition);
 	virtual void SetAnimWeights( const TArray<struct FAnimSlotInfo>& SlotInfos );
 
 	void CacheSlotNodes();

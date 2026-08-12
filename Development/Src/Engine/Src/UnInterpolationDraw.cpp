@@ -1529,6 +1529,105 @@ UMaterial* UInterpTrackSound::GetTrackIcon() const
 	return (UMaterial*)StaticLoadObject( UMaterial::StaticClass(), NULL, TEXT("EditorMaterials.MatineeGroups.MAT_Groups_Sound_Mat"), NULL, LOAD_None, NULL );
 }
 
+// BM
+/*-----------------------------------------------------------------------------
+	URInterpTrackDialogue
+-----------------------------------------------------------------------------*/
+
+void URInterpTrackDialogue::DrawTrack( FCanvas* Canvas, UInterpGroup* Group, const FInterpTrackDrawParams& Params )
+{
+	UInterpData* Data = CastChecked<UInterpData>(Group->GetOuter());
+
+	const UBOOL bHitTesting = Canvas->IsHitTesting();
+	const UBOOL bAllowBarSelection = bHitTesting && Params.bAllowKeyframeBarSelection;
+	const UBOOL bAllowTextSelection = bHitTesting && Params.bAllowKeyframeTextSelection;
+
+	// Draw the coloured block for each line.
+	for (INT i = 0; i < Dialogues.Num(); i++)
+	{
+		FLOAT DialogueStartTime = Dialogues(i).Time;
+		FLOAT DialogueEndTime = DialogueStartTime;
+
+		// Make the block as long as the line is.
+		if( bSubTitlesOnly && Dialogues(i).SubtitleDuration > 0.f )
+		{
+			DialogueEndTime += Dialogues(i).SubtitleDuration;
+		}
+		else if( Dialogues(i).Line )
+		{
+			DialogueEndTime += Dialogues(i).Line->GetCueDuration();
+		}
+
+		// Truncate the line at the next line in the track.
+		if (i < Dialogues.Num() - 1)
+		{
+			DialogueEndTime = ::Min( Dialogues(i+1).Time, DialogueEndTime );
+		}
+
+		INT StartPixelPos = appTrunc((DialogueStartTime - Params.StartTime) * Params.PixelsPerSec);
+		INT EndPixelPos = appTrunc((DialogueEndTime - Params.StartTime) * Params.PixelsPerSec);
+
+		// Find if this line is one of the selected ones.
+		UBOOL bKeySelected = false;
+		for (INT j = 0; j < Params.SelectedKeys.Num() && !bKeySelected; j++)
+		{
+			if( Params.SelectedKeys(j).Group == Group &&
+				Params.SelectedKeys(j).Track == this &&
+				Params.SelectedKeys(j).KeyIndex == i )
+				bKeySelected = true;
+		}
+
+		// Draw border orange if the line is selected.
+		FColor BorderColor = bKeySelected ? KeySelectedColor : FColor(0,0,0);
+
+		if( bAllowBarSelection )
+		{
+			Canvas->SetHitProxy( new HInterpTrackKeypointProxy( Group, this, i ) );
+		}
+		DrawTile(Canvas, StartPixelPos, KeyVertOffset, EndPixelPos - StartPixelPos + 1, appTrunc(Params.TrackHeight - 2.f*KeyVertOffset), 0.f, 0.f, 1.f, 1.f, BorderColor );
+		DrawTile(Canvas, StartPixelPos+1, KeyVertOffset+1, EndPixelPos - StartPixelPos - 1, appTrunc(Params.TrackHeight - 2.f*KeyVertOffset) - 2, 0.f, 0.f, 1.f, 1.f, FColor(0,200,100) );
+		if( bAllowBarSelection )
+		{
+			Canvas->SetHitProxy( NULL );
+		}
+	}
+
+	// Use base-class to draw key triangles
+	Super::DrawTrack( Canvas, Group, Params );
+
+	// Draw the dialogue event name for each block on top.
+	for (INT i = 0; i < Dialogues.Num(); i++)
+	{
+		FLOAT DialogueStartTime = Dialogues(i).Time;
+		INT PixelPos = appTrunc((DialogueStartTime - Params.StartTime) * Params.PixelsPerSec);
+
+		FString DialogueString( TEXT("None") );
+		if(Dialogues(i).Line)
+		{
+			DialogueString = FString( *Dialogues(i).Line->GetName() );
+		}
+
+		INT XL, YL;
+		StringSize( GEngine->SmallFont, XL, YL, *DialogueString );
+
+		if ( bAllowTextSelection )
+		{
+			Canvas->SetHitProxy( new HInterpTrackKeypointProxy( Group, this, i ) );
+		}
+		DrawShadowedString(Canvas, PixelPos + 2, Params.TrackHeight - YL - KeyVertOffset, *DialogueString, GEngine->SmallFont, KeyLabelColor );
+		if ( bAllowTextSelection )
+		{
+			Canvas->SetHitProxy( NULL );
+		}
+	}
+}
+
+/** Get the icon to draw for this track in Matinee. */
+UMaterial* URInterpTrackDialogue::GetTrackIcon() const
+{
+	return (UMaterial*)StaticLoadObject( UMaterial::StaticClass(), NULL, TEXT("EditorMaterials.MatineeGroups.MAT_Groups_Sound_Mat"), NULL, LOAD_None, NULL );
+}
+
 /*-----------------------------------------------------------------------------
 	UInterpTrackFade
 -----------------------------------------------------------------------------*/

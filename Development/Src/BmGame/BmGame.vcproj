@@ -71,6 +71,14 @@
 				RelativePath=".\Src\RHidePoint.cpp"
 				>
 			</File>
+			<File
+				RelativePath=".\Src\RInterpTrackFaceFXLookAt.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Src\RAnimUtil.cpp"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Inc"

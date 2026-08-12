@@ -2925,13 +2925,10 @@ UBOOL USkeletalMeshComponent::PlayFaceFXAnim(UFaceFXAnimSet* FaceFXAnimSetRef, c
 				// we here can use the passed in soundcue to play the sound if they passed one in
 				USoundCue* Sound = NULL;
 
+				// BM: the FaceFX sound cue pointer is an RDialogueEvent, so it can't stand in for a SoundCue here.
 				if( SoundCueToPlay != NULL )
 				{
 					Sound = SoundCueToPlay;
-				}
-				else
-				{
-					Sound = reinterpret_cast<USoundCue*>(Anim->GetSoundCuePointer());
 				}
 
 				
@@ -3121,6 +3118,225 @@ void USkeletalMeshComponent::SetFaceFXRegisterEx( const FString& RegName, BYTE R
 			debugf(TEXT("FaceFX: WARNING Attempt to write to undeclared register %s"), *RegName);
 		}
 	}
+#endif // WITH_FACEFX
+}
+
+// BM
+static FLOAT EaseInOut(FLOAT Alpha)
+{
+	Alpha = Clamp(Alpha, 0.f, 1.f);
+	return Alpha * Alpha * (3.f - 2.f * Alpha);
+}
+
+#if WITH_FACEFX
+/** Find the register state driven by RegOwner for the given face graph node, or INDEX_NONE. */
+static INT FindRegisterState(const TArray<FBM2FaceFXRegisterState>& States, INT NodeIndex, BYTE RegOwner)
+{
+	for( INT i=0; i<States.Num(); i++ )
+	{
+		if( States(i).Index == NodeIndex && States(i).Owner == RegOwner )
+		{
+			return i;
+		}
+	}
+	return INDEX_NONE;
+}
+
+/** Find the register transition driven by RegOwner for the given face graph node, or INDEX_NONE. */
+static INT FindRegisterTransition(const TArray<FBM2FaceFXRegisterTransition>& Transitions, INT NodeIndex, BYTE RegOwner)
+{
+	for( INT i=0; i<Transitions.Num(); i++ )
+	{
+		if( Transitions(i).Index == NodeIndex && Transitions(i).Owner == RegOwner )
+		{
+			return i;
+		}
+	}
+	return INDEX_NONE;
+}
+#endif // WITH_FACEFX
+
+void USkeletalMeshComponent::SetFaceFXRegisterByOwner( const FString& RegName, FLOAT RegVal, BYTE RegOwner, FLOAT InterpDuration )
+{
+#if WITH_FACEFX
+	if( !FaceFXActorInstance )
+	{
+		return;
+	}
+
+	FFaceFXRegMapEntry* pRegMapEntry = FFaceFXRegMap::GetRegisterMapping(*RegName);
+	if( !pRegMapEntry )
+	{
+		return;
+	}
+
+	const FxSize FoundNode = FaceFXActorInstance->GetActor()->GetCompiledFaceGraph().FindNodeIndex(pRegMapEntry->FaceFXRegName);
+	if( FoundNode == FxInvalidIndex )
+	{
+		return;
+	}
+	const INT NodeIndex = (INT)FoundNode;
+
+	if( InterpDuration == 0.f )
+	{
+		// Snapping to a value cancels any transition this owner had running.
+		const INT TransitionIndex = FindRegisterTransition(FaceFXRegisterTransitions, NodeIndex, RegOwner);
+		if( TransitionIndex != INDEX_NONE )
+		{
+			FaceFXRegisterTransitions.RemoveSwap(TransitionIndex);
+		}
+
+		const INT StateIndex = FindRegisterState(FaceFXRegisterStates, NodeIndex, RegOwner);
+		if( RegVal == 0.f )
+		{
+			if( StateIndex == INDEX_NONE )
+			{
+				return;
+			}
+
+			FaceFXRegisterStates.RemoveSwap(StateIndex);
+			FaceFXRegistersDirty = TRUE;
+			return;
+		}
+
+		if( StateIndex == INDEX_NONE )
+		{
+			FBM2FaceFXRegisterState NewState;
+			NewState.Index = NodeIndex;
+			NewState.Value = RegVal;
+			NewState.Owner = RegOwner;
+			FaceFXRegisterStates.AddItem(NewState);
+			FaceFXRegistersDirty = TRUE;
+		}
+		else if( FaceFXRegisterStates(StateIndex).Value != RegVal )
+		{
+			FaceFXRegisterStates(StateIndex).Value = RegVal;
+			FaceFXRegistersDirty = TRUE;
+		}
+
+		return;
+	}
+
+	// Retarget a transition that is already running rather than starting a second one.
+	const INT TransitionIndex = FindRegisterTransition(FaceFXRegisterTransitions, NodeIndex, RegOwner);
+	if( TransitionIndex != INDEX_NONE )
+	{
+		FBM2FaceFXRegisterTransition& Transition = FaceFXRegisterTransitions(TransitionIndex);
+		const FLOAT CurrentValue = Lerp(Transition.FromValue, Transition.ToValue, EaseInOut(Transition.NormalizedTime));
+		if( RegVal != CurrentValue )
+		{
+			Transition.FromValue = CurrentValue;
+			Transition.ToValue = RegVal;
+			Transition.OneOverDuration = 1.f / InterpDuration;
+		}
+		return;
+	}
+
+	const INT StateIndex = FindRegisterState(FaceFXRegisterStates, NodeIndex, RegOwner);
+	const FLOAT FromValue = (StateIndex != INDEX_NONE) ? FaceFXRegisterStates(StateIndex).Value : 0.f;
+	if( RegVal == FromValue )
+	{
+		return;
+	}
+
+	FBM2FaceFXRegisterTransition NewTransition;
+	NewTransition.Index = NodeIndex;
+	NewTransition.FromValue = FromValue;
+	NewTransition.ToValue = RegVal;
+	NewTransition.OneOverDuration = 1.f / InterpDuration;
+	NewTransition.NormalizedTime = 0.f;
+	NewTransition.Owner = RegOwner;
+	FaceFXRegisterTransitions.AddItem(NewTransition);
+
+	if( StateIndex != INDEX_NONE )
+	{
+		FaceFXRegisterStates.RemoveSwap(StateIndex);
+		FaceFXRegistersDirty = TRUE;
+	}
+#endif // WITH_FACEFX
+}
+
+void USkeletalMeshComponent::ResetAllFaceFXRegisters()
+{
+#if WITH_FACEFX
+	if( !FaceFXActorInstance )
+	{
+		return;
+	}
+
+	FaceFXRegisterTransitions.Empty();
+
+	if( FaceFXRegisterStates.Num() > 0 )
+	{
+		FaceFXRegisterStates.Empty();
+		FaceFXRegistersDirty = TRUE;
+	}
+#endif // WITH_FACEFX
+}
+
+/** Advance owner-driven register transitions and push every active register into the face graph. */
+void USkeletalMeshComponent::UpdateFaceFXRegisters( FLOAT DeltaTime )
+{
+#if WITH_FACEFX
+	if( !SkeletalMesh || !SkeletalMesh->FaceFXAsset || !FaceFXActorInstance )
+	{
+		return;
+	}
+
+	// Advance transitions, promoting completed ones to states.
+	for( INT i=0; i<FaceFXRegisterTransitions.Num(); )
+	{
+		FBM2FaceFXRegisterTransition& Transition = FaceFXRegisterTransitions(i);
+		const FLOAT NewTime = Transition.NormalizedTime + Transition.OneOverDuration * DeltaTime;
+		if( NewTime < 1.f )
+		{
+			Transition.NormalizedTime = NewTime;
+			i++;
+		}
+		else
+		{
+			if( Transition.ToValue > 0.f )
+			{
+				FBM2FaceFXRegisterState& NewState = FaceFXRegisterStates(FaceFXRegisterStates.Add(1));
+				NewState.Index = Transition.Index;
+				NewState.Value = Transition.ToValue;
+				NewState.Owner = Transition.Owner;
+			}
+			FaceFXRegisterTransitions.RemoveSwap(i);
+		}
+	}
+
+	FxArray<FxRegister>& Registers = FaceFXActorInstance->GetRegisters();
+
+	for( FxSize i=0; i<Registers.Length(); i++ )
+	{
+		FxRegister& Reg = Registers[i];
+		Reg.interpEndValue = 0.f;
+		Reg.interpLastValue = 0.f;
+		Reg.firstRegOp = VO_None;
+	}
+
+	for( INT i=0; i<FaceFXRegisterStates.Num(); i++ )
+	{
+		const FBM2FaceFXRegisterState& State = FaceFXRegisterStates(i);
+		FxRegister& Reg = Registers[State.Index];
+		Reg.interpEndValue += State.Value;
+		Reg.firstRegOp = VO_Add;
+		Reg.nextRegOp = RO_Invalid;
+		Reg.isInterpolating = FxTrue;
+	}
+
+	for( INT i=0; i<FaceFXRegisterTransitions.Num(); i++ )
+	{
+		const FBM2FaceFXRegisterTransition& Transition = FaceFXRegisterTransitions(i);
+		FxRegister& Reg = Registers[Transition.Index];
+		Reg.interpEndValue += Lerp(Transition.FromValue, Transition.ToValue, EaseInOut(Transition.NormalizedTime));
+		Reg.firstRegOp = VO_Add;
+		Reg.nextRegOp = RO_Invalid;
+		Reg.isInterpolating = FxTrue;
+	}
+
+	// BM: the game also samples FaceFXEmbeddedAnimSamples into the registers here.
 #endif // WITH_FACEFX
 }
 
@@ -3982,8 +4198,18 @@ void USkeletalMeshComponent::UpdateSkelPose( FLOAT DeltaTime, UBOOL bTickFaceFX 
 		}
 #endif
 
+		// BM
+		if( FaceFXRegistersDirty || FaceFXEmbeddedAnimSamplesDirty || FaceFXRegisterTransitions.Num() > 0 )
+		{
+			UpdateFaceFXRegisters(DeltaTime);
+		}
+
 		// Do FaceFX processing.
 		UpdateFaceFX(LocalAtoms, bTickFaceFX);
+
+		// BM
+		FaceFXRegistersDirty = FALSE;
+		FaceFXEmbeddedAnimSamplesDirty = FALSE;
 
 #ifdef _DEBUG
 		// Check that all bone atoms coming from animation are normalized
@@ -6816,6 +7042,27 @@ void USkeletalMeshComponent::execSetFaceFXRegisterEx( FFrame& Stack, RESULT_DECL
 	SetFaceFXRegisterEx(RegName, RegOp, FirstValue, FirstInterpDuration, NextValue, NextInterpDuration);
 }
 IMPLEMENT_FUNCTION(USkeletalMeshComponent, INDEX_NONE, execSetFaceFXRegisterEx);
+
+// BM
+void USkeletalMeshComponent::execSetFaceFXRegisterByOwner( FFrame& Stack, RESULT_DECL )
+{
+	P_GET_STR(RegName);
+	P_GET_FLOAT(RegVal);
+	P_GET_BYTE(RegOwner);
+	P_GET_FLOAT_OPTX(InterpDuration,0.0f);
+	P_FINISH;
+
+	SetFaceFXRegisterByOwner(RegName, RegVal, RegOwner, InterpDuration);
+}
+IMPLEMENT_FUNCTION(USkeletalMeshComponent, INDEX_NONE, execSetFaceFXRegisterByOwner);
+
+void USkeletalMeshComponent::execResetAllFaceFXRegisters( FFrame& Stack, RESULT_DECL )
+{
+	P_FINISH;
+
+	ResetAllFaceFXRegisters();
+}
+IMPLEMENT_FUNCTION(USkeletalMeshComponent, INDEX_NONE, execResetAllFaceFXRegisters);
 
 void USkeletalMeshComponent::execGetBonesWithinRadius(FFrame& Stack, RESULT_DECL)
 {

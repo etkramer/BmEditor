@@ -1,4 +1,4 @@
-//------------------------------------------------------------------------------
+﻿//------------------------------------------------------------------------------
 // The UE3 command.
 //
 // Owner: Jamie Redmond
@@ -271,11 +271,11 @@ void FxUE3Command::UpdateSoundCues( void )
 				FxAnim* pAnim = animGroup.GetAnimPtr(j);
 				if( pAnim )
 				{
-					// Grab the USoundCue object from the animation.
-					USoundCue* pSoundCue = reinterpret_cast<USoundCue*>(pAnim->GetSoundCuePointer());
+					// BM: the FaceFX sound cue pointer is an RDialogueEvent.
+					URDialogueEvent* pSoundCue = reinterpret_cast<URDialogueEvent*>(pAnim->GetSoundCuePointer());
 					if( pSoundCue )
 					{
-						// Set the string references in the USoundCue object to link to the current animation.
+						// Set the string references in the RDialogueEvent object to link to the current animation.
 						FString FaceFXGroupName(ANSI_TO_TCHAR(animGroup.GetNameAsCstr()));
 						FString FaceFXAnimName(ANSI_TO_TCHAR(pAnim->GetNameAsCstr()));
 						
@@ -308,7 +308,7 @@ void FxUE3Command::UpdateSoundCues( void )
 							bNeedsToBeSaved = TRUE;
 						}
 
-						// Mark the package containing the USoundCue object as dirty.
+						// Mark the package containing the RDialogueEvent object as dirty.
 						if( bNeedsToBeSaved )
 						{
 							FxString msg("Marking ");

@@ -39,6 +39,16 @@ IMPLEMENT_CLASS(UAkAudioActionEvent);
 IMPLEMENT_CLASS(UAkAudioActionParameter);
 IMPLEMENT_CLASS(UAkAudioActionState);
 IMPLEMENT_CLASS(UAkAudioActionSwitch);
+IMPLEMENT_CLASS(URDialogueEvent);
+
+/*-----------------------------------------------------------------------------
+	URDialogueEvent
+-----------------------------------------------------------------------------*/
+
+FLOAT URDialogueEvent::GetCueDuration()
+{
+	return Duration;
+}
 
 /*-----------------------------------------------------------------------------
 	UAkBank

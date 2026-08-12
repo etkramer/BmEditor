@@ -93,6 +93,12 @@ IMPLEMENT_CLASS(UInterpTrackInstAnimControl);
 IMPLEMENT_CLASS(UInterpTrackSound);
 IMPLEMENT_CLASS(UInterpTrackInstSound);
 
+// BM
+IMPLEMENT_CLASS(URInterpTrackDialogue);
+IMPLEMENT_CLASS(URInterpTrackInstDialogue);
+IMPLEMENT_CLASS(UInterpTrackFaceFXRegister);
+IMPLEMENT_CLASS(UInterpTrackInstFaceFXRegister);
+
 IMPLEMENT_CLASS(UInterpTrackFloatParticleParam);
 IMPLEMENT_CLASS(UInterpTrackInstFloatParticleParam);
 
@@ -8964,6 +8970,303 @@ void UInterpTrackInstSound::TermTrackInst(UInterpTrack* Track)
 			PlayAudioComp = NULL;
 		}
 	}
+}
+
+// BM
+/*-----------------------------------------------------------------------------
+	URInterpTrackDialogue
+-----------------------------------------------------------------------------*/
+
+STRUCTTRACK_GETNUMKEYFRAMES(URInterpTrackDialogue, Dialogues)
+STRUCTTRACK_GETTIMERANGE(URInterpTrackDialogue, Dialogues, Time)
+STRUCTTRACK_GETKEYFRAMETIME(URInterpTrackDialogue, Dialogues, Time)
+STRUCTTRACK_SETKEYFRAMETIME(URInterpTrackDialogue, Dialogues, Time, FDialogueTrackKey )
+STRUCTTRACK_REMOVEKEYFRAME(URInterpTrackDialogue, Dialogues )
+STRUCTTRACK_DUPLICATEKEYFRAME(URInterpTrackDialogue, Dialogues, Time, FDialogueTrackKey )
+
+/** Set this track to sensible default values. Called when track is first created. */
+void URInterpTrackDialogue::SetTrackToSensibleDefault()
+{
+	VectorTrack.Points.Empty();
+
+	VectorTrack.AddPoint( 0.0f, FVector( 1.f, 1.f, 1.f ) );
+}
+
+void URInterpTrackDialogue::PostLoad()
+{
+	Super::PostLoad();
+	if (VectorTrack.Points.Num() <= 0)
+	{
+		SetTrackToSensibleDefault();
+	}
+}
+
+/** Add a new keyframe at the specified time. Returns index of new keyframe. */
+INT URInterpTrackDialogue::AddKeyframe(FLOAT Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode)
+{
+	// Find the correct index to insert this key.
+	INT i=0; for( i=0; i<Dialogues.Num() && Dialogues(i).Time < Time; i++);
+	Dialogues.Insert(i);
+
+	FDialogueTrackKey& NewKey = Dialogues(i);
+	NewKey.Time = Time;
+	NewKey.Line = NULL;
+	NewKey.WwiseDuration = 0.f;
+	NewKey.SubtitleDuration = 0.f;
+
+	return i;
+}
+
+/** Return the closest time to the time passed in that we might want to snap to. */
+UBOOL URInterpTrackDialogue::GetClosestSnapPosition(FLOAT InPosition, TArray<INT> &IgnoreKeys, FLOAT& OutPosition)
+{
+	if(Dialogues.Num() == 0)
+	{
+		return false;
+	}
+
+	UBOOL bFoundSnap = false;
+	FLOAT ClosestSnap = 0.f;
+	FLOAT ClosestDist = BIG_NUMBER;
+	for(INT i=0; i<Dialogues.Num(); i++)
+	{
+		if(!IgnoreKeys.ContainsItem(i))
+		{
+			FLOAT DialogueStartTime = Dialogues(i).Time;
+			FLOAT DialogueEndTime = DialogueStartTime;
+
+			// Make the block as long as the line is.
+			if( bSubTitlesOnly && Dialogues(i).SubtitleDuration > 0.f )
+			{
+				DialogueEndTime += Dialogues(i).SubtitleDuration;
+			}
+			else if( Dialogues(i).Line )
+			{
+				DialogueEndTime += Dialogues(i).Line->GetCueDuration();
+			}
+
+			// Truncate the line at the next line in the track.
+			if((i < Dialogues.Num()-1) && !IgnoreKeys.ContainsItem(i+1))
+			{
+				DialogueEndTime = ::Min( Dialogues(i+1).Time, DialogueEndTime );
+			}
+
+			FLOAT Dist = Abs( DialogueStartTime - InPosition );
+			if(Dist < ClosestDist)
+			{
+				ClosestSnap = DialogueStartTime;
+				ClosestDist = Dist;
+				bFoundSnap = true;
+			}
+
+			Dist = Abs( DialogueEndTime - InPosition );
+			if(Dist < ClosestDist)
+			{
+				ClosestSnap = DialogueEndTime;
+				ClosestDist = Dist;
+				bFoundSnap = true;
+			}
+		}
+	}
+
+	OutPosition = ClosestSnap;
+	return bFoundSnap;
+}
+
+/**
+ * Returns the key at the specified position in the track.
+ */
+FDialogueTrackKey& URInterpTrackDialogue::GetDialogueTrackKeyAtPosition(FLOAT InPosition)
+{
+	INT KeyIndex;
+	for (KeyIndex = -1; KeyIndex<Dialogues.Num()-1 && Dialogues(KeyIndex+1).Time < InPosition; KeyIndex++);
+	if (KeyIndex == -1)
+	{
+		KeyIndex = 0;
+	}
+	return Dialogues(KeyIndex);
+}
+
+const FString URInterpTrackDialogue::GetEdHelperClassName() const
+{
+	return FString( TEXT("UnrealEd.RInterpTrackDialogueHelper") );
+}
+
+/** Get the FaceFX animation and dialogue event active at the given time. */
+void URInterpTrackDialogue::GetSeqInfoForTime( FLOAT InTime, FString& OutGroupName, FString& OutSeqName, FLOAT& OutPosition, FLOAT& OutSeqStart, URDialogueEvent*& OutLine )
+{
+	OutGroupName = FString(TEXT(""));
+	OutSeqName = FString(TEXT(""));
+	OutPosition = 0.f;
+	OutSeqStart = 0.f;
+	OutLine = NULL;
+
+	// If no keys, or before the first key, return no sequence.
+	if( Dialogues.Num() > 0 && InTime >= Dialogues(0).Time )
+	{
+		// Find index of the line we are 'within' at the current time.
+		INT i=0; for( i=0; i<Dialogues.Num()-1 && Dialogues(i+1).Time <= InTime; i++);
+
+		if( Dialogues(i).Line )
+		{
+			OutGroupName = Dialogues(i).Line->FaceFXGroupName;
+			OutSeqName = Dialogues(i).Line->FaceFXAnimName;
+			OutLine = Dialogues(i).Line;
+		}
+
+		OutSeqStart = Dialogues(i).Time;
+		OutPosition = InTime - Dialogues(i).Time;
+	}
+}
+
+// BM: game playback needs the Wwise device, which isn't ported yet.
+void URInterpTrackDialogue::UpdateTrack(FLOAT NewPosition, UInterpTrackInst* TrInst, UBOOL bJump)
+{
+}
+
+void URInterpTrackDialogue::PreviewUpdateTrack(FLOAT NewPosition, UInterpTrackInst* TrInst)
+{
+	if( bSubTitlesOnly )
+	{
+		return;
+	}
+
+	URInterpTrackInstDialogue* DialogueTrInst = CastChecked<URInterpTrackInstDialogue>(TrInst);
+
+	FString GroupName, SeqName;
+	FLOAT Position, StartPos;
+	URDialogueEvent* Line = NULL;
+	GetSeqInfoForTime( NewPosition, GroupName, SeqName, Position, StartPos, Line );
+
+	AActor* Actor = TrInst->GetGroupActor();
+	if( Actor )
+	{
+		Actor->PreviewUpdateFaceFX(TRUE, GroupName, SeqName, Position);
+	}
+
+	// BM: the game starts the line's Wwise event here.
+
+	DialogueTrInst->LastUpdatePosition = NewPosition - 0.01f;
+}
+
+void URInterpTrackDialogue::PreviewStopPlayback(class UInterpTrackInst* TrInst)
+{
+	// BM: the game stops the line's Wwise event here.
+
+	AActor* Actor = TrInst->GetGroupActor();
+	if(Actor)
+	{
+		Actor->PreviewActorStopFaceFX();
+	}
+}
+
+/*-----------------------------------------------------------------------------
+	URInterpTrackInstDialogue
+-----------------------------------------------------------------------------*/
+
+/** Initialise this Track instance. Called in-game before doing any interpolation. */
+void URInterpTrackInstDialogue::InitTrackInst(UInterpTrack* Track)
+{
+	UInterpGroupInst* GrInst = CastChecked<UInterpGroupInst>( GetOuter() );
+	USeqAct_Interp* Seq = CastChecked<USeqAct_Interp>( GrInst->GetOuter() );
+	URInterpTrackDialogue* DialogueTrack = CastChecked<URInterpTrackDialogue>(Track);
+
+	// Make sure all the FaceFXAnimSets referenced by our lines are mounted.
+	AActor* Actor = GetGroupActor();
+	if(Actor)
+	{
+		UFaceFXAsset* Asset = NULL;
+
+		// Because we can't call script events from Matinee, if we are in matinee, use C++ version of function
+		if(GIsEditor && !GWorld->HasBegunPlay())
+		{
+			Asset = Actor->PreviewGetActorFaceFXAsset();
+		}
+		else
+		{
+			Asset = Actor->eventGetActorFaceFXAsset();
+		}
+
+		if(Asset)
+		{
+			for(INT i=0; i<DialogueTrack->Dialogues.Num(); i++)
+			{
+				URDialogueEvent* Line = DialogueTrack->Dialogues(i).Line;
+				if(Line && Line->FaceFXAnimSetRef)
+				{
+					Asset->MountFaceFXAnimSet(Line->FaceFXAnimSetRef);
+				}
+			}
+		}
+	}
+
+	LastUpdatePosition = Seq->Position;
+}
+
+/** Stop playing FaceFX animations when exiting a cinematic. */
+void URInterpTrackInstDialogue::TermTrackInst(UInterpTrack* Track)
+{
+	URInterpTrackDialogue* DialogueTrack = CastChecked<URInterpTrackDialogue>(Track);
+
+	if( DialogueTrack->bStopDialogueOnMatineeSkip || !DialogueTrack->bContinueDialogueOnMatineeEnd )
+	{
+		// BM: the game kills the subtitle for subtitle-only tracks, and stops the Wwise event otherwise.
+		if( !DialogueTrack->bSubTitlesOnly )
+		{
+			AActor* Actor = GetGroupActor();
+			if(Actor)
+			{
+				Actor->eventStopActorFaceFXAnim();
+			}
+		}
+	}
+}
+
+/*-----------------------------------------------------------------------------
+	UInterpTrackFaceFXRegister
+	BM
+-----------------------------------------------------------------------------*/
+
+INT UInterpTrackFaceFXRegister::AddKeyframe(FLOAT Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode)
+{
+	INT NewKeyIndex = FloatTrack.AddPoint( Time, 0.f );
+	FloatTrack.Points(NewKeyIndex).InterpMode = InitInterpMode;
+
+	FloatTrack.AutoSetTangents(CurveTension);
+
+	return NewKeyIndex;
+}
+
+void UInterpTrackFaceFXRegister::PreviewUpdateTrack(FLOAT NewPosition, UInterpTrackInst* TrInst)
+{
+	AActor* Actor = TrInst->GetGroupActor();
+	if( Actor )
+	{
+		const FLOAT Value = FloatTrack.Eval(NewPosition, 0.f);
+		Actor->PreviewSetFaceFXRegister(Register, Value, FXREGISTEROWNER_MatineeRegisterTrack);
+	}
+}
+
+void UInterpTrackFaceFXRegister::UpdateTrack(FLOAT NewPosition, UInterpTrackInst* TrInst, UBOOL bJump)
+{
+	AActor* Actor = TrInst->GetGroupActor();
+	if( Actor )
+	{
+		const FLOAT Value = FloatTrack.Eval(NewPosition, 0.f);
+		Actor->eventMatineeSetFaceFXRegister(Register, Value, FXREGISTEROWNER_MatineeRegisterTrack);
+	}
+}
+
+const FString UInterpTrackFaceFXRegister::GetEdHelperClassName() const
+{
+	return FString( TEXT("UnrealEd.InterpTrackFaceFXRegisterHelper") );
+}
+
+void UInterpTrackFaceFXRegister::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	TrackTitle = FString::Printf( TEXT("FaceFX Register %s"), *Register );
 }
 
 /*-----------------------------------------------------------------------------

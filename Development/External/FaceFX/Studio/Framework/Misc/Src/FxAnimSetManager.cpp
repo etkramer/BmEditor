@@ -424,7 +424,7 @@ void FxAnimSetManagerEntry::Load( void )
 			pInternalAnimSet->NullAllAnimUserDataPtrs();
 			// Need to reload the animation set from the raw bytes.
 			FxLoadAnimSetFromMemory(*pInternalAnimSet, static_cast<FxByte*>(_pAnimSet->RawFaceFXAnimSetBytes.GetData()), _pAnimSet->RawFaceFXAnimSetBytes.Num());
-			_pAnimSet->ReferencedSoundCues.Empty();
+			_pAnimSet->ReferencedDialogueCues.Empty();
 			_pAnimSet->FixupReferencedSoundCues();
 			_animSet = *pInternalAnimSet;
 		}
@@ -454,7 +454,7 @@ void FxAnimSetManagerEntry::Save( void )
 		_pAnimSet->RawFaceFXAnimSetBytes.Add(animSetMemorySize);
 		appMemcpy(_pAnimSet->RawFaceFXAnimSetBytes.GetData(), animSetMemory, _pAnimSet->RawFaceFXAnimSetBytes.Num());
 		FxFree(animSetMemory, animSetMemorySize);
-		_pAnimSet->ReferencedSoundCues.Empty();
+		_pAnimSet->ReferencedDialogueCues.Empty();
 		_pAnimSet->FixupReferencedSoundCues();
 		// Save the mini session.
 		FxByte* miniSessionMemory = NULL;

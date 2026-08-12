@@ -37,9 +37,9 @@ var() editoronly array<MorphTargetSet>	PreviewMorphSets;
 var transient array<FaceFXAnimSet> MountedFaceFXAnimSets;
 
 /**
- *  Array of SoundCue objects that the FaceFXAsset references.
+ *  Array of RDialogueEvent objects that the FaceFXAsset references.
  */
-var editoronly notforconsole array<SoundCue> ReferencedSoundCues;
+var editoronly notforconsole array<RDialogueEvent> ReferencedDialogueCues;
 
 /**
  *  Internal use.  The number of errors generated during load.

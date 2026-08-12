@@ -5715,7 +5715,7 @@ void UGenericBrowserType_FaceFXAsset::InvokeCustomCommand( INT InCommand, TArray
 									FaceFXAsset->RawFaceFXActorBytes.Add(NumActorMemoryBytes);
 									appMemcpy(FaceFXAsset->RawFaceFXActorBytes.GetData(), ActorMemory, NumActorMemoryBytes);
 									OC3Ent::Face::FxFree(ActorMemory, NumActorMemoryBytes);
-									FaceFXAsset->ReferencedSoundCues.Empty();
+									FaceFXAsset->ReferencedDialogueCues.Empty();
 									FaceFXAsset->FixupReferencedSoundCues();
 									Actor->SetShouldClientRelink(FxTrue);
 									// The package has changed so mark it dirty.

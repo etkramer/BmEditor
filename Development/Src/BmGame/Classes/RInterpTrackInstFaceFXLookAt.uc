@@ -1,0 +1,1 @@
+class RInterpTrackInstFaceFXLookAt extends InterpTrackInst;

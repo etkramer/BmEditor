@@ -597,12 +597,14 @@ namespace EditorLevelUtils
 	 */
 	UBOOL RemoveLevelFromWorld(ULevel* InLevel)
 	{
+#if !BATMAN
 		// Disallow for cooked packages.
 		if( GWorld && GWorld->GetOutermost()->PackageFlags & PKG_Cooked )
 		{
 			appMsgf( AMT_OK, *LocalizeUnrealEd("Error_OperationDisallowedOnCookedContent") );
 			return FALSE;
 		}
+#endif
 
 		const UBOOL bRemovingCurrentLevel	= InLevel && InLevel == GWorld->CurrentLevel;
 		const UBOOL bRemoveSuccessful		= FLevelUtils::RemoveLevelFromWorld( InLevel );

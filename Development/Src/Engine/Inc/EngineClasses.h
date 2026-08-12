@@ -1610,6 +1610,44 @@ enum EDOFType
     op(DOFType_SimpleDOF) \
     op(DOFType_ReferenceDOF) \
     op(DOFType_BokehDOF) 
+enum EPlaceHolder
+{
+    PH_UNKNOWN              =0,
+    PH_PLACEHOLDER          =1,
+    PH_TEMPDIALOGUE         =2,
+    PH_FINAL                =3,
+    PH_SOUND_NOT_FOUND      =4,
+    PH_DIALOGUE_TRACK_NEEDED=5,
+    PH_NO_CHARACTER         =6,
+    PH_DIALOGUEBANK_NOT_FOUND=7,
+    PH_DIALOGUESTREAMS_NOT_LOADED=8,
+    PH_MAX                  =9,
+};
+#define FOREACH_ENUM_EPLACEHOLDER(op) \
+    op(PH_UNKNOWN) \
+    op(PH_PLACEHOLDER) \
+    op(PH_TEMPDIALOGUE) \
+    op(PH_FINAL) \
+    op(PH_SOUND_NOT_FOUND) \
+    op(PH_DIALOGUE_TRACK_NEEDED) \
+    op(PH_NO_CHARACTER) \
+    op(PH_DIALOGUEBANK_NOT_FOUND) \
+    op(PH_DIALOGUESTREAMS_NOT_LOADED) 
+enum EPriority
+{
+    PRI_UNKNOWN             =0,
+    PRI_EMOTE               =1,
+    PRI_LOW                 =2,
+    PRI_NORMAL              =3,
+    PRI_HIGH                =4,
+    PRI_MAX                 =5,
+};
+#define FOREACH_ENUM_EPRIORITY(op) \
+    op(PRI_UNKNOWN) \
+    op(PRI_EMOTE) \
+    op(PRI_LOW) \
+    op(PRI_NORMAL) \
+    op(PRI_HIGH) 
 
 #endif // !INCLUDED_ENGINE_ENUMS
 #endif // !NO_ENUMS
@@ -2144,6 +2182,15 @@ struct Actor_eventSetMorphWeight_Parms
     FName MorphNodeName;
     FLOAT MorphWeight;
     Actor_eventSetMorphWeight_Parms(EEventParm)
+    {
+    }
+};
+struct Actor_eventMatineeSetFaceFXRegister_Parms
+{
+    FString RegisterName;
+    FLOAT Value;
+    BYTE RegisterOwner;
+    Actor_eventMatineeSetFaceFXRegister_Parms(EEventParm)
     {
     }
 };
@@ -3631,6 +3678,14 @@ public:
         Parms.MorphWeight=MorphWeight;
         ProcessEvent(FindFunctionChecked(ENGINE_SetMorphWeight),&Parms);
     }
+    void eventMatineeSetFaceFXRegister(const FString& RegisterName,FLOAT Value,BYTE RegisterOwner)
+    {
+        Actor_eventMatineeSetFaceFXRegister_Parms Parms(EC_EventParm);
+        Parms.RegisterName=RegisterName;
+        Parms.Value=Value;
+        Parms.RegisterOwner=RegisterOwner;
+        ProcessEvent(FindFunctionChecked(ENGINE_MatineeSetFaceFXRegister),&Parms);
+    }
     void eventStopActorFaceFXAnim()
     {
         ProcessEvent(FindFunctionChecked(ENGINE_StopActorFaceFXAnim),NULL);
@@ -4433,6 +4488,14 @@ public:
 
 	/** Get the UFaceFXAsset that is currently being used by this Actor when playing facial animations. */
 	virtual class UFaceFXAsset* PreviewGetActorFaceFXAsset() { return NULL; }
+
+	// BM
+	/** Called each frame by Matinee to drive one of this Actor's FaceFX registers. */
+	virtual void PreviewSetFaceFXRegister(const FString& RegisterName, FLOAT Value, BYTE RegisterOwner) {}
+
+	// BM
+	/** Called by Matinee to clear every FaceFX register it has been driving. */
+	virtual void PreviewResetAllFaceFXRegisters() {}
 
 	/** Called each frame by Matinee to update the weight of a particular MorphNodeWeight. */
 	virtual void PreviewSetMorphWeight(FName MorphNodeName, FLOAT MorphWeight) {}
@@ -16417,7 +16480,7 @@ public:
     FPointer InternalFaceFXAnimSet;
     TArrayNoInit<BYTE> RawFaceFXAnimSetBytes;
     TArrayNoInit<BYTE> RawFaceFXMiniSessionBytes;
-    TArrayNoInit<class USoundCue*> ReferencedSoundCues;
+    TArrayNoInit<class URDialogueEvent*> ReferencedDialogueCues;
     INT NumLoadErrors;
     //## END PROPS FaceFXAnimSet
 
@@ -16472,7 +16535,7 @@ public:
     TArrayNoInit<BYTE> RawFaceFXSessionBytes;
     TArrayNoInit<class UMorphTargetSet*> PreviewMorphSets;
     TArrayNoInit<class UFaceFXAnimSet*> MountedFaceFXAnimSets;
-    TArrayNoInit<class USoundCue*> ReferencedSoundCues;
+    TArrayNoInit<class URDialogueEvent*> ReferencedDialogueCues;
     INT NumLoadErrors;
     //## END PROPS FaceFXAsset
 
@@ -20887,6 +20950,80 @@ public:
 	virtual UPrimitiveComponent* CreatePrimitiveComponent(UObject* InOuter);
 };
 
+struct FRLocalizedSubtitle
+{
+    FStringNoInit Language;
+    TArrayNoInit<struct FSubtitleCue> Subtitles;
+
+    /** Constructors */
+    FRLocalizedSubtitle() {}
+    FRLocalizedSubtitle(EEventParm)
+    {
+        appMemzero(this, sizeof(FRLocalizedSubtitle));
+    }
+};
+
+struct FAnimTriggerFaceFXTag
+{
+    FName TagName;
+    TArrayNoInit<FString> TagParams;
+    class UAnimSet* TagAnimSet;
+    FLOAT AtTime;
+
+    /** Constructors */
+    FAnimTriggerFaceFXTag() {}
+    FAnimTriggerFaceFXTag(EEventParm)
+    {
+        appMemzero(this, sizeof(FAnimTriggerFaceFXTag));
+    }
+};
+
+class URDialogueEvent : public UObject
+{
+public:
+    //## BEGIN PROPS RDialogueEvent
+    class UAkEvent* WwiseDialogueEvent;
+    class UAkParameterName* WwiseDuckingParameter;
+    FStringNoInit CharacterName;
+    BITFIELD bUsesTTS:1;
+    BITFIELD bSyncFaceFX:1;
+    BITFIELD NotInDemo:1;
+    BITFIELD Is2D:1;
+    BITFIELD bEffect_IsRadio:1;
+    BITFIELD bIgnoreForSurviellance:1;
+    SCRIPT_ALIGN;
+    BYTE DialogueEvent_Type;
+    BYTE Priority;
+    BYTE PlaceHolder;
+    FLOAT MaxRange;
+    FLOAT Duration;
+    TArrayNoInit<FLOAT> OtherLangDuration;
+    TArrayNoInit<struct FSubtitleCue> Subtitles;
+    FStringNoInit Effect;
+    class UFaceFXAnimSet* FaceFXAnimSetRef;
+    FStringNoInit FaceFXGroupName;
+    FStringNoInit FaceFXAnimName;
+    TArrayNoInit<struct FAnimTriggerFaceFXTag> AnimTriggers;
+    TArrayNoInit<struct FRLocalizedSubtitle> LocalizedSubtitles;
+    FStringNoInit TaggedText;
+    FStringNoInit SubtitleCharacterName;
+    FStringNoInit debugSubtitleCharacterName;
+    INT ImportRef;
+    FStringNoInit LocDirect_StringID;
+    INT LocDirect_Hash;
+    INT ConversationID;
+    //## END PROPS RDialogueEvent
+
+    virtual FLOAT GetCueDuration();
+    DECLARE_FUNCTION(execGetCueDuration)
+    {
+        P_FINISH;
+        *(FLOAT*)Result=this->GetCueDuration();
+    }
+    DECLARE_CLASS(URDialogueEvent,UObject,0,Engine)
+    NO_DEFAULT_CONSTRUCTOR(URDialogueEvent)
+};
+
 class UAdvancedReachSpec : public UReachSpec
 {
 public:
@@ -21973,6 +22110,7 @@ AUTOGENERATE_FUNCTION(ULocalPlayer,-1,execOverridePostProcessSettings);
 AUTOGENERATE_FUNCTION(ULocalPlayer,-1,execGetActorVisibility);
 AUTOGENERATE_FUNCTION(ULocalPlayer,-1,execSendSplitJoin);
 AUTOGENERATE_FUNCTION(ULocalPlayer,-1,execSpawnPlayActor);
+AUTOGENERATE_FUNCTION(URDialogueEvent,-1,execGetCueDuration);
 AUTOGENERATE_FUNCTION(UReachSpec,-1,execGetDirection);
 AUTOGENERATE_FUNCTION(UReachSpec,-1,execGetEnd);
 AUTOGENERATE_FUNCTION(UReachSpec,-1,execCostFor);
@@ -22394,6 +22532,8 @@ AUTOGENERATE_FUNCTION(UUIManager,-1,execGetUIManager);
 	UPrimitiveComponentFactory::StaticClass(); \
 	UMeshComponentFactory::StaticClass(); \
 	UStaticMeshComponentFactory::StaticClass(); \
+	URDialogueEvent::StaticClass(); \
+	GNativeLookupFuncs.Set(FName("RDialogueEvent"), GEngineURDialogueEventNatives); \
 	UReachSpec::StaticClass(); \
 	GNativeLookupFuncs.Set(FName("ReachSpec"), GEngineUReachSpecNatives); \
 	UAdvancedReachSpec::StaticClass(); \
@@ -23283,6 +23423,12 @@ FNativeFunctionLookup GEngineULocalPlayerNatives[] =
 	{NULL, NULL}
 };
 
+FNativeFunctionLookup GEngineURDialogueEventNatives[] = 
+{ 
+	MAP_NATIVE(URDialogueEvent, execGetCueDuration)
+	{NULL, NULL}
+};
+
 FNativeFunctionLookup GEngineUReachSpecNatives[] = 
 { 
 	MAP_NATIVE(UReachSpec, execGetDirection)
@@ -24083,6 +24229,9 @@ VERIFY_CLASS_OFFSET_NODIE(UMeshComponentFactory,MeshComponentFactory,Materials)
 VERIFY_CLASS_SIZE_NODIE(UMeshComponentFactory)
 VERIFY_CLASS_OFFSET_NODIE(UStaticMeshComponentFactory,StaticMeshComponentFactory,StaticMesh)
 VERIFY_CLASS_SIZE_NODIE(UStaticMeshComponentFactory)
+VERIFY_CLASS_OFFSET_NODIE(URDialogueEvent,RDialogueEvent,WwiseDialogueEvent)
+VERIFY_CLASS_OFFSET_NODIE(URDialogueEvent,RDialogueEvent,ConversationID)
+VERIFY_CLASS_SIZE_NODIE(URDialogueEvent)
 VERIFY_CLASS_OFFSET_NODIE(UReachSpec,ReachSpec,NavOctreeObject)
 VERIFY_CLASS_OFFSET_NODIE(UReachSpec,ReachSpec,BlockedBy)
 VERIFY_CLASS_SIZE_NODIE(UReachSpec)
