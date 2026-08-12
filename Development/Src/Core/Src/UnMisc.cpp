@@ -3974,8 +3974,7 @@ void FMapPackageFileCache::CachePaths()
 	appGetScriptPackageDirectories(Paths);
 
 #if BATMAN
-	// BM: Cache script packages first, so extracted packages (which include the game's own
-	// script packages) can't shadow the ones we compile ourselves.
+	// BM: Cache script packages first so extracted packages can't shadow the ones we compile.
 	TArray<FString> ScriptPaths;
 	appGetScriptPackageDirectories(ScriptPaths);
 	for (INT PathIndex = 0; PathIndex < ScriptPaths.Num(); PathIndex++)

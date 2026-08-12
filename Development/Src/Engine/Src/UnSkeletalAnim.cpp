@@ -175,13 +175,8 @@ static void LoadOldCompressedTrack(FArchive& Ar, FCompressedTrack& Dst, INT Byte
 
 #if BATMAN
 
-// ============================================================================
-// AnimZip runtime decompression system
-// Matches the game's native AnimZip architecture: data stays compressed at
-// runtime, sampled directly via AnimZip_Sample / AnimZip_Sample_Track.
-// ============================================================================
-
-// --- Data structures (matching game binary layout) ---
+// AnimZip runtime decompression. Data stays compressed and is sampled directly
+// via AnimZip_Sample / AnimZip_Sample_Track, matching the game's architecture.
 
 // 24 bytes - header at start of AnimZip_Data buffer
 struct FAnim
@@ -221,10 +216,7 @@ struct FResolvedBundle
 	}
 };
 
-// --- Interpolation helper ---
-
-// Catmull-Rom time — four frame indices [i-1, i, i+1, i+2] clamped to valid range.
-// Matches the shipped game's decoder (Default.xex.c FCatmullRomTime::Make, ~:2966718).
+// Four frame indices [i-1, i, i+1, i+2] clamped to range (Default.xex.c FCatmullRomTime::Make).
 struct FCatmullRomTime
 {
 	INT Frame0;		// i-1
@@ -252,8 +244,6 @@ struct FCatmullRomTime
 		return T;
 	}
 };
-
-// --- Quaternion decode helpers (unchanged from working implementation) ---
 
 static FQuat DecodeQuatMax48(const BYTE* b)
 {
@@ -364,14 +354,10 @@ static FQuat DecodeQuatFixedAxis(INT Shift, UINT Value, const BYTE* Interval)
 	return r;
 }
 
-// --- Keyframe size tables ---
-
 static const INT GRotationKeyframeSizes[AZRC_MAX] = { 6, 5, 4, 3, 2, 2, 1 };
 static const INT GRotationHeaderSizes[AZRC_MAX] = { 0, 0, 10, 10, 10, 3, 3 };
 static const INT GTranslationKeyframeSizes[AZTSC_MAX] = { 16, 12, 6, 3 };
 static const INT GTranslationHeaderSizes[AZTSC_MAX] = { 0, 0, 24, 24 };
-
-// --- Per-codec rotation sampling ---
 
 static FQuat SampleRotationKey(BYTE Codec, INT TrackInBundle, INT Frame, INT NumTracks,
 	const BYTE* Headers, const BYTE* Keyframes)
@@ -419,7 +405,6 @@ static FQuat SampleRotationKey(BYTE Codec, INT TrackInBundle, INT Frame, INT Num
 static FQuat SampleRotationBundle(const FResolvedBundle& RB, BYTE Codec, INT TrackInBundle,
 	INT NumTracks, const FCatmullRomTime& Time)
 {
-	// Fast path: on a keyframe or single-frame track, return K1 directly.
 	FQuat K1 = SampleRotationKey(Codec, TrackInBundle, Time.Frame1, NumTracks, RB.Headers, RB.Keyframes);
 	if (Time.Alpha <= 0.0f || Time.Frame1 == Time.Frame2)
 	{
@@ -435,7 +420,6 @@ static FQuat SampleRotationBundle(const FResolvedBundle& RB, BYTE Codec, INT Tra
 	if ((K1 | K2) < 0.0f) { K2 = FQuat(-K2.X, -K2.Y, -K2.Z, -K2.W); }
 	if ((K1 | K3) < 0.0f) { K3 = FQuat(-K3.X, -K3.Y, -K3.Z, -K3.W); }
 
-	// Standard Catmull-Rom basis, tension 0.5.
 	const FLOAT a = Time.Alpha;
 	const FLOAT a2 = a * a;
 	const FLOAT a3 = a2 * a;
@@ -452,8 +436,6 @@ static FQuat SampleRotationBundle(const FResolvedBundle& RB, BYTE Codec, INT Tra
 	Result.Normalize();
 	return Result;
 }
-
-// --- Per-codec translation sampling ---
 
 static FVector SampleTranslationKey(BYTE Codec, INT TrackInBundle, INT Frame, INT NumTracks,
 	const BYTE* Headers, const BYTE* Keyframes, FLOAT* OutScale = NULL)
@@ -526,8 +508,6 @@ static FVector SampleTranslationBundle(const FResolvedBundle& RB, BYTE Codec, IN
 	return V0 * b0 + V1 * b1 + V2 * b2 + V3 * b3;
 }
 
-// --- Core sampling: single track ---
-
 void AnimZip_Sample_Track(const UAnimSequence* Seq, INT TrackIndex, FLOAT NormalizedTime, FBoneAtom* Out)
 {
 	const BYTE* Data = Seq->AnimZip_Data.GetData();
@@ -535,7 +515,6 @@ void AnimZip_Sample_Track(const UAnimSequence* Seq, INT TrackIndex, FLOAT Normal
 
 	NormalizedTime = Clamp(NormalizedTime, 0.0f, 1.0f - (FLOAT)SMALL_NUMBER);
 
-	// Search rotation bundles for this track
 	UBOOL bFoundRotation = FALSE;
 	const FBundle* RotBundles = (const FBundle*)&Data[Anim->RotationBundlesOffset];
 	for (INT i = 0; i < Anim->NumRotationBundles; i++)
@@ -562,7 +541,6 @@ void AnimZip_Sample_Track(const UAnimSequence* Seq, INT TrackIndex, FLOAT Normal
 		Out->SetRotation(FQuat::Identity);
 	}
 
-	// Search translation/scale bundles for this track
 	UBOOL bFoundTranslation = FALSE;
 	const FBundle* TransBundles = (const FBundle*)&Data[Anim->TranslationScaleBundlesOffset];
 	for (INT i = 0; i < Anim->NumTranslationScaleBundles; i++)
@@ -592,9 +570,8 @@ void AnimZip_Sample_Track(const UAnimSequence* Seq, INT TrackIndex, FLOAT Normal
 	Out->SetScale(1.0f);
 }
 
-// AnimZip stores root motion separately from regular bone tracks: a yaw-only
-// quat per frame in the rotation bundle and absolute translation in the
-// translation bundle, each with a single track.
+// Root motion lives in its own single-track bundles: a yaw-only quat per frame
+// for rotation, absolute translation for translation.
 UBOOL AnimZip_Sample_Motion(const UAnimSequence* Seq, FLOAT NormalizedTime, FBoneAtom* Out)
 {
 	Out->SetRotation(FQuat::Identity);
@@ -638,12 +615,9 @@ UBOOL AnimZip_Sample_Motion(const UAnimSequence* Seq, FLOAT NormalizedTime, FBon
 	return TRUE;
 }
 
-// --- Core sampling: batch (all bones) ---
-
 void AnimZip_Sample(const UAnimSequence* Seq, USkeletalMesh* SkelMesh,
 	FLOAT NormalizedTime, const TArray<INT>& TrackToBoneTable, INT NumBones, FBoneAtom* Out_Bones)
 {
-	// Pre-fill all bones with reference pose
 	const TArray<FMeshBone>& RefSkel = SkelMesh->RefSkeleton;
 	for (INT i = 0; i < NumBones; i++)
 	{
@@ -656,14 +630,10 @@ void AnimZip_Sample(const UAnimSequence* Seq, USkeletalMesh* SkelMesh,
 
 	NormalizedTime = Clamp(NormalizedTime, 0.0f, 1.0f - (FLOAT)SMALL_NUMBER);
 
-	// When Compression_RelativeToReferencePose is set, decoded keys are stored relative
-	// to the target mesh refpose and must be composed back in at sample time. Matches
-	// the shipped game: SampleBundle<FRotationCodec_QuatMax_48,1> at Default.xex.c:2981587
-	// applies RefPose * Decoded for rotation; AnimZip_Sample_Track at :2967216 applies
-	// RefPose + Decoded for translation.
+	// Relative keys are composed back onto the refpose at sample time: RefPose * Decoded for
+	// rotation, RefPose + Decoded for translation (Default.xex.c:2981587, :2967216).
 	const UBOOL bRetarget = Seq->Compression_RelativeToReferencePose;
 
-	// Process all rotation bundles
 	const FBundle* RotBundles = (const FBundle*)&Data[Anim->RotationBundlesOffset];
 	for (INT i = 0; i < Anim->NumRotationBundles; i++)
 	{
@@ -689,7 +659,6 @@ void AnimZip_Sample(const UAnimSequence* Seq, USkeletalMesh* SkelMesh,
 		}
 	}
 
-	// Process all translation/scale bundles
 	const FBundle* TransBundles = (const FBundle*)&Data[Anim->TranslationScaleBundlesOffset];
 	for (INT i = 0; i < Anim->NumTranslationScaleBundles; i++)
 	{
@@ -715,22 +684,14 @@ void AnimZip_Sample(const UAnimSequence* Seq, USkeletalMesh* SkelMesh,
 	}
 }
 
-// ============================================================================
-// AnimZip compression / encoding
-// Produces AnimZip_Data from RawAnimationData after PSA import.
-// Uses QuatMax48 for rotations, NoScaleFloat96 for root translation.
-// Only includes rotation tracks that differ from the reference pose,
-// and translation only for the root bone (track 0).
-// ============================================================================
+// AnimZip compression: produces AnimZip_Data from RawAnimationData after PSA import.
+// QuatMax48 rotations (only tracks differing from the ref pose), NoScaleFloat96 root translation.
 
-// --- QuatMax48 encoder (inverse of DecodeQuatMax48) ---
-
+// QuatMax48 encoder - inverse of DecodeQuatMax48.
 static void EncodeQuatMax48(const FQuat& InQ, BYTE* Out)
 {
-	// Work on a copy so we can negate
 	FQuat Q = InQ;
 
-	// Find component with largest absolute value
 	FLOAT AbsVals[4] = { Abs(Q.X), Abs(Q.Y), Abs(Q.Z), Abs(Q.W) };
 	INT S = 0;
 	FLOAT MaxAbs = AbsVals[0];
@@ -743,7 +704,7 @@ static void EncodeQuatMax48(const FQuat& InQ, BYTE* Out)
 		}
 	}
 
-	// Negate entire quaternion so the omitted (largest) component is positive
+	// Negate so the omitted (largest) component is positive.
 	FLOAT Components[4] = { Q.X, Q.Y, Q.Z, Q.W };
 	if (Components[S] < 0.0f)
 	{
@@ -753,8 +714,6 @@ static void EncodeQuatMax48(const FQuat& InQ, BYTE* Out)
 		Components[3] = -Components[3];
 	}
 
-	// Extract 3 remaining components as (m, h, l) based on S
-	// Matches decoder mapping: S=0 → (a,m,h,l)=(X,Y,Z,W), S=1 → (Y,X,Z,W), etc.
 	FLOAT m, h, l;
 	switch (S)
 	{
@@ -764,22 +723,15 @@ static void EncodeQuatMax48(const FQuat& InQ, BYTE* Out)
 	default: m = Components[0]; h = Components[1]; l = Components[2]; break; // W omitted
 	}
 
-	// Quantize to 15 bits each
-	// Decoder: val * (sqrt(2) / 32767) - 1/sqrt(2) = component
-	// Encoder: (component + 1/sqrt(2)) / (sqrt(2) / 32767) = val
+	// Decoder is val * (sqrt(2) / 32767) - 1/sqrt(2), so invert that to quantize to 15 bits.
 	static const FLOAT Shift = 0.70710678118f; // 1/sqrt(2)
 	static const FLOAT Scale = 32767.0f / 1.41421356237f; // 32767 / sqrt(2)
-	// Equivalent: (component + shift) * (1/sqrt(2)) * 32767 = (component + shift) * shift * 32767
 
 	INT mVal = Clamp<INT>(appFloor((m + Shift) * Scale + 0.5f), 0, 32767);
 	INT hVal = Clamp<INT>(appFloor((h + Shift) * Scale + 0.5f), 0, 32767);
 	INT lVal = Clamp<INT>(appFloor((l + Shift) * Scale + 0.5f), 0, 32767);
 
-	// Pack into 6 bytes big-endian
-	// Decoder reads: mVal = ((b[0]<<8)|b[1]) & 0x7FFF
-	//                hVal = ((b[2]<<8)|b[3]) & 0x7FFF
-	//                lVal = ((b[4]<<8)|b[5]) & 0x7FFF
-	//                S    = ((b[2]>>6)&2) | (b[4]>>7)
+	// Pack into 6 bytes big-endian, S split across the top bits of b[2] and b[4].
 	Out[0] = (BYTE)((mVal >> 8) & 0x7F);
 	Out[1] = (BYTE)(mVal & 0xFF);
 	Out[2] = (BYTE)(((S & 2) << 6) | ((hVal >> 8) & 0x7F));
@@ -788,14 +740,8 @@ static void EncodeQuatMax48(const FQuat& InQ, BYTE* Out)
 	Out[5] = (BYTE)(lVal & 0xFF);
 }
 
-// --- QuatMax40 encoder (inverse of DecodeQuatMax40) ---
-//
-// Bit layout (matching decoder at ~L297):
-//   mVal = ((b[0]<<8)|b[1]) >> 4 & 0xFFF  — b[0] full, b[1] top 4 bits
-//   hVal = ((b[1]<<8)|b[2])      & 0xFFF  — b[1] bottom 4 bits, b[2] full
-//   lVal = ((b[3]<<8)|b[4]) >> 4 & 0xFFF  — b[3] full, b[4] top 4 bits
-//   S    = b[4] & 3
-// b[4] bits 3..2 are unused (encoder writes 0).
+// QuatMax40 encoder - inverse of DecodeQuatMax40. Three 12-bit components packed
+// big-endian across 5 bytes, S in the low 2 bits of b[4]; b[4] bits 3..2 are unused.
 
 static void EncodeQuatMax40(const FQuat& InQ, BYTE* Out)
 {
@@ -840,11 +786,8 @@ static void EncodeQuatMax40(const FQuat& InQ, BYTE* Out)
 	Out[4] = (BYTE)(((lVal & 0xF) << 4) | (BYTE)(S & 3));
 }
 
-// --- Interval_Fixed_48 translation encoder ---
-//
-// Header layout (24 bytes = 6 floats): Hdr[0..2] = center, Hdr[3..5] = half-extent.
-// Decoder (~L473): v.X = vi[0]/32767 * Hdr[3] + Hdr[0], etc.
-// Each keyframe is 3 * SHORT = 6 bytes, native endianness.
+// Interval_Fixed_48 translation encoder. Header is 6 floats (center, half-extent);
+// each keyframe is 3 SHORTs decoded as vi/32767 * HalfExtent + Center.
 
 static void ComputeIntervalHeader48(const TArray<FVector>& Samples, FLOAT* Hdr)
 {
@@ -873,18 +816,14 @@ static void EncodeIntervalFixed48Key(const FVector& V, const FLOAT* Hdr, BYTE* O
 }
 
 // 1:1 port of AnimZip_ShouldAutoDeleteTrackBasedOnAnimSet (BmGame.exe.c:11493726).
-// All four categories are gated on bit flags in UAnimSet's bitfield; our schema
-// doesn't expose those bits, so they're always clear and this returns FALSE
-// (matching the reference's behavior when no flags are set).
+// Our UAnimSet schema doesn't expose the gating bit flags yet, so this always returns FALSE.
 static UBOOL AnimZip_ShouldAutoDeleteTrack(FName BoneName, UAnimSet* /*AnimSet*/)
 {
 	return FALSE;
 }
 
-// 1:1 port of GetMaxRotationError (BmGame.exe.c:11476278). Returns the max
-// chord-length over the track ( 2*sqrt(min((Q-K)^2,(Q+K)^2)) ), which for unit
-// quats approximates the angular distance in radians for small angles. Caller
-// converts to degrees by multiplying by (180/pi).
+// 1:1 port of GetMaxRotationError (BmGame.exe.c:11476278). Max chord-length over the
+// track, which approximates radians for small angles; the caller converts to degrees.
 static FLOAT AnimZip_GetMaxRotationError(const FQuat& Ref, const TArray<FQuat>& Keys)
 {
 	FLOAT MaxErr = 0.0f;
@@ -917,22 +856,7 @@ static FLOAT AnimZip_GetMaxTranslationError(const FVector& Ref, const TArray<FVe
 	return appSqrt(MaxSq);
 }
 
-// ============================================================================
-// AnimZip encoder: new pipeline (match original RAnimZip_Encode.cpp behavior)
-//
-// Layout:
-//   [0] intermediate types
-//   [1] settings resolver
-//   [2] codec encode helpers (EncodeQuatMax48 already exists ~L630)
-//   [3] per-track codec selectors (SelectRotationCodec / SelectTransScaleCodec)
-//   [4] track preparation pipeline (massage/motion/clip/downsample)
-//   [5] bundle grouping + final serialization
-//   [6] entry point AnimZip_Compress_V2
-//
-// Phases fill in [2..6] incrementally. [0] and [1] are defined here.
-// ============================================================================
-
-// --- Intermediate track / bundle types ---
+// AnimZip encoder, matching the original RAnimZip_Encode.cpp behavior.
 
 struct FIntermediateRotationTrack
 {
@@ -961,8 +885,6 @@ struct FIntermediateBundle
 	TArray<INT>	TrackIndices;		// indices into FIntermediateRotationTrack[] or FIntermediateTransScaleTrack[]
 };
 
-// --- Settings resolution ---
-
 struct FResolvedTrackSettings
 {
 	FAnimZipErrorBounds	ErrorBounds;
@@ -987,8 +909,7 @@ static URAnimZip_Settings* AnimZip_GetEffectiveSettings(UAnimSequence* Seq)
 	return URAnimZip_Settings::StaticClass()->GetDefaultObject<URAnimZip_Settings>();
 }
 
-// Case-insensitive prefix match used by the bone-name pattern matchers in
-// sub_23FB070 / sub_23FB130 / sub_23FB1F0 / sub_23FB330 / sub_23FB3F0.
+// Case-insensitive prefix match, used by the bone-name pattern matchers (sub_23FB070 and co).
 static UBOOL AnimZip_BoneNameStartsWith(const FString& Name, const TCHAR* Prefix)
 {
 	const INT PrefixLen = appStrlen(Prefix);
@@ -996,12 +917,8 @@ static UBOOL AnimZip_BoneNameStartsWith(const FString& Name, const TCHAR* Prefix
 	return appStrnicmp(*Name, Prefix, PrefixLen) == 0;
 }
 
-// 1:1 port of sub_23FB530 (BmGame.exe.c:11489328). Picks the per-bone source
-// FAnimZipTrackSettings, then GetTrackSettings (11489761-11489809) scales the
-// ErrorBounds by Settings->CompressionAmount.
-//
-// bRootIsBip01: root bone is "Bip01" (enables Bip01-specialised branches).
-// bRootIsCape:  root bone is "Cape_Dummy" (enables cape branch).
+// 1:1 port of sub_23FB530 (BmGame.exe.c:11489328). Picks the per-bone FAnimZipTrackSettings,
+// then GetTrackSettings scales ErrorBounds by CompressionAmount.
 static FResolvedTrackSettings AnimZip_ResolveTrackSettings(
 	URAnimZip_Settings* Settings, FName BoneName, UBOOL bRootIsBip01, UBOOL bRootIsCape, UBOOL bIsMotion)
 {
@@ -1082,21 +999,13 @@ static FResolvedTrackSettings AnimZip_ResolveTrackSettings(
 	return Out;
 }
 
-// --- Pipeline function stubs (bodies filled in Phase 2+) ---
-
-// Phase 2
 static void AnimZip_MassageTracks(UAnimSequence* /*Seq*/, TArray<FRawAnimSequenceTrack>& /*OutTracks*/)
 { /* stub */ }
 static void AnimZip_ClipTracks(UAnimSequence* /*Seq*/, TArray<FRawAnimSequenceTrack>& /*Tracks*/)
 { /* stub */ }
 
-// --- 1:1 port of GetMotionTrack (BmGame.exe.c:11456727) and its helpers ---
-//
-// Notify-driven branches (URAnimNotify_ForwardYaw/FloorHeight/MotionExtractionType/
-// MotionExtractionOffset) and CentreOfMass (FBoneMass body-mass table) are not
-// ported yet; assume the target animation has no notifies and BoneMass is empty.
-// In Gangland that means sub_23CBA50/CBB40 return [0, BlendOutPoint],
-// sub_23C5240 returns 1.0, sub_23C52F0 returns zero, and v45 = (0,0,0).
+// 1:1 port of GetMotionTrack (BmGame.exe.c:11456727) and its helpers. The notify-driven
+// branches and CentreOfMass aren't ported - we assume no notifies and an empty BoneMass.
 
 // sub_23CBA50 / sub_23CBB40 (no-notify path): time range = [0, BlendOutPoint].
 static void AnimZip_URMotion_GetTimeRange(UAnimSequence* Seq, FLOAT& OutStart, FLOAT& OutEnd)
@@ -1165,8 +1074,7 @@ static FAnimCollisionOptions AnimZip_GetCollisionOptions(UAnimSequence* Seq, FLO
 		: Seq->CollisionOptions.End;
 }
 
-// Sample Bip01 raw atom at a normalized time. Linear interp between adjacent
-// keys; assumes encoding hasn't mutated RawAnimationData yet.
+// Sample Bip01's raw atom at a normalized time. Assumes encoding hasn't mutated RawAnimationData yet.
 static void AnimZip_SampleBip01Raw(UAnimSequence* Seq, FLOAT NormTime, FQuat& OutQ, FVector& OutT)
 {
 	const FRawAnimSequenceTrack& Root = Seq->RawAnimationData(0);
@@ -1200,8 +1108,7 @@ static FVector AnimZip_GetBip01Translation(UAnimSequence* Seq, FLOAT NormTime)
 	return T;
 }
 
-// sub_23B0E30 (BmGame.exe.c:11429726): Bip01 yaw at a normalized time. Reads
-// rotation matrix columns and atan2's the (mostly horizontal) Y axis.
+// sub_23B0E30 (BmGame.exe.c:11429726): Bip01 yaw at a normalized time.
 static FLOAT AnimZip_GetBip01Yaw(UAnimSequence* Seq, FLOAT NormTime)
 {
 	FQuat Q; FVector T;
@@ -1233,8 +1140,7 @@ static FLOAT AnimZip_URMotion_GetYawSimple(UAnimSequence* Seq, FLOAT NormTime)
 	return YawS + (YawE - YawS) * AnimZip_RescaleTime(NormTime, Lo, Hi);
 }
 
-// sub_23CF760 (BmGame.exe.c:11453487): full URMotion yaw — lerp delta from Bip01 yaw at
-// start/end, then add Bip01 yaw at clamped time.
+// sub_23CF760 (BmGame.exe.c:11453487): full URMotion yaw.
 static FLOAT AnimZip_URMotion_GetYawFull(UAnimSequence* Seq, FLOAT NormTime)
 {
 	FLOAT Lo, Hi; AnimZip_URMotion_GetTimeRange(Seq, Lo, Hi);
@@ -1275,7 +1181,6 @@ static FLOAT AnimZip_URMotion_GetFloorHeight(UAnimSequence* Seq, FLOAT NormTime)
 }
 
 // sub_23CF9D0 (BmGame.exe.c:11453588): URMotion floor offset for CanMoveInZ physics.
-// Adds the (start/end FloorHeight − Bip01.Z) offset onto Bip01.Z at the current time.
 static FLOAT AnimZip_URMotion_GetFloorOffsetInZ(UAnimSequence* Seq, FLOAT NormTime)
 {
 	const FAnimCollisionOptions& Mid = Seq->CollisionOptions.Middle;
@@ -1328,8 +1233,7 @@ static const FBmNamedBoneMass GBmNamedBoneMasses[17] =
 
 struct FBmBoneMass { INT TrackIndex; FLOAT Mass; };
 
-// sub_23B1090 / sub_23B1020: AnimSet-track parent chain. For each track,
-// walk RefMesh's parents upward until we hit another tracked bone.
+// sub_23B1090 / sub_23B1020: for each track, walk RefMesh's parents up to the next tracked bone.
 static void AnimZip_BuildParentChain(UAnimSet* AnimSet, USkeletalMesh* RefMesh, TArray<INT>& OutParents)
 {
 	const INT N = AnimSet->TrackBoneNames.Num();
@@ -1407,8 +1311,7 @@ static void AnimZip_SampleLocalAtom(const FRawAnimSequenceTrack& Track, INT NumK
 	Out = FBoneAtom(Q, T, 1.0f);
 }
 
-// sub_23B1460: SpaceBase[i] = Local[i] * SpaceBase[Parent[i]]. Requires parents
-// to appear before children in the track order (the standard SkelMesh layout).
+// sub_23B1460: SpaceBase[i] = Local[i] * SpaceBase[Parent[i]]. Parents must precede children.
 static void AnimZip_ComposeSpaceBases(UAnimSequence* Seq, const TArray<INT>& Parents, FLOAT NormTime, TArray<FBoneAtom>& OutSpaceBases)
 {
 	const INT N = Parents.Num();
@@ -1523,11 +1426,8 @@ static void AnimZip_GetMotionTrack(UAnimSequence* Seq, UAnimSet* AnimSet, USkele
 	}
 }
 
-// Build the per-call rotation codec list. 1:1 port of sub_23FFB10 limited to
-// the codecs we implement (QuatMax_40, QuatMax_48). If ForceRotationCodec_Enabled
-// is set, emit just that codec. Otherwise walk v4 from 6 down to 0; skip codecs
-// present in DisableRotationCodecs and codecs we don't support. Always include
-// at least one fallback (QuatMax_48).
+// Build the per-call rotation codec list. 1:1 port of sub_23FFB10, limited to the
+// codecs we implement (QuatMax_40, QuatMax_48) and always keeping QuatMax_48 as a fallback.
 static void AnimZip_BuildRotationCodecList(URAnimZip_Settings* Cfg, TArray<BYTE>& Out)
 {
 	Out.Empty();
@@ -1561,8 +1461,7 @@ static void AnimZip_BuildRotationCodecList(URAnimZip_Settings* Cfg, TArray<BYTE>
 	}
 }
 
-// Try one rotation codec; return TRUE if the round-trip error stays within
-// tolerance OR bForce is set. Sets OutTrack.Codec on success.
+// Try one rotation codec, accepting it if the round-trip error is within tolerance or bForce is set.
 static UBOOL AnimZip_TryRotationCodec(
 	BYTE Codec, const TArray<FQuat>& Samples, FLOAT ToleranceDeg,
 	UBOOL bForce, FIntermediateRotationTrack& OutTrack)
@@ -1599,8 +1498,7 @@ static UBOOL AnimZip_TryRotationCodec(
 	return FALSE;
 }
 
-// 1:1 port of SelectRotationCodec (BmGame.exe.c:11493389). Build the codec list,
-// try each in turn (smallest first), and if none pass tolerance, force the last one.
+// 1:1 port of SelectRotationCodec (BmGame.exe.c:11493389). Smallest codec first, forcing the last.
 static void AnimZip_SelectRotationCodec(
 	const TArray<FQuat>& Samples, const FResolvedTrackSettings& Settings,
 	URAnimZip_Settings* Cfg, FIntermediateRotationTrack& OutTrack)
@@ -1682,7 +1580,6 @@ static UBOOL AnimZip_TryTransScaleCodec(
 			if (E > MaxErr) MaxErr = E;
 		}
 	}
-	// AZTSC_NoScale_Float_96 is lossless → MaxErr stays 0.
 	if (bForce || MaxErr <= Tolerance)
 	{
 		OutTrack.Codec = Codec;
@@ -1710,7 +1607,7 @@ static void AnimZip_SelectTransScaleCodec(
 	AnimZip_TryTransScaleCodec(Codecs(Codecs.Num() - 1), Samples, Settings.ErrorBounds.Translation, TRUE, OutTrack);
 }
 
-// --- Per-track encoders: build IT.Header / IT.EncodedKeys for the selected codec. ---
+// Per-track encoders: build IT.Header / IT.EncodedKeys for the selected codec.
 
 static void AnimZip_EncodeRotationTrack(FIntermediateRotationTrack& IT)
 {
@@ -1770,14 +1667,12 @@ static void AnimZip_EncodeTransScaleTrack(FIntermediateTransScaleTrack& IT)
 	}
 }
 
-// Phase 5
 static void AnimZip_DownsampleRotation(TArray<FQuat>& /*Samples*/, const FResolvedTrackSettings& /*Settings*/)
 { /* stub: disabled */ }
 static void AnimZip_DownsampleTranslation(TArray<FVector>& /*Samples*/, const FResolvedTrackSettings& /*Settings*/)
 { /* stub: disabled */ }
 
-// Phase 6: Group tracks sharing (Codec, NumFrames) into bundles. NumTracks is
-// a BYTE in FBundle, so cap at 255 and spill to a new bundle.
+// Group tracks sharing (Codec, NumFrames) into bundles, spilling past 255 (NumTracks is a BYTE).
 static void AnimZip_GroupIntoBundles(
 	const TArray<FIntermediateRotationTrack>& RotTracks,
 	const TArray<FIntermediateTransScaleTrack>& TransTracks,
@@ -1833,8 +1728,6 @@ static void AnimZip_GroupIntoBundles(
 	}
 }
 
-// --- Main AnimZip compression entry point ---
-
 void AnimZip_Compress(UAnimSequence* Seq)
 {
 	if (!Seq || Seq->RawAnimationData.Num() == 0 || Seq->NumFrames == 0)
@@ -1853,7 +1746,6 @@ void AnimZip_Compress(UAnimSequence* Seq)
 
 	check(NumTracks <= 255); // FBundle::NumTracks is BYTE
 
-	// --- Load reference skeleton for ref pose comparison ---
 	USkeletalMesh* RefMesh = NULL;
 	if (AnimSet->PreviewSkelMeshName != NAME_None)
 	{
@@ -1862,14 +1754,12 @@ void AnimZip_Compress(UAnimSequence* Seq)
 
 	URAnimZip_Settings* EffSettings = AnimZip_GetEffectiveSettings(Seq);
 
-	// Per GetTrackSettings / MassageTracks (BmGame.exe.c:11489659, 11504846):
-	// the character cascade only activates when track 0 is "Bip01" AND
-	// EnableCharacterOptimisations is set; the cape branch only when track 0
-	// is "Cape_Dummy" AND EnableCapeOptimisations is set.
+	// The character and cape cascades need both the matching root bone name and their
+	// enable flag (BmGame.exe.c:11489659, 11504846).
 	const UBOOL bRootIsBip01 = (NumTracks > 0 && AnimSet->TrackBoneNames(0) == FName(TEXT("Bip01")));
 	const UBOOL bRootIsCape  = (NumTracks > 0 && AnimSet->TrackBoneNames(0) == FName(TEXT("Cape_Dummy")));
 
-	// --- Build per-track resolved settings (1:1 GetTrackSettings) ---
+	// Build per-track resolved settings (1:1 GetTrackSettings).
 	TArray<FResolvedTrackSettings> Resolved;
 	Resolved.Empty(NumTracks); Resolved.Add(NumTracks);
 	for (INT t = 0; t < NumTracks; t++)
@@ -1877,7 +1767,7 @@ void AnimZip_Compress(UAnimSequence* Seq)
 		Resolved(t) = AnimZip_ResolveTrackSettings(EffSettings, AnimSet->TrackBoneNames(t), bRootIsBip01, bRootIsCape, FALSE);
 	}
 
-	// --- Strip decisions (1:1 sub_23FBEF0 / sub_23FC070 / sub_23FC1E0) ---
+	// Strip decisions (1:1 sub_23FBEF0 / sub_23FC070 / sub_23FC1E0).
 	TArray<INT> IncludedRotTracks;
 	TArray<INT> IncludedTransTracks;
 	for (INT t = 0; t < NumTracks; t++)
@@ -1890,9 +1780,7 @@ void AnimZip_Compress(UAnimSequence* Seq)
 		const FRawAnimSequenceTrack& Track = Seq->RawAnimationData(t);
 		const FResolvedTrackSettings& RS = Resolved(t);
 
-		// --- Rotation strip (sub_23FBEF0) ---
-		// Empty → strip. Else if !RefMesh || !StripTracksIfSameAsReferencePose → keep.
-		// Else compute degrees of max chord-error vs refpose; strip if < tolerance.
+		// Rotation strip (sub_23FBEF0).
 		UBOOL bStripRot = FALSE;
 		if (Track.RotKeys.Num() == 0)
 		{
@@ -1920,7 +1808,7 @@ void AnimZip_Compress(UAnimSequence* Seq)
 			IncludedRotTracks.AddItem(t);
 		}
 
-		// --- Translation strip (sub_23FC070) ---
+		// Translation strip (sub_23FC070).
 		UBOOL bStripTrans = FALSE;
 		if (Track.PosKeys.Num() == 0)
 		{
@@ -1953,7 +1841,7 @@ void AnimZip_Compress(UAnimSequence* Seq)
 	const UBOOL bHasMotionRot   = bRootIsBip01 && (RootTrack.RotKeys.Num() > 0);
 	const UBOOL bHasMotionTrans = bRootIsBip01 && (RootTrack.PosKeys.Num() > 0);
 
-	// --- Build intermediate rotation tracks (samples + codec + encoded bytes) ---
+	// Build intermediate rotation tracks.
 
 	TArray<FIntermediateRotationTrack> RotInterm;
 	RotInterm.Empty(NRot);
@@ -1976,10 +1864,8 @@ void AnimZip_Compress(UAnimSequence* Seq)
 				Q.W = -Q.W;
 			}
 			Q.Normalize();
-			// Keep the imported sign sequence intact. The runtime Catmull-Rom sampler
-			// already aligns surrounding keys to K1's hemisphere per sample; forcing a
-			// global consecutive-key hemisphere pass here changes the interpolated path
-			// without changing the exact frame keys, which is especially visible on Bip01 yaw.
+			// Keep the imported sign sequence intact - the sampler aligns hemispheres per sample,
+			// and a global pass here would change the interpolated path (visible on Bip01 yaw).
 			IT.Samples.AddItem(Q);
 		}
 
@@ -1989,7 +1875,7 @@ void AnimZip_Compress(UAnimSequence* Seq)
 		RotInterm.AddItem(IT);
 	}
 
-	// --- Build intermediate translation tracks ---
+	// Build intermediate translation tracks.
 	TArray<FIntermediateTransScaleTrack> TransInterm;
 	TransInterm.Empty(NTrans);
 	for (INT i = 0; i < NTrans; i++)
@@ -2013,11 +1899,8 @@ void AnimZip_Compress(UAnimSequence* Seq)
 		TransInterm.AddItem(IT);
 	}
 
-	// Set clipping/blend properties that the retail game expects. Must happen
-	// before AnimZip_GetMotionTrack, which reads BlendOutPoint as the URMotion
-	// period upper bound (in NORMALIZED [0,1] time — see sub_23CBA50). Without
-	// these, ClippedLength=0 collapses NormTime to 0 in the decoder, and
-	// BlendOutPoint=0 collapses GetMotionTrack to a constant.
+	// Must precede AnimZip_GetMotionTrack, which reads BlendOutPoint as the URMotion period
+	// upper bound in normalized time. Leaving these at zero collapses NormTime and the motion track.
 	Seq->ClippedStart = 0.0f;
 	Seq->ClippedLength = Seq->SequenceLength;
 	Seq->BlendInPoint = 0.0f;
@@ -2054,7 +1937,6 @@ void AnimZip_Compress(UAnimSequence* Seq)
 		AnimZip_EncodeTransScaleTrack(MotionTransIT);
 	}
 
-	// --- Group by (codec, numframes) ---
 	TArray<FIntermediateBundle> RotBundles;
 	TArray<FIntermediateBundle> TransBundles;
 	AnimZip_GroupIntoBundles(RotInterm, TransInterm, RotBundles, TransBundles);
@@ -2062,29 +1944,24 @@ void AnimZip_Compress(UAnimSequence* Seq)
 	const INT NumRotBundles = RotBundles.Num();
 	const INT NumTransBundles = TransBundles.Num();
 
-	// --- Compute layout offsets ---
+	// Compute layout offsets.
 	const INT AnimHeaderSize = 24; // sizeof(FAnim)
 	const INT BundleSize = 12;     // sizeof(FBundle) packed
 
 	INT Cursor = AnimHeaderSize;
 
-	// Motion bundles come first (the game reads them directly via FAnim::MotionRotationBundleOffset).
-	// Format is delta-from-first-frame, matching the original GetMotionTrack encoder
-	// (BmGame.exe.c ~L11456727) and the game decoder's GetLinearOrigin / GetAnimOrigin
-	// (Default.xex.c ~L2942063), which sample the bundle at t=0 and compose the result
-	// onto the base pose. Storing absolute poses would double-apply the root's rest offset.
+	// Motion bundles come first, stored as delta-from-first-frame. The decoder samples at t=0
+	// and composes onto the base pose, so absolute poses would double-apply the root's rest offset.
 	const INT MotionRotBundleOffset = bHasMotionRot ? Cursor : -1;
 	if (bHasMotionRot) Cursor += BundleSize;
 	const INT MotionTransBundleOffset = bHasMotionTrans ? Cursor : -1;
 	if (bHasMotionTrans) Cursor += BundleSize;
 
-	// Regular bundle headers
 	const INT RotBundlesOffset = Cursor;
 	Cursor += NumRotBundles * BundleSize;
 	const INT TransBundlesOffset = Cursor;
 	Cursor += NumTransBundles * BundleSize;
 
-	// Motion bundle data (track map + per-track header + keyframes, one track each)
 	INT MotionRotTrackMapOffset = -1, MotionRotHeaderOffset = -1, MotionRotKeyframesOffset = -1;
 	if (bHasMotionRot)
 	{
@@ -2104,7 +1981,6 @@ void AnimZip_Compress(UAnimSequence* Seq)
 		MotionTransKeyframesOffset = Cursor; Cursor += KeySize * NumFrames;
 	}
 
-	// Regular bundles: track map + per-track headers + interleaved keyframes
 	TArray<INT> RotBundleTrackMapOffsets; RotBundleTrackMapOffsets.Empty(NumRotBundles);
 	TArray<INT> RotBundleKeyframesOffsets; RotBundleKeyframesOffsets.Empty(NumRotBundles);
 	for (INT b = 0; b < NumRotBundles; b++)
@@ -2139,13 +2015,11 @@ void AnimZip_Compress(UAnimSequence* Seq)
 
 	const INT TotalSize = Cursor;
 
-	// --- Allocate and zero ---
 	Seq->AnimZip_Data.Empty(TotalSize);
 	Seq->AnimZip_Data.Add(TotalSize);
 	BYTE* Data = Seq->AnimZip_Data.GetData();
 	appMemzero(Data, TotalSize);
 
-	// --- FAnim header ---
 	FAnim* Anim = (FAnim*)Data;
 	Anim->MotionRotationBundleOffset = MotionRotBundleOffset;
 	Anim->MotionTranslationScaleBundleOffset = MotionTransBundleOffset;
@@ -2154,10 +2028,8 @@ void AnimZip_Compress(UAnimSequence* Seq)
 	Anim->NumTranslationScaleBundles = NumTransBundles;
 	Anim->TranslationScaleBundlesOffset = TransBundlesOffset;
 
-	// Motion bundles store ABSOLUTE root pose. Rotation is YAW-ONLY (pure Z-axis
-	// quat), matching GetMotionTrack at BmGame.exe.c:11456887. GetRootMotion
-	// (Default.xex.c:2942408) extracts yaw via EulerYawRadians and treats
-	// pitch/roll as noise, so we strip them here.
+	// Rotation is yaw-only (BmGame.exe.c:11456887) - GetRootMotion treats pitch/roll as noise,
+	// so strip them here.
 	if (bHasMotionRot)
 	{
 		FBundle* MB = (FBundle*)&Data[MotionRotBundleOffset];
@@ -2168,13 +2040,11 @@ void AnimZip_Compress(UAnimSequence* Seq)
 		MB->KeyframesOffset = MotionRotKeyframesOffset;
 		Data[MotionRotTrackMapOffset] = 0;
 
-		// Per-track header (variable size per codec; QuatMax has none).
 		const INT HdrSize = GRotationHeaderSizes[MotionRotIT.Codec];
 		if (HdrSize > 0 && MotionRotIT.Header.Num() == HdrSize)
 		{
 			appMemcpy(&Data[MotionRotHeaderOffset], MotionRotIT.Header.GetData(), HdrSize);
 		}
-		// Keyframes — already encoded in MotionRotIT.EncodedKeys.
 		const INT KeySize = GRotationKeyframeSizes[MotionRotIT.Codec];
 		appMemcpy(&Data[MotionRotKeyframesOffset], MotionRotIT.EncodedKeys.GetData(), KeySize * NumFrames);
 	}
@@ -2196,7 +2066,7 @@ void AnimZip_Compress(UAnimSequence* Seq)
 		const INT KeySize = GTranslationKeyframeSizes[MotionTransIT.Codec];
 		appMemcpy(&Data[MotionTransKeyframesOffset], MotionTransIT.EncodedKeys.GetData(), KeySize * NumFrames);
 	}
-	// --- Regular rotation bundles ---
+	// Regular rotation bundles.
 	for (INT b = 0; b < NumRotBundles; b++)
 	{
 		const FIntermediateBundle& IB = RotBundles(b);
@@ -2233,7 +2103,7 @@ void AnimZip_Compress(UAnimSequence* Seq)
 		}
 	}
 
-	// --- Regular translation bundles ---
+	// Regular translation bundles.
 	for (INT b = 0; b < NumTransBundles; b++)
 	{
 		const FIntermediateBundle& IB = TransBundles(b);
@@ -2269,8 +2139,7 @@ void AnimZip_Compress(UAnimSequence* Seq)
 		}
 	}
 
-	// LinearOrigin/Span (BmGame.exe.c:11513269): M = TRS(MotionRot[0], MotionTrans[0]),
-	// LinearOrigin = M^-1 * (mean - 0.5*span), LinearSpan = M^-1_rot * span.
+	// LinearOrigin/Span (BmGame.exe.c:11513269): relative to the first motion frame's transform.
 	if (bHasMotionRot && bHasMotionTrans
 		&& MotionRotIT.Samples.Num() > 0 && MotionTransIT.Samples.Num() > 0)
 	{
@@ -2297,7 +2166,7 @@ void AnimZip_Compress(UAnimSequence* Seq)
 	}
 
 
-	// --- Round-trip verification ---
+	// Round-trip verification.
 #if DO_CHECK
 	for (INT i = 0; i < NRot; i++)
 	{
@@ -2307,13 +2176,11 @@ void AnimZip_Compress(UAnimSequence* Seq)
 		for (INT f = 0; f < NumFrames; f++)
 		{
 			FLOAT NormTime = (NumFrames > 1) ? (FLOAT)f / (NumFrames - 1) : 0.0f;
-			// Clamp like the decoder does
 			NormTime = Clamp(NormTime, 0.0f, 1.0f - (FLOAT)SMALL_NUMBER);
 
 			FBoneAtom Decoded;
 			AnimZip_Sample_Track(Seq, AnimTrack, NormTime, &Decoded);
 
-			// Build expected quat (with convention conversion applied)
 			INT KeyIdx = (Track.RotKeys.Num() > 1) ? Min(f, Track.RotKeys.Num() - 1) : 0;
 			FQuat Expected = Track.RotKeys(KeyIdx);
 			if (AnimTrack > 0)
@@ -2330,7 +2197,6 @@ void AnimZip_Compress(UAnimSequence* Seq)
 		}
 	}
 
-	// Verify translation tracks
 	for (INT i = 0; i < NTrans; i++)
 	{
 		INT AnimTrack = IncludedTransTracks(i);
@@ -2366,14 +2232,11 @@ void AnimZip_Compress(UAnimSequence* Seq)
 		*Seq->SequenceName.ToString(), NQ48, NQ40, NumRotBundles, NF96, NI48, NumTransBundles, NumFrames, TotalSize);
 #endif
 
-	// Keep RawAnimationData around in the editor so PostEditChangeProperty can re-encode.
-	// The cooker strips it via UAnimSequence::StripData.
+	// Kept in the editor so PostEditChangeProperty can re-encode; the cooker strips it via StripData.
 	Seq->CompressedTrackOffsets.Empty();
 	Seq->CompressedByteStream.Empty();
 
-	// Set valid default compression format so Serialize() doesn't crash
-	// when calling AnimationFormat_SetInterfaceLinks / ByteSwapOut on the
-	// (now empty) CompressedByteStream.
+	// Serialize() calls AnimationFormat_SetInterfaceLinks on the now-empty stream, so it needs a valid format.
 	Seq->KeyEncodingFormat = AKF_ConstantKeyLerp;
 	Seq->TranslationCompressionFormat = ACF_None;
 	Seq->RotationCompressionFormat = ACF_None;
@@ -2683,8 +2546,7 @@ void UAnimSequence::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 		MarkPackageDirty();
 
 #if BATMAN
-		// Mirror BmGame.exe.c:6517748 - re-encode AnimZip when sequence properties change
-		// so edits to Compression_Preset / Compression_CustomSettings take effect immediately.
+		// Mirror BmGame.exe.c:6517748 - re-encode so compression setting edits take effect immediately.
 		if (NumFrames > 0 && RawAnimationData.Num() > 0)
 		{
 			AnimZip_Compress(this);
@@ -3408,7 +3270,6 @@ void FAnimSetMeshLinkup::BuildLinkup(USkeletalMesh* InSkelMesh, UAnimSet* InAnim
 		BoneToTrackTable(i) = InAnimSet->FindTrackWithName(BoneName);
 	}
 
-	// Build inverse mapping: TrackToBoneTable (anim track index -> bone index in this mesh)
 	{
 		INT const NumTracks = InAnimSet->TrackBoneNames.Num();
 		TrackToBoneTable.Empty(NumTracks);

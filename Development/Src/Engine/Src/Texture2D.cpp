@@ -671,8 +671,7 @@ void UTexture2D::Serialize(FArchive& Ar)
 	}
 
 #if BATMAN
-	// BM2/Gangland consumes the cached iPhone/PVRTC mip array from all packages
-	// that are new enough to contain it.
+	// BM2 consumes the cached iPhone/PVRTC mip array from any package new enough to have it.
 	if( Ar.Ver() >= VER_ADDED_CACHED_IPHONE_DATA )
 	{
 		TIndirectArray<FTexture2DMipMap> CachedMips;

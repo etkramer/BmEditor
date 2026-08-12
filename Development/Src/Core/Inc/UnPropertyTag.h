@@ -20,9 +20,7 @@ struct FPropertyTag
 	INT		ArrayIndex;	// Index if an array; else 0.
 	INT		SizeOffset;	// location in stream of tag size member
 #if BATMAN
-	// BM2 cooked tag carries a 16-bit offset of the property within its parent struct.
-	// Only valid when read/written from a BM2 cooked archive.
-	WORD	PropertyOffset;
+	WORD	PropertyOffset;	// Offset within the parent struct. Only valid for BM2 cooked archives.
 #endif
 
 	// Constructors.
@@ -60,9 +58,7 @@ struct FPropertyTag
 	}
 
 #if BATMAN
-	// BM2 cooked tag: when the Type is one of these "simple" intrinsic property
-	// types, the tag has no Name/Size/ArrayIndex and the value is read directly
-	// at obj+PropertyOffset. Mirrors BmGame.exe.c sub_5FC160.
+	// BM2 cooked tags omit Name/Size/ArrayIndex for these types, reading the value at obj+PropertyOffset (sub_5FC160).
 	static FORCEINLINE UBOOL IsBmSimpleType(INT TypeIndex)
 	{
 		return TypeIndex == NAME_IntProperty
@@ -79,14 +75,7 @@ struct FPropertyTag
 	friend FArchive& operator<<( FArchive& Ar, FPropertyTag& Tag )
 	{
 #if BATMAN
-		// BM2 cooked property tag (FCookedPropertyTag in the original game):
-		//   INT16 Type                            (0 = end-of-properties marker)
-		//   INT16 PropertyOffset
-		//   For non-simple types:
-		//     FName Name
-		//     INT32 Size
-		//     INT32 ArrayIndex
-		//   If Type == BoolProperty: BYTE BoolVal
+		// BM2 cooked property tag (FCookedPropertyTag in the original game).
 		if (Ar.IsBmCooked(TRUE, FALSE))
 		{
 			if (Ar.IsLoading())
@@ -115,7 +104,6 @@ struct FPropertyTag
 
 				if (IsBmSimpleType(TypeIndex))
 				{
-					// Simple intrinsic: data follows directly, no name/size/array index.
 					Tag.Name = NAME_None;
 					Tag.Size = 0;
 					Tag.ArrayIndex = 0;
@@ -139,7 +127,6 @@ struct FPropertyTag
 			{
 				if (Tag.Type == NAME_None)
 				{
-					// End-of-properties marker.
 					SWORD EndMarker = 0;
 					Ar << EndMarker;
 					return Ar;
@@ -153,7 +140,6 @@ struct FPropertyTag
 
 				if (IsBmSimpleType(TypeIndex))
 				{
-					// No tag fields beyond Type+Offset; no size fixup needed.
 					Tag.SizeOffset = INDEX_NONE;
 				}
 				else

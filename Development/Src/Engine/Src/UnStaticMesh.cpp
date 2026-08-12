@@ -1591,9 +1591,8 @@ void UStaticMesh::StaticConstructor()
 	new(GetClass()->HideCategories) FName(NAME_Object);
 #endif
 
-	// Properties are registered in the same declaration order as the BM2 (Arkham City) UStaticMesh,
-	// per the BmGame.exe.c decomp. Order matters for the BM2 cooked property tag format, which
-	// addresses simple-typed properties by offset within the class.
+	// Declaration order matches BM2's UStaticMesh - the cooked property tag format addresses
+	// simple-typed properties by their offset within the class.
 
 	new(GetClass(),TEXT("LODDistanceRatio"),RF_Public)			UFloatProperty(CPP_PROPERTY(LODDistanceRatio),TEXT(""),CPF_Edit);
 	new(GetClass(),TEXT("LODMaxRange"),RF_Public)				UFloatProperty(CPP_PROPERTY(LODMaxRange),TEXT(""),CPF_Edit);
@@ -1622,8 +1621,7 @@ void UStaticMesh::StaticConstructor()
 	new(GetClass(),TEXT("ForceStripComplexCollision"),RF_Public)		UBoolProperty(CPP_PROPERTY(ForceStripComplexCollision),TEXT(""),CPF_Edit);
 	new(GetClass(),TEXT("StoreUVsForPhysicalMaterialTexture"),RF_Public)	UBoolProperty(CPP_PROPERTY(StoreUVsForPhysicalMaterialTexture),TEXT(""),CPF_Edit);
 
-	// BM: D3D11 tessellation block. DesiredTessellationMode uses the EMaterialTessellationMode enum
-	// (defined inline here to match the inline enum the game registers).
+	// BM: D3D11 tessellation block. EMaterialTessellationMode is inline to match the game's registration.
 	UEnum* TessellationModeEnum = new(GetClass(),TEXT("EMaterialTessellationMode"),RF_Public) UEnum();
 	{
 		TArray<FName> EnumNames;
@@ -1665,8 +1663,7 @@ void UStaticMesh::StaticConstructor()
 	new(GetClass(),TEXT("StreamingDistanceMultiplier"),RF_Public)	UFloatProperty(CPP_PROPERTY(StreamingDistanceMultiplier),TEXT(""),CPF_Edit);
 
 	//////////////////////////////////////////////////////////////////////////
-	// FStaticMeshLODElement struct, then FStaticMeshLODInfo, then the LODInfo array
-	// (registered last per BM2, after all simple-typed properties).
+	// BM2 registers the LODInfo array last, after all simple-typed properties.
 
 	UScriptStruct* LODElementStruct = new(GetClass(),TEXT("StaticMeshLODElement"),RF_Public|RF_Transient|RF_Native) UScriptStruct(NULL);
 	INT StructPropertyOffset = 0;

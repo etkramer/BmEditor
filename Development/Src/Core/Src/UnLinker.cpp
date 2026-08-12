@@ -1551,10 +1551,8 @@ UBOOL ULinkerLoad::SerializeNameMap()
 			// Precache name, import and export map.
 			bFinishedPrecaching = Loader->Precache( Summary.NameOffset, Summary.TotalHeaderSize - Summary.NameOffset );
 #if BATMAN
-			// If the package uses compressed chunks, the bulk precache request may span multiple
-			// chunks and FArchiveAsync::Precache can never satisfy it (it only caches one chunk at
-			// a time). Don't gate serialization on it -- FArchiveAsync::Serialize handles per-read
-			// blocking internally, so we can proceed safely.
+			// Precache only caches one compressed chunk at a time, so a multi-chunk request never
+			// completes. FArchiveAsync::Serialize blocks per-read anyway, so don't gate on it.
 			if( !bFinishedPrecaching && (Summary.PackageFlags & PKG_StoreCompressed) && IsBmCooked() )
 			{
 				bFinishedPrecaching = TRUE;
@@ -3721,8 +3719,7 @@ UBOOL ULinkerLoad::WillTextureBeLoaded( UClass* Class, INT ExportIndex )
 }
 
 #if BATMAN
-// BM: Strip a single leading underscore from a cooked package name (e.g. _BmGame -> BmGame) so that
-// objects from prefixed seekfree packages merge into the unprefixed package.
+// BM: Strip a single leading underscore (_BmGame -> BmGame) so prefixed seekfree packages merge.
 static FString BmRemapPackageName( const FString& InName )
 {
 	if( InName.Len() > 1 && InName[0] == TEXT('_') )
@@ -3918,8 +3915,7 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 		else
 		{
 #if BATMAN
-			// BM: Route top-level objects from a prefixed package (e.g. _BmGame) into the unprefixed
-			// package (BmGame), merging into an existing one if it's already loaded.
+			// BM: Route top-level objects into the unprefixed package, merging if it's already loaded.
 			const FString RemappedRootName = BmRemapPackageName(LinkerRoot->GetName());
 			if( IsBmCooked() && RemappedRootName != LinkerRoot->GetName() )
 			{
@@ -4235,9 +4231,8 @@ UObject* ULinkerLoad::CreateImport( INT Index )
 					UObject*	FindObject		= NULL;
 
 #if BATMAN
-					// BM: Seekfree resolves imports by path first; do the same so references to forced exports embedded
-					// in this package (which have no separate .upk on disk) resolve in the editor. Must filter on the
-					// import's class - BM2 packages can hold same-named objects of different classes in one outer.
+					// BM: Resolve by path first, like seekfree, so embedded forced exports resolve in the editor.
+					// Filter on class too - BM2 packages can hold same-named objects of different classes in one outer.
 					if( IsBmCooked(TRUE) )
 					{
 						Import.XObject = StaticFindObject( FindClass, NULL, *GetImportPathName(Index) );
@@ -5152,8 +5147,7 @@ void ULinkerSave::Detach()
 	Saver = NULL;
 
 #if BATMAN
-	// BM: these are the bulk of the linker and it's finished with once detached - don't hold
-	// on to them until the next collection, which may be a long way off in a commandlet.
+	// BM: the bulk of the linker, and unused once detached - a commandlet may not collect for a long while.
 	ObjectIndices.Empty();
 	NameIndices.Empty();
 #endif

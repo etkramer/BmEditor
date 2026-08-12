@@ -150,8 +150,7 @@ void FAPlus3DLightLightMapPolicy::SetMesh(
 	const ElementDataType& AmbientPlus3DirectionalLight
 	) const
 {
-	// BM: Gangland/X360 dereference the AP3D scene info directly; AP3D is never a
-	// no-light fallback and must only be selected with real light-environment data.
+	// BM: Gangland/X360 dereference the AP3D scene info directly, so it needs real light-environment data.
 	check(AmbientPlus3DirectionalLight);
 	if (VertexShaderParameters)
 	{

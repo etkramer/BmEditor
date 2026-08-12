@@ -593,9 +593,8 @@ void UAnimNodeSequence::GetAnimationPose(UAnimSequence* InAnimSeq, INT& InAnimLi
 		AnimZip_Sample(InAnimSeq, SkelComponent->SkeletalMesh, NormTime,
 			AnimLinkup->TrackToBoneTable, NumBones, &Atoms(0));
 
-		// NOTE: No FlipSignOfRotationW here. AnimZip stores quaternions in "natural"
-		// convention which is already correct. The standard pipeline's FlipSignOfRotationW
-		// is only needed for ActorX-exported data stored in CompressedByteStream.
+		// No FlipSignOfRotationW - AnimZip quats are already in the natural convention. That flip
+		// only applies to ActorX-exported data in CompressedByteStream.
 
 		// Root bone handling
 		const INT RootTrackIndex = AnimLinkup->BoneToTrackTable(0);

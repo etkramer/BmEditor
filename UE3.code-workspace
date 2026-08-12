@@ -99,6 +99,7 @@
       "_DEBUG",
       "WITH_MANAGED_CODE=1",
       "WITH_EDITOR=1",
+      "__UNREAL__=1",
 
       "WIN32=1",
       "_MSC_VER=1400",

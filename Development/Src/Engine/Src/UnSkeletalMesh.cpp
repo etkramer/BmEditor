@@ -2003,8 +2003,7 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 	Ar << PerPolyBoneKDOPs;
 
 #if BATMAN
-	// BM2 emits a standalone DWORD here carrying a single packed-bool flag
-	// (bUseFullPrecisionUVs) between PerPolyBoneKDOPs and BoneBreakNames.
+	// BM2 emits a DWORD holding bUseFullPrecisionUVs between PerPolyBoneKDOPs and BoneBreakNames.
 	if (Ar.IsBmCooked(TRUE))
 	{
 		UBOOL bFlag = bUseFullPrecisionUVs;

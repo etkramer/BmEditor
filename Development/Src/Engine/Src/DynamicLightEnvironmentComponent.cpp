@@ -12,8 +12,7 @@ IMPLEMENT_CLASS(UDynamicLightEnvironmentComponent);
 IMPLEMENT_CLASS(UParticleLightEnvironmentComponent);
 
 #if BATMAN
-// Default to AP3D mode, matching retail BM2 (Default.xex.c:188280). A future console command
-// can toggle to DLEC_Unmolested to fall back to the stock SH/Sky pair for debugging.
+// Default to AP3D mode, matching retail BM2 (Default.xex.c:188280).
 EDLEC_Mode GDLEC_Mode = DLEC_APlus3D;
 FLOAT GDirectionalAmbientRatio = 0.15000001f;
 UBOOL bDoWeightedShadowAmbient = TRUE;
@@ -619,8 +618,7 @@ void FDynamicLightEnvironmentState::RebuildAPlus3DState()
 		Sort<USE_COMPARE_CONSTREF(FDirectionalApproximation,DLEC)>(&Approximations(0), Approximations.Num());
 	}
 
-	// The extras are only trimmed off the end of the array - the shadow info below still reads
-	// the whole set, including the entries that were merged away or demoted to ambient.
+	// Only the tail is trimmed - the shadow info below still reads merged and demoted entries.
 	INT NumKeptApproximations = Approximations.Num();
 	while (NumKeptApproximations > 3)
 	{
@@ -675,8 +673,7 @@ void FDynamicLightEnvironmentState::RebuildAPlus3DState()
 		}
 	}
 
-	// Assign each new direction to whichever slot of the current state it resembles most, so the
-	// interpolation below doesn't blend unrelated lights into each other.
+	// Match each new direction to the closest existing slot so interpolation doesn't blend unrelated lights.
 	UBOOL bSlotTaken[3] = { FALSE, FALSE, FALSE };
 	for (INT DirectionIndex = 0; DirectionIndex < 3; DirectionIndex++)
 	{
@@ -1197,8 +1194,7 @@ void FDynamicLightEnvironmentState::UpdateStaticEnvironment(ULightComponent* New
 	}
 
 #if BATMAN
-	// AP3D drives its shadowing from the directional approximations instead, so none of the
-	// ambient/shadow environment work below applies to it.
+	// AP3D shadows from the directional approximations, so the work below doesn't apply.
 	if (GDLEC_Mode >= DLEC_APlus3D)
 	{
 		if (PreviousApproximations.Num() != StaticDirectionalApproximations.Num()
@@ -1702,8 +1698,7 @@ void FDynamicLightEnvironmentState::CreateEnvironmentLightList(ULightComponent* 
 	const FLOAT NonShadowedLightError = GetSquaredDifferenceIntegral(CompositeNonShadowedLightEnvironment,CurrentRepresentativeNonShadowedLightEnvironment);
 	if(
 #if BATMAN
-		// AP3D leaves the SH environments empty, so it can't use them to detect a change -
-		// the game rebuilds the light list every update instead.
+		// AP3D leaves the SH environments empty, so the game rebuilds the light list every update.
 		GDLEC_Mode >= DLEC_APlus3D ||
 #endif
 		LightError > ErrorThreshold ||
@@ -1783,8 +1778,7 @@ void FDynamicLightEnvironmentState::CreateEnvironmentLightList(ULightComponent* 
 		const FLOAT PrimaryLightWeight = TransitionFraction;
 		const FLOAT ContrastFactor = Component->bIsCharacterLightEnvironment ? GWorld->GetWorldInfo(TRUE)->CharacterLightingContrastFactor : 1.0f;
 #if BATMAN
-		// In AP3D mode the light environment is represented entirely by the AP3D light, so none
-		// of the synthesized primary/SH/sky representative lights are created.
+		// The AP3D light represents the whole environment - no synthesized primary/SH/sky lights.
 		const UBOOL bUsePrimaryRepresentativeLight = GDLEC_Mode < DLEC_APlus3D;
 
 		if (GDLEC_Mode >= DLEC_APlus3D)
@@ -1909,8 +1903,7 @@ void FDynamicLightEnvironmentState::CreateEnvironmentLightList(ULightComponent* 
 		{
 			// Use a shadow color that lets through light proportional to the shadowing not represented by the dominant shadow direction.
 #if BATMAN
-			// BM: the shadow lets through the light that isn't blocked, rather than the stock
-			// fraction of the total that the dominant direction doesn't account for.
+			// BM: the shadow lets through the unblocked light, not the stock fraction the dominant direction misses.
 			FLinearColor DominantShadowIntensityRatio(
 				Clamp(EffectiveShadowInfo.TotalShadowIntensity.R, 0.0f, 1.0f),
 				Clamp(EffectiveShadowInfo.TotalShadowIntensity.G, 0.0f, 1.0f),

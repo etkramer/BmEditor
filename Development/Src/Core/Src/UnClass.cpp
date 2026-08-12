@@ -673,9 +673,7 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 						UProperty* OffsetProp = NULL;
 						for (UProperty* P = PropertyLink; P; P = P->PropertyLinkNext)
 						{
-							// BM: cooked tags for fixed-array elements carry the per-element
-							// offset (BaseOffset + Index * ElementSize), so accept any tag
-							// offset that lands inside this property's footprint.
+							// BM: fixed-array elements carry a per-element offset, so match anywhere in the property's footprint.
 							const INT PropEnd = P->Offset + P->ArrayDim * P->ElementSize;
 							if ((INT)Tag.PropertyOffset >= P->Offset && (INT)Tag.PropertyOffset < PropEnd)
 							{
@@ -685,14 +683,12 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 						}
 						if (!OffsetProp)
 						{
-							// Print property layout for debugging
 							warnf(TEXT("%s:"), *GetName());
 							for (UProperty* P = PropertyLink; P; P = P->PropertyLinkNext)
 							{
 								warnf(TEXT("  %s[%d]: %s"), *P->GetOuter()->GetName(), P->Offset, *P->GetName());
 							}
 
-							// Throw so we don't serialize this incorrectly
 							appErrorf(TEXT("BM: no property at offset %u (type %s) in %s (package %s)"),
 								(UINT)Tag.PropertyOffset, *Tag.Type.ToString(), *GetName(), *Ar.GetArchiveName());
 						}
@@ -1227,7 +1223,6 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 #if BATMAN
 		if (Ar.IsBmCooked(TRUE, FALSE))
 		{
-			// BM2 cooked end-of-properties: INT16 zero.
 			SWORD EndMarker = 0;
 			Ar << EndMarker;
 		}
@@ -1257,11 +1252,7 @@ void UStruct::Serialize( FArchive& Ar )
 	// if reading data that's cooked for console, skip this data
 	UBOOL const bIsCookedForConsole = IsPackageCookedForConsole(Ar);
 #if BATMAN
-	// BM2 PC decompiled (sub_56C20): editor data skip uses PLATFORM_Console (0x28C)
-	// which does NOT include PLATFORM_WindowsConsole (0x40). PCConsole packages
-	// DO include ScriptText/CppText/Line/TextPos. Verified by hex analysis:
-	// what was misread as BytecodeSize=25343 was actually the Children field,
-	// offset by 16 bytes due to skipping these 4 fields.
+	// BM2 skips editor data on PLATFORM_Console (0x28C), which excludes PCConsole (sub_56C20).
 	UBOOL const bSkipEditorData = bIsCookedForConsole;
 #else
 	UBOOL const bSkipEditorData = bIsCookedForConsole;
@@ -1342,11 +1333,7 @@ void UStruct::Serialize( FArchive& Ar )
 #endif
 
 #if BATMAN
-		// BM2 cooked packages: StorageSize=0 means bytecode is not on disk.
-		// The original game's non-patcher path reads 0 bytes into a FMemoryReader
-		// and SerializeExpr harmlessly processes garbage from the empty buffer.
-		// We simply zero BytecodeSize so the later serialize loop is skipped
-		// and the archive position stays correct for UState/UClass fields.
+		// StorageSize=0 means no bytecode on disk; skip the serialize loop so the archive stays aligned.
 		if (Ar.IsBmCooked() && ScriptStorageSize == 0)
 		{
 			ScriptBytecodeSize = 0;
@@ -1791,8 +1778,7 @@ void UState::Serialize( FArchive& Ar )
 #if BATMAN
 	if (Ar.IsBmCooked())
 	{
-		// BM2 PC decompiled: UState::Serialize reads ProbeMask as DWORD (4 bytes),
-		// no IgnoreMask, same as post-VER_REDUCED_PROBEMASK standard UE3.
+		// BM2 reads ProbeMask as a DWORD with no IgnoreMask, like post-VER_REDUCED_PROBEMASK UE3.
 		Ar << ProbeMask;
 	}
 	else if (Ar.Ver() <= VER_REDUCED_PROBEMASK_REMOVED_IGNOREMASK)
@@ -2058,9 +2044,7 @@ void UClass::Bind()
 		ClassCastFlags |= GetSuperClass()->ClassCastFlags;
 	}
 #if BATMAN
-	// BM: adopt a native implementation registered for this class, so instances get
-	// our vtable rather than the ancestor constructor chased down above. Runs after
-	// the super pass so cast flags still propagate.
+	// BM: adopt a registered native implementation so instances get our vtable, not the ancestor's.
 	{
 		FClassExtension* Extension = FindClassExtension(this);
 		if( Extension )
@@ -2387,8 +2371,7 @@ void UClass::Link( FArchive& Ar, UBOOL Props )
 {
 	Super::Link( Ar, Props );
 #if BATMAN
-	// BM: a class extension is constructed into storage sized by the script class, so it
-	// must not declare data members of its own. Only meaningful once properties are linked.
+	// BM: extensions are constructed into storage sized by the script class, so they can't declare data members.
 	if( Props )
 	{
 		FClassExtension* Extension = FindClassExtension(this);
@@ -2514,8 +2497,7 @@ void UClass::Serialize( FArchive& Ar )
 		}
 
 #if BATMAN
-		// BM2 PC decompiled: extra 4-byte field gated by LicenseeVer >= 94
-		// (between bForceScriptOrder and ClassGroupNames)
+		// BM2 adds a 4-byte field between bForceScriptOrder and ClassGroupNames at LicenseeVer 94.
 		if (Ar.IsBmCooked(TRUE) && Ar.LicenseeVer() >= 94)
 		{
 			INT BmClassGroupFlags = 0;

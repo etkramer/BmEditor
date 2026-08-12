@@ -1051,8 +1051,7 @@ UBOOL WxCustomPropertyItem_MaterialInstanceConstantParameter::IsDerivedForcedHid
 	check(MaterialInterface);
 
 #if BATMAN
-	// BM2 cooked materials keep parameter expressions but often have stripped/null material inputs,
-	// so the editor visibility walk is not authoritative for MIC parameter rows.
+	// BM2 cooked materials often have stripped material inputs, so the visibility walk isn't authoritative here.
 	ForceHide = FALSE;
 #else
 	const UBOOL bOverridden = const_cast<WxCustomPropertyItem_MaterialInstanceConstantParameter*>(this)->IsOverridden();

@@ -510,8 +510,7 @@ public:
 	}
 };
 
-// Globally unique identifier. BM2 compacts FGuid down to 32 bits in memory;
-// the full 16 bytes are still serialized on disk via FGuidImplementation.
+// Globally unique identifier. BM2 keeps 32 bits in memory, but still serializes 16 bytes (FGuidImplementation).
 class FGuid
 {
 public:
@@ -1069,8 +1068,7 @@ FORCEINLINE INT GetObjectOuterHash(FName ObjName,PTRINT Outer)
 	return ((ObjName.GetIndex() ^ ObjName.GetNumber()) ^ (Outer >> 4)) & (OBJECT_HASH_BINS - 1);
 }
 
-// Side-storage for UObject fields that were moved off the struct so its
-// layout matches BM2's. See Object.uc.
+// Side-storage for UObject fields moved off the struct to match BM2's layout. See Object.uc.
 class ULinkerLoad;
 class UObject;
 struct FStateFrame;

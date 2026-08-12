@@ -1591,7 +1591,6 @@ UBOOL AActor::IsReadyForFinishDestroy()
 
 #if BATMAN
 
-// Returns a component template on a class default actor by subobject name.
 static UActorComponent* FindDefaultComponent( AActor* Default, const TCHAR* ComponentName )
 {
 	for( INT ComponentIndex = 0; ComponentIndex < Default->Components.Num(); ComponentIndex++ )
@@ -1605,7 +1604,6 @@ static UActorComponent* FindDefaultComponent( AActor* Default, const TCHAR* Comp
 	return NULL;
 }
 
-// Copies a component template onto a class default actor and registers it for instancing.
 static UActorComponent* AddDefaultComponent( AActor* Default, UActorComponent* Template )
 {
 	UActorComponent* Component = ConstructObject<UActorComponent>( Template->GetClass(), Default, Template->GetFName(), RF_Public, Template );

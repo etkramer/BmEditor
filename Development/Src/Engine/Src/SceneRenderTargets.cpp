@@ -2680,8 +2680,7 @@ void FSceneTextureShaderParameters::Set(const FSceneView* View,FShader* PixelSha
 	const FTexture2DRHIRef* DesiredSceneColorTexture = &GSceneRenderTargets.GetSceneColorTexture();
 
 #if BATMAN
-	// BM2/Gangland projected shadow shaders read fallback scene depth from SceneColorTexture.a on DX9.
-	// Binding the raw scene color here feeds the shadow projection pass the wrong alpha/depth source.
+	// BM2 shadow shaders read fallback depth from SceneColorTexture.a on DX9, so raw scene color is wrong here.
 	if (GSceneRenderTargets.bSceneColorTextureIsRaw && DepthUsage != SceneDepthUsage_ProjectedShadows)
 #else
 	if (GSceneRenderTargets.bSceneColorTextureIsRaw)

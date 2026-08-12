@@ -1539,8 +1539,7 @@ IMPLEMENT_FUNCTION( UObject, EX_Jump, execJump );
 #if BATMAN
 void UObject::execJumpIfNotEditorOnly( FFrame& Stack, RESULT_DECL )
 {
-	// Consume the jump offset and fall through into the editor-only block. Matches
-	// retail BM2: editor-only code is stripped at cook, so this is effectively a no-op.
+	// Editor-only code is stripped at cook, so retail just consumes the offset and falls through.
 	Stack.ReadWord();
 }
 IMPLEMENT_FUNCTION( UObject, EX_JumpIfNotEditorOnly, execJumpIfNotEditorOnly );
@@ -2264,8 +2263,7 @@ void UObject::execMetaCast( FFrame& Stack, RESULT_DECL )
 IMPLEMENT_FUNCTION( UObject, EX_MetaCast, execMetaCast );
 
 #if BATMAN
-// SafeScriptCast variant of EX_DynamicCast. Compiler emits this when it can prove
-// the cast must succeed; we hard-assert on failure to match retail.
+// SafeScriptCast variant of EX_DynamicCast - the cast is proven to succeed, so failure hard-asserts.
 void UObject::execDynamicCastChecked( FFrame& Stack, RESULT_DECL )
 {
 	UClass* Class = (UClass*)Stack.ReadObject();

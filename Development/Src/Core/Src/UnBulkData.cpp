@@ -615,7 +615,7 @@ void FUntypedBulkData::Serialize( FArchive& Ar, UObject* Owner, INT Idx )
 		// Don't serialize status information if we only care about payload; only used when saving.
 		if( !bOnlySerializePayload )
 		{
-			// BM2/BM2: on-disk format is DWORD even though in-memory is WORD.
+			// BM2: on-disk format is DWORD even though in-memory is WORD.
 			DWORD BulkDataFlagsAsDWORD = BulkDataFlags;
 			Ar << BulkDataFlagsAsDWORD;
 			BulkDataFlags = (WORD)BulkDataFlagsAsDWORD;
@@ -642,8 +642,7 @@ void FUntypedBulkData::Serialize( FArchive& Ar, UObject* Owner, INT Idx )
 			Ar << BulkDataOffsetInFile;
 
 #if BATMAN
-			// BM: remember the status record so re-saving a cooked package keeps pointing at the
-			// original .tfc payload instead of writing out the uninitialized defaults.
+			// BM: remember these so re-saving a cooked package keeps pointing at the original .tfc payload.
 			SavedBulkDataFlags			= BulkDataFlags;
 			SavedElementCount			= ElementCount;
 			SavedBulkDataSizeOnDisk		= BulkDataSizeOnDisk;

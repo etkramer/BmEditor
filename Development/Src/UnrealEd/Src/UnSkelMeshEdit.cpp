@@ -158,8 +158,7 @@ static UBOOL GetTrackMapAndExtend(UAnimSet* AnimSet, TArray<FName> &RawBoneNames
 static void PostProcessSequence(UAnimSequence* DestSeq, TArray<AdditiveAnimRebuildInfo> &AdditiveAnimRebuildList, UBOOL bSilence = FALSE)
 {
 #if BATMAN
-	// Build AnimZip_Data from RawAnimationData. Raw is retained in the editor so
-	// PostEditChangeProperty can re-encode after compression-setting edits.
+	// Raw is retained in the editor so PostEditChangeProperty can re-encode later.
 	extern void AnimZip_Compress(UAnimSequence* Seq);
 	AnimZip_Compress(DestSeq);
 #else
@@ -540,10 +539,8 @@ void UEditorEngine::ImportPSAIntoAnimSet( UAnimSet* AnimSet, const TCHAR* Filena
 				RawTrack.PosKeys.Add(DestSeq->NumFrames);
 				RawTrack.RotKeys.Add(DestSeq->NumFrames);
 
-				// BM2: only these tracks get real translation from the PSA. All other bones
-				// get the mesh ref-pose translation so imported anims match the target skeleton's
-				// proportions (fixes collapsed shoulders etc. when bAnimRotationOnly is off, and
-				// in-game where bAnimRotationOnly is not honored).
+				// BM2: only these tracks take PSA translation. Everything else uses the mesh ref-pose
+				// so imported anims match the target skeleton's proportions.
 				const FName PsaTrackName = AnimSet->TrackBoneNames(TrackIdx);
 				const UBOOL bUsePsaTranslation = (PsaTrackName == NAME_Bip01 || PsaTrackName == NAME_Gundummy);
 				const INT RefBoneIdx = FillInMesh->MatchRefBone(PsaTrackName);

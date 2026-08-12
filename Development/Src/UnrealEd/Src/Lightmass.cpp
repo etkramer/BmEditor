@@ -4411,8 +4411,7 @@ void FLightmassProcessor::ImportStaticLightingTextureMapping( const FGuid& Mappi
 		// Read in each of the mappings
 		while (MappingsImported != NumMappings)
 		{
-			// Read in the next GUID and look up its mapping. Wire format is the full
-			// 16-byte FGuidImplementation even though our in-memory FGuid is 4 bytes.
+			// Read in the next GUID and look up its mapping.
 			FGuidImplementation NextMappingGuidWire;
 			Swarm.ReadChannel(Channel, &NextMappingGuidWire, sizeof(FGuidImplementation));
 			FGuid NextMappingGuid(NextMappingGuidWire.A);
@@ -4526,8 +4525,7 @@ void FLightmassProcessor::ImportStaticLightingVertexMapping( const FGuid& Mappin
 		// Read in each of the mappings
 		while (MappingsImported != NumMappings)
 		{
-			// Read in the next GUID and look up its mapping. Wire format is the full
-			// 16-byte FGuidImplementation even though our in-memory FGuid is 4 bytes.
+			// Read in the next GUID and look up its mapping.
 			FGuidImplementation NextMappingGuidWire;
 			Swarm.ReadChannel(Channel, &NextMappingGuidWire, sizeof(FGuidImplementation));
 			FGuid NextMappingGuid(NextMappingGuidWire.A);
@@ -5334,7 +5332,6 @@ UBOOL FLightmassProcessor::ImportVertexMapping(INT Channel, FVertexMappingImport
 	for (INT i = 0; i < NumLights; i++)
 	{
 		const INT NewLightIndex = LightGuids.Add();
-		// Wire format is the full 16-byte FGuidImplementation even though our in-memory FGuid is 4 bytes.
 		FGuidImplementation LightGuidWire;
 		Swarm.ReadChannel(Channel, &LightGuidWire, sizeof(FGuidImplementation));
 		LightGuids(NewLightIndex) = FGuid(LightGuidWire.A);
@@ -5401,7 +5398,6 @@ UBOOL FLightmassProcessor::ImportTextureMapping(INT Channel, FTextureMappingImpo
 	for (INT i = 0; i < NumLights; i++)
 	{
 		const INT NewLightIndex = LightGuids.Add();
-		// Wire format is the full 16-byte FGuidImplementation even though our in-memory FGuid is 4 bytes.
 		FGuidImplementation LightGuidWire;
 		Swarm.ReadChannel(Channel, &LightGuidWire, sizeof(FGuidImplementation));
 		LightGuids(NewLightIndex) = FGuid(LightGuidWire.A);

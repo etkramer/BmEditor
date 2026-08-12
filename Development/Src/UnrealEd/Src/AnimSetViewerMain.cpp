@@ -1256,8 +1256,7 @@ void FASVViewportClient::Draw(const FSceneView* View,FPrimitiveDrawInterface* PD
 	}
 
 #if BATMAN
-	// AnimZip motion track preview: a small RGB axis tripod following the
-	// dedicated motion bundles as the animation plays.
+	// AnimZip motion track preview: an RGB axis tripod following the motion bundles.
 	if (AnimSetViewer->SelectedAnimSeq && AnimSetViewer->PreviewAnimNode && AnimSetViewer->PreviewSkelComp)
 	{
 		UAnimSequence* Seq = AnimSetViewer->SelectedAnimSeq;

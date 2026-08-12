@@ -4241,8 +4241,7 @@ void UStructProperty::SerializeItem( FArchive& Ar, void* Value, INT MaxReadBytes
 		}
 		return;
 	}
-	// In-memory FGuid is 4 bytes but on-disk format is always 16 bytes (FGuidImplementation).
-	// Route to the native operator<< so script-side property walking can't shrink the read.
+	// Route to the native operator<< so script-side walking can't shrink the 16-byte on-disk read.
 	if (Struct->GetFName() == NAME_Guid)
 	{
 		Ar << *(FGuid*)Value;
