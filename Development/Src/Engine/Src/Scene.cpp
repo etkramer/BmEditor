@@ -1335,6 +1335,10 @@ FVector4 FScene::GetWindParameters(const FVector& Position) const
 */
 void FScene::AddFogVolume(const UPrimitiveComponent* MeshComponent)
 {
+#if BATMAN
+	// Don't request old fog volume shader, BM2 materials don't have them.
+	return;
+#else
 	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
 		FAddFogVolumeCommand,
 		FScene*,Scene,this,
@@ -1343,6 +1347,7 @@ void FScene::AddFogVolume(const UPrimitiveComponent* MeshComponent)
 	{
 		Scene->FogVolumes.Set(MeshComponent, FogVolumeSceneInfo);
 	});
+#endif
 }
 
 /**

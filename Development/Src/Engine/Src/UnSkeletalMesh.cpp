@@ -3857,6 +3857,11 @@ void FSkeletalMeshSceneProxy::DrawDynamicDecalElements(
 {
 	SCOPE_CYCLE_COUNTER(STAT_DecalRenderDynamicSkelTime);
 
+#if BATMAN
+	// BM2 cooks no mesh shaders for the decal vertex factories
+	return;
+#endif
+
 	// lit decals on static meshes not support for now
 	if( !MeshObject || bDynamicLightingPass )
 	{

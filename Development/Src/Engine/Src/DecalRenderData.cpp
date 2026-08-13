@@ -203,7 +203,11 @@ FDecalRenderData::~FDecalRenderData()
  */
 void FDecalRenderData::InitResources_GameThread()
 {
-	check(IsInGameThread()); 
+	check(IsInGameThread());
+#if BATMAN
+	// BM2 cooks no mesh shaders for the decal vertex factories, so receivers leave DecalVertexFactory NULL and skip the decal
+	return;
+#endif
 	if( NumTriangles > 0 )
 	{
 		if( ReceiverVertexFactory )
