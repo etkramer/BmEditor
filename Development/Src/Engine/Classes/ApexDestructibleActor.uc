@@ -24,14 +24,21 @@ var() const editfixedsize	array<FractureMaterial>				FractureMaterials;
 /** The destructible static component. */
 var() const editconst ApexStaticDestructibleComponent			StaticDestructibleComponent;
 
+// BM
+var() const editconst ApexRenderVolumeComponent					DustRenderVolume;
+var() const editconst ApexRenderVolumeComponent					CrumbleRenderVolume;
+var() const editconst ApexGenericAsset							CrumbleAsset;
+var() const editconst ApexGenericAsset							DustAsset;
 
 /** Defines an array that designates which of the destructible chunks are visible */
 var init array<byte>								VisibilityFactors;
 
-/** Cached sounds for fractures. */
-var transient    array<SoundCue>                FractureSounds;
-/** Cached particle effects for fractures. */
-var transient    array<ParticleSystem>          FractureParticleEffects;
+// BM
+var native transient pointer						CachedFractureMaterials{TArrayNoInit<class UFractureMaterial*>};
+var transient AkEvent								CachedFractureShardSound;
+var transient AkEvent								CachedFractureDamageSound;
+var globalconfig string								DamageParamsObjectName;
+var ApexDestructibleDamageParameters					DamageParams;
 
 
 event SpawnFractureEmitter(ParticleSystem EmitterTemplate, vector SpawnLocation, vector SpawnDirection)
@@ -152,6 +159,9 @@ defaultproperties
 	bNoEncroachCheck=TRUE
 	bWorldGeometry=FALSE
 
+	// BM
+	DamageParamsObjectName="BmDamageMap"
+
 	Begin Object Class=DynamicLightEnvironmentComponent Name=LightEnvironment0
 		bEnabled=FALSE
 	End Object
@@ -169,6 +179,17 @@ defaultproperties
 	CollisionComponent=DestructibleComponent0
 	StaticDestructibleComponent=DestructibleComponent0
 	Components.Add(DestructibleComponent0)
+
+	// BM
+	Begin Object Class=ApexRenderVolumeComponent Name=DustComponent
+	End Object
+	DustRenderVolume=DustComponent
+	Components.Add(DustComponent)
+
+	Begin Object Class=ApexRenderVolumeComponent Name=CrumbleComponent
+	End Object
+	CrumbleRenderVolume=CrumbleComponent
+	Components.Add(CrumbleComponent)
 
 //	Begin Object Class=ApexDynamicDestructibleComponent Name=DestructibleComponent1
 //		bAllowApproximateOcclusion=TRUE

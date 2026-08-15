@@ -636,6 +636,44 @@ void UStruct::SerializeBinEx( FArchive& Ar, BYTE* Data, BYTE* DefaultData, INT D
 	}
 }
 
+#if BATMAN
+// BM: the property class a cooked simple-type tag expects to land on.
+static FName GetBmSimpleTypeID( INT TypeIndex )
+{
+	switch( TypeIndex )
+	{
+	case NAME_VectorProperty:
+	case NAME_RotatorProperty:		return FName(NAME_StructProperty);
+	case NAME_ObjectNCRProperty:	return FName(NAME_ObjectProperty);
+	default:						return FName((EName)TypeIndex);
+	}
+}
+
+// BM: cooked tags carry retail's offset, so a property of the wrong type sitting there means our class
+// layout has drifted and the value is about to be written over an unrelated member. Warn once per site.
+static void ReportLayoutMismatch( const UStruct* Struct, const UProperty* Prop, const FPropertyTag& Tag, FArchive& Ar )
+{
+	const FName ExpectedID = GetBmSimpleTypeID( (INT)Tag.Type.GetIndex() );
+	const INT ElementOffset = (INT)Tag.PropertyOffset - Prop->Offset;
+	if( Prop->GetID() == ExpectedID && (ElementOffset % Prop->ElementSize) == 0 )
+	{
+		return;
+	}
+
+	static TSet<QWORD> ReportedSites;
+	const QWORD Site = ((QWORD)Struct->GetFName().GetIndex() << 32) | (QWORD)Tag.PropertyOffset;
+	if( ReportedSites.Contains(Site) )
+	{
+		return;
+	}
+	ReportedSites.Add( Site );
+
+	warnf( NAME_Warning, TEXT("[LAYOUT] %s: offset %u holds %s %s (%s), but the package writes %s there (package %s)"),
+		*Struct->GetName(), (UINT)Tag.PropertyOffset, *Prop->GetID().ToString(), *Prop->GetName(),
+		*Prop->GetOuter()->GetName(), *Tag.Type.ToString(), *Ar.GetArchiveName() );
+}
+#endif
+
 void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* DefaultsStruct, BYTE* Defaults, INT DefaultsCount/*=0*/ ) const
 {
 	FName PropertyName(NAME_None);
@@ -692,6 +730,8 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 							appErrorf(TEXT("BM: no property at offset %u (type %s) in %s (package %s)"),
 								(UINT)Tag.PropertyOffset, *Tag.Type.ToString(), *GetName(), *Ar.GetArchiveName());
 						}
+
+						ReportLayoutMismatch(this, OffsetProp, Tag, Ar);
 					}
 
 					BYTE* Dest = Data + Tag.PropertyOffset;

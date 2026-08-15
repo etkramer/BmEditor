@@ -301,9 +301,16 @@ public:
     BITFIELD bFractureMaterialOverride:1;
     TArrayNoInit<class UFractureMaterial*> FractureMaterials;
     class UApexStaticDestructibleComponent* StaticDestructibleComponent;
+    class UApexRenderVolumeComponent* DustRenderVolume;
+    class UApexRenderVolumeComponent* CrumbleRenderVolume;
+    class UApexGenericAsset* CrumbleAsset;
+    class UApexGenericAsset* DustAsset;
     TArray<BYTE> VisibilityFactors;
-    TArrayNoInit<class USoundCue*> FractureSounds;
-    TArrayNoInit<class UParticleSystem*> FractureParticleEffects;
+    TArrayNoInit<class UFractureMaterial*>* CachedFractureMaterials;
+    class UAkEvent* CachedFractureShardSound;
+    class UAkEvent* CachedFractureDamageSound;
+    FStringNoInit DamageParamsObjectName;
+    class UApexDestructibleDamageParameters* DamageParams;
     //## END PROPS ApexDestructibleActor
 
     virtual void CacheFractureEffects();
@@ -348,7 +355,7 @@ public:
         Parms.SpawnDirection=SpawnDirection;
         ProcessEvent(FindFunctionChecked(ENGINE_SpawnFractureEmitter),&Parms);
     }
-    DECLARE_CLASS(AApexDestructibleActor,AActor,0,Engine)
+    DECLARE_CLASS(AApexDestructibleActor,AActor,0|CLASS_Config,Engine)
     static const TCHAR* StaticConfigName() {return TEXT("Engine");}
 
 	/** Performs a specialized Tick method on this actor
@@ -1178,6 +1185,18 @@ public:
     NO_DEFAULT_CONSTRUCTOR(UDEPRECATED_ImageReflectionComponent)
 };
 
+class UApexRenderVolumeComponent : public UPrimitiveComponent
+{
+public:
+    //## BEGIN PROPS ApexRenderVolumeComponent
+    FPointer ApexRenderVolume;
+    FPointer ViewRelevance;
+    //## END PROPS ApexRenderVolumeComponent
+
+    DECLARE_CLASS(UApexRenderVolumeComponent,UPrimitiveComponent,0,Engine)
+    NO_DEFAULT_CONSTRUCTOR(UApexRenderVolumeComponent)
+};
+
 class UImageReflectionShadowPlaneComponent : public UPrimitiveComponent
 {
 public:
@@ -1783,6 +1802,8 @@ public:
     //## BEGIN PROPS ApexGenericAsset
     class FIApexAsset* MApexAsset;
     TArrayNoInit<class UMaterialInterface*> Materials;
+    TArrayNoInit<class UApexGenericAsset*> AssetDependencies;
+    TArrayNoInit<class UStaticMesh*> MeshDependencies;
     //## END PROPS ApexGenericAsset
 
     DECLARE_CLASS(UApexGenericAsset,UApexAsset,0,Engine)
@@ -1918,6 +1939,7 @@ AUTOGENERATE_FUNCTION(UImageBasedReflectionComponent,-1,execSetEnabled);
 	UDEPRECATED_ImageReflectionComponent::StaticClass(); \
 	UPrimitiveComponent::StaticClass(); \
 	GNativeLookupFuncs.Set(FName("PrimitiveComponent"), GEngineUPrimitiveComponentNatives); \
+	UApexRenderVolumeComponent::StaticClass(); \
 	UImageReflectionShadowPlaneComponent::StaticClass(); \
 	GNativeLookupFuncs.Set(FName("ImageReflectionShadowPlaneComponent"), GEngineUImageReflectionShadowPlaneComponentNatives); \
 	UMeshComponent::StaticClass(); \
@@ -2095,7 +2117,7 @@ FNativeFunctionLookup GEngineUImageBasedReflectionComponentNatives[] =
 
 #ifdef VERIFY_CLASS_SIZES
 VERIFY_CLASS_OFFSET_NODIE(AApexDestructibleActor,ApexDestructibleActor,LightEnvironment)
-VERIFY_CLASS_OFFSET_NODIE(AApexDestructibleActor,ApexDestructibleActor,FractureParticleEffects)
+VERIFY_CLASS_OFFSET_NODIE(AApexDestructibleActor,ApexDestructibleActor,DamageParams)
 VERIFY_CLASS_SIZE_NODIE(AApexDestructibleActor)
 VERIFY_CLASS_OFFSET_NODIE(AFracturedStaticMeshActor,FracturedStaticMeshActor,MaxPartsToSpawnAtOnce)
 VERIFY_CLASS_OFFSET_NODIE(AFracturedStaticMeshActor,FracturedStaticMeshActor,LastBreakInstigator)
@@ -2156,6 +2178,9 @@ VERIFY_CLASS_OFFSET_NODIE(UPrimitiveComponent,PrimitiveComponent,DetailMode)
 VERIFY_CLASS_OFFSET_NODIE(UPrimitiveComponent,PrimitiveComponent,RBDominanceGroup)
 VERIFY_CLASS_OFFSET_NODIE(UPrimitiveComponent,PrimitiveComponent,LevelEdgeCollectionIndex)
 VERIFY_CLASS_SIZE_NODIE(UPrimitiveComponent)
+VERIFY_CLASS_OFFSET_NODIE(UApexRenderVolumeComponent,ApexRenderVolumeComponent,ApexRenderVolume)
+VERIFY_CLASS_OFFSET_NODIE(UApexRenderVolumeComponent,ApexRenderVolumeComponent,ViewRelevance)
+VERIFY_CLASS_SIZE_NODIE(UApexRenderVolumeComponent)
 VERIFY_CLASS_OFFSET_NODIE(UImageReflectionShadowPlaneComponent,ImageReflectionShadowPlaneComponent,ReflectionPlane)
 VERIFY_CLASS_SIZE_NODIE(UImageReflectionShadowPlaneComponent)
 VERIFY_CLASS_OFFSET_NODIE(UMeshComponent,MeshComponent,Materials)
@@ -2204,7 +2229,7 @@ VERIFY_CLASS_OFFSET_NODIE(UApexDestructibleAsset,ApexDestructibleAsset,MApexAsse
 VERIFY_CLASS_OFFSET_NODIE(UApexDestructibleAsset,ApexDestructibleAsset,DestructibleParameters)
 VERIFY_CLASS_SIZE_NODIE(UApexDestructibleAsset)
 VERIFY_CLASS_OFFSET_NODIE(UApexGenericAsset,ApexGenericAsset,MApexAsset)
-VERIFY_CLASS_OFFSET_NODIE(UApexGenericAsset,ApexGenericAsset,Materials)
+VERIFY_CLASS_OFFSET_NODIE(UApexGenericAsset,ApexGenericAsset,MeshDependencies)
 VERIFY_CLASS_SIZE_NODIE(UApexGenericAsset)
 #endif // VERIFY_CLASS_SIZES
 #endif // !ENUMS_ONLY

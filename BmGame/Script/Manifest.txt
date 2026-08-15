@@ -319,6 +319,7 @@
      5 ParticleLightEnvironmentComponent Engine [] []
    3 PrimitiveComponent Engine [A] []
     4 AkDrawBoundsComponent Engine [] []
+    4 ApexRenderVolumeComponent Engine [] []
     4 ArrowComponent Engine [] []
     4 BrushComponent Engine [] []
     4 CameraConeComponent Engine [] []

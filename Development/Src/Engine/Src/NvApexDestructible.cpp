@@ -243,6 +243,9 @@ void UApexStaticComponent::Serialize(FArchive& Ar)
  */
 IMPLEMENT_CLASS(UApexDynamicComponent);
 
+// BM
+IMPLEMENT_CLASS(UApexRenderVolumeComponent);
+
 
 /*
  *	UApexStaticDestructibleComponent
@@ -867,9 +870,6 @@ void AApexDestructibleActor::FixupActor()
 void AApexDestructibleActor::CacheFractureEffects()
 {
 #if WITH_APEX
-	FractureSounds.Empty();
-	FractureParticleEffects.Empty();
-
 	TArrayNoInit<class UFractureMaterial*>* FracMats = NULL;
 
 	if( bFractureMaterialOverride )
@@ -887,41 +887,23 @@ void AApexDestructibleActor::CacheFractureEffects()
 		}
 	}
 
-	if( FracMats != NULL )
-	{
-		for( INT Depth=0; Depth<FracMats->Num(); ++Depth )
-		{
-			UFractureMaterial* FracMat = FracMats->GetTypedData()[Depth];
-			if( FracMat )
-			{
-				FractureSounds.AddItem( Cast<USoundCue>(FracMat->FractureShardSound) ); // BM
-				FractureParticleEffects.AddItem( FracMat->FractureEffect );
-			}
-			else
-			{
-				FractureSounds.AddItem( NULL );
-				FractureParticleEffects.AddItem( NULL );
-			}
-		}
-	}
+	// BM: retail caches the array itself rather than copying the sounds and effects out of it.
+	CachedFractureMaterials = FracMats;
 #endif	// WITH_APEX
 }
 void AApexDestructibleActor::SpawnFractureEffects(FVector& SpawnLocation, FVector& SpawnDirection, INT Depth)
 {
 #if WITH_APEX
-	check( FractureSounds.Num() == FractureParticleEffects.Num() );
-	if( FractureSounds.Num() > Depth )
+	if( CachedFractureMaterials == NULL || Depth >= CachedFractureMaterials->Num() )
 	{
-		if( FractureSounds(Depth) != NULL )
-		{
-			// spawn sound
-			PlaySound(FractureSounds(Depth), FALSE, FALSE, FALSE, &SpawnLocation, FALSE);
-		}
-		if( FractureParticleEffects(Depth) != NULL )
-		{
-			// spawn particle system
-			eventSpawnFractureEmitter(FractureParticleEffects(Depth), SpawnLocation, SpawnDirection);
-		}
+		return;
+	}
+
+	UFractureMaterial* FracMat = CachedFractureMaterials->GetTypedData()[Depth];
+	if( FracMat && FracMat->FractureEffect )
+	{
+		// spawn particle system
+		eventSpawnFractureEmitter(FracMat->FractureEffect, SpawnLocation, SpawnDirection);
 	}
 #endif
 }

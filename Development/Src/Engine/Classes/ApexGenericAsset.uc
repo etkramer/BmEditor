@@ -14,6 +14,10 @@ class ApexGenericAsset extends ApexAsset
 var   native pointer                                          MApexAsset{class FIApexAsset};
 var() const editfixedsize editoronly array<MaterialInterface>	Materials;
 
+// BM
+var() const array<ApexGenericAsset>								AssetDependencies;
+var() const array<StaticMesh>									MeshDependencies;
+
 
 cpptext
 {
