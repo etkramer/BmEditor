@@ -1038,6 +1038,13 @@ void FApexRenderResourceManager::releaseResource(NxUserRenderResource &RenderRes
 
 physx::PxU32 FApexRenderResourceManager::getMaxBonesForMaterial(void *Material)
 {
+#if BATMAN
+	// BM: APEX may pass a material index instead of a pointer (see SetApexNamedMatIndices)
+	if ( (PTRINT)Material > 0 && (PTRINT)Material < 0x10000 )
+	{
+		return APEX_MAX_BONES;
+	}
+#endif
 	UMaterialInterface* MaterialInterface = (UMaterialInterface*)Material;
 	if ( MaterialInterface )
 	{
