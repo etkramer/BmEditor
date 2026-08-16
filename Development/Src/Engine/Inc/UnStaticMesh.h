@@ -1635,8 +1635,38 @@ struct FStaticMeshComponentLODInfo
 	/** Serializer. */
 	friend FArchive& operator<<(FArchive& Ar,FStaticMeshComponentLODInfo& I)
 	{
-		Ar << I.ShadowMaps;
-		Ar << I.ShadowVertexBuffers;
+#if BATMAN
+		if( Ar.IsLoading() && Ar.LicenseeVer() < 82 )
+		{
+			INT LegacyCount = 0;
+			Ar << LegacyCount;
+			if( LegacyCount > 0 )
+			{
+				Ar << I.ShadowMaps.ShadowMap;
+				for( INT Index = 1; Index < LegacyCount; ++Index )
+				{
+					UShadowMap2D* LegacyShadowMap = NULL;
+					Ar << LegacyShadowMap;
+				}
+			}
+
+			Ar << LegacyCount;
+			if( LegacyCount > 0 )
+			{
+				Ar << I.ShadowVertexBuffers.ShadowVertexBuffer;
+				for( INT Index = 1; Index < LegacyCount; ++Index )
+				{
+					UShadowMap1D* LegacyShadowVertexBuffer = NULL;
+					Ar << LegacyShadowVertexBuffer;
+				}
+			}
+		}
+		else
+#endif
+		{
+			Ar << I.ShadowMaps;
+			Ar << I.ShadowVertexBuffers;
+		}
 		Ar << I.LightMap;
 		if( Ar.Ver() >= VER_MESH_PAINT_SYSTEM_ENUM )
 		{
