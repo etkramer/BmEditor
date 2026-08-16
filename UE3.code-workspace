@@ -183,7 +183,7 @@
         "type": "cppvsdbg",
         "request": "launch",
         "program": "${workspaceFolder}/Binaries/Win32/Debug-BmGame.exe",
-        "args": ["ExtractPackages", "-VALIDATE", "-d3d11"],
+        "args": ["ExtractPackages", "-d3d11"],
         "stopAtEntry": false,
         "cwd": "${workspaceFolder}",
         "environment": [],

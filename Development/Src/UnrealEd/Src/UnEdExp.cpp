@@ -483,13 +483,16 @@ UBOOL ULevelExporterT3D::ExportText( const FExportObjectInnerContext* Context, U
 	TextIndent -= 3;
 	TextIndent += 3;
 
-	ULevel* Level;
+	TArray<ULevel*> LevelsToExport;
 
 	// start a new level section
 	if (appStricmp(Type, TEXT("COPY")) == 0)
 	{
-		// for copy and paste, we want to select actors in the current level
-		Level = World->CurrentLevel;
+		// BM: copy from every loaded level, not just the current one - everything pastes into the current level
+		for( INT LevelIndex=0; LevelIndex<World->Levels.Num(); LevelIndex++ )
+		{
+			LevelsToExport.AddItem( World->Levels(LevelIndex) );
+		}
 
 		// if we are copy/pasting, then we don't name the level - we paste into the current level
 		Ar.Logf(TEXT("%sBegin Level\r\n"), appSpc(TextIndent));
@@ -500,50 +503,59 @@ UBOOL ULevelExporterT3D::ExportText( const FExportObjectInnerContext* Context, U
 	else
 	{
 		// for export, we only want the persistent level
-		Level = World->PersistentLevel;
+		LevelsToExport.AddItem( World->PersistentLevel );
 
 		//@todo seamless if we are exporting only selected, should we export from all levels? or maybe from the current level?
 
 		// if we aren't copy/pasting, then we name the level so that when we import, we get the same level structure
-		Ar.Logf(TEXT("%sBegin Level NAME=%s\r\n"), appSpc(TextIndent), *Level->GetName());
+		Ar.Logf(TEXT("%sBegin Level NAME=%s\r\n"), appSpc(TextIndent), *World->PersistentLevel->GetName());
 	}
 
 	TextIndent += 3;
 
-	// loop through all of the actors just in this level
-	for( INT iActor=0; iActor<Level->Actors.Num(); iActor++ )
+	// loop through all of the actors in the levels being exported
+	for( INT LevelIndex=0; LevelIndex<LevelsToExport.Num(); LevelIndex++ )
 	{
-		AActor* Actor = Level->Actors(iActor);
-		// Don't export the default physics volume, as it doesn't have a UModel associated with it
-		// and thus will not import properly.
-		if ( Actor == DefaultPhysicsVolume )
+		ULevel* Level = LevelsToExport(LevelIndex);
+		if( !Level )
 		{
 			continue;
 		}
-		ATerrain* pkTerrain = Cast<ATerrain>(Actor);
-		if (pkTerrain && (bAllActors || pkTerrain->IsSelected()))
+
+		for( INT iActor=0; iActor<Level->Actors.Num(); iActor++ )
 		{
-			// Terrain exporter...
-			// Find the UTerrainExporterT3D exporter?
-			UTerrainExporterT3D* pkTerrainExp = ConstructObject<UTerrainExporterT3D>(UTerrainExporterT3D::StaticClass());
-			if (pkTerrainExp)
+			AActor* Actor = Level->Actors(iActor);
+			// Don't export the default physics volume, as it doesn't have a UModel associated with it
+			// and thus will not import properly.
+			if ( Actor == DefaultPhysicsVolume )
 			{
-				pkTerrainExp->TextIndent = TextIndent;
-				pkTerrainExp->ExportText( Context, pkTerrain, Type, Ar, Warn );
+				continue;
 			}
-		}
-		else
-		if( Actor && ( bAllActors || Actor->IsSelected() ) )
-		{
-			if (Actor->ShouldExport())
+			ATerrain* pkTerrain = Cast<ATerrain>(Actor);
+			if (pkTerrain && (bAllActors || pkTerrain->IsSelected()))
 			{
-				Ar.Logf( TEXT("%sBegin Actor Class=%s Name=%s Archetype=%s'%s'") LINE_TERMINATOR, 
-					appSpc(TextIndent), *Actor->GetClass()->GetName(), *Actor->GetName(),
-					*Actor->GetArchetype()->GetClass()->GetName(), *Actor->GetArchetype()->GetPathName() );
+				// Terrain exporter...
+				// Find the UTerrainExporterT3D exporter?
+				UTerrainExporterT3D* pkTerrainExp = ConstructObject<UTerrainExporterT3D>(UTerrainExporterT3D::StaticClass());
+				if (pkTerrainExp)
+				{
+					pkTerrainExp->TextIndent = TextIndent;
+					pkTerrainExp->ExportText( Context, pkTerrain, Type, Ar, Warn );
+				}
+			}
+			else
+			if( Actor && ( bAllActors || Actor->IsSelected() ) )
+			{
+				if (Actor->ShouldExport())
+				{
+					Ar.Logf( TEXT("%sBegin Actor Class=%s Name=%s Archetype=%s'%s'") LINE_TERMINATOR,
+						appSpc(TextIndent), *Actor->GetClass()->GetName(), *Actor->GetName(),
+						*Actor->GetArchetype()->GetClass()->GetName(), *Actor->GetArchetype()->GetPathName() );
 
-				ExportObjectInner( Context, Actor, Ar, PortFlags | PPF_ExportsNotFullyQualified );
+					ExportObjectInner( Context, Actor, Ar, PortFlags | PPF_ExportsNotFullyQualified );
 
-				Ar.Logf( TEXT("%sEnd Actor\r\n"), appSpc(TextIndent) );
+					Ar.Logf( TEXT("%sEnd Actor\r\n"), appSpc(TextIndent) );
+				}
 			}
 		}
 	}

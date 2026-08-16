@@ -108,24 +108,18 @@ void UUnrealEdEngine::edactCopySelected(UBOOL bReselectPrefabActors, UBOOL bClip
 	//		- Builder brushes.
 	TArray<AActor*> ActorsToDeselect;
 
-	UBOOL bSomeSelectedActorsNotInCurrentLevel = FALSE;
 	for ( FSelectionIterator It( GetSelectedActorIterator() ) ; It ; ++It )
 	{
 		AActor* Actor = static_cast<AActor*>( *It );
 		checkSlow( Actor->IsA(AActor::StaticClass()) );
 
 		// Deselect any selected builder brushes.
-		const UBOOL bActorIsBuilderBrush = (Actor->IsABrush() && Actor == GWorld->GetBrush());
+		// BM: test against the owning level's builder brush, since we now copy across all levels
+		ULevel* ActorLevel = Actor->GetLevel();
+		const UBOOL bActorIsBuilderBrush = (Actor->IsABrush() && ActorLevel->Actors.Num() >= 2 && Actor == ActorLevel->GetBrush());
 		if( bActorIsBuilderBrush || Actor->IsInPrefabInstance() )
 		{
 			ActorsToDeselect.AddItem(Actor);
-		}
-
-		// If any selected actors are not in the current level, warn the user that some actors will not be copied.
-		if ( !bSomeSelectedActorsNotInCurrentLevel && Actor->GetLevel() != GWorld->CurrentLevel )
-		{
-			bSomeSelectedActorsNotInCurrentLevel = TRUE;
-			appMsgf( AMT_OK, *LocalizeUnrealEd("CopySelectedActorsInNonCurrentLevel") );
 		}
 	}
 

@@ -1661,6 +1661,15 @@ void SetDefaultsForEditorPreview( UClass* Class )
 			UActorComponent* Sprite = AddDefaultComponent( Default, FindDefaultComponent( Source, TEXT("Sprite") ) );
 		}
 	}
+	// Give PathNode's sprite to RPatrolPoint
+	if( ClassName == TEXT("RPatrolPoint") )
+	{
+		if( FindDefaultComponent( Default, TEXT("Sprite") ) == NULL )
+		{
+			AActor* Source = APathNode::StaticClass()->GetDefaultActor();
+			UActorComponent* Sprite = AddDefaultComponent( Default, FindDefaultComponent( Source, TEXT("Sprite") ) );
+		}
+	}
 	// Give preview meshes to RCinematicBatman (and co.)
 	else if( ClassName == TEXT("RCinematicBatman") || ClassName == TEXT("RCinematicRobin") || ClassName == TEXT("RCinematicCatwoman") )
 	{
