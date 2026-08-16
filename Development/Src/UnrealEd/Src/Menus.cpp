@@ -246,6 +246,11 @@ void WxMainContextMenuBase::AppendPlayLevelMenu()
 
 	wxMenu* PlayLevelMenu = new wxMenu();
 
+#if BATMAN
+	// BM: PIE can't run BM2 content - "Play in Game" replaces it
+	PlayLevelMenu->Append( IDM_PLAY_IN_GAME, TEXT("Play in Game"), TEXT("Cooks the current level and plays it in the game") );
+	Append( wxID_ANY, *LocalizeUnrealEd("LevelViewportContext_PlayLevelMenu"), PlayLevelMenu );
+#else
 	// if we have any console plugins, add them to the list of places we can play the level
 	if (FConsoleSupportContainer::GetConsoleSupportContainer()->GetNumConsoleSupports() > 0)
 	{
@@ -308,6 +313,7 @@ void WxMainContextMenuBase::AppendPlayLevelMenu()
 		const FString PlayFromHereLabel = GEditor->OnlyLoadEditorVisibleLevelsInPIE() ? LocalizeUnrealEd("LevelViewportContext_PlayFromHere_VisibleOnly") : LocalizeUnrealEd("LevelViewportContext_PlayFromHere");
 		Append( IDM_BackDropPopupPlayFromHereInEditor, *PlayFromHereLabel, *LocalizeUnrealEd("LevelViewportContext_PlayFromHere_Desc"));
 	}
+#endif
 }
 
 

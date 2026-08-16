@@ -1026,6 +1026,7 @@ BEGIN_EVENT_TABLE( WxEditorFrame, wxFrame )
 #if BATMAN
 	EVT_MENU( IDM_CREATE_GRAPPLE_POINTS, WxEditorFrame::MenuCreateGrapplePoints )
 	EVT_BUTTON( IDM_PLAY_IN_GAME, WxEditorFrame::MenuPlayInGame )
+	EVT_MENU( IDM_PLAY_IN_GAME, WxEditorFrame::MenuPlayInGame )
 #endif
 
 	EVT_MENU_RANGE( IDM_BROWSER_START, IDM_BROWSER_END, WxEditorFrame::MenuViewShowBrowser )
@@ -4065,8 +4066,11 @@ void WxEditorFrame::MenuPlayInGame( wxCommandEvent& In )
 		}
 	}
 
+	AWorldInfo* WorldInfo = GWorld->GetWorldInfo();
+	const FString PlayerName = WorldInfo->PlayerCharacterName != NAME_None ? WorldInfo->PlayerCharacterName.ToString() : TEXT("Playable_Batman");
+
 	const FString URL = FString::Printf( TEXT("\"%s\""), *GameExe );
-	const FString Params = FString::Printf( TEXT("batentry?Players=Playable_Batman?Area=%s -nosplash -windowed"), *MapName );
+	const FString Params = FString::Printf( TEXT("batentry?Players=%s?Area=%s?Flags=%s -nosplash -windowed"), *PlayerName, *MapName, *WorldInfo->SetFlagsInPIE );
 
 	void* ProcHandle = appCreateProc( *URL, *Params );
 	if( ProcHandle )
