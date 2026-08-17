@@ -1670,6 +1670,15 @@ void SetDefaultsForEditorPreview( UClass* Class )
 			UActorComponent* Sprite = AddDefaultComponent( Default, FindDefaultComponent( Source, TEXT("Sprite") ) );
 		}
 	}
+	// Give CoverLink's sprite to RGrapplePoint
+	if( ClassName == TEXT("RGrapplePoint") )
+	{
+		if( FindDefaultComponent( Default, TEXT("Sprite") ) == NULL )
+		{
+			AActor* Source = ACoverLink::StaticClass()->GetDefaultActor();
+			UActorComponent* Sprite = AddDefaultComponent( Default, FindDefaultComponent( Source, TEXT("Sprite") ) );
+		}
+	}
 	// Give preview meshes to RCinematicBatman (and co.)
 	else if( ClassName == TEXT("RCinematicBatman") || ClassName == TEXT("RCinematicRobin") || ClassName == TEXT("RCinematicCatwoman") )
 	{
