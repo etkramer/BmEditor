@@ -1732,8 +1732,10 @@ class UParticleEmitter : public UObject
 public:
     //## BEGIN PROPS ParticleEmitter
     FName EmitterName;
+    FLOAT NearScaleDistance;
     INT SubUVDataOffset;
     BYTE EmitterRenderMode;
+    BYTE SharedEmitterInstanceCount;
     SCRIPT_ALIGN;
     FColor EmitterEditorColor;
     TArrayNoInit<class UParticleLODLevel*> LODLevels;

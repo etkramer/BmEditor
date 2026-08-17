@@ -29,7 +29,14 @@ var deprecated float SceneMultiplier;
 /** the radius of the bloom effect 0..64 */
 var(Bloom) float BlurBloomKernelSize;
 
-var deprecated bool bEnableReferenceDOF;
+// BM
+var deprecated bool bEnableSeparateBloom;
+
+/** Makes use of dynamic branching in the pixel shader and features circular Bokeh shape effects (slow for big Kernel Size). */
+var(Advanced) bool bEnableReferenceDOF;
+
+// BM
+var(Advanced) bool bEnableDepthOfFieldHQ;
 
 /**
  * Allows to specify the depth of field type. Choose depending on performance and quality needs.
@@ -37,27 +44,24 @@ var deprecated bool bEnableReferenceDOF;
  * "ReferenceDOF" makes use of dynamic branching in the pixel shader and features circular Bokeh shape effects (slow for big Kernel Size).
  * "BokehDOF" allows to specify a Bokeh texture and a bigger radius (requires D3D11, slow when using a lot of out of focus content)
  */
-var(DepthOfField) enum EDOFType
+enum EDOFType
 {
-	DOFType_SimpleDOF<DisplayName=SimpleDOF>, 
-	DOFType_ReferenceDOF<DisplayName=ReferenceDOF>, 
-	DOFType_BokehDOF<DisplayName=BokehDOF>, 
-} DepthOfFieldType;
+	DOFType_SimpleDOF<DisplayName=SimpleDOF>,
+	DOFType_ReferenceDOF<DisplayName=ReferenceDOF>,
+	DOFType_BokehDOF<DisplayName=BokehDOF>,
+};
 
 /**
  * Allows to specify the quality of the chose Depth of Field Type.
  * This meaning depends heavily on the current implementation and that might change.
  * If performance is important the lowest acceptable quality should be used.
  */
-var(DepthOfField) enum EDOFQuality
+enum EDOFQuality
 {
-	DOFQuality_Low<DisplayName=Low>, 
-	DOFQuality_Medium<DisplayName=Medium>, 
-	DOFQuality_High<DisplayName=High>, 
-} DepthOfFieldQuality;
-
-/** only used if BokehDOF is enabled */
-var(DepthOfField) Texture2D BokehTexture;
+	DOFQuality_Low<DisplayName=Low>,
+	DOFQuality_Medium<DisplayName=Medium>,
+	DOFQuality_High<DisplayName=High>,
+};
 
 cpptext
 {
@@ -75,14 +79,6 @@ cpptext
 	 * @return TRUE if the effect should be rendered
 	 */
 	virtual UBOOL IsShown(const FSceneView* View) const;
-	
-	// UObject interface
-
-	/**
-	* Called after this instance has been serialized.  RockOn should only
-	* ever exists in the SDPG_PostProcess scene
-	*/
-	virtual void PostLoad();
 
 	/**
 	* This allows to print a warning when the effect is used.
@@ -96,7 +92,7 @@ cpptext
 defaultproperties
 {
 	BloomScale=1.0
-	BloomThreshold=1.0
+	BloomThreshold=0.75
 	BloomTint=(R=255,G=255,B=255)
 	BloomScreenBlendThreshold=10
 	BlurKernelSize=16.0

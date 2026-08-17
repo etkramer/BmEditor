@@ -11,6 +11,8 @@ IMPLEMENT_CLASS(URB_BodySetup);
 
 IMPLEMENT_CLASS(UPhysicsAssetInstance);
 IMPLEMENT_CLASS(URB_BodyInstance);
+// BM
+IMPLEMENT_CLASS(URPhysOnContactHandler);
 
 IMPLEMENT_CLASS(UPhysicalMaterial);
 IMPLEMENT_CLASS(UPhysicalMaterialPropertyBase);

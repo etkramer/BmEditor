@@ -16,6 +16,8 @@ var()	bool bShowInEditor;
 var()	bool bShowInGame;
 /** Controls whether the effect should take its settings from the world's post process settings. */
 var() bool bUseWorldSettings;
+/** If true, the effect should be rendered after lighting and not at the end of the DPG. */
+var bool bAffectsLightingOnly;
 /** Name of the effect, used by e.g. FindEffectByName */
 var() Name EffectName;
 
@@ -29,9 +31,6 @@ var		int		InDrawY;
 
 /** controls which scene DPG to render this post-process effect in (mirrors ESceneDepthPriorityGroup) */
 var() ESceneDepthPriorityGroup SceneDPG;
-
-/** If true, the effect should be rendered after lighting and not at the end of the DPG. */
-var bool bAffectsLightingOnly;
 
 cpptext
 {

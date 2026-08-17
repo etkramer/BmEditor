@@ -12,6 +12,9 @@ class RB_BodyInstance extends Object
  */
 var const transient PrimitiveComponent		OwnerComponent;
 
+// BM
+var RPhysOnContactHandler					OnContactHandler;
+
 /** Index of this BodyInstance within the PhysicsAssetInstance/PhysicsAsset. */
 var const int								BodyIndex;
 
@@ -78,6 +81,9 @@ var(BoneSpring) const float					BoneAngularSpring;
 /** Damping on angular spring to animated bone. */
 var(BoneSpring) const float					BoneAngularDamping;
 
+// BM
+var(Physics)	float						WindResponse;
+
 /** If bDisableOnOverextension is on, the bone spring will be disabled if it stretches more than this amount. */
 var(BoneSpring)	float						OverextensionThreshold;
 
@@ -120,6 +126,12 @@ var(Physics)	float						ContactReportForceThreshold;
 var(Physics)	float						InstanceMassScale;
 /** Per-instance scaling of linear/angular damping */
 var(Physics)	float						InstanceDampingScale;
+
+// BM
+var(Physics)	float						DampingRampupProportion;
+
+// BM
+var(Physics)	vector						RBSyncOffet;
 
 /** 
  * An override to say whether this body has been forced (by gameplay code) to be unfixed or not.  This

@@ -11,6 +11,7 @@ struct native RColourPhysicalMaterialPair
 	var() PhysicalMaterial		PhysMaterial;
 };
 
+var Texture2D SourceTexture;
 var int SizeX;
 var int SizeY;
 var byte Encoding;

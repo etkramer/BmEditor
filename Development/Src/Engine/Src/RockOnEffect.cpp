@@ -1379,7 +1379,7 @@ FPostProcessSceneProxy* URockOn::CreateSceneProxy(const FPostProcessSettings* Wo
 			bLocalImageGrain = FALSE;
 		}
 	}
-	UBOOL bLocalHighQualityDOF = (DepthOfFieldQuality == DOFQuality_High);
+	UBOOL bLocalHighQualityDOF = bEnableDepthOfFieldHQ;
 	if(WorldSettings && WorldSettings->bOverride_bEnableHighQualityDOF)
 	{
 		bLocalHighQualityDOF = WorldSettings->bEnableHighQualityDOF;

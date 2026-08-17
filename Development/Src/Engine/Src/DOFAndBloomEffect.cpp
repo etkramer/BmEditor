@@ -305,8 +305,9 @@ extern TGlobalResource<FFilterVertexDeclaration> GFilterVertexDeclaration;
 */
 FDOFAndBloomPostProcessSceneProxy::FDOFAndBloomPostProcessSceneProxy(const UDOFAndBloomEffect* InEffect,const FPostProcessSettings* WorldSettings)
 :	FPostProcessSceneProxy(InEffect)
-,	DepthOfFieldType((EDOFType)InEffect->DepthOfFieldType)
-,	DepthOfFieldQuality((EDOFQuality)InEffect->DepthOfFieldQuality)
+// BM: retail drives the DOF path from the two Advanced bools rather than explicit type/quality enums.
+,	DepthOfFieldType(InEffect->bEnableReferenceDOF ? DOFType_ReferenceDOF : DOFType_SimpleDOF)
+,	DepthOfFieldQuality(InEffect->bEnableDepthOfFieldHQ ? DOFQuality_High : DOFQuality_Low)
 ,	ColorGrading_LookupTable(0)
 ,	BokehTexture(0)
 {
@@ -775,26 +776,6 @@ FPostProcessSceneProxy* UDOFAndBloomEffect::CreateSceneProxy(const FPostProcessS
 UBOOL UDOFAndBloomEffect::IsShown(const FSceneView* View) const
 {
 	return (GSystemSettings.bAllowBloom || GSystemSettings.bAllowDepthOfField) && Super::IsShown( View );
-}
-
-/**
-* Called after this instance has been serialized.
-*/
-void UDOFAndBloomEffect::PostLoad()
-{
-	Super::PostLoad();
-
-	ULinkerLoad* LFLinkerLoad = GetLinker();
-	if(LFLinkerLoad && (LFLinkerLoad->Ver() < VER_DEPTHOFFIELD_TYPE))
-	{
-		DepthOfFieldType = DOFType_SimpleDOF;
-
-		if(bEnableReferenceDOF_DEPRECATED)
-		{
-			DepthOfFieldType = DOFType_ReferenceDOF;
-			DepthOfFieldQuality = DOFQuality_High;
-		}
-	}
 }
 
 /*-----------------------------------------------------------------------------

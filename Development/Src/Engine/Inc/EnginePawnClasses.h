@@ -1373,6 +1373,7 @@ public:
     FLOAT NavMeshGen_MinMergeDotSmallArea;
     FLOAT NavMeshGen_MinMergeDotLargeArea;
     FLOAT NavMeshGen_MaxPolyHeight;
+    FLOAT NavMeshGen_MaxPolyBuildHeight;
     FLOAT NavMeshGen_HeightMergeThreshold;
     FLOAT NavMeshGen_EdgeMaxDelta;
     FLOAT NavMeshGen_MaxGroundCheckSize;

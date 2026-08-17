@@ -448,7 +448,7 @@ private:
 
 struct ColorTransformMaterialProperties
 {
-	/** mirrored material properties (see RockOn.uc) */
+	/** mirrored material properties (see UberPostProcessEffect.uc) */
 	FVector			Shadows;
 	FVector			HighLights;
 	FVector			MidTones;

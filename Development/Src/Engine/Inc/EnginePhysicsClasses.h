@@ -1339,6 +1339,7 @@ class URB_BodyInstance : public UObject
 public:
     //## BEGIN PROPS RB_BodyInstance
     class UPrimitiveComponent* OwnerComponent;
+    class URPhysOnContactHandler* OnContactHandler;
     INT BodyIndex;
     FVector Velocity;
     FVector PreviousVelocity;
@@ -1362,6 +1363,7 @@ public:
     FLOAT BoneLinearDamping;
     FLOAT BoneAngularSpring;
     FLOAT BoneAngularDamping;
+    FLOAT WindResponse;
     FLOAT OverextensionThreshold;
     FLOAT CustomGravityFactor;
     FLOAT LastEffectPlayedTime;
@@ -1369,6 +1371,8 @@ public:
     FLOAT ContactReportForceThreshold;
     FLOAT InstanceMassScale;
     FLOAT InstanceDampingScale;
+    FLOAT DampingRampupProportion;
+    FVector RBSyncOffet;
     //## END PROPS RB_BodyInstance
 
     FLOAT GetBodyMass();
@@ -1843,6 +1847,19 @@ public:
     NO_DEFAULT_CONSTRUCTOR(URB_StayUprightSetup)
 };
 
+class URPhysOnContactHandler : public UObject
+{
+public:
+    //## BEGIN PROPS RPhysOnContactHandler
+    class UObject* OwnerObject;
+    BITFIELD bEnableCapeSpam:1;
+    SCRIPT_ALIGN;
+    //## END PROPS RPhysOnContactHandler
+
+    DECLARE_CLASS(URPhysOnContactHandler,UObject,0,Engine)
+    NO_DEFAULT_CONSTRUCTOR(URPhysOnContactHandler)
+};
+
 class USVehicleWheel : public UComponent
 {
 public:
@@ -2051,6 +2068,7 @@ AUTOGENERATE_FUNCTION(URB_ConstraintInstance,-1,execInitConstraint);
 	URB_PulleyJointSetup::StaticClass(); \
 	URB_SkelJointSetup::StaticClass(); \
 	URB_StayUprightSetup::StaticClass(); \
+	URPhysOnContactHandler::StaticClass(); \
 	USVehicleWheel::StaticClass(); \
 
 #endif // ENGINE_PHYSICS_NATIVE_DEFS
@@ -2279,7 +2297,7 @@ VERIFY_CLASS_SIZE_NODIE(UPhysicsAssetInstance)
 VERIFY_CLASS_OFFSET_NODIE(UPhysicsLODVerticalEmitter,PhysicsLODVerticalEmitter,ParticlePercentage)
 VERIFY_CLASS_SIZE_NODIE(UPhysicsLODVerticalEmitter)
 VERIFY_CLASS_OFFSET_NODIE(URB_BodyInstance,RB_BodyInstance,OwnerComponent)
-VERIFY_CLASS_OFFSET_NODIE(URB_BodyInstance,RB_BodyInstance,InstanceDampingScale)
+VERIFY_CLASS_OFFSET_NODIE(URB_BodyInstance,RB_BodyInstance,RBSyncOffet)
 VERIFY_CLASS_SIZE_NODIE(URB_BodyInstance)
 VERIFY_CLASS_OFFSET_NODIE(URB_ConstraintInstance,RB_ConstraintInstance,Owner)
 VERIFY_CLASS_OFFSET_NODIE(URB_ConstraintInstance,RB_ConstraintInstance,DummyKinActor)
@@ -2294,6 +2312,8 @@ VERIFY_CLASS_SIZE_NODIE(URB_PrismaticSetup)
 VERIFY_CLASS_SIZE_NODIE(URB_PulleyJointSetup)
 VERIFY_CLASS_SIZE_NODIE(URB_SkelJointSetup)
 VERIFY_CLASS_SIZE_NODIE(URB_StayUprightSetup)
+VERIFY_CLASS_OFFSET_NODIE(URPhysOnContactHandler,RPhysOnContactHandler,OwnerObject)
+VERIFY_CLASS_SIZE_NODIE(URPhysOnContactHandler)
 VERIFY_CLASS_OFFSET_NODIE(USVehicleWheel,SVehicleWheel,Steer)
 VERIFY_CLASS_OFFSET_NODIE(USVehicleWheel,SVehicleWheel,SlipParticleParamName)
 VERIFY_CLASS_SIZE_NODIE(USVehicleWheel)

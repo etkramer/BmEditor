@@ -19,6 +19,9 @@ var(DepthOfField, BlurAmount) float MinBlurAmount<DisplayName=Min>;
 /** [0,1] value for clamping how much blur to apply to items behind the focus plane */
 var(DepthOfField, BlurAmount) float MaxFarBlurAmount<DisplayName=MaxFar>;
 
+// BM
+var deprecated color ModulateBlurColor;
+
 /** control how the focus point is determined */
 var(DepthOfField) enum EFocusType
 {

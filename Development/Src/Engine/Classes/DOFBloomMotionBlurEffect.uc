@@ -42,7 +42,7 @@ defaultproperties
 	MotionBlurAmount = 0.5f;
 	MaxVelocity      = 1.0f;
 	FullMotionBlur = true;
-	CameraRotationThreshold = 90.0f;
-	CameraTranslationThreshold = 10000.0f;
+	CameraRotationThreshold = 45.0f;
+	CameraTranslationThreshold = 5000.0f;
 	bShowInEditor	 = false;
 }

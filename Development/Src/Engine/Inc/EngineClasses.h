@@ -1610,6 +1610,17 @@ enum EDOFType
     op(DOFType_SimpleDOF) \
     op(DOFType_ReferenceDOF) \
     op(DOFType_BokehDOF) 
+enum ETonemapperType
+{
+    Tonemapper_Off          =0,
+    Tonemapper_Filmic       =1,
+    Tonemapper_Customizable =2,
+    Tonemapper_MAX          =3,
+};
+#define FOREACH_ENUM_ETONEMAPPERTYPE(op) \
+    op(Tonemapper_Off) \
+    op(Tonemapper_Filmic) \
+    op(Tonemapper_Customizable) 
 enum EPlaceHolder
 {
     PH_UNKNOWN              =0,
@@ -5548,6 +5559,7 @@ public:
     FLOAT MaxNearBlurAmount;
     FLOAT MinBlurAmount;
     FLOAT MaxFarBlurAmount;
+    FColor ModulateBlurColor_DEPRECATED;
     BYTE FocusType;
     FLOAT FocusInnerRadius;
     FLOAT FocusDistance;
@@ -20673,11 +20685,10 @@ public:
     FLOAT BloomScreenBlendThreshold;
     FLOAT SceneMultiplier_DEPRECATED;
     FLOAT BlurBloomKernelSize;
-    BITFIELD bEnableReferenceDOF_DEPRECATED:1;
+    BITFIELD bEnableSeparateBloom_DEPRECATED:1;
+    BITFIELD bEnableReferenceDOF:1;
+    BITFIELD bEnableDepthOfFieldHQ:1;
     SCRIPT_ALIGN;
-    BYTE DepthOfFieldType;
-    BYTE DepthOfFieldQuality;
-    class UTexture2D* BokehTexture;
     //## END PROPS DOFAndBloomEffect
 
     DECLARE_CLASS(UDOFAndBloomEffect,UDOFEffect,0,Engine)
@@ -20695,14 +20706,6 @@ public:
 	 * @return TRUE if the effect should be rendered
 	 */
 	virtual UBOOL IsShown(const FSceneView* View) const;
-	
-	// UObject interface
-
-	/**
-	* Called after this instance has been serialized.  RockOn should only
-	* ever exists in the SDPG_PostProcess scene
-	*/
-	virtual void PostLoad();
 
 	/**
 	* This allows to print a warning when the effect is used.
@@ -20808,6 +20811,74 @@ public:
 	virtual void OnPostProcessWarning(FString& OutWarning) const
 	{
 		// RockOn is the intended uber post process; no warning.
+	}
+};
+
+class UUberPostProcessEffect : public UDOFBloomMotionBlurEffect
+{
+public:
+    //## BEGIN PROPS UberPostProcessEffect
+    FVector SceneShadows;
+    FVector SceneHighLights;
+    FVector SceneMidTones;
+    FLOAT SceneDesaturation;
+    FVector SceneColorize;
+    BYTE TonemapperType;
+    FLOAT TonemapperRange;
+    FLOAT TonemapperToeFactor;
+    FLOAT TonemapperScale;
+    FLOAT MotionBlurSoftEdgeKernelSize;
+    BITFIELD bEnableImageGrain:1;
+    BITFIELD bEnableHDRTonemapper_DEPRECATED:1;
+    BITFIELD bScaleEffectsWithViewSize:1;
+    FLOAT SceneImageGrainScale;
+    FLOAT BloomWeightSmall;
+    FLOAT BloomWeightMedium;
+    FLOAT BloomWeightLarge;
+    FLOAT BloomSizeScaleSmall;
+    FLOAT BloomSizeScaleMedium;
+    FLOAT BloomSizeScaleLarge;
+    FLOAT SceneHDRTonemapperScale_DEPRECATED;
+    //## END PROPS UberPostProcessEffect
+
+    DECLARE_CLASS(UUberPostProcessEffect,UDOFBloomMotionBlurEffect,0,Engine)
+	// UPostProcessEffect interface
+
+	/**
+	 * Creates a proxy to represent the render info for a post process effect
+	 * @param WorldSettings - The world's post process settings for the view.
+	 * @return The proxy object.
+	 */
+	virtual class FPostProcessSceneProxy* CreateSceneProxy(const FPostProcessSettings* WorldSettings);
+
+	// UObject interface
+
+	/**
+	* Called after this instance has been serialized.  UberPostProcessEffect should only
+	* ever exists in the SDPG_PostProcess scene
+	*/
+	virtual void PostLoad();
+	
+	/**
+	 * Called when properties change.  UberPostProcessEffect should only
+	 * ever exists in the SDPG_PostProcess scene
+	 */
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent);
+
+	/**
+	* Tells the SceneRenderer is this effect includes the uber post process.
+	*/
+	virtual UBOOL IncludesUberpostprocess() const
+	{
+		return TRUE;
+	}
+
+	/**
+	* This allows to print a warning when the effect is used.
+	*/
+	virtual void OnPostProcessWarning(FString& OutWarning) const
+	{
+		// we don't want to output any warning but derive from a effect that might do that.
 	}
 };
 
@@ -22525,6 +22596,7 @@ AUTOGENERATE_FUNCTION(UUIManager,-1,execGetUIManager);
 	UDOFBloomMotionBlurEffect::StaticClass(); \
 	URockAtmos::StaticClass(); \
 	URockOn::StaticClass(); \
+	UUberPostProcessEffect::StaticClass(); \
 	UDwTriovizImplEffect::StaticClass(); \
 	UMaterialEffect::StaticClass(); \
 	UMotionBlurEffect::StaticClass(); \
@@ -24205,7 +24277,7 @@ VERIFY_CLASS_OFFSET_NODIE(UDOFEffect,DOFEffect,FalloffExponent)
 VERIFY_CLASS_OFFSET_NODIE(UDOFEffect,DOFEffect,FocusPosition)
 VERIFY_CLASS_SIZE_NODIE(UDOFEffect)
 VERIFY_CLASS_OFFSET_NODIE(UDOFAndBloomEffect,DOFAndBloomEffect,BloomScale)
-VERIFY_CLASS_OFFSET_NODIE(UDOFAndBloomEffect,DOFAndBloomEffect,BokehTexture)
+VERIFY_CLASS_OFFSET_NODIE(UDOFAndBloomEffect,DOFAndBloomEffect,BlurBloomKernelSize)
 VERIFY_CLASS_SIZE_NODIE(UDOFAndBloomEffect)
 VERIFY_CLASS_OFFSET_NODIE(UDOFBloomMotionBlurEffect,DOFBloomMotionBlurEffect,MaxVelocity)
 VERIFY_CLASS_OFFSET_NODIE(UDOFBloomMotionBlurEffect,DOFBloomMotionBlurEffect,CameraTranslationThreshold)
@@ -24216,6 +24288,9 @@ VERIFY_CLASS_SIZE_NODIE(URockAtmos)
 VERIFY_CLASS_OFFSET_NODIE(URockOn,RockOn,SceneShadows)
 VERIFY_CLASS_OFFSET_NODIE(URockOn,RockOn,PreviousLUTBlender)
 VERIFY_CLASS_SIZE_NODIE(URockOn)
+VERIFY_CLASS_OFFSET_NODIE(UUberPostProcessEffect,UberPostProcessEffect,SceneShadows)
+VERIFY_CLASS_OFFSET_NODIE(UUberPostProcessEffect,UberPostProcessEffect,SceneHDRTonemapperScale_DEPRECATED)
+VERIFY_CLASS_SIZE_NODIE(UUberPostProcessEffect)
 VERIFY_CLASS_OFFSET_NODIE(UMaterialEffect,MaterialEffect,Material)
 VERIFY_CLASS_SIZE_NODIE(UMaterialEffect)
 VERIFY_CLASS_OFFSET_NODIE(UMotionBlurEffect,MotionBlurEffect,MaxVelocity)

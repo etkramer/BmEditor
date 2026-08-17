@@ -16,6 +16,9 @@ class ParticleEmitter extends Object
 /** The name of the emitter. */
 var(Particle)				name						EmitterName;
 
+// BM
+var(Particle)				float						NearScaleDistance;
+
 //=============================================================================
 //	Burst emissions
 //=============================================================================
@@ -73,6 +76,10 @@ enum EEmitterRenderMode
  *		ERM_None	- Do not render
  */
 var(Cascade) EEmitterRenderMode EmitterRenderMode;
+
+// BM
+var(Particle) byte SharedEmitterInstanceCount;
+
 /**
  *	The color of the emitter in the curve editor and debug rendering modes.
  */

@@ -239,6 +239,9 @@ var float NavMeshGen_MinMergeDotLargeArea;
 // NavMeshGen_MaxPolyHeight		       - maximum height to check height against (should be the height of your biggest entity)
 var float NavMeshGen_MaxPolyHeight;
 
+// BM
+var float NavMeshGen_MaxPolyBuildHeight;
+
 // NavMeshGen_HeightMergeThreshold     - height threshold used when determining if two polys can be merged (e.g. if the two poly heights are within this value, they are OK to merge)
 var float NavMeshGen_HeightMergeThreshold;
 
