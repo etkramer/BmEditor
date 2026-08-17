@@ -44,6 +44,7 @@ cpptext
 		return TRUE; 
 	}
 
+#if !BATMAN
 	/**
 	* This allows to print a warning when the effect is used.
 	*/
@@ -51,6 +52,7 @@ cpptext
 	{
 		OutWarning = TEXT("Warning: MotionBlur should no longer be used, use Uberpostprocess instead.");
 	}
+#endif
 }
 
 defaultproperties

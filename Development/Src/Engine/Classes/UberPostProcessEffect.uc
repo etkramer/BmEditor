@@ -143,6 +143,7 @@ cpptext
 		return TRUE;
 	}
 
+#if !BATMAN
 	/**
 	* This allows to print a warning when the effect is used.
 	*/
@@ -150,6 +151,7 @@ cpptext
 	{
 		// we don't want to output any warning but derive from a effect that might do that.
 	}
+#endif
 }
 
 //

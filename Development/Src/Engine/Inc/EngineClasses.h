@@ -5542,12 +5542,14 @@ public:
 		return FALSE;
 	}
 
+#if !BATMAN
 	/**
 	* This allows to print a warning when the effect is used.
 	*/
 	virtual void OnPostProcessWarning(FString& OutWarning) const
 	{
 	}
+#endif
 };
 
 class UDOFEffect : public UPostProcessEffect
@@ -20707,6 +20709,7 @@ public:
 	 */
 	virtual UBOOL IsShown(const FSceneView* View) const;
 
+#if !BATMAN
 	/**
 	* This allows to print a warning when the effect is used.
 	*/
@@ -20714,6 +20717,7 @@ public:
 	{
 		OutWarning = TEXT("Warning: DOFAndBloom should no longer be used, use RockOn instead.");
 	}
+#endif
 };
 
 class UDOFBloomMotionBlurEffect : public UDOFAndBloomEffect
@@ -20808,10 +20812,12 @@ public:
 		return TRUE;
 	}
 
+#if !BATMAN
 	virtual void OnPostProcessWarning(FString& OutWarning) const
 	{
 		// RockOn is the intended uber post process; no warning.
 	}
+#endif
 };
 
 class UUberPostProcessEffect : public UDOFBloomMotionBlurEffect
@@ -20873,6 +20879,7 @@ public:
 		return TRUE;
 	}
 
+#if !BATMAN
 	/**
 	* This allows to print a warning when the effect is used.
 	*/
@@ -20880,6 +20887,7 @@ public:
 	{
 		// we don't want to output any warning but derive from a effect that might do that.
 	}
+#endif
 };
 
 class UMaterialEffect : public UPostProcessEffect
@@ -20935,6 +20943,7 @@ public:
 		return TRUE; 
 	}
 
+#if !BATMAN
 	/**
 	* This allows to print a warning when the effect is used.
 	*/
@@ -20942,6 +20951,7 @@ public:
 	{
 		OutWarning = TEXT("Warning: MotionBlur should no longer be used, use Uberpostprocess instead.");
 	}
+#endif
 };
 
 class URockAO : public UPostProcessEffect

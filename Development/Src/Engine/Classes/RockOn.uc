@@ -41,10 +41,12 @@ cpptext
 		return TRUE;
 	}
 
+#if !BATMAN
 	virtual void OnPostProcessWarning(FString& OutWarning) const
 	{
 		// RockOn is the intended uber post process; no warning.
 	}
+#endif
 }
 
 defaultproperties

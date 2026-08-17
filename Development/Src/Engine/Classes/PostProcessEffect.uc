@@ -67,12 +67,14 @@ cpptext
 		return FALSE;
 	}
 
+#if !BATMAN
 	/**
 	* This allows to print a warning when the effect is used.
 	*/
 	virtual void OnPostProcessWarning(FString& OutWarning) const
 	{
 	}
+#endif
 }
 
 defaultproperties

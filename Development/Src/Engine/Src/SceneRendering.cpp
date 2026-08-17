@@ -2449,6 +2449,7 @@ void FSceneRenderer::RenderFinish(UBOOL bDeferPrePostProcessResolve)
 				AddPostprocessWarningLine(View, WarningY, TEXT("Warning: MotionBlur is used without UberPostProcessiong (this is no longer supported)"));
 			}
 
+#if !BATMAN
 			if(View.PostProcessChain)
 			{
 				for( INT EffectIdx=0; EffectIdx < View.PostProcessChain->Effects.Num(); EffectIdx++ )
@@ -2468,6 +2469,7 @@ void FSceneRenderer::RenderFinish(UBOOL bDeferPrePostProcessResolve)
 					}
 				}
 			}
+#endif
 		}
 	}
 
