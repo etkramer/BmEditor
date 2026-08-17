@@ -836,10 +836,20 @@ EMaterialValueType GetMaterialPropertyType(EMaterialProperty Property)
 	case MP_AnisotropicDirection: return MCT_Float3;
 	case MP_WorldPositionOffset: return MCT_Float3;
 	case MP_WorldDisplacement : return MCT_Float3;
-	case MP_TessellationFactors: return MCT_Float2;
+	case MP_TangentDisplacement: return MCT_Float;
 	case MP_SubsurfaceInscatteringColor: return MCT_Float3;
 	case MP_SubsurfaceAbsorptionColor: return MCT_Float3;
 	case MP_SubsurfaceScatteringRadius: return MCT_Float;
+#if BATMAN
+	case MP_FresnelMin: return MCT_Float;
+	case MP_FresnelExponent: return MCT_Float;
+	case MP_LightWrapping: return MCT_Float3;
+	case MP_SSSNormal: return MCT_Float3;
+	case MP_SSSMask: return MCT_Float3;
+	case MP_SSSRadius: return MCT_Float;
+	case MP_SpecularColor2: return MCT_Float3;
+	case MP_SpecularPower2: return MCT_Float;
+#endif
 	};
 	return MCT_Unknown;
 }
@@ -855,9 +865,9 @@ EShaderFrequency GetMaterialPropertyShaderFrequency(EMaterialProperty Property)
 	{
 		return SF_Domain;
 	}
-	else if(Property == MP_TessellationFactors)
+	else if(Property == MP_TangentDisplacement)
 	{
-		return SF_Hull;
+		return SF_Domain;
 	}
 	return SF_Pixel;
 }
@@ -1238,6 +1248,26 @@ UBOOL FMaterialResource::HasSSSNormal() const
 {
 	return Material->SSSNormal.Expression != NULL;
 }
+
+#if BATMAN
+UBOOL FMaterialResource::SpecularConserveEnergy() const { return Material->bSpecularConserveEnergy; }
+UBOOL FMaterialResource::SpecularMaskByShading() const { return Material->bSpecularMaskByShading; }
+UBOOL FMaterialResource::SpecularBlinnPhong() const { return Material->bSpecularBlinnPhong; }
+UBOOL FMaterialResource::SpecularHasFresnel() const { return Material->FresnelExponent.Expression != NULL || Material->FresnelMin.Expression != NULL; }
+UBOOL FMaterialResource::DisableTwoSidedLighting() const { return Material->bDisableTwoSidedLighting; }
+
+UBOOL FMaterialResource::HasDiffusePower() const { return Material->DiffusePower.Expression != NULL; }
+UBOOL FMaterialResource::HasLightWrapping() const { return Material->LightWrapping.Expression != NULL; }
+UBOOL FMaterialResource::HasSSSMask() const { return Material->SSSMask.Expression != NULL; }
+UBOOL FMaterialResource::HasSpecular2() const { return Material->SpecularColor2.Expression != NULL; }
+
+FLOAT FMaterialResource::GetOpacityMaskClipValuePostDepth() const { return Material->OpacityMaskClipValuePostDepth; }
+
+FLinearColor FMaterialResource::GetSSSColourDiffuse() const { return Material->SSSColourDiffuse; }
+FLinearColor FMaterialResource::GetSSSColourEpidermal() const { return Material->SSSColourEpidermal; }
+FLinearColor FMaterialResource::GetSSSColourSubdermal() const { return Material->SSSColourSubdermal; }
+FLinearColor FMaterialResource::GetSSSColourTransmittance() const { return Material->SSSColourTransmittance; }
+#endif
 
 UBOOL FMaterialResource::IsUsedWithSkeletalMesh() const
 {
@@ -2915,6 +2945,18 @@ void FMaterial::SetupMaterialEnvironment(
 	default: appErrorf(TEXT("Unknown material blend mode: %u"),(INT)GetBlendMode());
 	}
 
+#if BATMAN
+	OutEnvironment.Definitions.Set(TEXT("SPECULAR_CONSERVE_ENERGY"),SpecularConserveEnergy() ? TEXT("1") : TEXT("0"));
+	OutEnvironment.Definitions.Set(TEXT("SPECULAR_MASK_BY_SHADING"),SpecularMaskByShading() ? TEXT("1") : TEXT("0"));
+	OutEnvironment.Definitions.Set(TEXT("SPECULAR_BLINNPHONG"),SpecularBlinnPhong() ? TEXT("1") : TEXT("0"));
+	OutEnvironment.Definitions.Set(TEXT("SPECULAR_HAS_FRESNEL"),SpecularHasFresnel() ? TEXT("1") : TEXT("0"));
+	OutEnvironment.Definitions.Set(TEXT("DISABLE_TWOSIDED_LIGHTING"),DisableTwoSidedLighting() ? TEXT("1") : TEXT("0"));
+	OutEnvironment.Definitions.Set(TEXT("HAS_DIFFUSE_POWER"),HasDiffusePower() ? TEXT("1") : TEXT("0"));
+	OutEnvironment.Definitions.Set(TEXT("HAS_LIGHT_WRAPPING"),HasLightWrapping() ? TEXT("1") : TEXT("0"));
+	OutEnvironment.Definitions.Set(TEXT("HAS_SSS_NORMAL"),HasSSSNormal() ? TEXT("1") : TEXT("0"));
+	OutEnvironment.Definitions.Set(TEXT("HAS_SSS_MASK"),HasSSSMask() ? TEXT("1") : TEXT("0"));
+	OutEnvironment.Definitions.Set(TEXT("HAS_SPECULAR2"),HasSpecular2() ? TEXT("1") : TEXT("0"));
+#endif
 	OutEnvironment.Definitions.Set(TEXT("MATERIAL_TWOSIDED"),IsTwoSided() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.Definitions.Set(TEXT("MATERIAL_TWOSIDED_SEPARATE_PASS"),RenderTwoSidedSeparatePass() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.Definitions.Set(TEXT("MATERIAL_LIT_TRANSLUCENCY_PREPASS"),RenderLitTranslucencyPrepass() ? TEXT("1") : TEXT("0"));
@@ -3075,10 +3117,20 @@ protected:
 	FString AnisotropicDirectionCodeChunk;
 	FString WorldPositionOffsetCodeChunk;
 	FString WorldDisplacementCodeChunk;
-	FString TessellationFactorsCodeChunk;
+	FString TangentDisplacementCodeChunk;
 	FString SubsurfaceInscatteringColorCodeChunk;
 	FString SubsurfaceAbsorptionColorCodeChunk;
 	FString SubsurfaceScatteringRadiusCodeChunk;
+#if BATMAN
+	FString FresnelMinCodeChunk;
+	FString FresnelExponentCodeChunk;
+	FString LightWrappingCodeChunk;
+	FString SSSNormalCodeChunk;
+	FString SSSMaskCodeChunk;
+	FString SSSRadiusCodeChunk;
+	FString SpecularColor2CodeChunk;
+	FString SpecularPower2CodeChunk;
+#endif
 
 	/** Line number of the #line in MaterialTemplate.usf */
 	INT MaterialTemplateLineNumber;
@@ -3129,7 +3181,10 @@ public:
 		Material->bUsesMaterialVertexPositionOffset = FALSE;
 
 		// Generate code
-		INT NormalChunk, EmissiveColorChunk, DiffuseColorChunk, DiffusePowerChunk, SpecularColorChunk, SpecularPowerChunk, OpacityChunk, MaskChunk, DistortionChunk, TwoSidedLightingMaskChunk, CustomLightingChunk, CustomLightingDiffuseChunk, AnisotropicDirectionChunk, WorldPositionOffsetChunk, WorldDisplacementChunk, TessellationFactorsChunk, SubsurfaceInscatteringColorChunk, SubsurfaceAbsorptionColorChunk, SubsurfaceScatteringRadiusChunk;
+		INT NormalChunk, EmissiveColorChunk, DiffuseColorChunk, DiffusePowerChunk, SpecularColorChunk, SpecularPowerChunk, OpacityChunk, MaskChunk, DistortionChunk, TwoSidedLightingMaskChunk, CustomLightingChunk, CustomLightingDiffuseChunk, AnisotropicDirectionChunk, WorldPositionOffsetChunk, WorldDisplacementChunk, TangentDisplacementChunk, SubsurfaceInscatteringColorChunk, SubsurfaceAbsorptionColorChunk, SubsurfaceScatteringRadiusChunk;
+#if BATMAN
+		INT FresnelMinChunk, FresnelExponentChunk, LightWrappingChunk, SSSNormalChunk, SSSMaskChunk, SSSRadiusChunk, SpecularColor2Chunk, SpecularPower2Chunk;
+#endif
 
 		STAT(DOUBLE HLSLTranslateTime = 0);
 		{
@@ -3150,11 +3205,22 @@ public:
 			AnisotropicDirectionChunk			= ForceCast(Material->CompileProperty(MatPlatform, MP_AnisotropicDirection				,this),MCT_Float3);
 			WorldPositionOffsetChunk			= ForceCast(Material->CompileProperty(MatPlatform, MP_WorldPositionOffset				,this),MCT_Float3);
 			WorldDisplacementChunk				= ForceCast(Material->CompileProperty(MatPlatform, MP_WorldDisplacement					,this),MCT_Float3);
-			TessellationFactorsChunk			= ForceCast(Material->CompileProperty(MatPlatform, MP_TessellationFactors				,this),MCT_Float2);
+			TangentDisplacementChunk			= ForceCast(Material->CompileProperty(MatPlatform, MP_TangentDisplacement				,this),MCT_Float1);
 
 			SubsurfaceInscatteringColorChunk = ForceCast(Material->CompileProperty(MatPlatform,MP_SubsurfaceInscatteringColor,this),MCT_Float3);
 			SubsurfaceAbsorptionColorChunk = ForceCast(Material->CompileProperty(MatPlatform,MP_SubsurfaceAbsorptionColor,this),MCT_Float3);
 			SubsurfaceScatteringRadiusChunk = ForceCast(Material->CompileProperty(MatPlatform,MP_SubsurfaceScatteringRadius,this),MCT_Float1);
+
+#if BATMAN
+			FresnelMinChunk						= ForceCast(Material->CompileProperty(MatPlatform, MP_FresnelMin						,this),MCT_Float1);
+			FresnelExponentChunk				= ForceCast(Material->CompileProperty(MatPlatform, MP_FresnelExponent					,this),MCT_Float1);
+			LightWrappingChunk					= ForceCast(Material->CompileProperty(MatPlatform, MP_LightWrapping						,this),MCT_Float3);
+			SSSNormalChunk						= ForceCast(Material->CompileProperty(MatPlatform, MP_SSSNormal							,this),MCT_Float3);
+			SSSMaskChunk						= ForceCast(Material->CompileProperty(MatPlatform, MP_SSSMask							,this),MCT_Float3);
+			SSSRadiusChunk						= ForceCast(Material->CompileProperty(MatPlatform, MP_SSSRadius							,this),MCT_Float1);
+			SpecularColor2Chunk					= ForceCast(Material->CompileProperty(MatPlatform, MP_SpecularColor2					,this),MCT_Float3);
+			SpecularPower2Chunk					= ForceCast(Material->CompileProperty(MatPlatform, MP_SpecularPower2					,this),MCT_Float1);
+#endif
 		}
 		INC_FLOAT_STAT_BY(STAT_ShaderCompiling_HLSLTranslation,(FLOAT)HLSLTranslateTime);
 
@@ -3217,10 +3283,20 @@ public:
 		AnisotropicDirectionCodeChunk = GetFixedParameterCode(AnisotropicDirectionChunk,MP_AnisotropicDirection);
 		WorldPositionOffsetCodeChunk = GetFixedParameterCode(WorldPositionOffsetChunk,MP_WorldPositionOffset);
 		WorldDisplacementCodeChunk = GetFixedParameterCode(WorldDisplacementChunk,MP_WorldDisplacement);
-		TessellationFactorsCodeChunk = GetFixedParameterCode(TessellationFactorsChunk,MP_TessellationFactors);
+		TangentDisplacementCodeChunk = GetFixedParameterCode(TangentDisplacementChunk,MP_TangentDisplacement);
 		SubsurfaceInscatteringColorCodeChunk = GetFixedParameterCode(SubsurfaceInscatteringColorChunk,MP_SubsurfaceInscatteringColor);
 		SubsurfaceAbsorptionColorCodeChunk = GetFixedParameterCode(SubsurfaceAbsorptionColorChunk,MP_SubsurfaceAbsorptionColor);
 		SubsurfaceScatteringRadiusCodeChunk = GetFixedParameterCode(SubsurfaceScatteringRadiusChunk,MP_SubsurfaceScatteringRadius);
+#if BATMAN
+		FresnelMinCodeChunk = GetFixedParameterCode(FresnelMinChunk,MP_FresnelMin);
+		FresnelExponentCodeChunk = GetFixedParameterCode(FresnelExponentChunk,MP_FresnelExponent);
+		LightWrappingCodeChunk = GetFixedParameterCode(LightWrappingChunk,MP_LightWrapping);
+		SSSNormalCodeChunk = GetFixedParameterCode(SSSNormalChunk,MP_SSSNormal);
+		SSSMaskCodeChunk = GetFixedParameterCode(SSSMaskChunk,MP_SSSMask);
+		SSSRadiusCodeChunk = GetFixedParameterCode(SSSRadiusChunk,MP_SSSRadius);
+		SpecularColor2CodeChunk = GetFixedParameterCode(SpecularColor2Chunk,MP_SpecularColor2);
+		SpecularPower2CodeChunk = GetFixedParameterCode(SpecularPower2Chunk,MP_SpecularPower2);
+#endif
 
 		MaterialTemplate = LoadShaderSourceFile(TEXT("MaterialTemplate"));
 
@@ -3249,9 +3325,14 @@ public:
 		return bSuccess;
 	}
 
+	/** Formats a constant FLinearColor as an HLSL float3 return statement. */
+	static FString GetColourCode(const FLinearColor& Colour)
+	{
+		return FString::Printf(TEXT("return half3(%.5f,%.5f,%.5f)"),Colour.R,Colour.G,Colour.B);
+	}
+
 	FString GetMaterialShaderCode()
-	{	
-		// Note: This Printf maxes out the number of supported variable arguments to a function using VARARG_DECL
+	{
 		const FString MaterialShaderCode = FString::Printf(
 			*MaterialTemplate,
 			Material->NumUserTexCoords,
@@ -3259,10 +3340,11 @@ public:
 			*NormalCodeChunk,
 			*EmissiveColorCodeChunk,
 			*DiffuseColorCodeChunk,
-			*DiffusePowerCodeChunk,	
+			*DiffusePowerCodeChunk,
 			*SpecularColorCodeChunk,
 			*SpecularPowerCodeChunk,
 			*FString::Printf(TEXT("return %.5f"),Material->GetOpacityMaskClipValue()),
+			*FString::Printf(TEXT("return %.5f"),Material->GetOpacityMaskClipValuePostDepth()),
 			*OpacityCodeChunk,
 			*GetDefinitions(MP_OpacityMask),
 			*MaskCodeChunk,
@@ -3273,10 +3355,22 @@ public:
 			*AnisotropicDirectionCodeChunk,
 			*WorldPositionOffsetCodeChunk,
 			*WorldDisplacementCodeChunk,
-			*TessellationFactorsCodeChunk,
+			*TangentDisplacementCodeChunk,
 			*SubsurfaceInscatteringColorCodeChunk,
 			*SubsurfaceAbsorptionColorCodeChunk,
 			*SubsurfaceScatteringRadiusCodeChunk,
+			*FresnelMinCodeChunk,
+			*FresnelExponentCodeChunk,
+			*LightWrappingCodeChunk,
+			*SSSNormalCodeChunk,
+			*SSSMaskCodeChunk,
+			*SSSRadiusCodeChunk,
+			*SpecularColor2CodeChunk,
+			*SpecularPower2CodeChunk,
+			*GetColourCode(Material->GetSSSColourDiffuse()),
+			*GetColourCode(Material->GetSSSColourEpidermal()),
+			*GetColourCode(Material->GetSSSColourSubdermal()),
+			*GetColourCode(Material->GetSSSColourTransmittance()),
 			MaterialTemplateLineNumber
 			);
 

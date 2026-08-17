@@ -333,10 +333,20 @@ enum EMaterialProperty
 	MP_AnisotropicDirection,
 	MP_WorldPositionOffset,
 	MP_WorldDisplacement,
-	MP_TessellationFactors,
+	// BM: TangentDisplacement replaces MP_TessellationFactors
+	MP_TangentDisplacement,
 	MP_SubsurfaceAbsorptionColor,
 	MP_SubsurfaceInscatteringColor,
 	MP_SubsurfaceScatteringRadius,
+	// BM: Rocksteady lighting model inputs
+	MP_FresnelMin,
+	MP_FresnelExponent,
+	MP_LightWrapping,
+	MP_SSSNormal,
+	MP_SSSMask,
+	MP_SSSRadius,
+	MP_SpecularColor2,
+	MP_SpecularPower2,
 	MP_MAX
 };
 
@@ -766,6 +776,22 @@ public:
 	virtual UBOOL IsDistorted() const = 0;
 	virtual UBOOL HasSubsurfaceScattering() const = 0;
 	virtual UBOOL HasSSSNormal() const { return FALSE; }
+#if BATMAN
+	virtual UBOOL SpecularConserveEnergy() const { return FALSE; }
+	virtual UBOOL SpecularMaskByShading() const { return FALSE; }
+	virtual UBOOL SpecularBlinnPhong() const { return FALSE; }
+	virtual UBOOL SpecularHasFresnel() const { return FALSE; }
+	virtual UBOOL DisableTwoSidedLighting() const { return FALSE; }
+	virtual UBOOL HasDiffusePower() const { return FALSE; }
+	virtual UBOOL HasLightWrapping() const { return FALSE; }
+	virtual UBOOL HasSSSMask() const { return FALSE; }
+	virtual UBOOL HasSpecular2() const { return FALSE; }
+	virtual FLOAT GetOpacityMaskClipValuePostDepth() const { return 0.3333f; }
+	virtual FLinearColor GetSSSColourDiffuse() const { return FLinearColor::Black; }
+	virtual FLinearColor GetSSSColourEpidermal() const { return FLinearColor::Black; }
+	virtual FLinearColor GetSSSColourSubdermal() const { return FLinearColor::Black; }
+	virtual FLinearColor GetSSSColourTransmittance() const { return FLinearColor::Black; }
+#endif
 	virtual UBOOL HasSeparateTranslucency() const = 0;
 	virtual UBOOL IsSpecialEngineMaterial() const = 0;
 	virtual UBOOL IsTerrainMaterial() const = 0;
@@ -1442,6 +1468,22 @@ public:
 	virtual UBOOL IsDistorted() const;
 	virtual UBOOL HasSubsurfaceScattering() const;
 	virtual UBOOL HasSSSNormal() const;
+#if BATMAN
+	virtual UBOOL SpecularConserveEnergy() const;
+	virtual UBOOL SpecularMaskByShading() const;
+	virtual UBOOL SpecularBlinnPhong() const;
+	virtual UBOOL SpecularHasFresnel() const;
+	virtual UBOOL DisableTwoSidedLighting() const;
+	virtual UBOOL HasDiffusePower() const;
+	virtual UBOOL HasLightWrapping() const;
+	virtual UBOOL HasSSSMask() const;
+	virtual UBOOL HasSpecular2() const;
+	virtual FLOAT GetOpacityMaskClipValuePostDepth() const;
+	virtual FLinearColor GetSSSColourDiffuse() const;
+	virtual FLinearColor GetSSSColourEpidermal() const;
+	virtual FLinearColor GetSSSColourSubdermal() const;
+	virtual FLinearColor GetSSSColourTransmittance() const;
+#endif
 	virtual UBOOL HasSeparateTranslucency() const;
 	virtual UBOOL IsMasked() const;
 	virtual UBOOL UsesImageBasedReflections() const;

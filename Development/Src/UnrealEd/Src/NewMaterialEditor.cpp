@@ -429,21 +429,29 @@ static FExpressionInput* GetMaterialInput(UMaterial* Material, INT Index)
 	case 2: ExpressionInput = &Material->EmissiveColor ; break;
 	case 3: ExpressionInput = &Material->SpecularColor ; break;
 	case 4: ExpressionInput = &Material->SpecularPower ; break;
-	case 5: ExpressionInput = &Material->Opacity ; break;
-	case 6: ExpressionInput = &Material->OpacityMask ; break;
-	case 7: ExpressionInput = &Material->Distortion ; break;
-	case 8: ExpressionInput = &Material->TwoSidedLightingMask ; break;
-	case 9: ExpressionInput = &Material->TwoSidedLightingColor ; break;
-	case 10: ExpressionInput = &Material->Normal ; break;
-	case 11: ExpressionInput = &Material->CustomLighting ; break;
-	case 12: ExpressionInput = &Material->CustomSkylightDiffuse ; break;
-	case 13: ExpressionInput = &Material->AnisotropicDirection ; break;
-	case 14: ExpressionInput = &Material->WorldPositionOffset ; break;
-	case 15: ExpressionInput = &Material->WorldDisplacement ; break;
-	case 16: ExpressionInput = NULL; break; // BM2 has no TessellationFactors input.
-	case 17: ExpressionInput = &Material->SubsurfaceInscatteringColor; break;
-	case 18: ExpressionInput = &Material->SubsurfaceAbsorptionColor; break;
-	case 19: ExpressionInput = &Material->SubsurfaceScatteringRadius; break;
+	case 5: ExpressionInput = &Material->SpecularColor2 ; break;
+	case 6: ExpressionInput = &Material->SpecularPower2 ; break;
+	case 7: ExpressionInput = &Material->Opacity ; break;
+	case 8: ExpressionInput = &Material->OpacityMask ; break;
+	case 9: ExpressionInput = &Material->Distortion ; break;
+	case 10: ExpressionInput = &Material->TwoSidedLightingMask ; break;
+	case 11: ExpressionInput = &Material->TwoSidedLightingColor ; break;
+	case 12: ExpressionInput = &Material->Normal ; break;
+	case 13: ExpressionInput = &Material->CustomLighting ; break;
+	case 14: ExpressionInput = &Material->CustomSkylightDiffuse ; break;
+	case 15: ExpressionInput = &Material->AnisotropicDirection ; break;
+	case 16: ExpressionInput = &Material->WorldPositionOffset ; break;
+	case 17: ExpressionInput = &Material->WorldDisplacement ; break;
+	case 18: ExpressionInput = &Material->TangentDisplacement ; break;
+	case 19: ExpressionInput = &Material->SubsurfaceInscatteringColor; break;
+	case 20: ExpressionInput = &Material->SubsurfaceAbsorptionColor; break;
+	case 21: ExpressionInput = &Material->SubsurfaceScatteringRadius; break;
+	case 22: ExpressionInput = &Material->FresnelMin ; break;
+	case 23: ExpressionInput = &Material->FresnelExponent ; break;
+	case 24: ExpressionInput = &Material->LightWrapping ; break;
+	case 25: ExpressionInput = &Material->SSSNormal ; break;
+	case 26: ExpressionInput = &Material->SSSMask ; break;
+	case 27: ExpressionInput = &Material->SSSRadius ; break;
 	default: appErrorf( TEXT("%i: Invalid material input index"), Index );
 	}
 	return ExpressionInput;
@@ -617,10 +625,18 @@ static void GetListOfReferencingInputs(const UMaterialExpression* InMaterialExpr
 	__GATHER_REFERENCE_TO_EXPRESSION( InMaterialExpression, Material, AnisotropicDirection );
 	__GATHER_REFERENCE_TO_EXPRESSION( InMaterialExpression, Material, WorldPositionOffset );
 	__GATHER_REFERENCE_TO_EXPRESSION( InMaterialExpression, Material, WorldDisplacement );
-	// BM2 has no TessellationFactors input.
+	__GATHER_REFERENCE_TO_EXPRESSION( InMaterialExpression, Material, TangentDisplacement );
 	__GATHER_REFERENCE_TO_EXPRESSION( InMaterialExpression, Material, SubsurfaceInscatteringColor );
 	__GATHER_REFERENCE_TO_EXPRESSION( InMaterialExpression, Material, SubsurfaceAbsorptionColor );
 	__GATHER_REFERENCE_TO_EXPRESSION( InMaterialExpression, Material, SubsurfaceScatteringRadius );
+	__GATHER_REFERENCE_TO_EXPRESSION( InMaterialExpression, Material, FresnelMin );
+	__GATHER_REFERENCE_TO_EXPRESSION( InMaterialExpression, Material, FresnelExponent );
+	__GATHER_REFERENCE_TO_EXPRESSION( InMaterialExpression, Material, LightWrapping );
+	__GATHER_REFERENCE_TO_EXPRESSION( InMaterialExpression, Material, SSSNormal );
+	__GATHER_REFERENCE_TO_EXPRESSION( InMaterialExpression, Material, SSSMask );
+	__GATHER_REFERENCE_TO_EXPRESSION( InMaterialExpression, Material, SSSRadius );
+	__GATHER_REFERENCE_TO_EXPRESSION( InMaterialExpression, Material, SpecularColor2 );
+	__GATHER_REFERENCE_TO_EXPRESSION( InMaterialExpression, Material, SpecularPower2 );
 #undef __GATHER_REFERENCE_TO_EXPRESSION
 }
 
@@ -1012,10 +1028,18 @@ BEGIN_EVENT_TABLE( WxMaterialEditor, WxMaterialEditorBase )
 	EVT_MENU( ID_MATERIALEDITOR_CONNECT_TO_AnisotropicDirection, WxMaterialEditor::OnConnectToMaterial_AnisotropicDirection )
 	EVT_MENU( ID_MATERIALEDITOR_CONNECT_TO_WorldPositionOffset, WxMaterialEditor::OnConnectToMaterial_WorldPositionOffset )
 	EVT_MENU( ID_MATERIALEDITOR_CONNECT_TO_WorldDisplacement, WxMaterialEditor::OnConnectToMaterial_WorldDisplacement )
-	EVT_MENU( ID_MATERIALEDITOR_CONNECT_TO_TessellationFactors, WxMaterialEditor::OnConnectToMaterial_TessellationFactors )
+	EVT_MENU( ID_MATERIALEDITOR_CONNECT_TO_TangentDisplacement, WxMaterialEditor::OnConnectToMaterial_TangentDisplacement )
 	EVT_MENU( ID_MATERIALEDITOR_CONNECT_TO_SubsurfaceInscatteringColor, WxMaterialEditor::OnConnectToMaterial_SubsurfaceInscatteringColor )
 	EVT_MENU( ID_MATERIALEDITOR_CONNECT_TO_SubsurfaceAbsorptionColor, WxMaterialEditor::OnConnectToMaterial_SubsurfaceAbsorptionColor )
 	EVT_MENU( ID_MATERIALEDITOR_CONNECT_TO_SubsurfaceScatteringRadius, WxMaterialEditor::OnConnectToMaterial_SubsurfaceScatteringRadius )
+	EVT_MENU( ID_MATERIALEDITOR_CONNECT_TO_SpecularColor2, WxMaterialEditor::OnConnectToMaterial_SpecularColor2 )
+	EVT_MENU( ID_MATERIALEDITOR_CONNECT_TO_SpecularPower2, WxMaterialEditor::OnConnectToMaterial_SpecularPower2 )
+	EVT_MENU( ID_MATERIALEDITOR_CONNECT_TO_FresnelMin, WxMaterialEditor::OnConnectToMaterial_FresnelMin )
+	EVT_MENU( ID_MATERIALEDITOR_CONNECT_TO_FresnelExponent, WxMaterialEditor::OnConnectToMaterial_FresnelExponent )
+	EVT_MENU( ID_MATERIALEDITOR_CONNECT_TO_LightWrapping, WxMaterialEditor::OnConnectToMaterial_LightWrapping )
+	EVT_MENU( ID_MATERIALEDITOR_CONNECT_TO_SSSNormal, WxMaterialEditor::OnConnectToMaterial_SSSNormal )
+	EVT_MENU( ID_MATERIALEDITOR_CONNECT_TO_SSSMask, WxMaterialEditor::OnConnectToMaterial_SSSMask )
+	EVT_MENU( ID_MATERIALEDITOR_CONNECT_TO_SSSRadius, WxMaterialEditor::OnConnectToMaterial_SSSRadius )
 	
 	EVT_TEXT(ID_MATERIALEDITOR_SEARCH, WxMaterialEditor::OnSearchChanged)
 	EVT_BUTTON(ID_SEARCHTEXTCTRL_FINDNEXT_BUTTON, WxMaterialEditor::OnSearchNext)
@@ -1700,6 +1724,8 @@ WxMaterialEditor::WxMaterialEditor(wxWindow* InParent, wxWindowID InID, UMateria
 	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("Emissive"), &Material->EmissiveColor ) );
 	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("Specular"), &Material->SpecularColor ) );
 	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("SpecularPower"), &Material->SpecularPower ) );
+	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("SpecularColor2"), &Material->SpecularColor2 ) );
+	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("SpecularPower2"), &Material->SpecularPower2 ) );
 	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("Opacity"), &Material->Opacity ) );
 	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("OpacityMask"), &Material->OpacityMask ) );
 	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("Distortion"), &Material->Distortion ) );
@@ -1711,10 +1737,16 @@ WxMaterialEditor::WxMaterialEditor(wxWindow* InParent, wxWindowID InID, UMateria
 	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("AnisotropicDirection"), &Material->AnisotropicDirection ) );
 	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("WorldPositionOffset"), &Material->WorldPositionOffset ) );
 	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("WorldDisplacement"), &Material->WorldDisplacement ) );
-	// BM2 has no TessellationFactors input.
+	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("TangentDisplacement"), &Material->TangentDisplacement ) );
 	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("SubsurfaceInscatteringColor"), &Material->SubsurfaceInscatteringColor ) );
 	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("SubsurfaceAbsorptionColor"), &Material->SubsurfaceAbsorptionColor ) );
 	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("SubsurfaceScatteringRadius"), &Material->SubsurfaceScatteringRadius ) );
+	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("FresnelMin"), &Material->FresnelMin ) );
+	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("FresnelExponent"), &Material->FresnelExponent ) );
+	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("LightWrapping"), &Material->LightWrapping ) );
+	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("SSSNormal"), &Material->SSSNormal ) );
+	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("SSSMask"), &Material->SSSMask ) );
+	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("SSSRadius"), &Material->SSSRadius ) );
 	
 
 	// Initialize expression previews.
@@ -5268,21 +5300,29 @@ void WxMaterialEditor::OnConnectToMaterial_DiffusePower(wxCommandEvent& In) { On
 void WxMaterialEditor::OnConnectToMaterial_EmissiveColor(wxCommandEvent& In) { OnConnectToMaterial(2); }
 void WxMaterialEditor::OnConnectToMaterial_SpecularColor(wxCommandEvent& In) { OnConnectToMaterial(3); }
 void WxMaterialEditor::OnConnectToMaterial_SpecularPower(wxCommandEvent& In) { OnConnectToMaterial(4); }
-void WxMaterialEditor::OnConnectToMaterial_Opacity(wxCommandEvent& In) { OnConnectToMaterial(5); }
-void WxMaterialEditor::OnConnectToMaterial_OpacityMask(wxCommandEvent& In) { OnConnectToMaterial(6); }
-void WxMaterialEditor::OnConnectToMaterial_Distortion(wxCommandEvent& In) { OnConnectToMaterial(7);	}
-void WxMaterialEditor::OnConnectToMaterial_TransmissionMask(wxCommandEvent& In) { OnConnectToMaterial(8);	}
-void WxMaterialEditor::OnConnectToMaterial_TransmissionColor(wxCommandEvent& In) { OnConnectToMaterial(9);	}
-void WxMaterialEditor::OnConnectToMaterial_Normal(wxCommandEvent& In) { OnConnectToMaterial(10);	}
-void WxMaterialEditor::OnConnectToMaterial_CustomLighting(wxCommandEvent& In) { OnConnectToMaterial(11);	}
-void WxMaterialEditor::OnConnectToMaterial_CustomLightingDiffuse(wxCommandEvent& In) { OnConnectToMaterial(12);	}
-void WxMaterialEditor::OnConnectToMaterial_AnisotropicDirection(wxCommandEvent& In) { OnConnectToMaterial(13);	}
-void WxMaterialEditor::OnConnectToMaterial_WorldPositionOffset(wxCommandEvent& In) { OnConnectToMaterial(14);	}
-void WxMaterialEditor::OnConnectToMaterial_WorldDisplacement(wxCommandEvent& In) { OnConnectToMaterial(15);	}
-void WxMaterialEditor::OnConnectToMaterial_TessellationFactors(wxCommandEvent& In) { OnConnectToMaterial(16);	}
-void WxMaterialEditor::OnConnectToMaterial_SubsurfaceInscatteringColor(wxCommandEvent& In) { OnConnectToMaterial(17); }
-void WxMaterialEditor::OnConnectToMaterial_SubsurfaceAbsorptionColor(wxCommandEvent& In) { OnConnectToMaterial(18); }
-void WxMaterialEditor::OnConnectToMaterial_SubsurfaceScatteringRadius(wxCommandEvent& In) { OnConnectToMaterial(19); }
+void WxMaterialEditor::OnConnectToMaterial_SpecularColor2(wxCommandEvent& In) { OnConnectToMaterial(5); }
+void WxMaterialEditor::OnConnectToMaterial_SpecularPower2(wxCommandEvent& In) { OnConnectToMaterial(6); }
+void WxMaterialEditor::OnConnectToMaterial_Opacity(wxCommandEvent& In) { OnConnectToMaterial(7); }
+void WxMaterialEditor::OnConnectToMaterial_OpacityMask(wxCommandEvent& In) { OnConnectToMaterial(8); }
+void WxMaterialEditor::OnConnectToMaterial_Distortion(wxCommandEvent& In) { OnConnectToMaterial(9);	}
+void WxMaterialEditor::OnConnectToMaterial_TransmissionMask(wxCommandEvent& In) { OnConnectToMaterial(10);	}
+void WxMaterialEditor::OnConnectToMaterial_TransmissionColor(wxCommandEvent& In) { OnConnectToMaterial(11);	}
+void WxMaterialEditor::OnConnectToMaterial_Normal(wxCommandEvent& In) { OnConnectToMaterial(12);	}
+void WxMaterialEditor::OnConnectToMaterial_CustomLighting(wxCommandEvent& In) { OnConnectToMaterial(13);	}
+void WxMaterialEditor::OnConnectToMaterial_CustomLightingDiffuse(wxCommandEvent& In) { OnConnectToMaterial(14);	}
+void WxMaterialEditor::OnConnectToMaterial_AnisotropicDirection(wxCommandEvent& In) { OnConnectToMaterial(15);	}
+void WxMaterialEditor::OnConnectToMaterial_WorldPositionOffset(wxCommandEvent& In) { OnConnectToMaterial(16);	}
+void WxMaterialEditor::OnConnectToMaterial_WorldDisplacement(wxCommandEvent& In) { OnConnectToMaterial(17);	}
+void WxMaterialEditor::OnConnectToMaterial_TangentDisplacement(wxCommandEvent& In) { OnConnectToMaterial(18);	}
+void WxMaterialEditor::OnConnectToMaterial_SubsurfaceInscatteringColor(wxCommandEvent& In) { OnConnectToMaterial(19); }
+void WxMaterialEditor::OnConnectToMaterial_SubsurfaceAbsorptionColor(wxCommandEvent& In) { OnConnectToMaterial(20); }
+void WxMaterialEditor::OnConnectToMaterial_SubsurfaceScatteringRadius(wxCommandEvent& In) { OnConnectToMaterial(21); }
+void WxMaterialEditor::OnConnectToMaterial_FresnelMin(wxCommandEvent& In) { OnConnectToMaterial(22); }
+void WxMaterialEditor::OnConnectToMaterial_FresnelExponent(wxCommandEvent& In) { OnConnectToMaterial(23); }
+void WxMaterialEditor::OnConnectToMaterial_LightWrapping(wxCommandEvent& In) { OnConnectToMaterial(24); }
+void WxMaterialEditor::OnConnectToMaterial_SSSNormal(wxCommandEvent& In) { OnConnectToMaterial(25); }
+void WxMaterialEditor::OnConnectToMaterial_SSSMask(wxCommandEvent& In) { OnConnectToMaterial(26); }
+void WxMaterialEditor::OnConnectToMaterial_SSSRadius(wxCommandEvent& In) { OnConnectToMaterial(27); }
 
 void WxMaterialEditor::OnShowHideConnectors(wxCommandEvent& In)
 {
@@ -5674,10 +5714,18 @@ void WxMaterialEditor::GetVisibleMaterialParameters(const UMaterial *Material, U
 	GetVisibleMaterialParametersFromExpression(Material->TwoSidedLightingColor.Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
 	GetVisibleMaterialParametersFromExpression(Material->WorldPositionOffset.Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
 	GetVisibleMaterialParametersFromExpression(Material->WorldDisplacement.Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
-	// BM2 has no TessellationFactors input.
+	GetVisibleMaterialParametersFromExpression(Material->TangentDisplacement.Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
 	GetVisibleMaterialParametersFromExpression(Material->SubsurfaceInscatteringColor.Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
 	GetVisibleMaterialParametersFromExpression(Material->SubsurfaceAbsorptionColor.Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
 	GetVisibleMaterialParametersFromExpression(Material->SubsurfaceScatteringRadius.Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
+	GetVisibleMaterialParametersFromExpression(Material->FresnelMin.Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
+	GetVisibleMaterialParametersFromExpression(Material->FresnelExponent.Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
+	GetVisibleMaterialParametersFromExpression(Material->LightWrapping.Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
+	GetVisibleMaterialParametersFromExpression(Material->SSSNormal.Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
+	GetVisibleMaterialParametersFromExpression(Material->SSSMask.Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
+	GetVisibleMaterialParametersFromExpression(Material->SSSRadius.Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
+	GetVisibleMaterialParametersFromExpression(Material->SpecularColor2.Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
+	GetVisibleMaterialParametersFromExpression(Material->SpecularPower2.Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
 
 }
 

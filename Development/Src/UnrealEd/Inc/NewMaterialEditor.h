@@ -696,10 +696,18 @@ private:
 	void OnConnectToMaterial_AnisotropicDirection(wxCommandEvent& In);
 	void OnConnectToMaterial_WorldPositionOffset(wxCommandEvent& In);
 	void OnConnectToMaterial_WorldDisplacement(wxCommandEvent& In);
-	void OnConnectToMaterial_TessellationFactors(wxCommandEvent& In);
+	void OnConnectToMaterial_TangentDisplacement(wxCommandEvent& In);
 	void OnConnectToMaterial_SubsurfaceInscatteringColor(wxCommandEvent& In);
 	void OnConnectToMaterial_SubsurfaceAbsorptionColor(wxCommandEvent& In);
 	void OnConnectToMaterial_SubsurfaceScatteringRadius(wxCommandEvent& In);
+	void OnConnectToMaterial_SpecularColor2(wxCommandEvent& In);
+	void OnConnectToMaterial_SpecularPower2(wxCommandEvent& In);
+	void OnConnectToMaterial_FresnelMin(wxCommandEvent& In);
+	void OnConnectToMaterial_FresnelExponent(wxCommandEvent& In);
+	void OnConnectToMaterial_LightWrapping(wxCommandEvent& In);
+	void OnConnectToMaterial_SSSNormal(wxCommandEvent& In);
+	void OnConnectToMaterial_SSSMask(wxCommandEvent& In);
+	void OnConnectToMaterial_SSSRadius(wxCommandEvent& In);
 
 	void OnShowHideConnectors(wxCommandEvent& In);
 	

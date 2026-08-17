@@ -498,6 +498,13 @@ half GetMaterialOpacityMaskClipValue()
 %s;
 }
 
+// This is the clip value constant that is defined in the material (range 0..1)
+// Use GetMaterialMask() to get the Material Mask combined with this.
+half GetMaterialOpacityMaskClipValuePostDepth()
+{
+%s;
+}
+
 // Should only be used by GetMaterialOpacity(), returns the unmodified value generated from the shader expressions of the opacity input.
 // To compute the opacity depending on the material blending GetMaterialOpacity() should be called instead.
 half GetMaterialOpacityRaw(FMaterialPixelParameters Parameters)
@@ -594,15 +601,14 @@ float3 GetMaterialWorldDisplacement(FMaterialTessellationParameters Parameters)
 %s;
 }
 
-float2 GetMaterialTessellationFactorsRaw(FMaterialTessellationParameters Parameters)
+float GetMaterialTangentDisplacement(FMaterialTessellationParameters Parameters)
 {
 %s;
 }
 
 float2 GetMaterialTessellationFactors(FMaterialTessellationParameters Parameters)
 {
-	// Clamp to a reasonable range
-	return clamp(GetMaterialTessellationFactorsRaw(Parameters), float2(1,1), float2(64, 64));
+	return float2(1,1);
 }
 
 #if MATERIAL_ENABLE_SUBSURFACE_SCATTERING
@@ -619,6 +625,68 @@ float GetMaterialSubsurfaceScatteringRadius(FMaterialPixelParameters Parameters)
 %s;
 }
 #endif
+
+//@Rock-MM: added Fresnel parameters for Blinn-Phong lighting model
+half GetMaterialFresnelMin(FMaterialPixelParameters Parameters)
+{
+	%s;
+}
+
+half GetMaterialFresnelPower(FMaterialPixelParameters Parameters)
+{
+	%s;
+}
+
+//@Rock - JoelS: added light wrapping function
+half3 GetMaterialLightWrapping(FMaterialPixelParameters Parameters)
+{
+	%s;
+}
+
+//@Rock - JoelS: added SSS function
+half3 GetMaterialSSSNormal(FMaterialPixelParameters Parameters)
+{
+	%s;
+}
+
+half3 GetMaterialSSSMask(FMaterialPixelParameters Parameters)
+{
+	%s;
+}
+
+half GetMaterialSSSRadius(FMaterialPixelParameters Parameters)
+{
+	%s;
+}
+
+//@Rock - JoelS: added specular 2
+half3 GetMaterialSpecularColor2(FMaterialPixelParameters Parameters)
+{
+	%s;
+}
+
+half GetMaterialSpecularPower2(FMaterialPixelParameters Parameters)
+{
+	%s;
+}
+
+//@Rock - JoelS: adding SSS layer colours:
+half3 GetSSSColourDiffuse(FMaterialPixelParameters Parameters)
+{
+	%s;
+}
+half3 GetSSSColourEpidermal(FMaterialPixelParameters Parameters)
+{
+	%s;
+}
+half3 GetSSSColourSubdermal(FMaterialPixelParameters Parameters)
+{
+	%s;
+}
+half3 GetSSSColourTransmittance(FMaterialPixelParameters Parameters)
+{
+	%s;
+}
 
 // Programmatically set the line number after all the material inputs which have a variable number of line endings
 // This allows shader error line numbers after this point to be the same regardless of which material is being compiled
@@ -643,6 +711,23 @@ float3 GetMaterialPointLightTransfer(float3 DiffuseColor,float3 SpecularColor,FM
 		TwoSidedLightingMask,
 		SpecularColor,
 		GetMaterialSpecularPower(Parameters),
+		//@Rock - JoelS: adding fresnel access:
+		GetMaterialFresnelMin(Parameters),
+		GetMaterialFresnelPower(Parameters),
+		//@Rock - JoelS: adding light wrapping access:
+		GetMaterialLightWrapping(Parameters),
+		//@Rock - JoelS: adding SSS access:
+		GetMaterialSSSNormal(Parameters),
+		GetMaterialSSSMask(Parameters),
+		GetMaterialSSSRadius(Parameters),
+		//@Rock - JoelS: added specular 2
+		GetMaterialSpecularColor2(Parameters),
+		GetMaterialSpecularPower2(Parameters),
+		//@Rock - JoelS: adding SSS layer colours:
+		GetSSSColourDiffuse(Parameters),
+		GetSSSColourEpidermal(Parameters),
+		GetSSSColourSubdermal(Parameters),
+		GetSSSColourTransmittance(Parameters),
 		Parameters.TangentLightVector,
 		Parameters.TangentCameraVector,
 		Parameters.TangentNormal,
@@ -654,9 +739,27 @@ float3 GetMaterialPointLightTransfer(float3 DiffuseColor,float3 SpecularColor,FM
 #elif MATERIAL_LIGHTINGMODEL_ANISOTROPIC
 	Lighting = PointLightAnisotropic(
 		DiffuseColor,
+		GetMaterialDiffusePower(Parameters),
 		TwoSidedLightingMask,
 		SpecularColor,
 		GetMaterialSpecularPower(Parameters),
+		//@Rock - JoelS: adding fresnel access:
+		GetMaterialFresnelMin(Parameters),
+		GetMaterialFresnelPower(Parameters),
+		//@Rock - JoelS: adding light wrapping access:
+		GetMaterialLightWrapping(Parameters),
+		//@Rock - JoelS: adding SSS access:
+		GetMaterialSSSNormal(Parameters),
+		GetMaterialSSSMask(Parameters),
+		GetMaterialSSSRadius(Parameters),
+		//@Rock - JoelS: added specular 2
+		GetMaterialSpecularColor2(Parameters),
+		GetMaterialSpecularPower2(Parameters),
+		//@Rock - JoelS: adding SSS layer colours:
+		GetSSSColourDiffuse(Parameters),
+		GetSSSColourEpidermal(Parameters),
+		GetSSSColourSubdermal(Parameters),
+		GetSSSColourTransmittance(Parameters),
 		Parameters.TangentLightVector,
 		Parameters.TangentCameraVector,
 		Parameters.TangentNormal,

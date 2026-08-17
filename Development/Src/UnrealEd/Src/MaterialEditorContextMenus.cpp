@@ -302,6 +302,8 @@ WxMaterialEditorContextMenu_ConnectorOptions::WxMaterialEditorContextMenu_Connec
 			Append( ID_MATERIALEDITOR_CONNECT_TO_EmissiveColor, *LocalizeUnrealEd("ConnectToEmissiveColor"), TEXT("") );
 			Append( ID_MATERIALEDITOR_CONNECT_TO_SpecularColor, *LocalizeUnrealEd("ConnectToSpecularColor"), TEXT("") );
 			Append( ID_MATERIALEDITOR_CONNECT_TO_SpecularPower, *LocalizeUnrealEd("ConnectToSpecularPower"), TEXT("") );
+			Append( ID_MATERIALEDITOR_CONNECT_TO_SpecularColor2, *LocalizeUnrealEd("ConnectToSpecularColor2"), TEXT("") );
+			Append( ID_MATERIALEDITOR_CONNECT_TO_SpecularPower2, *LocalizeUnrealEd("ConnectToSpecularPower2"), TEXT("") );
 			Append( ID_MATERIALEDITOR_CONNECT_TO_Opacity, *LocalizeUnrealEd("ConnectToOpacity"), TEXT("") );
 			Append( ID_MATERIALEDITOR_CONNECT_TO_OpacityMask, *LocalizeUnrealEd("ConnectToOpacityMask"), TEXT("") );
 			Append( ID_MATERIALEDITOR_CONNECT_TO_Distortion, *LocalizeUnrealEd("ConnectToDistortion"), TEXT("") );
@@ -313,10 +315,16 @@ WxMaterialEditorContextMenu_ConnectorOptions::WxMaterialEditorContextMenu_Connec
 			Append( ID_MATERIALEDITOR_CONNECT_TO_AnisotropicDirection, *LocalizeUnrealEd("ConnectToAnisotropicDirection"), TEXT("") );
 			Append( ID_MATERIALEDITOR_CONNECT_TO_WorldPositionOffset, *LocalizeUnrealEd("ConnectToWorldPositionOffset"), TEXT("") );
 			Append( ID_MATERIALEDITOR_CONNECT_TO_WorldDisplacement, *LocalizeUnrealEd("ConnectToWorldDisplacement"), TEXT("") );
-			Append( ID_MATERIALEDITOR_CONNECT_TO_TessellationFactors, *LocalizeUnrealEd("ConnectToTessellationFactors"), TEXT("") );
+			Append( ID_MATERIALEDITOR_CONNECT_TO_TangentDisplacement, *LocalizeUnrealEd("ConnectToTangentDisplacement"), TEXT("") );
 			Append( ID_MATERIALEDITOR_CONNECT_TO_SubsurfaceInscatteringColor, *LocalizeUnrealEd("ConnectToSubsurfaceInscatteringColor"), TEXT("") );
 			Append( ID_MATERIALEDITOR_CONNECT_TO_SubsurfaceAbsorptionColor, *LocalizeUnrealEd("ConnectToSubsurfaceAbsorptionColor"), TEXT("") );
 			Append( ID_MATERIALEDITOR_CONNECT_TO_SubsurfaceScatteringRadius, *LocalizeUnrealEd("ConnectToSubsurfaceScatteringRadius"), TEXT("") );
+			Append( ID_MATERIALEDITOR_CONNECT_TO_FresnelMin, *LocalizeUnrealEd("ConnectToFresnelMin"), TEXT("") );
+			Append( ID_MATERIALEDITOR_CONNECT_TO_FresnelExponent, *LocalizeUnrealEd("ConnectToFresnelExponent"), TEXT("") );
+			Append( ID_MATERIALEDITOR_CONNECT_TO_LightWrapping, *LocalizeUnrealEd("ConnectToLightWrapping"), TEXT("") );
+			Append( ID_MATERIALEDITOR_CONNECT_TO_SSSNormal, *LocalizeUnrealEd("ConnectToSSSNormal"), TEXT("") );
+			Append( ID_MATERIALEDITOR_CONNECT_TO_SSSMask, *LocalizeUnrealEd("ConnectToSSSMask"), TEXT("") );
+			Append( ID_MATERIALEDITOR_CONNECT_TO_SSSRadius, *LocalizeUnrealEd("ConnectToSSSRadius"), TEXT("") );
 		}
 	}
 

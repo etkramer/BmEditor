@@ -53,14 +53,27 @@ float3 GetDynamicLighting(float3 WorldPosition, float3 WorldNormal, float3 Camer
 		float3 WorldLightVectorNormalized = normalize(WorldLightVector);
 		float3 ReflectionVector = reflect(CameraVector, WorldNormal);
 
+		// BM: deferred lighting has no material parameters, so the Rocksteady lighting inputs are passed neutral
 		float3 IncidentLighting = PointLightPhong(
-			DiffuseColor, 
-			1,   
-			float3(0,0,0), 
+			DiffuseColor,
+			1,
+			float3(0,0,0),
 			DecodeSpecularColor(SpecularAndPower),
-			DecodeSpecularPower(SpecularAndPower), 
-			WorldLightVectorNormalized, 
-			CameraVector, 
+			DecodeSpecularPower(SpecularAndPower),
+			0,
+			0,
+			float3(0,0,0),
+			WorldNormal,
+			float3(0,0,0),
+			0,
+			float3(0,0,0),
+			1,
+			float3(0,0,0),
+			float3(0,0,0),
+			float3(0,0,0),
+			float3(0,0,0),
+			WorldLightVectorNormalized,
+			CameraVector,
 			WorldNormal,
 			ReflectionVector);
 

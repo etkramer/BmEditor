@@ -258,7 +258,7 @@ half PhongShadingPow(half X, half Y)
 #define PSR_NvStereoEnabled         c3  // Whether stereo is enabled on the current rendering device
 #define PSR_DiffuseOverride         c4  // Overrides GetMaterialDiffuseColor for visualization
 #define PSR_SpecularOverride        c5  // Overrides GetMaterialSpecularColor for visualization
-#define PSR_CameraPlane             c6  // BM2 camera plane used by depth biased blends
+#define PSR_CameraPlane				c6	//@Rock - JG : Fix for depth biased blends in lods. 
 #define PSR_ViewOrigin              PSR_CameraPlane
 
 #define VSR_ViewProjMatrix          c0  // View-projection matrix, transforming from World space to Projection space
@@ -511,38 +511,361 @@ half3 Phong_SpecularCoeff(half3 LightMapReflectionVector, half SpecularPower, ha
 //=============================
 // Dynamic lighting functions:
 //=============================
-
-half3 PointLightPhong(half3 DiffuseColor,half DiffusePower,half3 TransmissionMask,half3 SpecularColor,half SpecularPower, half3 L, float3 E, half3 N, float3 R)
+//Get Lambert:
+//-------------
+//x = [-1...1] range
+//y = saturated 0...1 range
+//z = spec mask if required
+half3 getLambert(half3 N,half3 L)
 {
-	half	DiffuseLighting = PhongShadingPow(saturate(dot(N, L)), DiffusePower);
-#ifndef DISABLE_DYNAMIC_SPECULAR
-	half	SpecularLighting = PhongShadingPow(saturate(dot(R, L)), SpecularPower);
-#else
-	half	SpecularLighting = 0.0f;
-#endif
+	half3 lambert = dot(N,L);
+	lambert.y = saturate(lambert.x);
 
-	// Only apply transmission to diffuse, not specular
-	return DiffuseColor * lerp(DiffuseLighting, TransmissionMask, TransmissionMask) + SpecularLighting * SpecularColor;
+		#if SPECULAR_MASK_BY_SHADING
+			lambert.z	= saturate(lambert.y * 4);	//multiply by the pre-saturated value .y to save an instruction here.
+		#endif //SPECULAR_MASK_BY_SHADING
+
+	return lambert;
 }
 
-float3 PointLightAnisotropic(half3 DiffuseColor,half3 TransmissionMask,half3 SpecularColor,half SpecularPower, half3 L, float3 E, half3 N, float3 R, half3 T)
+//Diffuse lighting:
+//-----------------
+//Return the base diffuse lighting response, including .rgb components.
+half3 computeDiffuseLighting( in half3 lambert, in half3 LightWrapping, in half3 DiffusePower )
 {
-	// from http://ati.amd.com/developer/shaderx/ShaderX_PerPixelAniso.pdf
-	half	DiffuseLighting = sqrt(1.0 - Square(dot(L,T)));
-	half	VdotR = sqrt(1.0 - Square(dot(L,T))) * sqrt(1.0 - Square(dot(E,T))) - dot(L,T) * dot(E,T);
+#if HAS_LIGHT_WRAPPING
+	half3 result		= saturate( lambert.x * (1-LightWrapping) + LightWrapping );
+#else //HAS_LIGHT_WRAPPING
+	half3 result		= lambert.y;
+#endif //HAS_LIGHT_WRAPPING
+
+
+//Check if there's a node attached to DiffusePower. 
+//We now check this instead of relying on the compiler since it can save us 2 instructions when nothing's connected.
+#if HAS_DIFFUSE_POWER
+	result.rgb			= pow( result, DiffusePower);
+#endif //HAS_DIFFUSE_POWER
+
+return result.rgb;
+}
+
+//Specular reflection:
+//--------------------
+//Computes the phong or blinn-phong specular reflection
+half3 computeSpecular( in half3 result, in half3 R, in half3 E, in half3 L, in half3 N, in half3 lambert, in half SpecularPower, in half3 SpecularColor, in half SpecularPower2, in half3 SpecularColor2, in half FresnelMin, in half FresnelPower)
+{
+	//Specular reflection:
 #ifndef DISABLE_DYNAMIC_SPECULAR
-	half	SpecularLighting = PhongShadingPow(saturate(VdotR), SpecularPower);
+	#if SPECULAR_BLINNPHONG
+		half3 ReflectionVector	= normalize(E + L); //Half Vector
+		half SpecularIncidence	= saturate(dot(ReflectionVector,N));
+	#else //SPECULAR_BLINNPHONG
+		half3 ReflectionVector	= R;
+		half SpecularIncidence	= saturate(dot(ReflectionVector,L));
+	#endif //SPECULAR_BLINNPHONG
+
+	#if HAS_SPECULAR2
+		half2 dualSpec			= pow( SpecularIncidence, half2(SpecularPower, SpecularPower2) );
+		half3 SpecularResult	= (dualSpec.x * SpecularColor.rgb + dualSpec.y * SpecularColor2.rgb)
+	#else //HAS_SPECULAR2
+		half3 SpecularResult	= ( pow( SpecularIncidence, SpecularPower ) * SpecularColor.rgb )
+	#endif //HAS_SPECULAR2
+
+						//Approx. energy conservation 
+						#if SPECULAR_CONSERVE_ENERGY
+							#if SPECULAR_BLINNPHONG
+								* ((SpecularPower+8)/8)
+							#else //SPECULAR_BLINNPHONG
+								* ((SpecularPower+2)/8)		//using microfacet theory alternative for Phong
+							#endif //SPECULAR_BLINNPHONG
+						#endif //defined(SPECULAR_CONSERVE_ENERGY)
+
+						//Mask specular by the self-shading area. Nicer than masking by the crude shadow mask
+						#if SPECULAR_MASK_BY_SHADING
+							* lambert.z
+						#endif //SPECULAR_MASK_BY_SHADING
+							;
+
+	#if SPECULAR_HAS_FRESNEL
+		#if SPECULAR_BLINNPHONG
+			half FresnelIncidence	= saturate(dot(ReflectionVector,E));
+		#else //SPECULAR_BLINNPHONG
+			half FresnelIncidence	= saturate(dot(L,E) * 0.5 + 0.5);
+		#endif //SPECULAR_BLINNPHONG
+
+		half FresnelExponential = pow(1.0 - saturate(FresnelIncidence), FresnelPower);
+		// interpolate between FresnelMin and 1.0 by exponential term
+		half Fresnel = FresnelExponential + FresnelMin * (1.0 - FresnelExponential);
+		result					= lerp( result, SpecularResult, Fresnel);
+
+	#else //SPECULAR_HAS_FRESNEL
+		result					+= SpecularResult;
+	#endif //SPECULAR_HAS_FRESNEL
+
+#endif //DISABLE_DYNAMIC_SPECULAR
+
+		return result;
+}
+
+//Anisotropic specular reflection:
+//---------------------------------
+//Computes the phong or blinn-phong anisotropic specular reflection
+half3 computeSpecularAnisotropic( in half3 result, in half3 R, in half3 T, in half3 E, in half3 L, in half3 N, in half3 lambert, in half SpecularPower, in half3 SpecularColor, in half SpecularPower2, in half3 SpecularColor2, in half FresnelMin, in half FresnelPower)
+{
+#ifndef DISABLE_DYNAMIC_SPECULAR
+// always use blinn-phong half-vector...
+	half3 ReflectionVector	= 0.5 * ( E + L ); //normalize(E + L); //Half Vector
+
+	half anisotropy	= Square(dot( T, ReflectionVector ));
+	anisotropy		= max( 1.0 - anisotropy, 0.01);
+
+	#if HAS_SPECULAR2
+		half2 dualSpec			= pow( anisotropy, half2(SpecularPower,SpecularPower2) * 25.f );
+		half3 SpecularResult	= (dualSpec.x * SpecularColor.rgb + dualSpec.y * SpecularColor2.rgb)
+	#else //HAS_SPECULAR2
+		half3 SpecularResult	= ( pow( anisotropy, SpecularPower * 25.f ) * SpecularColor.rgb )
+	#endif //HAS_SPECULAR2
+
+	//Approx. energy conservation 
+	#if SPECULAR_CONSERVE_ENERGY
+			* ((SpecularPower+400)/800)
+	#endif //defined(SPECULAR_CONSERVE_ENERGY)
+
+	//Mask specular by the self-shading area. Nicer than masking by the crude shadow mask
+	#if SPECULAR_MASK_BY_SHADING
+		* lambert.z
 #else
-	half	SpecularLighting = 0.0f;
-#endif
-			
-	// We attenuate the diffuse and specular on the side facing away from the light
-	// because otherwise we get horrible hard edges at the shadow map edge.
-	half	DiffuseAttenuation = saturate(dot(N, L));
-	half	SpecularAttenuation = PhongShadingPow(saturate(dot(N,L)), 0.3f);
+		* lambert.y		//<- specular masking is always enabled for anisotropic shading. Revert to .y to save 1 ALU
+	#endif //SPECULAR_MASK_BY_SHADING
+	;
+
+
+	#if SPECULAR_HAS_FRESNEL
+		half FresnelIncidence	= saturate(dot(ReflectionVector,E));
+		half FresnelExponential = pow(1.0 - saturate(FresnelIncidence), FresnelPower);
+		// interpolate between FresnelMin and 1.0 by exponential term
+		half Fresnel			= FresnelExponential + FresnelMin * (1.0 - FresnelExponential);
+		result					= lerp( result, SpecularResult, Fresnel);
+
+	#else //SPECULAR_HAS_FRESNEL
+		result					+= SpecularResult;
+	#endif //SPECULAR_HAS_FRESNEL
+
+#endif //DISABLE_DYNAMIC_SPECULAR
+
+		return result;
+}
+
+// Subsurface Scattering:
+//-----------------------
+//Many vulgar simplifications of http://http.developer.nvidia.com/GPUGems3/gpugems3_ch14.html
+//cheapest in 5 instructions
+
+//There are two main mutually exclusive paths for this effect:
+// - Enable the effect if either the SSSNormal or SSSMask is active.
+// - We can fallback to the vertex normals if no SSSNormal exists
+// - We can fallback to the human measurement data if no SSSMask is used
+
+half3 TransColFull(half s) 
+{
+  return float3(0.233, 0.455, 0.649) * exp(-s*s/0.0064) +
+         float3(0.1,   0.336, 0.344) * exp(-s*s/0.0484) +
+         float3(0.118, 0.198, 0.0)   * exp(-s*s/0.187)  +
+         float3(0.113, 0.007, 0.007) * exp(-s*s/0.567)  +
+         float3(0.358, 0.004, 0.0)   * exp(-s*s/1.99)   +
+         float3(0.078, 0.0,   0.0)   * exp(-s*s/7.41);
+}
+
+half3 TransCol(half s, half3 ColCoeff) 
+{
+  half3 absorptionCoeff = exp2(-s / (0.0001h + ColCoeff) ); //half3(2.0625h, 0.3625h, 0.0875h)
+  return absorptionCoeff;
+}
+
+half3 computeSSS(	in half3 result, 
+					in half3 lambert, 
+					in half3 SSSMask, 
+					in half SSSRadius, 
+					in half3 SSSNormal, 
+					in half3 L, 
+					in half3 N, 
+					in half3 E, 
+					in half3 R, 
+					in half3 TransmissionMask, 
+					in half3 DiffuseColor, 
+					in half3 SSSColourDiffuse, 
+					in half3 SSSColourEpidermal, 
+					in half3 SSSColourSubdermal, 
+					in half3 SSSColourTransmittance )
+{
+#if HAS_SSS_NORMAL || HAS_SSS_MASK
+
+	//Combined weighted sum of the diffusion profile which emulates dipole diffusion. This in turn emulates the gaussian distributed min/max kernel
+	//weights, and breaks it into summed weighted averages for that min/max (hard/soft) profile.
+	#if HAS_SSS_MASK
+		half3 RadianceProfileSoft = SSSMask;
+	#else
+		//Human skin measurement defaults:
+		half3 RadianceProfileSoft = 1; //half3(2.0625h, 0.3625h, 0.0875h); //half3(0.9988h, 0.3076h, 0.146h);
+	#endif //HAS_SSS_MASK
+
+	#if HAS_SSS_NORMAL
+		half soft = dot(L.xyz, SSSNormal.xyz);
+#else
+		//Fallback and use the equivelent of lit vertex normals (pos light.z vector in tangent space)
+		half soft = lerp(L.z, lambert.x, 0.25h); //L.z;
+	#endif //HAS_SSS_NORMAL
+
+//@Rock - JoelS: our old sss term...
+	//result		= RadianceProfileSoft * soft + (1-RadianceProfileSoft) * result;
+
+//@Rock - JoelS: our shiney NEW sss term...
+	//result		+= soft * (1 - result) * RadianceProfileSoft;
+
+//@Rock - JoelS: our experimental sss term...
+	//deep and shallow...
+	//result		+= ( (saturate(dot(L, SSSNormal) * float3(1,1,0) ) * RadianceProfileSoft)
+	//			+ ( soft * float3(0.25,0.4,0.27) )  )
+	//			* (1 - result);
+
+//@Rock - JoelS: Our crazy cheap sss term (which still looks good)...
+	//result		+= max(0,(soft+RadianceProfileSoft) * (1 - result)) * RadianceProfileSoft;
+	//result		+= max(0,(soft) * (1 - result));// * RadianceProfileSoft;
+
+//@Rock - JoelS: RGB normal profile:
+	//half3 SSSResult;
+	//SSSResult.r		= saturate(dot(L.xyz, lerp(N.xyz, SSSNormal.xyz, RadianceProfileSoft.r) ));
+	//SSSResult.g		= saturate(dot(L.xyz, lerp(N.xyz, SSSNormal.xyz, RadianceProfileSoft.g) ));
+	//SSSResult.b		= saturate(dot(L.xyz, lerp(N.xyz, SSSNormal.xyz, RadianceProfileSoft.b) ));
+	//result.rgb		= SSSResult; //max( result.rgb,SSSResult.rgb);
+
+//@Rock - JoelS: Absorbtion coefficient
+	//half DepthApprox	= 1-lambert.x;
+	//half MaxRadii		= saturate(0.1 + soft);
+	//half3 SSSResult		= TransCol(DepthApprox, RadianceProfileSoft) * MaxRadii;
+	//result				*= 1 - SSSResult;
+	//result				+= SSSResult;
+
+//@Rock - JoelS: Multi layer
+	half3 MaxRadii		= SSSRadius * half3(-0.1h, 0.1h, 0.3h);
+
+	half3 diffuse		= result * SSSColourDiffuse;																//* half3(0.75h, 0.9h , 1.0h) * 0.3h;
+	half3 epidermal		= saturate( MaxRadii.x + lambert.x) * SSSColourEpidermal;													//* half3(1.h, 0.85h , 0.6h) * 0.5h );
+	half3 subdermal		= saturate( MaxRadii.y + soft ) * SSSColourSubdermal;										//* half3(0.95h, 0.5h, 0.2h) * 0.4h );
+	half3 transmittance	= saturate((MaxRadii.z + L.z ) * saturate(dot(-E + L,-N) ) ) * SSSColourTransmittance;		//* half3(0.7h, 0.1h, 0.1h) * 0.5h );
+
+	result				*= saturate(1.0h - RadianceProfileSoft);
+	result				+= (diffuse + epidermal + subdermal + transmittance) * RadianceProfileSoft;					//lerp(result, diffuse + epidermal + subdermal + transmittance, RadianceProfileSoft);
+
+
+#endif //HAS_SSS_NORMAL || HAS_SSS_MASK
 
 	// Only apply transmission to diffuse, not specular
-	return DiffuseColor * lerp(DiffuseAttenuation * DiffuseLighting, TransmissionMask, TransmissionMask) + SpecularAttenuation * SpecularLighting * SpecularColor;
+	// @Rock - JoelS: inject Epics transmission with fix here:
+	result = lerp(result, TransmissionMask, TransmissionMask);
+
+	return result;
+}
+
+
+
+half3 PointLightPhong(	  half3 DiffuseColor
+						, half DiffusePower
+						, half3 TransmissionMask
+						, half3 SpecularColor
+						, half SpecularPower
+						, half FresnelMin
+						, half FresnelPower
+						, half3 LightWrapping
+						, half3 SSSNormal
+						, half3 SSSMask
+						, half SSSRadius
+						, half3 SpecularColor2
+						, half SpecularPower2
+						, half3 SSSColourDiffuse
+						, half3 SSSColourEpidermal
+						, half3 SSSColourSubdermal
+						, half3 SSSColourTransmittance
+						, half3 L
+						, half3 E
+						, half3 N
+						, half3 R)
+{
+	half3 lambert			= getLambert(N,L);
+	half3 result;
+	result.rgb				= computeDiffuseLighting( lambert, LightWrapping, DiffusePower );
+	result.rgb				= computeSSS(	result, 
+											lambert, 
+											SSSMask, 
+											SSSRadius, 
+											SSSNormal, 
+											L, 
+											N, 
+											E, 
+											R, 
+											TransmissionMask, 
+											DiffuseColor, 
+											SSSColourDiffuse, 
+											SSSColourEpidermal, 
+											SSSColourSubdermal, 
+											SSSColourTransmittance);
+	result.rgb				*= DiffuseColor;
+
+	result.rgb				= computeSpecular( result, R, E, L, N, lambert, SpecularPower, SpecularColor, SpecularPower2, SpecularColor2, FresnelMin, FresnelPower);
+
+	return result;
+}
+
+
+
+float3 PointLightAnisotropic(	half3 DiffuseColor
+								, half DiffusePower
+								, half3 TransmissionMask
+								, half3 SpecularColor
+								, half SpecularPower
+								, half FresnelMin
+								, half FresnelPower
+								, half3 LightWrapping
+								, half3 SSSNormal
+								, half3 SSSMask
+								, half SSSRadius
+								, half3 SpecularColor2
+								, half SpecularPower2
+								, half3 SSSColourDiffuse
+								, half3 SSSColourEpidermal
+								, half3 SSSColourSubdermal
+								, half3 SSSColourTransmittance
+								, half3 L
+								, half3 E
+								, half3 N
+								, half3 R
+								, half3 T)
+{
+	half3 lambert			= getLambert(N,L);
+	half3 result;
+	result.rgb				= computeDiffuseLighting( lambert, LightWrapping, DiffusePower );
+	result.rgb				= computeSSS(	result, 
+											lambert, 
+											SSSMask, 
+											SSSRadius, 
+											SSSNormal, 
+											L, 
+											N, 
+											E, 
+											R, 
+											TransmissionMask, 
+											DiffuseColor, 
+											SSSColourDiffuse, 
+											SSSColourEpidermal, 
+											SSSColourSubdermal, 
+											SSSColourTransmittance);
+	result.rgb				*= DiffuseColor;
+
+//@Rock - JoelS: Rolling our own custom anisotropic lighting response.
+// Has cut our test case materials down from 72 instructions to 60.
+	result.rgb				= computeSpecularAnisotropic( result, R, T, E, L, N, lambert, SpecularPower, SpecularColor, SpecularPower2, SpecularColor2, FresnelMin, FresnelPower);
+
+	return result;
 }
 
 float4 PreviousLighting(float4 ScreenPosition)

@@ -38,17 +38,27 @@ INT FMaterialResource::CompileProperty(EMaterialShaderPlatform MatPlatform,EMate
 	case MP_DiffusePower:
 		return Material->DiffusePower.Compile(Compiler,1.0f);
 	case MP_SpecularColor: return Material->SpecularColor.Compile(Compiler,FColor(0,0,0));
-	case MP_SpecularPower: return Material->SpecularPower.Compile(Compiler,15.0f);
+	case MP_SpecularPower: return Material->SpecularPower.Compile(Compiler,16.0f);
 	case MP_Normal: return Material->Normal.Compile(Compiler,FVector(0,0,1));
 	case MP_CustomLighting: return Material->CustomLighting.Compile(Compiler,FColor(0,0,0));
 	case MP_CustomLightingDiffuse: return Material->CustomSkylightDiffuse.Compile(Compiler,FColor(0,0,0));
 	case MP_AnisotropicDirection: return Material->AnisotropicDirection.Compile(Compiler,FVector(0,1,0));
 	case MP_WorldPositionOffset: return Material->WorldPositionOffset.Compile(Compiler,FVector(0,0,0));
 	case MP_WorldDisplacement: return Material->WorldDisplacement.Compile(Compiler,FVector(0,0,0));
-	case MP_TessellationFactors: return Compiler->Constant2(1.0f, 1.0f);
+	case MP_TangentDisplacement: return Material->TangentDisplacement.Compile(Compiler,0.0f);
 	case MP_SubsurfaceInscatteringColor: return Material->SubsurfaceInscatteringColor.Compile(Compiler,FColor(255,255,255));
 	case MP_SubsurfaceAbsorptionColor: return Material->SubsurfaceAbsorptionColor.Compile(Compiler,FColor(230,200,200));
 	case MP_SubsurfaceScatteringRadius: return Material->SubsurfaceScatteringRadius.Compile(Compiler,0.0f);
+#if BATMAN
+	case MP_FresnelMin: return Material->FresnelMin.Compile(Compiler,0.05f);
+	case MP_FresnelExponent: return Material->FresnelExponent.Compile(Compiler,5.0f);
+	case MP_LightWrapping: return Material->LightWrapping.Compile(Compiler,FColor(0,0,0));
+	case MP_SSSNormal: return Material->SSSNormal.Compile(Compiler,FVector(0,0,1));
+	case MP_SSSMask: return Material->SSSMask.Compile(Compiler,FColor(0,0,0));
+	case MP_SSSRadius: return Material->SSSRadius.Compile(Compiler,1.0f);
+	case MP_SpecularColor2: return Material->SpecularColor2.Compile(Compiler,FColor(128,128,128));
+	case MP_SpecularPower2: return Material->SpecularPower2.Compile(Compiler,16.0f);
+#endif
 	default:
 		return INDEX_NONE;
 	};
@@ -2259,19 +2269,44 @@ FExpressionInput* UMaterial::GetExpressionInputForProperty(EMaterialProperty InP
 	case MP_WorldDisplacement:
 		return &WorldDisplacement;
 		break;
-	case MP_TessellationFactors:
-		// BM2 has no TessellationFactors material input.
-		return NULL;
+	case MP_TangentDisplacement:
+		return &TangentDisplacement;
 		break;
 	case MP_SubsurfaceInscatteringColor:
 		return &SubsurfaceInscatteringColor;
 		break;
 	case MP_SubsurfaceAbsorptionColor:
-		return &SubsurfaceInscatteringColor;
+		return &SubsurfaceAbsorptionColor;
 		break;
 	case MP_SubsurfaceScatteringRadius:
-		return &SubsurfaceInscatteringColor;
+		return &SubsurfaceScatteringRadius;
 		break;
+#if BATMAN
+	case MP_FresnelMin:
+		return &FresnelMin;
+		break;
+	case MP_FresnelExponent:
+		return &FresnelExponent;
+		break;
+	case MP_LightWrapping:
+		return &LightWrapping;
+		break;
+	case MP_SSSNormal:
+		return &SSSNormal;
+		break;
+	case MP_SSSMask:
+		return &SSSMask;
+		break;
+	case MP_SSSRadius:
+		return &SSSRadius;
+		break;
+	case MP_SpecularColor2:
+		return &SpecularColor2;
+		break;
+	case MP_SpecularPower2:
+		return &SpecularPower2;
+		break;
+#endif
 	}
 
 	return NULL;

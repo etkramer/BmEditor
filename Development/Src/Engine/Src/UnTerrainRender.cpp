@@ -294,20 +294,13 @@ INT FTerrainMaterialResource::CompileProperty(EMaterialShaderPlatform MatPlatfor
 		{
 			return Compiler->Constant3(0,0,0);
 		}
+		else if (Property == MP_TangentDisplacement)
+		{
+			return Compiler->Constant(0);
+		}
 		else
 		{
 			appErrorf(TEXT("Unhandled terrain domain shader material input!"));
-		}
-	}
-	else if(ShaderFrequency == SF_Hull)
-	{
-		if(Property == MP_TessellationFactors)
-		{
-			return Compiler->Constant2(1,1);
-		}
-		else
-		{
-			appErrorf(TEXT("Unhandled terraion hull shader material input!"));
 		}
 	}
 
