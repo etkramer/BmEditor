@@ -158,7 +158,7 @@
         "type": "cppvsdbg",
         "request": "launch",
         "program": "${workspaceFolder}/Binaries/Win32/Debug-BmGame.exe",
-        "args": ["editor", "-d3d11"],
+        "args": ["-d3d11"],
         "stopAtEntry": false,
         "cwd": "${workspaceFolder}",
         "environment": [],

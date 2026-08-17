@@ -1933,6 +1933,14 @@ INT FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 	bHasEditorToken = Token == TEXT("EDITOR");
 
+#if BATMAN
+	// BM: game mode isn't supported, so assume "editor" unless a commandlet token was given
+	if( Token.Len() == 0 || appStrnicmp( *Token, TEXT("-"), 1 ) == 0 )
+	{
+		bHasEditorToken = TRUE;
+	}
+#endif
+
 	// set the seek free loading flag if it's given if we are running a commandlet or not
 #if SHIPPING_PC_GAME && !UDK
 	// shipping PC game implies seekfreeloading for non-commandlets/editor
@@ -2483,14 +2491,18 @@ INT FEngineLoop::PreInit( const TCHAR* CmdLine )
 		GWarn		= &UnrealEdWarn;
 
 		// Remove "EDITOR" from command line.
-		const TCHAR* pCmdLine = GCmdLine;
-		const FString Unused = ParseToken(pCmdLine, TRUE);
-		if ( Unused.Len() > 0 )
+		// BM: only when it was actually passed, as we now default to the editor
+		if ( Token == TEXT("EDITOR") )
 		{
-			const FString CommandLineWithoutToken(pCmdLine);
+			const TCHAR* pCmdLine = GCmdLine;
+			const FString Unused = ParseToken(pCmdLine, TRUE);
+			if ( Unused.Len() > 0 )
+			{
+				const FString CommandLineWithoutToken(pCmdLine);
 
-			pCmdLine = 0;
-			appStrcpy(GCmdLine, *CommandLineWithoutToken);
+				pCmdLine = 0;
+				appStrcpy(GCmdLine, *CommandLineWithoutToken);
+			}
 		}
 
 		// Set UnrealEd as the current package (used for e.g. log and localization files).
