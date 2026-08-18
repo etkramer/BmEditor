@@ -1040,7 +1040,7 @@ void UObject::SetLinker( ULinkerLoad* LinkerLoad, INT LinkerIndex )
 	if( OldLinker )
 	{
 #if BATMAN
-		if (OldLinker->IsBmCooked())
+		if (OldLinker->LicenseeVer() >= VER_BATMAN2 && OldLinker->ContainsCookedData())
 		{
 			ClearFlags(RF_NeedLoad|RF_NeedPostLoad);
 		}
@@ -1780,7 +1780,7 @@ void UObject::Serialize( FArchive& Ar )
 	//!!how does the stack work in conjunction with transaction tracking?
 #if BATMAN
 	// BM: StateObject gets an extra RF_HasStack boolean before the state frame data.
-	if (!Ar.IsTransacting() && Ar.IsBmCooked(TRUE))
+	if (!Ar.IsTransacting() && Ar.LicenseeVer() >= VER_BATMAN2)
 	{
 		static UClass* StateObjectClass = FindObject<UClass>(ANY_PACKAGE, TEXT("StateObject"));
 		if (StateObjectClass && IsA(StateObjectClass))

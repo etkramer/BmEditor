@@ -2881,11 +2881,9 @@ UBOOL BmSaveCookedLevel( UWorld* World, const TCHAR* DstFilename )
 
 	const UBOOL OldIsCooking = GIsCooking;
 	const UE3::EPlatformType OldCookingTarget = GCookingTarget;
-	const INT OldLicenseeVersion = GPackageFileLicenseeVersion;
 
 	GIsCooking = TRUE;
 	GCookingTarget = UE3::PLATFORM_WindowsConsole;
-	GPackageFileLicenseeVersion = VER_BATMAN2;
 
 	UPackage* DestPackage = UObject::CreatePackage( NULL, *DestPackageName );
 	DestPackage->MakeNewGuid();
@@ -2937,7 +2935,6 @@ UBOOL BmSaveCookedLevel( UWorld* World, const TCHAR* DstFilename )
 
 	GIsCooking = OldIsCooking;
 	GCookingTarget = OldCookingTarget;
-	GPackageFileLicenseeVersion = OldLicenseeVersion;
 
 	return bSaved;
 }
@@ -2953,11 +2950,9 @@ UBOOL BmSaveStandaloneSeekFreePackage( UPackage* SourcePackage, const TCHAR* Dst
 
 	const UBOOL OldIsCooking = GIsCooking;
 	const UE3::EPlatformType OldCookingTarget = GCookingTarget;
-	const INT OldLicenseeVersion = GPackageFileLicenseeVersion;
 
 	GIsCooking = TRUE;
 	GCookingTarget = UE3::PLATFORM_WindowsConsole;
-	GPackageFileLicenseeVersion = VER_BATMAN2;
 
 	UPackage* DestPackage = UObject::CreatePackage( NULL, *DestPackageName );
 	DestPackage->MakeNewGuid();
@@ -3009,7 +3004,6 @@ UBOOL BmSaveStandaloneSeekFreePackage( UPackage* SourcePackage, const TCHAR* Dst
 
 	GIsCooking = OldIsCooking;
 	GCookingTarget = OldCookingTarget;
-	GPackageFileLicenseeVersion = OldLicenseeVersion;
 
 	return bSaved;
 }

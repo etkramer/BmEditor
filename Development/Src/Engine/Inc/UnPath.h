@@ -633,7 +633,7 @@ public:
 		Ar << V.X << V.Y << V.Z;
 #if BATMAN
 		// BM: BM2 dropped PolyIndices, verts are position-only
-		if( !Ar.IsBmCooked(TRUE) )
+		if( Ar.LicenseeVer() < VER_BATMAN2 )
 #endif
 		Ar << V.PolyIndices;
 		return Ar;
@@ -2363,7 +2363,7 @@ public:
 		if( Ar.Ver() >= VER_NAVMESH_COVERREF )
 		{
 #if BATMAN
-			if( Ar.IsBmCooked(TRUE) )
+			if( Ar.LicenseeVer() >= VER_BATMAN2 )
 			{
 				// BM: deprecated cover list, read and discarded
 				TArray<FCoverReference> DeprecatedPolyCover;
@@ -2384,7 +2384,7 @@ public:
 		}
 
 #if BATMAN
-		if( Ar.IsBmCooked(TRUE) )
+		if( Ar.LicenseeVer() >= VER_BATMAN2 )
 		{
 			Ar << T.bForceConstrainPawns;
 			Ar << T.bForceDontConstrainPawns;

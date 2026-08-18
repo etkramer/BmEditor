@@ -291,7 +291,7 @@ public:
 		UBOOL bShaderHasOutdatedParameters = FShader::Serialize(Ar);
 		Ar << MaterialParameters;
 #if BATMAN
-		if (Ar.IsBmCooked(TRUE))
+		if (Ar.LicenseeVer() >= VER_BATMAN2)
 		{
 			Ar << IndividualVelocityScale;
 		}

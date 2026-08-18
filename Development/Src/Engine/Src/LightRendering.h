@@ -661,7 +661,7 @@ public:
 	{
 		UBOOL bShaderHasOutdatedParameters = FShader::Serialize(Ar);
 #if BATMAN
-		if (Ar.IsBmCooked(TRUE))
+		if (Ar.LicenseeVer() >= VER_BATMAN2)
 		{
 			LightTypePolicy::PixelParametersType::Serialize(Ar);
 			ShadowingTypePolicy::PixelParametersType::Serialize(Ar);

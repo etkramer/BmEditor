@@ -305,19 +305,6 @@ public:
 	FORCEINLINE UBOOL IsFinalPackageSave()					const	{return ArIsFinalPackageSave;}
 	FORCEINLINE INT GetMaxSerializeSize()					const	{return ArMaxSerializeSize;}
 
-    // BM
-    UBOOL IsBmCooked(BOOL IncludeEditor = FALSE, BOOL IncludeNonCooked = TRUE) const
-    {
-		if (IncludeEditor && LicenseeVer() == VER_BATMAN_EDITOR)
-		{
-			return true;
-		}
-
-        return IncludeNonCooked
-			? (LicenseeVer() == VER_BATMAN2)
-			: (LicenseeVer() == VER_BATMAN2) && ArContainsCookedData;
-    }
-
 	/**
 	 * Sets the archive version number. Used by the code that makes sure that ULinkerLoad's internal 
 	 * archive versions match the file reader it creates.
@@ -561,6 +548,8 @@ public:
 		ArVer								= InnerArchive.Ver();
 		ArNetVer							= InnerArchive.NetVer();
 		ArLicenseeVer						= InnerArchive.LicenseeVer();
+		// BM: cookedness has to follow the inner archive, or BM2 gates misfire behind a proxy.
+		ArContainsCookedData				= InnerArchive.ContainsCookedData();
 		ArIsLoading							= InnerArchive.IsLoading();
 		ArIsSaving							= InnerArchive.IsSaving();
 		ArIsTransacting						= InnerArchive.IsTransacting();

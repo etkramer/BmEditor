@@ -1357,7 +1357,7 @@ void SerializeShaders(const TMap<FGuid,FShader*>& InShaders, FArchive& Ar)
 					Ar.Seek(SkipOffset);
 					NumRedundantShaders++;
 				}
-				else if (ShouldReloadChangedShaders() && SavedHash != CurrentHash && !Ar.IsBmCooked(TRUE))
+				else if (ShouldReloadChangedShaders() && SavedHash != CurrentHash && Ar.LicenseeVer() < VER_BATMAN2)
 				{
 					// If the shader has changed since it was last compiled, skip it.
 					Ar.Seek(SkipOffset);
@@ -1367,7 +1367,7 @@ void SerializeShaders(const TMap<FGuid,FShader*>& InShaders, FArchive& Ar)
 				else if ((Ar.Ver() < ShaderType->GetMinPackageVersion()) || (Ar.LicenseeVer() < ShaderType->GetMinLicenseePackageVersion()))
 				{
 #if BATMAN
-					if (Ar.IsBmCooked())
+					if (Ar.LicenseeVer() >= VER_BATMAN2)
 					{
 						appErrorf(
 							TEXT("ShaderCache: refusing to skip BM2 shader %s in %s for package version mismatch. Archive Ver=%d LicenseeVer=%d, Shader MinVer=%d MinLicenseeVer=%d, pos=%d"),
@@ -1405,7 +1405,7 @@ void SerializeShaders(const TMap<FGuid,FShader*>& InShaders, FArchive& Ar)
 					if (LoadArchive.HadSerializationMismatch() || bShaderHasOutdatedParameters)
 					{
 #if BATMAN
-						if (Ar.IsBmCooked())
+						if (Ar.LicenseeVer() >= VER_BATMAN2)
 						{
 							appErrorf(
 								TEXT("ShaderCache: refusing to skip BM2 shader %s in %s for outdated parameters. SerializationMismatch=%d OutdatedParameters=%d, pos=%d, skip=%d"),

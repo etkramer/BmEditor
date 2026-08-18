@@ -1708,7 +1708,7 @@ struct FMeshWedge
 	FColor			Color;			// Vertex color.
 	friend FArchive &operator<<( FArchive& Ar, FMeshWedge& T )
 	{
-		if (Ar.Ver() < VER_DWORD_SKELETAL_MESH_INDICES || Ar.IsBmCooked(TRUE))
+		if (Ar.Ver() < VER_DWORD_SKELETAL_MESH_INDICES || Ar.LicenseeVer() >= VER_BATMAN2)
 		{
 			WORD LegacyVert = (WORD)T.iVertex;
 			Ar << LegacyVert;
@@ -1759,7 +1759,7 @@ struct FMeshFace
     UBOOL   bOverrideTangentBasis;  //override tangents data of unreal
 	friend FArchive &operator<<( FArchive& Ar, FMeshFace& F )
 	{
-		if (Ar.Ver() < VER_DWORD_SKELETAL_MESH_INDICES || Ar.IsBmCooked(TRUE))
+		if (Ar.Ver() < VER_DWORD_SKELETAL_MESH_INDICES || Ar.LicenseeVer() >= VER_BATMAN2)
 		{
 			WORD LegacyVertIdx[3] = { (WORD)F.iWedge[0], (WORD)F.iWedge[1], (WORD)F.iWedge[2] };
 			Ar << LegacyVertIdx[0] << LegacyVertIdx[1] << LegacyVertIdx[2];
@@ -1848,7 +1848,7 @@ struct FMeshBone
 	{
 #if BATMAN
 		// https://github.com/gildor2/UEViewer/blob/a0bfb468d42be831b126632fd8a0ae6b3614f981/Unreal/UnrealMesh/UnMesh.h#L136
-		if (Ar.IsBmCooked(TRUE))
+		if (Ar.LicenseeVer() >= VER_BATMAN2)
 		{
 			Ar << F.BonePos << F.Name << F.ParentIndex << F.BoneColor;
 			return Ar;
@@ -1886,7 +1886,7 @@ struct VTriangle
 
 	friend FArchive &operator<<( FArchive& Ar, VTriangle& V )
 	{
-		if (Ar.Ver() < VER_DWORD_SKELETAL_MESH_INDICES || Ar.IsBmCooked(TRUE))
+		if (Ar.Ver() < VER_DWORD_SKELETAL_MESH_INDICES || Ar.LicenseeVer() >= VER_BATMAN2)
 		{
 			WORD LegacyVertIdx[3] = { (WORD)V.WedgeIndex[0], (WORD)V.WedgeIndex[1], (WORD)V.WedgeIndex[2] };
 			Ar << LegacyVertIdx[0] << LegacyVertIdx[1] << LegacyVertIdx[2];
@@ -1940,7 +1940,7 @@ struct FVertInfluence
 	WORD BoneIndex;
 	friend FArchive &operator<<( FArchive& Ar, FVertInfluence& F )
 	{
-		if (Ar.Ver() < VER_DWORD_SKELETAL_MESH_INDICES || Ar.IsBmCooked(TRUE))
+		if (Ar.Ver() < VER_DWORD_SKELETAL_MESH_INDICES || Ar.LicenseeVer() >= VER_BATMAN2)
 		{
 			WORD LegacyVertIdx = (WORD)F.VertIndex;
 			Ar << F.Weight << LegacyVertIdx << F.BoneIndex;
@@ -2213,7 +2213,7 @@ struct FSkelMeshSection
 		Ar << S.ChunkIndex;
 		Ar << S.BaseIndex;
 		
-		if (Ar.Ver() < VER_DWORD_SKELETAL_MESH_INDICES || Ar.IsBmCooked(TRUE))
+		if (Ar.Ver() < VER_DWORD_SKELETAL_MESH_INDICES || Ar.LicenseeVer() >= VER_BATMAN2)
 		{
 			WORD NumTriangles = (WORD)S.NumTriangles;
 			Ar << NumTriangles;
@@ -3176,9 +3176,9 @@ public:
 
 		if (Ar.Ver() >= VER_ADDED_EXTRA_SKELMESH_VERTEX_INFLUENCE_MAPPING)
 		{
-			if( Ar.Ver() < VER_DWORD_SKELETAL_MESH_INDICES_FIXUP || Ar.IsBmCooked(TRUE) )
+			if( Ar.Ver() < VER_DWORD_SKELETAL_MESH_INDICES_FIXUP || Ar.LicenseeVer() >= VER_BATMAN2 )
 			{
-				if(  Ar.Ver() >= VER_DWORD_SKELETAL_MESH_INDICES || Ar.IsBmCooked(TRUE) )
+				if(  Ar.Ver() >= VER_DWORD_SKELETAL_MESH_INDICES || Ar.LicenseeVer() >= VER_BATMAN2 )
 				{
 					BYTE IndexSize;
 					Ar << IndexSize;

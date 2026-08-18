@@ -2283,7 +2283,7 @@ void UAnimSequence::Serialize(FArchive& Ar)
 		AnimationFormat_SetInterfaceLinks(*this);
 
 #if BATMAN
-		if (Ar.IsBmCooked(TRUE))
+		if (Ar.LicenseeVer() >= VER_BATMAN2)
 		{
 			Ar << AnimZip_Data;
 		}
@@ -2317,7 +2317,7 @@ void UAnimSequence::Serialize(FArchive& Ar)
 		Ar.CountBytes( SerializedData.Num(), SerializedData.Num() );
 
 #if BATMAN
-		if (Ar.IsBmCooked(TRUE))
+		if (Ar.LicenseeVer() >= VER_BATMAN2)
 		{
 			Ar << AnimZip_Data;
 		}

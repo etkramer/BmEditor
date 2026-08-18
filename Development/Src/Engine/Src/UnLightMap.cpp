@@ -76,7 +76,7 @@ void FLightMap::Serialize(FArchive& Ar)
 {
 	Ar << LightGuids;
 #if BATMAN
-	if( (Ar.IsLoading() || Ar.IsSaving()) && Ar.IsBmCooked(TRUE) && !Ar.ForEdit() )
+	if( (Ar.IsLoading() || Ar.IsSaving()) && Ar.LicenseeVer() >= VER_BATMAN2 && !Ar.ForEdit() )
 	{
 		UBOOL bSerializedAllowDirectionalLightMaps = bAllowDirectionalLightMaps;
 		Ar << bSerializedAllowDirectionalLightMaps;

@@ -1001,7 +1001,8 @@ void UTexture2D::SetLinker( ULinkerLoad* LinkerLoad, INT LinkerIndex )
 	// and don't want to load the texture data in this case.
 #if BATMAN
 	// BM: check the incoming linker too, since ResetLoaders() leaves objects without one
-	if( (GetLinker() && GetLinker()->IsBmCooked()) || (LinkerLoad && LinkerLoad->IsBmCooked()) )
+	if( (GetLinker() && GetLinker()->LicenseeVer() >= VER_BATMAN2 && GetLinker()->ContainsCookedData())
+		|| (LinkerLoad && LinkerLoad->LicenseeVer() >= VER_BATMAN2 && LinkerLoad->ContainsCookedData()) )
 #else
 	if( GUseSeekFreeLoading )
 #endif
@@ -1730,7 +1731,7 @@ FTextureResource* UTexture2D::CreateResource()
 				FString CookedPath;
 #if BATMAN
 				// BM: The editor runs as PLATFORM_Windows, but BM2 TFCs live in CookedPCConsole.
-				const UE3::EPlatformType TextureCachePlatform = (GetLinker() && GetLinker()->IsBmCooked(FALSE, FALSE))
+				const UE3::EPlatformType TextureCachePlatform = (GetLinker() && GetLinker()->LicenseeVer() >= VER_BATMAN2 && GetLinker()->ContainsCookedData())
 					? UE3::PLATFORM_WindowsConsole
 					: appGetPlatformType();
 				appGetCookedContentPath(TextureCachePlatform, CookedPath);

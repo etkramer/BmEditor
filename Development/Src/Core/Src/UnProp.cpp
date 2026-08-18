@@ -265,7 +265,7 @@ void UProperty::Serialize( FArchive& Ar )
 	// Archive the basic info.
 	Ar << ArrayDim;
 #if BATMAN
-	if (Ar.IsBmCooked(TRUE))
+	if (Ar.LicenseeVer() >= VER_BATMAN2)
 	{
 		QWORD SerializedPropertyFlags = PropertyFlags;
 		if (Ar.IsSaving())

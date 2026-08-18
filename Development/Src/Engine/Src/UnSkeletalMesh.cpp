@@ -1050,20 +1050,20 @@ void FMultiSizeIndexContainer::CopyIndexBuffer(const TArray<DWORD>& NewArray)
 
 FArchive& operator<<(FArchive& Ar, FMultiSizeIndexContainer& Buffer)
 {
-	if (Ar.IsLoading() && ((Ar.Ver() < VER_DWORD_SKELETAL_MESH_INDICES) || Ar.IsBmCooked(TRUE)))
+	if (Ar.IsLoading() && ((Ar.Ver() < VER_DWORD_SKELETAL_MESH_INDICES) || Ar.LicenseeVer() >= VER_BATMAN2))
 	{
 		Buffer.NeedsCPUAccess = TRUE;
 		Buffer.DataTypeSize = sizeof(WORD);
 
 #if BATMAN
-		if (Ar.IsBmCooked(TRUE))
+		if (Ar.LicenseeVer() >= VER_BATMAN2)
 		{
 			Ar << Buffer.NeedsCPUAccess;
 		}
 #endif
 	}
 #if BATMAN
-	else if (Ar.IsBmCooked(TRUE))
+	else if (Ar.LicenseeVer() >= VER_BATMAN2)
 	{
 		// BM2 format only serializes NeedsCPUAccess; DataTypeSize is implicitly WORD
 		Ar << Buffer.NeedsCPUAccess;
@@ -1172,7 +1172,7 @@ void FStaticLODModel::Serialize( FArchive& Ar, UObject* Owner, INT Idx )
 	}
 	Ar << RequiredBones;
 
-	if( Ar.IsLoading() && (Ar.Ver() < VER_DWORD_SKELETAL_MESH_INDICES || Ar.IsBmCooked(TRUE)) )
+	if( Ar.IsLoading() && (Ar.Ver() < VER_DWORD_SKELETAL_MESH_INDICES || Ar.LicenseeVer() >= VER_BATMAN2) )
 	{
 		LegacyRawPointIndices.Serialize( Ar, Owner );
 		WORD* Src = (WORD*)LegacyRawPointIndices.Lock(LOCK_READ_ONLY);
@@ -1187,7 +1187,7 @@ void FStaticLODModel::Serialize( FArchive& Ar, UObject* Owner, INT Idx )
 		RawPointIndices.Unlock();
 	}
 #if BATMAN
-	else if (Ar.IsBmCooked(TRUE))
+	else if (Ar.LicenseeVer() >= VER_BATMAN2)
 	{
 		// Saving BM2 format: write as WORD bulk data to match what BM2 expects on load
 		INT ElementCount = RawPointIndices.GetElementCount();
@@ -1961,7 +1961,7 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 
 	Ar << Bounds;
 #if BATMAN
-	if (Ar.IsBmCooked(TRUE))
+	if (Ar.LicenseeVer() >= VER_BATMAN2)
 	{
 		Ar << ConservativeBounds << PerBoneBounds;
 	}
@@ -2004,7 +2004,7 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 
 #if BATMAN
 	// BM2 emits a DWORD holding bUseFullPrecisionUVs between PerPolyBoneKDOPs and BoneBreakNames.
-	if (Ar.IsBmCooked(TRUE))
+	if (Ar.LicenseeVer() >= VER_BATMAN2)
 	{
 		UBOOL bFlag = bUseFullPrecisionUVs;
 		Ar << bFlag;
@@ -4270,7 +4270,7 @@ void USkeletalMeshComponent::Serialize(FArchive& Ar)
 	Super::Serialize(Ar);
 
 #if BATMAN
-	if (Ar.IsBmCooked(TRUE))
+	if (Ar.LicenseeVer() >= VER_BATMAN2)
 	{
 		Ar << XRayMaterials;
 		Ar << ThermalMaterials;

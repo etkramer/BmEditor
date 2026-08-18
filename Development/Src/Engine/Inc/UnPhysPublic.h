@@ -777,7 +777,7 @@ public:
 		Ar << Elem.FacePlaneData;
 		Ar << Elem.ElemBox;
 #if BATMAN
-		if (Ar.IsBmCooked(TRUE))
+		if (Ar.LicenseeVer() >= VER_BATMAN2)
 		{
 			BYTE NoRBCollision = Elem.bNoRBCollision ? 1 : 0;
 			Ar << NoRBCollision;

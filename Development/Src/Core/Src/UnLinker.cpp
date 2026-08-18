@@ -280,14 +280,14 @@ FArchive& operator<<( FArchive& Ar, FObjectExport& E )
 	Ar << E.ArchetypeIndex;
 #if BATMAN
 	// https://github.com/gildor2/UEViewer/blob/a0bfb468d42be831b126632fd8a0ae6b3614f981/Unreal/UnrealPackage/UnPackage3.cpp#L360
-	if (Ar.IsBmCooked(TRUE))
+	if (Ar.LicenseeVer() >= VER_BATMAN2)
 	{
 		INT ReferencedObjects = 0;
 		Ar << ReferencedObjects;
 	}
 #endif
 #if BATMAN
-	if (Ar.IsBmCooked(TRUE))
+	if (Ar.LicenseeVer() >= VER_BATMAN2)
 	{
 		if (Ar.IsLoading())
 		{
@@ -1553,7 +1553,7 @@ UBOOL ULinkerLoad::SerializeNameMap()
 #if BATMAN
 			// Precache only caches one compressed chunk at a time, so a multi-chunk request never
 			// completes. FArchiveAsync::Serialize blocks per-read anyway, so don't gate on it.
-			if( !bFinishedPrecaching && (Summary.PackageFlags & PKG_StoreCompressed) && IsBmCooked() )
+			if( !bFinishedPrecaching && (Summary.PackageFlags & PKG_StoreCompressed) && LicenseeVer() >= VER_BATMAN2 )
 			{
 				bFinishedPrecaching = TRUE;
 			}
@@ -2469,7 +2469,7 @@ UObject* ULinkerLoad::FindExistingExport(INT ExportIndex)
 	if (Export.OuterIndex == 0)
 	{
 #if BATMAN
-		if( IsBmCooked() )
+		if( LicenseeVer() >= VER_BATMAN2 && ContainsCookedData() )
 		{
 			if( GetExportClassName(ExportIndex) == NAME_Package )
 			{
@@ -3232,7 +3232,7 @@ UBOOL ULinkerLoad::VerifyImportInner(INT ImportIndex, FString& WarningSuffix)
 				if (FindObject != NULL && ((LoadFlags & LOAD_FindIfFail) || IsNativeTransient
 #if BATMAN
 					// BM: match CreateImport, which resolves these against memory rather than the source linker
-					|| IsBmCooked(TRUE)
+					|| LicenseeVer() >= VER_BATMAN2
 #endif
 					))
 				{
@@ -3283,7 +3283,7 @@ void ULinkerLoad::LoadAllObjects( UBOOL bForcePreload )
 
 #if BATMAN
 		// BM: Make sure forceexported sub-packages are marked as cooked too.
-		if (IsBmCooked() && ContainsCookedData())
+		if (LicenseeVer() >= VER_BATMAN2 && ContainsCookedData())
 		{
 			UPackage* PackageObject = Cast<UPackage>(Object);
 			if (PackageObject)
@@ -3740,7 +3740,7 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 	// Check whether we already loaded the object and if not whether the context flags allow loading it.
 #if BATMAN
 	// NOTE: Basically forces the object to be loaded if it's from Batman2 - cooked packages don't carry RF_LoadForEdit.
-	if( !Export._Object && ((Export.ObjectFlags & _ContextFlags) || IsBmCooked() ))
+	if( !Export._Object && ((Export.ObjectFlags & _ContextFlags) || (LicenseeVer() >= VER_BATMAN2 && ContainsCookedData()) ))
 #else
 	if( !Export._Object && (Export.ObjectFlags & _ContextFlags) )
 #endif
@@ -3886,7 +3886,7 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 		else if( Export.HasAnyFlags( EF_ForcedExport )
 #if BATMAN
 		// BM: Check RF_ForceTagExp too, as EF_ForcedExport seemingly isn't used.
-		|| (IsBmCooked() && (Export.ObjectFlags & RF_ForceTagExp) != 0)
+		|| (LicenseeVer() >= VER_BATMAN2 && ContainsCookedData() && (Export.ObjectFlags & RF_ForceTagExp) != 0)
 #endif
 		)
 		{
@@ -3906,7 +3906,7 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 #if BATMAN
 			// BM: Route top-level objects into the unprefixed package, merging if it's already loaded.
 			const FString RemappedRootName = BmRemapPackageName(LinkerRoot->GetName());
-			if( IsBmCooked() && RemappedRootName != LinkerRoot->GetName() )
+			if( LicenseeVer() >= VER_BATMAN2 && ContainsCookedData() && RemappedRootName != LinkerRoot->GetName() )
 			{
 				ThisParent = CreatePackage( NULL, *RemappedRootName );
 			}
@@ -3930,7 +3930,7 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 			if ( GIsEditor && !GIsUCC )
 			{
 #if BATMAN
-				if (IsBmCooked())
+				if (LicenseeVer() >= VER_BATMAN2 && ContainsCookedData())
 				{
 					// We expect this to happen a lot, and EdLoadErrorf is very slow...
 				}
@@ -4049,7 +4049,7 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 		}
 
 #if BATMAN
-		if (!Template && IsBmCooked(TRUE))
+		if (!Template && LicenseeVer() >= VER_BATMAN2)
 		{
 			warnf(NAME_Warning, TEXT("Skipping object %s: no template (class %s has incomplete properties)"),
 				*Export.ObjectName.ToString(), *LoadClass->GetFullName());
@@ -4206,7 +4206,7 @@ UObject* ULinkerLoad::CreateImport( INT Index )
 		||	GIsScriptPatcherActive
 #endif
 #if BATMAN
-		|| IsBmCooked(TRUE)
+		|| LicenseeVer() >= VER_BATMAN2
 #endif
 			)
 		{
@@ -4222,7 +4222,7 @@ UObject* ULinkerLoad::CreateImport( INT Index )
 #if BATMAN
 					// BM: Resolve by path first, like seekfree, so embedded forced exports resolve in the editor.
 					// Filter on class too - BM2 packages can hold same-named objects of different classes in one outer.
-					if( IsBmCooked(TRUE) )
+					if( LicenseeVer() >= VER_BATMAN2 )
 					{
 						Import.XObject = StaticFindObject( FindClass, NULL, *GetImportPathName(Index) );
 					}
@@ -4346,7 +4346,7 @@ UObject* ULinkerLoad::IndexToObject( PACKAGE_INDEX Index )
 		if( !ImportMap.IsValidIndex( -Index-1 ) )
 		{
 #if BATMAN
-			if (IsBmCooked(TRUE))
+			if (LicenseeVer() >= VER_BATMAN2)
 			{
 				warnf( NAME_Warning, TEXT("Bad import index %i/%i (serializing %s at offset %i)"), -Index-1, ImportMap.Num(),
 					GSerializedObject ? *GSerializedObject->GetFullName() : TEXT("NULL"), Tell() );
@@ -4897,7 +4897,7 @@ FArchive& ULinkerLoad::operator<<( FName& Name )
 	if( !NameMap.IsValidIndex(NameIndex) )
 	{
 #if BATMAN
-		if (IsBmCooked())
+		if (LicenseeVer() >= VER_BATMAN2)
 		{
 			warnf( NAME_Warning, TEXT("Bad name index %i/%i (serializing %s at offset %i)"), NameIndex, NameMap.Num(),
 				GSerializedObject ? *GSerializedObject->GetFullName() : TEXT("NULL"), Tell() );

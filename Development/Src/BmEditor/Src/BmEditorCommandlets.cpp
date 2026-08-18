@@ -153,14 +153,11 @@ INT UExtractPackagesCommandlet::Main(const FString& Params)
 		}
 
 		// Set GIsCooking. Without this, SavePackage() will strip the PKG_Cooked flag.
-		// Save as VER_BATMAN2 too, so these load through the retail paths rather than the editor ones.
 		const UBOOL OldIsCooking = GIsCooking;
 		const UE3::EPlatformType OldCookingTarget = GCookingTarget;
-		const INT OldLicenseeVersion = GPackageFileLicenseeVersion;
 
 		GIsCooking = TRUE;
 		GCookingTarget = UE3::PLATFORM_WindowsConsole;
-		GPackageFileLicenseeVersion = VER_BATMAN2;
 
 		// Never collect in here - a package holds no references to its own contents, so there's no way
 		// to keep the objects we still have to save alive across one.
@@ -178,7 +175,6 @@ INT UExtractPackagesCommandlet::Main(const FString& Params)
 
 		GIsCooking = OldIsCooking;
 		GCookingTarget = OldCookingTarget;
-		GPackageFileLicenseeVersion = OldLicenseeVersion;
 
 		// Free the batch before moving on.
 		UObject::CollectGarbage(RF_Native);

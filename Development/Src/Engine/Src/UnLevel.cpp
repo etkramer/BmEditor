@@ -321,7 +321,7 @@ void ULevel::Serialize( FArchive& Ar )
 	Ar << GameSequences;
 
 #if BATMAN
-	if (Ar.IsBmCooked(TRUE))
+	if (Ar.LicenseeVer() >= VER_BATMAN2)
 	{
 		Ar << BoundingSpheres;
 		FStreamableTextureInstance::SerializationBoundingSpheres = &BoundingSpheres;
@@ -475,7 +475,7 @@ void ULevel::Serialize( FArchive& Ar )
 	}
 
 #if BATMAN
-	if (Ar.IsBmCooked(TRUE))
+	if (Ar.LicenseeVer() >= VER_BATMAN2)
 	{
 		Ar << NodeEdgeCollection;
 		Ar << HorizontalEdges;

@@ -703,7 +703,7 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 			{
 #if BATMAN
 				// BM: FCookedPropertyTag format
-				if (Ar.IsBmCooked(TRUE, FALSE) && Tag.Type != NAME_None)
+				if (Ar.LicenseeVer() >= VER_BATMAN2 && Ar.ContainsCookedData() && Tag.Type != NAME_None)
 				{
 					const UClass* SerializedClass = ConstCast<UClass>(this);
 					if (SerializedClass == NULL || !SerializedClass->HasAnyClassFlags(CLASS_Intrinsic))
@@ -875,7 +875,7 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 
 #if BATMAN
             // BM: Get struct type from property. This might not be needed for correct serialization.
-            if (Ar.IsBmCooked(TRUE) && Tag.Type == NAME_StructProperty && Cast<UStructProperty>(Property, CLASS_IsAUStructProperty) && Tag.StructName == NAME_None
+            if (Ar.LicenseeVer() >= VER_BATMAN2 && Tag.Type == NAME_StructProperty && Cast<UStructProperty>(Property, CLASS_IsAUStructProperty) && Tag.StructName == NAME_None
                 && ((UStructProperty*)Property)->Struct)
             {
                 FName StructName = ((UStructProperty*)Property)->Struct->GetFName();
@@ -977,7 +977,7 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 			}
 #if BATMAN
             // Found ByteProperty, read as value or as enum name
-			else if (Ar.IsBmCooked(TRUE) && Tag.Type == NAME_ByteProperty)
+			else if (Ar.LicenseeVer() >= VER_BATMAN2 && Tag.Type == NAME_ByteProperty)
 			{
                 check(Tag.Size == 1 || Tag.Size == 8);
 
@@ -1014,7 +1014,7 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 #endif
 #if BATMAN
             // Found GUIDProperty, read as plain FGuid
-			else if (Ar.IsBmCooked(TRUE) && Tag.Type == NAME_GUIDProperty)
+			else if (Ar.LicenseeVer() >= VER_BATMAN2 && Tag.Type == NAME_GUIDProperty)
 			{
 				INT StartPos = Ar.Tell();
 
@@ -1108,7 +1108,7 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 
 					// This property is ok.
 #if BATMAN
-					if (Ar.IsBmCooked(TRUE))
+					if (Ar.LicenseeVer() >= VER_BATMAN2)
 					{
 						INT StartPos = Ar.Tell();
 						Tag.SerializeTaggedProperty( Ar, Property, DestAddress, Tag.Size, NULL );
@@ -1261,7 +1261,7 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 			}
 		}
 #if BATMAN
-		if (Ar.IsBmCooked(TRUE, FALSE))
+		if (Ar.LicenseeVer() >= VER_BATMAN2 && Ar.ContainsCookedData())
 		{
 			SWORD EndMarker = 0;
 			Ar << EndMarker;
@@ -1374,7 +1374,7 @@ void UStruct::Serialize( FArchive& Ar )
 
 #if BATMAN
 		// StorageSize=0 means no bytecode on disk; skip the serialize loop so the archive stays aligned.
-		if (Ar.IsBmCooked() && ScriptStorageSize == 0)
+		if (Ar.LicenseeVer() >= VER_BATMAN2 && ScriptStorageSize == 0)
 		{
 			ScriptBytecodeSize = 0;
 		}
@@ -1816,7 +1816,7 @@ void UState::Serialize( FArchive& Ar )
 	WORD const TmpLabelTableOffset = LabelTableOffset;
 
 #if BATMAN
-	if (Ar.IsBmCooked())
+	if (Ar.LicenseeVer() >= VER_BATMAN2)
 	{
 		// BM2 reads ProbeMask as a DWORD with no IgnoreMask, like post-VER_REDUCED_PROBEMASK UE3.
 		Ar << ProbeMask;
@@ -2538,7 +2538,7 @@ void UClass::Serialize( FArchive& Ar )
 
 #if BATMAN
 		// BM2 adds a 4-byte field between bForceScriptOrder and ClassGroupNames at LicenseeVer 94.
-		if (Ar.IsBmCooked(TRUE) && Ar.LicenseeVer() >= 94)
+		if (Ar.LicenseeVer() >= VER_BATMAN2)
 		{
 			INT BmClassGroupFlags = 0;
 			Ar << BmClassGroupFlags;
@@ -2588,7 +2588,7 @@ void UClass::Serialize( FArchive& Ar )
 	if( Ar.IsLoading() )
 	{
 #if BATMAN
-		if (Ar.IsBmCooked() && (DWORD)Align(GetPropertiesSize(), GetMinAlignment()) < sizeof(UObject))
+		if (Ar.LicenseeVer() >= VER_BATMAN2 && (DWORD)Align(GetPropertiesSize(), GetMinAlignment()) < sizeof(UObject))
 		{
 			warnf(NAME_Warning, TEXT("UClass::Serialize %s: PropertiesSize %i < sizeof(UObject) %i, skipping CDO"),
 				*GetFullName(), GetPropertiesSize(), (INT)sizeof(UObject));

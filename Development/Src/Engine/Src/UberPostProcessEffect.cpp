@@ -228,8 +228,9 @@ public:
 };
 
 // #define avoids a lot of code duplication
+// BM: min version was VER_DWORD_SKELETAL_MESH_INDICES_FIXUP (808), unreachable at Ver=805.
 #define VARIATION(bA, bB, C, bD, bE) typedef FUberHalfResPixelShader<bA, bB, C, bD, bE> FUberHalfResPixelShader##bA##bB##C##bD##bE; \
-	IMPLEMENT_SHADER_TYPE2(template<>, FUberHalfResPixelShader##bA##bB##C##bD##bE, SF_Pixel, VER_DWORD_SKELETAL_MESH_INDICES_FIXUP, 0);
+	IMPLEMENT_SHADER_TYPE2(template<>, FUberHalfResPixelShader##bA##bB##C##bD##bE, SF_Pixel, VER_MIN_SHADER, 0);
 VARIATION(0,0,0,0,0) VARIATION(0,0,0,0,1) VARIATION(0,0,0,1,0) VARIATION(0,0,0,1,1) VARIATION(0,0,1,0,0) VARIATION(0,0,1,0,1) VARIATION(0,0,1,1,0) VARIATION(0,0,1,1,1)
 VARIATION(0,0,2,0,0) VARIATION(0,0,2,0,1) VARIATION(0,0,2,1,0) VARIATION(0,0,2,1,1)
 VARIATION(0,1,0,0,0) VARIATION(0,1,0,0,1) VARIATION(0,1,0,1,0) VARIATION(0,1,0,1,1) VARIATION(0,1,1,0,0) VARIATION(0,1,1,0,1) VARIATION(0,1,1,1,0) VARIATION(0,1,1,1,1)

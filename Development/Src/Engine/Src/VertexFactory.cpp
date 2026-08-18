@@ -90,7 +90,7 @@ FArchive& operator<<(FArchive& Ar,FVertexFactoryType*& TypeRef)
 		Ar << TypeName;
 		TypeRef = FindVertexFactoryType(TypeName);
 #if BATMAN
-		if (!TypeRef && Ar.IsBmCooked())
+		if (!TypeRef && Ar.LicenseeVer() >= VER_BATMAN2)
 		{
 			appErrorf(
 				TEXT("VertexFactoryType: missing BM2 vertex factory type %s while loading shader cache at pos=%d"),
@@ -502,7 +502,7 @@ UBOOL operator<<(FArchive& Ar,FVertexFactoryVSParameterRef& Ref)
 #if !CONSOLE
 			bVertexFactoryHashMatches = !ShouldReloadChangedShaders();
 #if BATMAN
-			if (Ar.IsBmCooked())
+			if (Ar.LicenseeVer() >= VER_BATMAN2)
 			{
 				bVertexFactoryHashMatches = TRUE;
 			}
@@ -527,7 +527,7 @@ UBOOL operator<<(FArchive& Ar,FVertexFactoryVSParameterRef& Ref)
 			else
 			{
 #if BATMAN
-				if (Ar.IsBmCooked())
+				if (Ar.LicenseeVer() >= VER_BATMAN2)
 				{
 					appErrorf(
 						TEXT("VertexFactoryParameterRef: refusing to skip BM2 vertex factory parameters for VF %s. Archive Ver=%d LicenseeVer=%d, VF MinVer=%d MinLicenseeVer=%d, pos=%d"),
@@ -546,7 +546,7 @@ UBOOL operator<<(FArchive& Ar,FVertexFactoryVSParameterRef& Ref)
 		else
 		{
 #if BATMAN
-			if (Ar.IsBmCooked())
+			if (Ar.LicenseeVer() >= VER_BATMAN2)
 			{
 				appErrorf(TEXT("VertexFactoryParameterRef: NULL vertex factory type while loading BM2 shader cache at pos=%d"), Ar.Tell());
 			}
@@ -598,7 +598,7 @@ UBOOL operator<<(FArchive& Ar,FVertexFactoryPSParameterRef& Ref)
 
 #if BATMAN
 	// BM2 has no FVertexFactoryPSParameterRef — pixel shaders don't serialize VF params
-	if (Ar.IsBmCooked())
+	if (Ar.LicenseeVer() >= VER_BATMAN2)
 	{
 		return bShaderHasOutdatedParameters;
 	}
@@ -631,7 +631,7 @@ UBOOL operator<<(FArchive& Ar,FVertexFactoryPSParameterRef& Ref)
 #if !CONSOLE
 			bVertexFactoryHashMatches = !ShouldReloadChangedShaders();
 #if BATMAN
-			if (Ar.IsBmCooked())
+			if (Ar.LicenseeVer() >= VER_BATMAN2)
 			{
 				bVertexFactoryHashMatches = TRUE;
 			}

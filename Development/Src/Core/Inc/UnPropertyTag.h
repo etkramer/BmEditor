@@ -76,7 +76,7 @@ struct FPropertyTag
 	{
 #if BATMAN
 		// BM2 cooked property tag (FCookedPropertyTag in the original game).
-		if (Ar.IsBmCooked(TRUE, FALSE))
+		if (Ar.LicenseeVer() >= VER_BATMAN2 && Ar.ContainsCookedData())
 		{
 			if (Ar.IsLoading())
 			{

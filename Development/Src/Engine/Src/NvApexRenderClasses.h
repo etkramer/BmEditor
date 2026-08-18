@@ -1315,7 +1315,7 @@ public:
 	static UBOOL ShouldCache(EShaderPlatform Platform, const class FMaterial *Material, const class FShaderType *ShaderType)
 	{
 		return Platform == SP_PCD3D_SM3
-			&& (Material->IsUsedWithAPEXMeshes() || Material->IsSpecialEngineMaterial() || Material->IsUsedWithInstancedMeshes())
+			&& (Material->IsUsedWithAPEXMeshes() || Material->IsSpecialEngineMaterial() || Material->IsUsedWithInstancedMeshParticles())
 			&& !Material->IsUsedWithDecals();
 	}
 

@@ -311,7 +311,7 @@ void FRawStaticIndexBuffer::InitRHI()
 FArchive& operator<<(FArchive& Ar,FRawStaticIndexBuffer& I)
 {
 #if BATMAN
-	if (Ar.IsBmCooked(TRUE))
+	if (Ar.LicenseeVer() >= VER_BATMAN2)
 	{
 		UBOOL NeedsCPUAccess = TRUE;
 		Ar << NeedsCPUAccess;

@@ -423,7 +423,7 @@ public:
 		}
 
 #if BATMAN
-		if (Ar.IsBmCooked(TRUE))
+		if (Ar.LicenseeVer() >= VER_BATMAN2)
 		{
 			Ar << E.XRayMaterial;
 		}
@@ -1708,7 +1708,7 @@ struct FStaticMeshComponentLODInfo
 		// Serialize out the vertex color positions.
 		if ( Ar.Ver() >= VER_PRESERVE_SMC_VERT_COLORS
 #if BATMAN
-			&& ( !Ar.IsBmCooked(TRUE) || !Ar.IsTransacting() )
+			&& ( Ar.LicenseeVer() < VER_BATMAN2 || !Ar.IsTransacting() )
 #endif
 			)
 		{

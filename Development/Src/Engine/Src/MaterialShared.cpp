@@ -1003,7 +1003,7 @@ void FMaterial::Serialize(FArchive& Ar)
 		if (Ar.IsLoading())
 		{
 			// Only retail packages index these by cooked uniform expressions; editor-made ones are retranslated
-			bBmCookedUniformExpressionTextures = Ar.IsBmCooked();
+			bBmCookedUniformExpressionTextures = Ar.LicenseeVer() >= VER_BATMAN2 && Ar.ContainsCookedData();
 		}
 #endif
 	}
@@ -1235,7 +1235,7 @@ FString FMaterialResource::GetBaseMaterialPathName() const { return Material->Ge
 UBOOL FMaterialResource::IsBmCookedMaterialResource() const
 {
 	ULinkerLoad* MaterialLinker = Material ? Material->GetLinker() : NULL;
-	return MaterialLinker && MaterialLinker->IsBmCooked();
+	return MaterialLinker && MaterialLinker->LicenseeVer() >= VER_BATMAN2 && MaterialLinker->ContainsCookedData();
 }
 #endif
 

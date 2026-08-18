@@ -304,7 +304,7 @@ FArchive& operator<<(FArchive& Ar,FPositionVertexBuffer& VertexBuffer)
 #if BATMAN
 	// https://github.com/gildor2/UEViewer/blob/a0bfb468d42be831b126632fd8a0ae6b3614f981/Unreal/UnrealMesh/UnMesh3.cpp#L2677
 	BYTE PositionFormat = 0; // 0 -> FVector, 1 -> half[3], 2 -> half[4]
-	if (Ar.IsBmCooked(TRUE))
+	if (Ar.LicenseeVer() >= VER_BATMAN2)
 	{
 		Ar << PositionFormat;
 	}
@@ -313,7 +313,7 @@ FArchive& operator<<(FArchive& Ar,FPositionVertexBuffer& VertexBuffer)
 	Ar << VertexBuffer.Stride << VertexBuffer.NumVertices;
 
 #if BATMAN
-	if (Ar.IsBmCooked(TRUE))
+	if (Ar.LicenseeVer() >= VER_BATMAN2)
 	{
 		UBOOL bNeedsCPUAccess = TRUE;
 		Ar << bNeedsCPUAccess;
@@ -321,7 +321,7 @@ FArchive& operator<<(FArchive& Ar,FPositionVertexBuffer& VertexBuffer)
 #endif
 
 #if BATMAN
-	if (Ar.IsBmCooked(TRUE))
+	if (Ar.LicenseeVer() >= VER_BATMAN2)
 	{
 		// TODO: Implement 1/2
 		check(PositionFormat == 0);
@@ -344,7 +344,7 @@ FArchive& operator<<(FArchive& Ar,FPositionVertexBuffer& VertexBuffer)
 	}
 
 #if BATMAN
-	if (Ar.IsBmCooked(TRUE))
+	if (Ar.LicenseeVer() >= VER_BATMAN2)
 	{
 		TArray<FVector2D> UVData;
 		Ar << UVData;
@@ -1045,7 +1045,7 @@ FArchive& operator<<(FArchive& Ar,FStaticMeshVertexBuffer& VertexBuffer)
 	Ar << VertexBuffer.bUseFullPrecisionUVs;
 
 #if BATMAN
-	if (Ar.IsBmCooked(TRUE))
+	if (Ar.LicenseeVer() >= VER_BATMAN2)
 	{
 		Ar << VertexBuffer.bHasNormalsAndTangents;
 	}
@@ -2093,7 +2093,7 @@ void UStaticMesh::Serialize(FArchive& Ar)
 	}
 
 #if BATMAN
-	if (!Ar.IsBmCooked(TRUE) && (!GCookingTarget || !Ar.IsSaving()) && InternalVersion >= 19)
+	if (Ar.LicenseeVer() < VER_BATMAN2 && (!GCookingTarget || !Ar.IsSaving()) && InternalVersion >= 19)
 	{
 		Ar << MaterialOverrides;
 	}
@@ -4284,7 +4284,7 @@ void UStaticMeshComponent::Serialize(FArchive& Ar)
 
 	// Serialize out the vert. position version number
 #if BATMAN
-	if( Ar.IsBmCooked(TRUE) )
+	if( Ar.LicenseeVer() >= VER_BATMAN2 )
 	{
 		if ( Ar.Ver() >= VER_PRESERVE_SMC_VERT_COLORS && !Ar.IsTransacting() )
 		{

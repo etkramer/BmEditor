@@ -5423,7 +5423,7 @@ void UNavigationMeshBase::Serialize(FArchive& Ar)
 
 		// add references to cover ref'd by polys
 #if BATMAN
-		if( !Ar.IsBmCooked(TRUE) ) // BM: BM2 polys have no cover
+		if( Ar.LicenseeVer() < VER_BATMAN2 ) // BM: BM2 polys have no cover
 #endif
 		{
 			for(INT PolyIdx=0;PolyIdx<Polys.Num();++PolyIdx)
@@ -5469,7 +5469,7 @@ void UNavigationMeshBase::Serialize(FArchive& Ar)
 		EdgePtrs.CountBytes(Ar);
 
 #if BATMAN
-		if( Ar.IsBmCooked(TRUE) ) // BM
+		if( Ar.LicenseeVer() >= VER_BATMAN2 ) // BM
 		{
 			Ar << VertVisionInfo;
 		}
@@ -5516,7 +5516,7 @@ void UNavigationMeshBase::Serialize(FArchive& Ar)
 
 #if BATMAN
 		// BM
-		if( Ar.IsBmCooked(TRUE) && NavMeshVersionNum >= VER_MESH_BOUNDS )
+		if( Ar.LicenseeVer() >= VER_BATMAN2 && NavMeshVersionNum >= VER_MESH_BOUNDS )
 		{
 			Ar << VertVisionInfo;
 		}
@@ -8531,7 +8531,7 @@ FArchive& FNavMeshEdgeBase::Serialize( FArchive& Ar )
 
 	// if this is old data account for edgelength float still being in the stream
 #if BATMAN
-	const DWORD RemovedEdgeLengthVer = Ar.IsBmCooked(TRUE) ? VER_BM_REMOVED_EDGELENGTH : VER_REMOVED_EDGELENGTH;
+	const DWORD RemovedEdgeLengthVer = Ar.LicenseeVer() >= VER_BATMAN2 ? VER_BM_REMOVED_EDGELENGTH : VER_REMOVED_EDGELENGTH;
 	if( NavMesh != NULL && NavMesh->NavMeshVersionNum < RemovedEdgeLengthVer )
 #else
 	if( NavMesh != NULL && NavMesh->NavMeshVersionNum < VER_REMOVED_EDGELENGTH )
@@ -8565,7 +8565,7 @@ FArchive& FNavMeshEdgeBase::Serialize( FArchive& Ar )
 	}
 
 #if BATMAN
-	if( Ar.IsBmCooked(TRUE) )
+	if( Ar.LicenseeVer() >= VER_BATMAN2 )
 	{
 		if(NavMesh != NULL && NavMesh->NavMeshVersionNum >= VER_BM_EDGE_PERP)
 		{

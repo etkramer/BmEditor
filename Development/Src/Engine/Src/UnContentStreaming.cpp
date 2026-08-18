@@ -4968,7 +4968,7 @@ TArray<FSphere>* FStreamableTextureInstance::SerializationBoundingSpheres = NULL
 FArchive& operator<<( FArchive& Ar, FStreamableTextureInstance& TextureInstance )
 {
 #if BATMAN
-	if (Ar.IsBmCooked(TRUE))
+	if (Ar.LicenseeVer() >= VER_BATMAN2)
 	{
 		if (Ar.IsLoading())
 		{

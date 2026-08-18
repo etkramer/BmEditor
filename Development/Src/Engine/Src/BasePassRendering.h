@@ -355,7 +355,7 @@ public:
 #endif
 		UBOOL bShaderHasOutdatedParameters = FShader::Serialize(Ar);
 #if BATMAN
-		if (Ar.IsBmCooked(TRUE))
+		if (Ar.LicenseeVer() >= VER_BATMAN2)
 		{
 			LightMapPolicyType::PixelParametersType::Serialize(Ar);
 			Ar << MaterialParameters;

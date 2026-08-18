@@ -5,7 +5,7 @@ This file provides guidance to coding agents when working with this repository.
 ## Project Overview
 
 Custom build of Unreal Engine 3 that loads and saves Batman: Arkham City (BM2) packages in the UE3 editor. BM2 packages are all cooked using seekfree cooking, though seekfree loading is always disabled in the editor. All changes should be in the interest of accuracy to the original game binary - we intend to turn this into a full engine reimplementation.
-This is a codebase reconstruction project: compatibility changes must be direct, 1:1 ports from the BM2/Gangland/X360 references with no invented behavior.
+This is a codebase reconstruction project: compatibility changes must be direct, 1:1 ports from the BM2/Gangland/X360 references with no invented behavior. Newly-introduced features (not based on BM behavior) have no such restriction.
 
 ## Build Commands
 
@@ -26,7 +26,9 @@ There are two useful decompilations to use as reference on the retail BM2 game:
 
 The core work in this repo is making UE3's serialization understand BM2's cooked package format.
 
-**Key pattern — `IsBmCooked(BOOL IncludeEditor)`:** Defined in `Core/Inc/UnArc.h`. When "TRUE" is passed, this returns whether the package is from the BM2 game OR whether it's a BM2-format package made by the editor. It should be "TRUE" for nearly all serialization cases. When "FALSE" is passed, it returns true only if the package is from the BM2 game, causing editor-made packages to behave differently.
+**Key pattern — licensee version checks:** The editor saves as `VER_BATMAN2` (licensee 101), the same version retail uses. Prefer `>=` over `==` so future `VER_BATMAN1`/`VER_BATMAN3` support falls out naturally. BM2/101-specific serialization changes should be guarded this way.
+
+Cooked/non-cooked (`&& Ar.ContainsCookedData()`) can usually be used to test whether a package is editor-made or from retail. Currently used for seekfree structure adaptations, package name remapping, TFC paths, the cooked property tag format, etc. Note that `RefShaderCache*.upk` is the one case where BM2 retail content can be uncooked without being editor-made.
 
 ## Shader Serialization
 
