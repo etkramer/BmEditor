@@ -3612,7 +3612,13 @@ INT UMakeCommandlet::Main( const FString& Params )
 					const UClass* ScriptClass = *ItC;
 					if( ScriptClass->ScriptText && ScriptClass->GetSuperClass() )
 					{
+#if BATMAN
+						// BM: source-less supers load already parsed, so treat that as proof they exist
+						const UClass* SuperClass = ScriptClass->GetSuperClass();
+						if( !SuperClass->ScriptText && !SuperClass->HasAnyClassFlags(CLASS_Parsed|CLASS_Intrinsic) )
+#else
 						if( !ScriptClass->GetSuperClass()->ScriptText )
+#endif
 						{
 							warnf(NAME_Error, TEXT("Superclass %s of class %s not found"), *ScriptClass->GetSuperClass()->GetName(), *ScriptClass->GetName());
 							Success = FALSE;
