@@ -27,6 +27,13 @@ namespace UnSetup
 			return ( StartMenu );
 		}
 
+		// BM
+		// Only create a shortcut if the thing it points at was installed
+		private bool ShortcutTargetExists( string TargetPath )
+		{
+			return ( new System.IO.FileInfo( TargetPath ).Exists );
+		}
+
 		public void CreateShortcuts( string StartMenuLocation, string InstallLocation, bool bIncludeSpeedTree )
 		{
 			try
@@ -35,22 +42,29 @@ namespace UnSetup
 
 				foreach( GameManifestOptions GameInstallInfo in Manifest.GameInfo )
 				{
-					IWshShortcut EditorShortcut = ( IWshShortcut )Shell.CreateShortcut( StartMenuLocation + "\\" + GameInstallInfo.Name + " Editor.lnk" );
+					// BM: The descriptive name may contain characters that are not legal in a file name
+					string SafeName = MakeSafeFolderName( GameInstallInfo.Name );
+
+					IWshShortcut EditorShortcut = ( IWshShortcut )Shell.CreateShortcut( StartMenuLocation + "\\" + SafeName + " Editor.lnk" );
 					EditorShortcut.TargetPath = InstallLocation + "\\Binaries\\" + GameInstallInfo.AppToElevate;
 					EditorShortcut.IconLocation = InstallLocation + "\\Binaries\\" + GameInstallInfo.AppToCreateInis + ", 1";
 					EditorShortcut.Arguments = "editor";
 					EditorShortcut.WorkingDirectory = InstallLocation;
 					EditorShortcut.Save();
 
-					IWshShortcut GameShortcut = ( IWshShortcut )Shell.CreateShortcut( StartMenuLocation + "\\" + GameInstallInfo.Name + " Game.lnk" );
-					GameShortcut.TargetPath = InstallLocation + "\\Binaries\\" + GameInstallInfo.AppToCreateInis;
-					GameShortcut.IconLocation = InstallLocation + "\\Binaries\\" + GameInstallInfo.AppToCreateInis + ", 0";
-					GameShortcut.WorkingDirectory = InstallLocation;
-					if( GameInstallInfo.AddPreviewShortcut )
+					// BM
+					if( Manifest.bCreateGameShortcut )
 					{
-						GameShortcut.Arguments = "-simmobile";
+						IWshShortcut GameShortcut = ( IWshShortcut )Shell.CreateShortcut( StartMenuLocation + "\\" + SafeName + " Game.lnk" );
+						GameShortcut.TargetPath = InstallLocation + "\\Binaries\\" + GameInstallInfo.AppToCreateInis;
+						GameShortcut.IconLocation = InstallLocation + "\\Binaries\\" + GameInstallInfo.AppToCreateInis + ", 0";
+						GameShortcut.WorkingDirectory = InstallLocation;
+						if( GameInstallInfo.AddPreviewShortcut )
+						{
+							GameShortcut.Arguments = "-simmobile";
+						}
+						GameShortcut.Save();
 					}
-					GameShortcut.Save();
 
                     // Add the mobile tools shortcuts
                     if (GameInstallInfo.IsIPhoneBuild)
@@ -64,7 +78,7 @@ namespace UnSetup
 				}
 
                 // Add SpeedTree tools shortcuts
-				if( bIncludeSpeedTree )
+				if( bIncludeSpeedTree && ShortcutTargetExists( InstallLocation + "\\Binaries\\SpeedTreeModeler\\SpeedTree Modeler UDK.exe" ) )
 				{
 					IWshShortcut SpeedTreeModShortcut = ( IWshShortcut )Shell.CreateShortcut( StartMenuLocation + "\\Tools\\SpeedTree 5.0 Modeler.lnk" );
 					SpeedTreeModShortcut.TargetPath = InstallLocation + "\\Binaries\\SpeedTreeModeler\\SpeedTree Modeler UDK.exe";
@@ -77,21 +91,35 @@ namespace UnSetup
 					SpeedTreeComShortcut.Save();
 				}
 
-                // Add UFE tool shortcut
-				IWshShortcut UFEShortcut = (IWshShortcut)Shell.CreateShortcut(StartMenuLocation + "\\Tools\\Unreal Frontend.lnk");
-                UFEShortcut.TargetPath = InstallLocation + "\\Binaries\\UnrealFrontend.exe";
-                UFEShortcut.WorkingDirectory = InstallLocation + "\\Binaries";
-                UFEShortcut.Save();
-                
+				// BM
+				// Add UFE tool shortcut
+				if( ShortcutTargetExists( InstallLocation + "\\Binaries\\UnrealFrontend.exe" ) )
+				{
+					IWshShortcut UFEShortcut = ( IWshShortcut )Shell.CreateShortcut( StartMenuLocation + "\\Tools\\Unreal Frontend.lnk" );
+					UFEShortcut.TargetPath = InstallLocation + "\\Binaries\\UnrealFrontend.exe";
+					UFEShortcut.WorkingDirectory = InstallLocation + "\\Binaries";
+					UFEShortcut.Save();
+				}
 
-                // Add the documentation shortcuts
-				IWshShortcut ReadMeShortcut = ( IWshShortcut )Shell.CreateShortcut( StartMenuLocation + "\\Documentation\\ReadMe.lnk" );
-				ReadMeShortcut.TargetPath = GetSafeLocFileName( InstallLocation + "\\Engine\\Localization\\Readme." + Manifest.RootName, "rtf" );
-				ReadMeShortcut.WorkingDirectory = InstallLocation;
-				ReadMeShortcut.Save();
+				// BM
+				// Add the documentation shortcuts
+				string ReadMeFileName = GetSafeLocFileName( InstallLocation + "\\Engine\\Localization\\Readme." + Manifest.RootName, "rtf" );
+				if( ShortcutTargetExists( ReadMeFileName ) )
+				{
+					IWshShortcut ReadMeShortcut = ( IWshShortcut )Shell.CreateShortcut( StartMenuLocation + "\\Documentation\\ReadMe.lnk" );
+					ReadMeShortcut.TargetPath = ReadMeFileName;
+					ReadMeShortcut.WorkingDirectory = InstallLocation;
+					ReadMeShortcut.Save();
+				}
 
 				foreach( LinkShortcutOptions ShortcutInfo in Manifest.LinkShortcuts )
 				{
+					// BM
+					if( !ShortcutTargetExists( InstallLocation + "\\" + ShortcutInfo.UrlFilePath ) )
+					{
+						continue;
+					}
+
 					IWshShortcut Shortcut = ( IWshShortcut )Shell.CreateShortcut( StartMenuLocation + "\\" + ShortcutInfo.DisplayPath );
 					Shortcut.TargetPath = InstallLocation + "\\" + ShortcutInfo.UrlFilePath;
 					Shortcut.IconLocation = InstallLocation + "\\Binaries\\InstallData\\Link.ico";

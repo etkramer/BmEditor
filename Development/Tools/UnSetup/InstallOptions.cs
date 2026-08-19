@@ -51,10 +51,22 @@ namespace UnSetup
 				Text = Program.Util.GetPhrase( "IOInstallOptionsGame" ) + Program.Util.Manifest.RootName;
 				InstallOptionsTitleLabel.Text = Text;
 
-				string InstallLocation = Program.Util.Manifest.RootName + "-" + Program.Util.UnSetupTimeStamp;
-				StartMenuLocation = Path.Combine( Program.Util.Manifest.FullName + "\\", InstallLocation );
+				// BM
+				string SafeFullName = Program.Util.MakeSafeFolderName( Program.Util.Manifest.FullName );
 
-				InstallLocationTextbox.Text = Path.Combine( "C:\\" + Program.Util.Manifest.RootName + "\\", InstallLocation );
+				if( Program.Util.Manifest.bVersionedInstallFolder )
+				{
+					string InstallLocation = Program.Util.Manifest.RootName + "-" + Program.Util.UnSetupTimeStamp;
+					StartMenuLocation = Path.Combine( SafeFullName + "\\", InstallLocation );
+
+					InstallLocationTextbox.Text = Path.Combine( "C:\\" + Program.Util.Manifest.RootName + "\\", InstallLocation );
+				}
+				else
+				{
+					StartMenuLocation = SafeFullName;
+
+					InstallLocationTextbox.Text = "C:\\" + Program.Util.Manifest.RootName;
+				}
 			}
 			else
 			{
@@ -90,9 +102,16 @@ namespace UnSetup
 				UInt64 TotalFreeBytes = 0;
 				if( GetDiskFreeSpaceEx( DirInfo.FullName, out FreeBytes, out TotalBytes, out TotalFreeBytes ) )
 				{
-					// Need 2GB to install
-					UInt64 TwoGig = 2UL * 1024UL * 1024UL * 1024UL;
-					if( TotalFreeBytes < TwoGig )
+					// BM
+					// The install needs room for the imported content as well as the shipped files
+					UInt64 RequiredGigabytes = ( UInt64 )Program.Util.Manifest.RequiredGigabytes;
+					if( Program.Util.HasContentImport() )
+					{
+						RequiredGigabytes += ( UInt64 )Program.Util.Manifest.ContentImport.RequiredGigabytes;
+					}
+
+					UInt64 RequiredBytes = RequiredGigabytes * 1024UL * 1024UL * 1024UL;
+					if( TotalFreeBytes < RequiredBytes )
 					{
 						return ( false );
 					}

@@ -134,6 +134,71 @@ namespace UnSetup
 			}
 		}
 
+		// BM
+		/*
+		 * Content that is copied out of an existing game install rather than shipped in the installer
+		 */
+		public class ContentImportOptions
+		{
+			[CategoryAttribute( "ContentImport" )]
+			[DescriptionAttribute( "The folder to copy from, relative to the root of the source game install." )]
+			[XmlElementAttribute]
+			public string SourceFolder { get; set; }
+
+			[CategoryAttribute( "ContentImport" )]
+			[DescriptionAttribute( "The folder to copy to, relative to the root of the install location." )]
+			[XmlElementAttribute]
+			public string DestFolder { get; set; }
+
+			[CategoryAttribute( "ContentImport" )]
+			[DescriptionAttribute( "The file that must exist under the source folder for an install to be considered valid." )]
+			[XmlElementAttribute]
+			public string ValidationFile { get; set; }
+
+			[CategoryAttribute( "ContentImport" )]
+			[DescriptionAttribute( "The Steam application id used to locate the game install." )]
+			[XmlElementAttribute]
+			public int SteamAppId { get; set; }
+
+			[CategoryAttribute( "ContentImport" )]
+			[DescriptionAttribute( "The number of gigabytes the imported content requires." )]
+			[XmlElementAttribute]
+			public int RequiredGigabytes { get; set; }
+
+			[CategoryAttribute( "ContentImport" )]
+			[DescriptionAttribute( "Whether to copy the subfolders of the source folder as well as its files." )]
+			[XmlElementAttribute]
+			public bool bRecursive { get; set; }
+
+			[CategoryAttribute( "ContentImport" )]
+			[DescriptionAttribute( "The file extensions to copy." )]
+			[XmlArrayAttribute]
+			public string[] Extensions { get; set; }
+
+			[CategoryAttribute( "ContentImport" )]
+			[DescriptionAttribute( "Files to rename as they are copied, in the form 'Source=Dest'." )]
+			[XmlArrayAttribute]
+			public string[] RenameFiles { get; set; }
+
+			[CategoryAttribute( "ContentImport" )]
+			[DescriptionAttribute( "Additional folders to search for the game install." )]
+			[XmlArrayAttribute]
+			public string[] SearchFolders { get; set; }
+
+			public ContentImportOptions()
+			{
+				SourceFolder = "";
+				DestFolder = "";
+				ValidationFile = "";
+				SteamAppId = 0;
+				RequiredGigabytes = 0;
+				bRecursive = false;
+				Extensions = new string[] {};
+				RenameFiles = new string[] {};
+				SearchFolders = new string[] {};
+			}
+		}
+
 		/*
 		 * Which files to include/exclude from the UDK/Game
 		 */
@@ -182,6 +247,48 @@ namespace UnSetup
 			[XmlArrayAttribute]
 			public string[] GameFilesToInclude { get; set; }
 
+			// BM
+			[CategoryAttribute( "FileManifests" )]
+			[DescriptionAttribute( "Whether to exclude binaries that are not signed with a known certificate." )]
+			[XmlElementAttribute]
+			public bool bFilterUnsignedBinaries { get; set; }
+
+			// BM
+			[CategoryAttribute( "FileManifests" )]
+			[DescriptionAttribute( "Folders to create on install that ship with no content of their own." )]
+			[XmlArrayAttribute]
+			public string[] EmptyFoldersToCreate { get; set; }
+
+			// BM
+			[CategoryAttribute( "InstallInfo" )]
+			[DescriptionAttribute( "The number of gigabytes required to install, excluding any imported content." )]
+			[XmlElementAttribute]
+			public int RequiredGigabytes { get; set; }
+
+			// BM
+			[CategoryAttribute( "InstallInfo" )]
+			[DescriptionAttribute( "Whether to append the build timestamp to the default install and shortcut folders." )]
+			[XmlElementAttribute]
+			public bool bVersionedInstallFolder { get; set; }
+
+			// BM
+			[CategoryAttribute( "InstallInfo" )]
+			[DescriptionAttribute( "The publisher recorded in the Add/Remove Programs entry." )]
+			[XmlElementAttribute]
+			public string Publisher { get; set; }
+
+			// BM
+			[CategoryAttribute( "InstallInfo" )]
+			[DescriptionAttribute( "Whether to create a shortcut that launches the game rather than the editor." )]
+			[XmlElementAttribute]
+			public bool bCreateGameShortcut { get; set; }
+
+			// BM
+			[CategoryAttribute( "ContentImport" )]
+			[DescriptionAttribute( "Content copied out of an existing game install at install time. Optional." )]
+			[XmlElementAttribute]
+			public ContentImportOptions ContentImport { get; set; }
+
 			[XmlElementAttribute]
 			public bool bManifestCreated = false;
 
@@ -197,6 +304,15 @@ namespace UnSetup
 				MainFilesToExclude = new string[] {};
 				GameFilesToExclude = new string[] {};
 				GameFilesToInclude = new string[] {};
+
+				// BM
+				bFilterUnsignedBinaries = true;
+				EmptyFoldersToCreate = new string[] {};
+				RequiredGigabytes = 2;
+				bVersionedInstallFolder = true;
+				Publisher = "Epic Games, Inc.";
+				bCreateGameShortcut = true;
+				ContentImport = null;
 			}
 		}
 
@@ -816,6 +932,18 @@ namespace UnSetup
 			return ( Phrases.GetPhrase( Phrase ) );
 		}
 
+		// BM
+		// Descriptive names can contain characters that are legal in a display name but not in a folder name
+		public string MakeSafeFolderName( string Name )
+		{
+			foreach( char Invalid in Path.GetInvalidFileNameChars() )
+			{
+				Name = Name.Replace( Invalid.ToString(), "" );
+			}
+
+			return ( Name.Trim() );
+		}
+
 		public string GetLocFileName( string Root, string Extension )
 		{
 			string Path = Root + "." + Phrases.GetUE3Language() + "." + Extension;
@@ -1106,8 +1234,12 @@ namespace UnSetup
 				FilterCount += FilterOutFileSpec( RootFolderProperty, FileSpec );
 			}
 
+			// BM
 			// Filter out the binaries not signed by Epic
-			RootFolderProperty.FilterUnsignedBinaries( this, "." );
+			if( Manifest.bFilterUnsignedBinaries )
+			{
+				RootFolderProperty.FilterUnsignedBinaries( this, "." );
+			}
 
 			// Always add the manifest options file, this has details about how to run the installer
 			FileInfo Info = new FileInfo( "Binaries\\UnSetup.Manifests.xml" );
@@ -1204,8 +1336,12 @@ namespace UnSetup
 				AddFileSpec( RootFolderProperty, Spec );
 			}
 
+			// BM
 			// Filter out the binaries not signed by Epic
-			RootFolderProperty.FilterUnsignedBinaries( this, "." );
+			if( Manifest.bFilterUnsignedBinaries )
+			{
+				RootFolderProperty.FilterUnsignedBinaries( this, "." );
+			}
 
 			// Always add the game properties file, this is what states the install package is a game
 			RootFolderProperty.AddFile( new FileProperties( "Binaries/UnSetup.Game.xml", Info.Length ) );
@@ -1336,8 +1472,9 @@ namespace UnSetup
 			}
 			else if( Event.EventType == ZipProgressEventType.Extracting_AfterExtractEntry )
 			{
+				// BM
 				FileInfo Info = new FileInfo( Path.Combine( Event.ExtractLocation, Event.CurrentEntry.FileName ) );
-				if( Info.Exists && ( Info.Extension.ToLower() == ".exe" || Info.Extension.ToLower() == ".dll" ) )
+				if( Manifest.bFilterUnsignedBinaries && Info.Exists && ( Info.Extension.ToLower() == ".exe" || Info.Extension.ToLower() == ".dll" ) )
 				{
 					if( !ValidateCertificate( Info.FullName ) )
 					{
@@ -1532,6 +1669,13 @@ namespace UnSetup
 					"udkgame/cookediphone/(.*)",
 					"udkgame/cookedpc/(.*)",
 					"udkgame/logs/(.*)",
+					// BM
+					"bmgame/autosaves/(.*)",
+					"bmgame/config/(.*)",
+					"bmgame/content/^localshadercache(.*).upk",
+					"bmgame/content/^globalshadercache(.*).bin",
+					"bmgame/cookedpcconsole/(.*)",
+					"bmgame/logs/(.*)",
 				};
 
 				foreach( string Spec in AdditionalFolders )
@@ -1546,11 +1690,13 @@ namespace UnSetup
 				// Only delete the root folders we install
 				List<string> AllowedFolders = new List<string>() 
 				{ 
-					"binaries", 
-					"mobilegame", 
-					"udkgame", 
-					"development", 
-					"engine" 
+					"binaries",
+					"mobilegame",
+					"udkgame",
+					"development",
+					"engine",
+					// BM
+					"bmgame"
 				};
 
 				RootFolderProperty.FindAllFiles( ".", null, AllowedFolders );

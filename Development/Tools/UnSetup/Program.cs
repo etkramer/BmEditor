@@ -207,6 +207,26 @@ namespace UnSetup
 			Environment.SetEnvironmentVariable( "Path", SystemPath + ";" + UserPath );
 		}
 
+		// BM
+		// A prerequisite that fails shouldn't abort the ones after it
+		static void RunRedistStep( Func<RedistProgress, string, string> Step, RedistProgress Progress, string DestFolder )
+		{
+			try
+			{
+				string Status = Step( Progress, DestFolder );
+				if( Status != "OK" )
+				{
+					DisplayErrorMessage( Status );
+					Util.bDependenciesSuccessful = false;
+				}
+			}
+			catch( Exception Ex )
+			{
+				DisplayErrorMessage( Ex.Message );
+				Util.bDependenciesSuccessful = false;
+			}
+		}
+
 		static bool HandleInstallRedist( bool Standalone, bool IsGameInstall )
 		{
 			// Work out the name of the zip with the redist in it
@@ -232,52 +252,23 @@ namespace UnSetup
 				Progress.Show();
 
 				Util.bDependenciesSuccessful = true;
-				try
+
+				// Install the VC redistributables for UE3Redist only (not as part of the UDK install)
+				if( !Standalone && !IsGameInstall )
 				{
-					string Status = "OK";
-
-					// Install the VC redistributables for UE3Redist only (not as part of the UDK install)
-					if( !Standalone && !IsGameInstall )
-					{
-						Status = Util.InstallVCRedist( Progress, DestFolder );
-						if( Status != "OK" )
-						{
-							DisplayErrorMessage( Status );
-							Util.bDependenciesSuccessful = false;
-						}
-					}
-
-					// Install a minimal set up DirectX - this is a different set for UE3Redist vs. UE3RedistGame
-					Status = Util.InstallDXCutdown( Progress, DestFolder );
-					if( Status != "OK" )
-					{
-						DisplayErrorMessage( Status );
-						Util.bDependenciesSuccessful = false;
-					}
-
-					// Install the Microsoft charting tools
-					if( !IsGameInstall )
-					{
-						Status = Util.InstallMSCharting( Progress, DestFolder );
-						if( Status != "OK" )
-						{
-							DisplayErrorMessage( Status );
-							Util.bDependenciesSuccessful = false;
-						}
-					}
-
-					Status = Util.InstallAMDCPUDrivers( Progress, DestFolder );
-					if( Status != "OK" )
-					{
-						DisplayErrorMessage( Status );
-						Util.bDependenciesSuccessful = false;
-					}
+					RunRedistStep( Util.InstallVCRedist, Progress, DestFolder );
 				}
-				catch( Exception Ex )
+
+				// Install a minimal set up DirectX - this is a different set for UE3Redist vs. UE3RedistGame
+				RunRedistStep( Util.InstallDXCutdown, Progress, DestFolder );
+
+				// Install the Microsoft charting tools
+				if( !IsGameInstall )
 				{
-					DisplayErrorMessage( Ex.Message );
-					Util.bDependenciesSuccessful = false;
+					RunRedistStep( Util.InstallMSCharting, Progress, DestFolder );
 				}
+
+				RunRedistStep( Util.InstallAMDCPUDrivers, Progress, DestFolder );
 
 				// Apply any path changes that may have occurred in the redist, and set for the current process
 				UpdatePath();
@@ -394,6 +385,27 @@ namespace UnSetup
 
 				if( InstallOptionResult == DialogResult.OK )
 				{
+					// BM
+					// Find the game install to copy the cooked content out of
+					string GameContentLocation = "";
+					if( Util.HasContentImport() )
+					{
+						if( Util.bProgressOnly )
+						{
+							GameContentLocation = Util.FindGameFolder();
+						}
+						else
+						{
+							GameContentOptions GameContentScreen = new GameContentOptions();
+							if( GameContentScreen.ShowDialog() != DialogResult.OK )
+							{
+								return;
+							}
+
+							GameContentLocation = GameContentScreen.GetGameLocation();
+						}
+					}
+
 					string Email = InstallOptionsScreen.GetSubscribeAddress();
 					if( Email.Length > 0 )
 					{
@@ -419,6 +431,23 @@ namespace UnSetup
 					if( Util.UnzipAllFiles( Util.MainZipFile, DestFolder ) )
 					{
 						Util.ClosePackagedZipFile();
+
+						// BM
+						// Create the folders that ship with no content of their own
+						Util.CreateEmptyFolders( DestFolder );
+
+						// BM
+						// Copy the cooked content out of the game install
+						if( GameContentLocation.Length > 0 )
+						{
+							if( !Util.ImportContent( GameContentLocation, DestFolder ) )
+							{
+								Util.DestroyProgressBar();
+								return;
+							}
+
+							Util.AddImportedFilesToManifest( DestFolder );
+						}
 
 						// Run each game to generate the proper ini files...
 						Util.UpdateProgressBar( Util.GetPhrase( "PBSettingInitial" ) );
@@ -507,8 +536,49 @@ namespace UnSetup
 			}
 		}
 
+		// BM
+		// Load the embedded copy of Ionic.Zip, as only UnSetup.exe itself is extracted to the work folder
+		static System.Reflection.Assembly ResolveEmbeddedAssembly( object Sender, ResolveEventArgs Args )
+		{
+			string AssemblyName = new System.Reflection.AssemblyName( Args.Name ).Name + ".dll";
+
+			using( Stream ResourceStream = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream( AssemblyName ) )
+			{
+				if( ResourceStream == null )
+				{
+					return ( null );
+				}
+
+				byte[] AssemblyData = new byte[ResourceStream.Length];
+
+				int Offset = 0;
+				while( Offset < AssemblyData.Length )
+				{
+					int Read = ResourceStream.Read( AssemblyData, Offset, AssemblyData.Length - Offset );
+					if( Read == 0 )
+					{
+						break;
+					}
+
+					Offset += Read;
+				}
+
+				return ( System.Reflection.Assembly.Load( AssemblyData ) );
+			}
+		}
+
 		[STAThread]
 		static int Main( string[] Arguments )
+		{
+			// BM
+			AppDomain.CurrentDomain.AssemblyResolve += new ResolveEventHandler( ResolveEmbeddedAssembly );
+
+			return ( RealMain( Arguments ) );
+		}
+
+		// BM: Kept separate from Main so that no zip type is resolved before the handler is installed
+		[System.Runtime.CompilerServices.MethodImpl( System.Runtime.CompilerServices.MethodImplOptions.NoInlining )]
+		static int RealMain( string[] Arguments )
 		{
 			AttachConsole( ATTACH_PARENT_PROCESS );
 
@@ -532,6 +602,9 @@ namespace UnSetup
 			case 1:
 				ErrorCode = Util.ProcessBuildCommandLine( Arguments );
 
+				// BM: Report build failures rather than dying to Windows Error Reporting
+				try
+				{
 				switch( Util.BuildCommand )
 				{
 				case Utils.BUILDCOMMANDS.CreateManifest:
@@ -563,12 +636,22 @@ namespace UnSetup
 					break;
 #endif
 				}
+				}
+				catch( Exception Ex )
+				{
+					Console.WriteLine( "ERROR: " + Util.BuildCommand.ToString() + " failed" );
+					Console.WriteLine( Ex.ToString() );
+					ErrorCode = 1;
+				}
 				break;
 
 			case 2:
 				// Process any command line options
 				Util.ProcessInstallCommandLine( Arguments );
 
+				// BM: Show install failures rather than vanishing mid-install
+				try
+				{
 				switch( Util.Command )
 				{
 				case Utils.COMMANDS.Help:
@@ -674,6 +757,14 @@ namespace UnSetup
 					Util.CreateShortcuts( StartMenu, "C:\\UDK\\UDK-2009-09", false );
 					break;
 #endif
+				}
+				}
+				catch( Exception Ex )
+				{
+					Util.DestroyProgressBar();
+					Console.WriteLine( Ex.ToString() );
+					DisplayErrorMessage( Ex.Message );
+					ErrorCode = 1;
 				}
 
 				break;

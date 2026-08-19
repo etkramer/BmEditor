@@ -91,6 +91,13 @@
       <DependentUpon>InstallFinished.cs</DependentUpon>
     </Compile>
     <Compile Include="Localise.cs" />
+    <Compile Include="GameContent.cs" />
+    <Compile Include="GameContentOptions.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="GameContentOptions.Designer.cs">
+      <DependentUpon>GameContentOptions.cs</DependentUpon>
+    </Compile>
     <Compile Include="GameDialog.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -246,6 +253,12 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
+    <!-- BM: Embedded so that the extracted installer does not need the dll alongside it -->
+    <EmbeddedResource Include="bin\Ionic.Zip.Reduced.dll">
+      <LogicalName>Ionic.Zip.Reduced.dll</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
     <Content Include="Resources\red_arrow.png" />
     <None Include="Resources\UE3Redist.ico" />
     <None Include="Resources\UE3Redist.png" />
@@ -261,7 +274,8 @@
   </Target>
   -->
   <PropertyGroup>
-    <PostBuildEvent>"C:/Program Files (x86)/Microsoft/ILMerge/Ilmerge.exe" /t:winexe /out:"../../../../Binaries/UnSetup.exe"  "UnSetup.exe" "../bin/Ionic.Zip.Reduced.dll"
+    <!-- BM: Ionic.Zip is embedded and resolved at runtime, so ILMerge is no longer needed -->
+    <PostBuildEvent>copy "$(TargetPath)" "..\..\..\..\Binaries\UnSetup.exe"
 copy "..\..\..\..\Binaries\UnSetup.exe" "..\..\..\..\Development\Install\InstallFiles\Binaries\UnSetup.exe"
 </PostBuildEvent>
     <PreBuildEvent>

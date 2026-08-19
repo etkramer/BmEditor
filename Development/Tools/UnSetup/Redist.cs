@@ -84,6 +84,20 @@ namespace UnSetup
 			return ( OS.dwMajorVersion );
 		}
 
+		// BM
+		// Returns null for redists that aren't packaged, so they're skipped rather than failing the install
+		private Process StartRedist( string SourceFolder, string Executable, string Arguments )
+		{
+			if( !File.Exists( Path.Combine( SourceFolder, Executable ) ) )
+			{
+				return ( null );
+			}
+
+			ProcessStartInfo StartInfo = new ProcessStartInfo( Executable, Arguments );
+			StartInfo.WorkingDirectory = SourceFolder;
+			return ( Process.Start( StartInfo ) );
+		}
+
 		public string InstallVCRedist( RedistProgress Progress, string SourceFolder )
 		{
 			string Status = "OK";
@@ -102,10 +116,8 @@ namespace UnSetup
 			Application.DoEvents();
 
 			// Always install the x86 redists on all OSes
-			ProcessStartInfo StartInfox86 = new ProcessStartInfo( "vcredist_x86_vs2008sp1.exe", "/q" );
-			StartInfox86.WorkingDirectory = SourceFolder;
-			VCRedist = Process.Start( StartInfox86 );
-			if( WaitForProcess( VCRedist, 120 ) == false )
+			VCRedist = StartRedist( SourceFolder, "vcredist_x86_vs2008sp1.exe", "/q" );
+			if( VCRedist != null && WaitForProcess( VCRedist, 120 ) == false )
 			{
 				Status = GetPhrase( "RedistVCRedistx86Fail" );
 			}
@@ -115,10 +127,8 @@ namespace UnSetup
 			// Install the x64 redist on 64 bit OSes
 			if( IntPtr.Size == 8 )
 			{
-				ProcessStartInfo StartInfox64 = new ProcessStartInfo( "vcredist_x64_vs2008sp1.exe", "/q" );
-				StartInfox64.WorkingDirectory = SourceFolder;
-				VCRedist = Process.Start( StartInfox64 );
-				if( WaitForProcess( VCRedist, 120 ) == false )
+				VCRedist = StartRedist( SourceFolder, "vcredist_x64_vs2008sp1.exe", "/q" );
+				if( VCRedist != null && WaitForProcess( VCRedist, 120 ) == false )
 				{
 					Status = GetPhrase( "RedistVCRedistx64Fail" );
 				}
@@ -143,10 +153,8 @@ namespace UnSetup
 
 			Application.DoEvents();
 
-			ProcessStartInfo StartInfo = new ProcessStartInfo( "DXRedistCutdown\\DXSetup.exe", "/silent" );
-			StartInfo.WorkingDirectory = SourceFolder;
-			Process DXRedist = Process.Start( StartInfo );
-			if( WaitForProcess( DXRedist, 240 ) == false )
+			Process DXRedist = StartRedist( SourceFolder, "DXRedistCutdown\\DXSetup.exe", "/silent" );
+			if( DXRedist != null && WaitForProcess( DXRedist, 240 ) == false )
 			{
 				Status = GetPhrase( "RedistDXRedistFail" );
 			}
@@ -170,10 +178,8 @@ namespace UnSetup
 
 			Application.DoEvents();
 
-			ProcessStartInfo StartInfo = new ProcessStartInfo( "MSChart\\SPInstaller.exe", "/q" );
-			StartInfo.WorkingDirectory = SourceFolder;
-			Process MSChartingRedist = Process.Start( StartInfo );
-			if( WaitForProcess( MSChartingRedist, 120 ) == false )
+			Process MSChartingRedist = StartRedist( SourceFolder, "MSChart\\SPInstaller.exe", "/q" );
+			if( MSChartingRedist != null && WaitForProcess( MSChartingRedist, 120 ) == false )
 			{
 				Status = GetPhrase( "RedistChartingToolsFail" );
 			}
@@ -211,10 +217,8 @@ namespace UnSetup
 
 					Application.DoEvents();
 
-					ProcessStartInfo StartInfo = new ProcessStartInfo( "AMD\\amdcpusetup.exe", "/s" );
-					StartInfo.WorkingDirectory = SourceFolder;
-					Process AMDCPURedist = Process.Start( StartInfo );
-					if( WaitForProcess( AMDCPURedist, 120 ) == false )
+					Process AMDCPURedist = StartRedist( SourceFolder, "AMD\\amdcpusetup.exe", "/s" );
+					if( AMDCPURedist != null && WaitForProcess( AMDCPURedist, 120 ) == false )
 					{
 						Status = GetPhrase( "RedistAMDCPUFail" );
 					}

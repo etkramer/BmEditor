@@ -36,6 +36,26 @@ static const wchar_t* UDKNET35 = L"UDKNET35";
 static const wchar_t* UDKRedis = L"UDKRedis";
 static const wchar_t* UDKMagic = L"UDKMagic";
 
+// BM
+// Check for .NET 4.x, which ships with Windows 8 and later. UnSetup.exe.config allows it to run
+// there, so a machine with 4.x does not need 3.5 installing as well.
+static bool CheckDotNet4( void )
+{
+	wchar_t Result[MAX_PATH] = { 0 };
+	DWORD ResultSize = sizeof( Result );
+
+	DWORD Error = SHRegGetValue( HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\.NETFramework", L"InstallRoot", RRF_RT_REG_SZ, NULL, &Result, &ResultSize );
+	if( Error != ERROR_SUCCESS )
+	{
+		return( false );
+	}
+
+	wcscat_s( Result, MAX_PATH, L"v4.0.30319\\clr.dll" );
+
+	DWORD Handle;
+	return( GetFileVersionInfoSize( Result, &Handle ) > 0 );
+}
+
 // Check for .NET 35 SP1 being installed
 bool CheckDotNet35( void )
 {
@@ -676,7 +696,8 @@ INT WINAPI WinMain( HINSTANCE HInstance, HINSTANCE, char* Argument, INT )
 	// Check for .NET 35 SP1 being installed
 	if( !bSkipNETCheck )
 	{
-		if( !CheckDotNet35() || bForceNETInstall )
+		// BM: 4.x is enough, so only bootstrap 3.5 when neither is present
+		if( ( !CheckDotNet35() && !CheckDotNet4() ) || bForceNETInstall )
 		{
 			if( ExtractDotNetFx( ModuleName, WorkFolder ) )
 			{
@@ -703,6 +724,11 @@ INT WINAPI WinMain( HINSTANCE HInstance, HINSTANCE, char* Argument, INT )
 			else
 			{
 				OutputDebugStringW( L"Failed to extract DotNetFx\r\n" );
+
+				// BM: Do not just vanish - the installer cannot run without .NET
+				MessageBox( NULL, L"This installer requires the .NET Framework, which could not be found or installed.\r\n\r\n"
+								  L"Please enable .NET Framework 3.5 in 'Turn Windows features on or off', or install .NET Framework 4, and run this installer again.",
+								  L"Missing Prerequisite", MB_OK | MB_ICONERROR );
 			}
 
 			return( 1 );

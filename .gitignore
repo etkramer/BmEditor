@@ -1,5 +1,9 @@
 # Content files
 /Binaries/*
+!/Binaries/BuildInstaller.bat
+/BmEditorInstall*.exe
+!/Binaries/UnSetup.Manifests.BmEditor.xml
+!/Binaries/UnSetup.exe.config
 !/Binaries/Win32/
 /Binaries/Win32/*
 !/Binaries/Win32/*.exe.config
@@ -17,6 +21,10 @@
 
 # Visual Studio 2015 user specific files
 .vs/
+
+/Development/Tools/**/obj/
+/Development/Tools/**/Release/
+/Development/Tools/**/Debug/
 
 /Development/Src/**/*.user
 /Development/Src/**/*.suo

@@ -1701,6 +1701,32 @@ namespace UnSetup
 				Dictionary.Add( "IOInvalidEmail", "   Invalid email address" );
 				break;
 			}
+
+			// BM
+			// English fallbacks for phrases that are not localised
+			AddDefaultPhrases();
+		}
+
+		// BM
+		private void AddDefaultPhrases()
+		{
+			Dictionary<string, string> Defaults = new Dictionary<string, string>()
+			{
+				{ "GCTitle", "Game Content Location" },
+				{ "GCDescription", "The editor needs the cooked content from an existing Batman: Arkham City install. It will be copied into the editor install, leaving the original game untouched. Please confirm the location of your Arkham City install." },
+				{ "GCInvalidLocation", "   Could not find Arkham City content in this folder" },
+				{ "GBGameLocation", "Arkham City Install Location" },
+				{ "PBCopyingContent", "Copying Game Content" },
+				{ "GQCaptionCopyContentFail", "Failed to Copy Game Content" },
+			};
+
+			foreach( KeyValuePair<string, string> Default in Defaults )
+			{
+				if( !Dictionary.ContainsKey( Default.Key ) )
+				{
+					Dictionary.Add( Default.Key, Default.Value );
+				}
+			}
 		}
 
 		public void Destroy()

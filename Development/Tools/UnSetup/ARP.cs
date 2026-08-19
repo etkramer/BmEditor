@@ -20,7 +20,8 @@ namespace UnSetup
 					Key.SetValue( "DisplayName", DisplayName, RegistryValueKind.String );
 
 					Key.SetValue( "InstallLocation", InstallLocation, RegistryValueKind.String );
-					Key.SetValue( "Publisher", "Epic Games, Inc.", RegistryValueKind.String );
+					// BM
+					Key.SetValue( "Publisher", Manifest.Publisher, RegistryValueKind.String );
 					Key.SetValue( "DisplayIcon", InstallLocation + "\\Binaries\\InstallData\\Uninstall.ico", RegistryValueKind.String );
 					Key.SetValue( "UninstallString", InstallLocation + "\\Binaries\\UnSetup.exe /uninstall", RegistryValueKind.String );
 
