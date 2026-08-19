@@ -2091,6 +2091,17 @@ UBOOL ULinkerLoad::SerializeDependsMap()
 		return TRUE;
 	}
 
+#if BATMAN
+	// BM: UPK Explorer creates a malformed depends map and retail skips it
+	// with GUseSeekFreeLoading. Luckily it's not used for anything important.
+	if( Summary.PackageFlags & PKG_Cooked )
+	{
+		DependsMap.AddZeroed( Summary.ExportCount - DependsMap.Num() );
+		DependsMapIndex = Summary.ExportCount;
+		return TRUE;
+	}
+#endif
+
 	// depends map size is same as export map size
 	if (DependsMapIndex == 0 && Summary.ExportCount > 0)
 	{
