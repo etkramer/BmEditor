@@ -148,6 +148,48 @@
         },
         "problemMatcher": "$msCompile",
       },
+      {
+        "label": "Build UnSetup",
+        "type": "shell",
+        "command": "${env:WINDIR}/Microsoft.NET/Framework/v4.0.30319/MSBuild.exe",
+        "args": [
+          "Development/Tools/UnSetup/UnSetup.csproj",
+          "/p:Configuration=Release",
+          "/v:minimal",
+        ],
+        "options": {
+          "cwd": "${workspaceFolder}",
+        },
+        "presentation": {
+          "reveal": "always",
+          "panel": "shared",
+          "echo": false,
+          "clear": true
+        },
+        "problemMatcher": "$msCompile",
+      },
+      {
+        // Rebuilds the editor, the installer tool, and the packaged installer in one go.
+        "label": "Build Installer",
+        "type": "shell",
+        "command": "${workspaceFolder}/Binaries/BuildInstaller.bat",
+        "options": {
+          "cwd": "${workspaceFolder}",
+        },
+        "dependsOrder": "sequence",
+        "dependsOn": ["Build Editor (Release)", "Build UnSetup"],
+        "group": {
+          "kind": "build",
+          "isDefault": false,
+        },
+        "presentation": {
+          "reveal": "always",
+          "panel": "shared",
+          "echo": false,
+          "clear": true
+        },
+        "problemMatcher": [],
+      },
     ],
   },
   "launch": {

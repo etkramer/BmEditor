@@ -115,6 +115,9 @@
     <string>Binaries/Win32/Tootle_2k8_d.dll</string>
     <string>Binaries/Win32/UnSetupNativeWrapper.exe</string>
   </MainFilesToExclude>
+  <MainFilesToInclude>
+    <string>Development/Src/(.*)[.]uci?$</string>
+  </MainFilesToInclude>
   <GameFilesToExclude>
   </GameFilesToExclude>
   <GameFilesToInclude>

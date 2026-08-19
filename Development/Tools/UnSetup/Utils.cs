@@ -237,6 +237,12 @@ namespace UnSetup
 			[XmlArrayAttribute]
 			public string[] MainFilesToExclude { get; set; }
 
+			// BM
+			[CategoryAttribute( "FileManifests" )]
+			[DescriptionAttribute( "The files to re-add to the original build after the exclusions have been applied." )]
+			[XmlArrayAttribute]
+			public string[] MainFilesToInclude { get; set; }
+
 			[CategoryAttribute( "FileManifests" )]
 			[DescriptionAttribute( "The files to EXCLUDE from the game build that were in the original build." )]
 			[XmlArrayAttribute]
@@ -302,6 +308,7 @@ namespace UnSetup
 				GameInfo = new List<GameManifestOptions>() {};
 
 				MainFilesToExclude = new string[] {};
+				MainFilesToInclude = new string[] {};
 				GameFilesToExclude = new string[] {};
 				GameFilesToInclude = new string[] {};
 
@@ -1097,6 +1104,13 @@ namespace UnSetup
 			string[] Folders = FolderName.Split( '/' );
 			FolderProperties Folder = ParentFolder.FindFolder( Folders[0] );
 
+			// BM
+			// A folder marked for exclusion is about to be pruned, so build the include branch alongside it
+			if( Folder != null && Folder.Size < 0 )
+			{
+				Folder = null;
+			}
+
 			if( Folder == null )
 			{
 				Folder = new FolderProperties( Folders[0] );
@@ -1232,6 +1246,13 @@ namespace UnSetup
 			foreach( string FileSpec in Manifest.MainFilesToExclude )
 			{
 				FilterCount += FilterOutFileSpec( RootFolderProperty, FileSpec );
+			}
+
+			// BM
+			// Re-add anything the broad exclusions above swept up
+			foreach( string FileSpec in Manifest.MainFilesToInclude )
+			{
+				AddFileSpec( RootFolderProperty, FileSpec );
 			}
 
 			// BM
