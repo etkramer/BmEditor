@@ -2140,6 +2140,14 @@ public:
 				continue;
 			}
 
+#if BATMAN
+			// BM: Hide CookedPCConsole from the tree (Packages should be used instead).
+			if( PkgPath.InStr( PATH_SEPARATOR TEXT("CookedPCConsole") PATH_SEPARATOR, FALSE, TRUE ) != INDEX_NONE )
+			{
+				continue;
+			}
+#endif
+
 			ContentBrowser::Package^ PackageNode = Sources->AddPackage( CLRTools::ToString( PkgPath ), IsUsingFlatView );
 			StringPackageMap.Add( PackageNode->Name, PackageNode );
 		}
