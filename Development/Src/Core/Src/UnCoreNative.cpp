@@ -793,8 +793,14 @@ void UPackage::InitNetInfo(ULinkerLoad* InLinker, INT ExportIndex)
 	}
 	else
 	{
-		// get GUID from export
-		Guid = InLinker->ExportMap(ExportIndex).PackageGuid;
+#if BATMAN
+		// BM: Keep the guid of a package that was loaded from its own file (not the forced export).
+		if ( FileSize == 0 )
+#endif
+		{
+			// get GUID from export
+			Guid = InLinker->ExportMap(ExportIndex).PackageGuid;
+		}
 
 		if (InLinker->LinkerRoot != this)
 		{
