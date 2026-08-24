@@ -1484,6 +1484,8 @@ void WxEditorFrame::Create()
 			{
 				::SendMessage( WindowHnd, WM_SETICON, (WPARAM)ICON_SMALL, (LPARAM)EditorIconHandle );
 				::SendMessage( WindowHnd, WM_SETICON, (WPARAM)ICON_BIG, (LPARAM)EditorIconHandle );
+				::SetClassLongPtr( WindowHnd, GCLP_HICON, (LONG_PTR)EditorIconHandle );
+				::SetClassLongPtr( WindowHnd, GCLP_HICONSM, (LONG_PTR)EditorIconHandle );
 			}
 		}
 
