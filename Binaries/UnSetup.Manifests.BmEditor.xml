@@ -119,6 +119,7 @@
   </MainFilesToExclude>
   <MainFilesToInclude>
     <string>Development/Src/(.*)[.]uci?$</string>
+    <string>Binaries/Win64/^(UnrealLightmass[.]exe([.]config)?|msvc[mr]90[.]dll|Microsoft[.]VC90[.]CRT[.]manifest)$</string>
   </MainFilesToInclude>
   <GameFilesToExclude>
   </GameFilesToExclude>
