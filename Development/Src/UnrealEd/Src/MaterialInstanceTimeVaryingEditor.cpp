@@ -1668,6 +1668,12 @@ void WxMaterialInstanceTimeVaryingEditor::OpenSelectedParentEditor()
 			{
 				// Show material editor
 				UMaterial* Material = Cast<UMaterial>(SelectedMaterialInstance);
+#if BATMAN
+				if ( !WxMaterialEditor::IsMaterialEditable( Material ) )
+				{
+					return;
+				}
+#endif
 				wxFrame* MaterialEditor = new WxMaterialEditor( (wxWindow*)GApp->EditorFrame,-1,Material );
 				MaterialEditor->SetSize(1024,768);
 				MaterialEditor->Show();

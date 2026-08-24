@@ -1496,6 +1496,18 @@ BEGIN_EVENT_TABLE( WxMaterialEditorSourceWindow, wxPanel )
 END_EVENT_TABLE()
 
 
+#if BATMAN
+UBOOL WxMaterialEditor::IsMaterialEditable(UMaterial* InMaterial)
+{
+	if ( InMaterial && (InMaterial->GetOutermost()->PackageFlags & PKG_Cooked) )
+	{
+		appMsgf( AMT_OK, *LocalizeUnrealEd("Error_OperationDisallowedOnCookedContent") );
+		return FALSE;
+	}
+	return TRUE;
+}
+#endif
+
 WxMaterialEditor::WxMaterialEditor(wxWindow* InParent, wxWindowID InID, UMaterial* InMaterial)
 	:	WxMaterialEditorBase( InParent, InID, InMaterial )
 	,  FDockingParent(this)

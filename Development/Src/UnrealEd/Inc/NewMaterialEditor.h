@@ -110,6 +110,10 @@ public:
 	WxMaterialEditor(wxWindow* InParent, wxWindowID InID, UMaterial* InMaterial);
 	virtual ~WxMaterialEditor();
 
+#if BATMAN
+	static UBOOL IsMaterialEditable(UMaterial* InMaterial);
+#endif
+
 	/**
 	 * Load editor settings from disk (docking state, window pos/size, option state, etc).
 	 */

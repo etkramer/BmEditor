@@ -2877,6 +2877,13 @@ namespace {
 	{
 		if ( MaterialToEdit )
 		{
+#if BATMAN
+			// BM: Disallow allow opening the Material Editor for cooked packages
+			if ( !WxMaterialEditor::IsMaterialEditable( MaterialToEdit ) )
+			{
+				return;
+			}
+#endif
 			wxFrame* MaterialEditor = new WxMaterialEditor( (wxWindow*)GApp->EditorFrame,-1,MaterialToEdit );
 			MaterialEditor->Show();
 		}
