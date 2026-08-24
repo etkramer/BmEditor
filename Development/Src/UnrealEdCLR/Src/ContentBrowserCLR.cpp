@@ -5210,11 +5210,12 @@ void MContentBrowserControl::PopulatePackageListMenuItems( ItemCollection^ OutPa
 				if( SourceItem != nullptr )
 				{
 #if BATMAN
-					// BM: Cooked packages can't be imported into, and force-exported packages have no file to explore to.
-					const bool bIsImportCommand =
+					// BM: Cooked packages can't be imported into or re-cooked, and force-exported packages have no file to explore to.
+					const bool bIsCookedDisallowedCommand =
 						SourceItem->Command == ContentBrowser::PackageCommands::ImportAsset ||
-						SourceItem->Command == ContentBrowser::PackageCommands::BulkImport;
-					if( ( bIsImportCommand && bAnyCooked )
+						SourceItem->Command == ContentBrowser::PackageCommands::BulkImport ||
+						SourceItem->Command == ContentBrowser::PackageCommands::CookPackage;
+					if( ( bIsCookedDisallowedCommand && bAnyCooked )
 					||	( SourceItem->Command == ContentBrowser::PackageCommands::OpenExplorer && bAnyForcedExport ) )
 					{
 						continue;
