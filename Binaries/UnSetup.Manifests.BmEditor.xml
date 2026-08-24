@@ -100,6 +100,8 @@
     <string>Binaries/Redist/Perforce</string>
     <string>Binaries/Redist/(.*).xlsx</string>
     <string>Binaries/SwarmCache</string>
+    <string>Binaries/SwarmAgent.Options.xml</string>
+    <string>Binaries/SwarmAgent.DeveloperOptions.xml</string>
     <string>Binaries/UnrealRemoteTool</string>
     <string>Binaries/Win64</string>
     <string>Binaries/Win32/(.*).pdb</string>
