@@ -742,7 +742,7 @@ enum
 	IDM_BrushBuilder_START,
 	IDM_BrushBuilder_END = IDM_BrushBuilder_START+20,					// Reserves IDs for up to 20 brush builders
 	IDM_VolumeClasses_START,
-	IDM_VolumeClasses_END = IDM_VolumeClasses_START+64,
+	IDM_VolumeClasses_END = IDM_VolumeClasses_START+512,
 	IDM_ConvertVolumeClasses_START,
 	IDM_ConvertVolumeClasses_END = IDM_ConvertVolumeClasses_START + ( IDM_VolumeClasses_END - IDM_VolumeClasses_START ),	// Ensure same # as volume classes
 	IDM_VolumeActorVisibilityShowAll,
