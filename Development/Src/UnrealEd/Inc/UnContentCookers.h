@@ -788,6 +788,13 @@ class UPersistentCookerData : public UObject
 	}
 
 protected:
+#if BATMAN
+	TMap<FString,TMap<FString,FString> > CookedAlwaysLoadedMapping;
+	TMap<FString,TMap<FString,TMap<FString,FString> > > CookedAlwaysLoadedLocMapping;
+	TSet<FString> CookedStartupObjects;
+	TSet<FString> CookedStartupObjectsLoc;
+#endif
+
 	/** Map from unique name to bulk data info data */
 	TMap<FString,FCookedBulkDataInfo> CookedBulkDataInfoMap;
 

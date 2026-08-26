@@ -10541,12 +10541,15 @@ public:
     TScriptInterface<class IInterface> VoiceInterface;
     TScriptInterface<class IInterface> StatsInterface;
     TScriptInterface<class IInterface> NewsInterface;
+    BITFIELD bWasLastLoginAutomatic:1;
+    BITFIELD bUseBuildIdOverride:1;
+    FLOAT TimeGuideLastOpened;
+    FLOAT TimeGuideLastClosed;
     TScriptInterface<class IInterface> PartyChatInterface;
     TScriptInterface<class IInterface> TitleFileInterface;
     TArrayNoInit<struct FNamedInterface> NamedInterfaces;
     TArrayNoInit<struct FNamedInterfaceDef> NamedInterfaceDefs;
     TArrayNoInit<struct FNamedSession> Sessions;
-    BITFIELD bUseBuildIdOverride:1;
     INT BuildIdOverride;
     FStringNoInit IniLocPatcherClassName;
     class UIniLocPatcher* Patcher;

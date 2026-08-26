@@ -12049,6 +12049,15 @@ void UPersistentCookerData::SaveToDisk()
 void UPersistentCookerData::Serialize( FArchive& Ar )
 {
 	Super::Serialize( Ar );
+#if BATMAN
+	if( Ar.LicenseeVer() >= VER_BATMAN2 )
+	{
+		Ar << CookedAlwaysLoadedMapping;
+		Ar << CookedAlwaysLoadedLocMapping;
+		Ar << CookedStartupObjects;
+		Ar << CookedStartupObjectsLoc;
+	}
+#endif
 	Ar << CookedBulkDataInfoMap;
 	if (Ar.IsSaving() && bMinimalSave)
 	{

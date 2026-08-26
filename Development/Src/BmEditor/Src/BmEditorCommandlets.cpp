@@ -9,7 +9,7 @@ IMPLEMENT_CLASS(UExtractPackagesCommandlet);
 
 void LoadStartupPackages();
 
-// BM: Commandlets only load startup packages when running with -user, so UnrealEd.u
+// Commandlets only load startup packages when running with -user, so UnrealEd.u
 // is never loaded. The rest matches UMakeCommandlet::CreateCustomEngine().
 void UExtractPackagesCommandlet::CreateCustomEngine()
 {
@@ -30,19 +30,87 @@ void UExtractPackagesCommandlet::CreateCustomEngine()
 	GEditor->InitEditor();
 }
 
-// BM: A subpackage we found inside a cooked package, along with where it'll be written out.
+// A subpackage we found inside a cooked package, along with where it'll be written out.
 struct FExtractedPackage
 {
 	UPackage*	Package;
 	FString		FilePath;
 };
 
-// BM: Total heap use, including the allocator's own per-allocation overhead.
+// Total heap use, including the allocator's own per-allocation overhead.
 static SIZE_T GetAllocatedMemory()
 {
 	FMemoryAllocationStats MemStats;
 	GMalloc->GetAllocationInfo(MemStats);
 	return MemStats.TotalAllocated;
+}
+
+// Map each file to the package it was cooked as a sublevel of, or INDEX_NONE. A sublevel is
+// named after its parent plus a suffix (BaneSS_B1_Static_2 -> BaneSS_B1 -> BaneSS), so strip
+// trailing underscore-delimited components until we hit a package that exists. _SF packages are
+// standalone, and script packages never contain an underscore.
+static void BuildParentIndices(const TArray<FString>& Files, TArray<INT>& ParentIndex)
+{
+	TMap<FString,INT> IndexByName;
+	for (INT FileIndex = 0; FileIndex < Files.Num(); FileIndex++)
+	{
+		IndexByName.Set(FFilename(Files(FileIndex)).GetBaseFilename(), FileIndex);
+	}
+
+	ParentIndex.Empty(Files.Num());
+	ParentIndex.AddZeroed(Files.Num());
+
+	for (INT FileIndex = 0; FileIndex < Files.Num(); FileIndex++)
+	{
+		ParentIndex(FileIndex) = INDEX_NONE;
+
+		FString Name = FFilename(Files(FileIndex)).GetBaseFilename();
+		if (Name.EndsWith(TEXT("_SF")))
+		{
+			continue;
+		}
+
+		for (INT Underscore = Name.InStr(TEXT("_"), TRUE); Underscore != INDEX_NONE; Underscore = Name.InStr(TEXT("_"), TRUE))
+		{
+			Name = Name.Left(Underscore);
+
+			INT* Found = IndexByName.Find(Name);
+			if (Found)
+			{
+				ParentIndex(FileIndex) = *Found;
+				break;
+			}
+		}
+	}
+}
+
+// Load a cooked package into the current batch, bringing in its parent maps first. A sublevel is
+// cooked assuming its parent is already loaded, so imports pointing into the parent only resolve if
+// the whole chain is resident - otherwise they come through as NULL.
+static void LoadForBatch(INT FileIndex, const TArray<FString>& Files, const TArray<INT>& ParentIndex, TArray<UBOOL>& LoadedThisBatch, TArray<UPackage*>& Roots)
+{
+	if (LoadedThisBatch(FileIndex))
+	{
+		return;
+	}
+	LoadedThisBatch(FileIndex) = TRUE;
+
+	if (ParentIndex(FileIndex) != INDEX_NONE)
+	{
+		LoadForBatch(ParentIndex(FileIndex), Files, ParentIndex, LoadedThisBatch, Roots);
+	}
+
+	warnf(TEXT("  Loading '%s'"), *Files(FileIndex));
+
+	UPackage* Package = UObject::LoadPackage(NULL, *Files(FileIndex), LOAD_None);
+	if (Package)
+	{
+		Roots.AddItem(Package);
+	}
+	else
+	{
+		warnf(NAME_Warning, TEXT("  Failed to load '%s'"), *Files(FileIndex));
+	}
 }
 
 // BM
@@ -66,22 +134,11 @@ INT UExtractPackagesCommandlet::Main(const FString& Params)
 	Parse(*Params, TEXT("MEMORY="), MemoryLimitMB);
 	const SIZE_T MemoryLimit = (SIZE_T)Max(MemoryLimitMB, 64) * 1024 * 1024;
 
-	FString Filter;
-	Parse(*Params, TEXT("FILTER="), Filter);
-
 	TArray<FString> Files;
 	appFindFilesInDirectory(Files, *SourceDir, TRUE, FALSE);
 
-	if (Filter.Len() > 0)
-	{
-		for (INT FileIndex = Files.Num() - 1; FileIndex >= 0; FileIndex--)
-		{
-			if (Files(FileIndex).InStr(Filter, FALSE, TRUE) == INDEX_NONE)
-			{
-				Files.Remove(FileIndex);
-			}
-		}
-	}
+	TArray<INT> ParentIndex;
+	BuildParentIndices(Files, ParentIndex);
 
 	warnf(TEXT("Extracting subpackages from %i cooked packages, %i MB per batch"), Files.Num(), MemoryLimitMB);
 	GFileManager->MakeDirectory(*OutputDir, TRUE);
@@ -93,19 +150,12 @@ INT UExtractPackagesCommandlet::Main(const FString& Params)
 
 		// Load the cooked packages, remembering their roots so we don't extract them over themselves.
 		TArray<UPackage*> Roots;
+		TArray<UBOOL> LoadedThisBatch;
+		LoadedThisBatch.AddZeroed(Files.Num());
+
 		while (FileIndex < Files.Num())
 		{
-			warnf(TEXT("  Loading '%s'"), *Files(FileIndex));
-
-			UPackage* Package = LoadPackage(NULL, *Files(FileIndex), LOAD_None);
-			if (Package)
-			{
-				Roots.AddItem(Package);
-			}
-			else
-			{
-				warnf(NAME_Warning, TEXT("  Failed to load '%s'"), *Files(FileIndex));
-			}
+			LoadForBatch(FileIndex, Files, ParentIndex, LoadedThisBatch, Roots);
 
 			FileIndex++;
 			if (GetAllocatedMemory() >= MemoryLimit)

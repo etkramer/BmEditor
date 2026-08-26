@@ -43,6 +43,16 @@ var OnlineStatsInterface StatsInterface;
 /** The interface to use for reading game specific news announcements */
 var OnlineNewsInterface NewsInterface;
 
+// BM
+var const bool bWasLastLoginAutomatic;
+
+/** Whether to use the override or not */
+var config bool bUseBuildIdOverride;
+
+// BM
+var float TimeGuideLastOpened;
+var float TimeGuideLastClosed;
+
 /** The interface to use for accessing online party chat methods */
 var OnlinePartyChatInterface PartyChatInterface;
 
@@ -686,9 +696,6 @@ enum EOnlineNewsType
 	ONT_ContentAnnouncements,
 	ONT_Misc
 };
-
-/** Whether to use the override or not */
-var config bool bUseBuildIdOverride;
 
 /** Used to specify a build override value */
 var config int BuildIdOverride;
