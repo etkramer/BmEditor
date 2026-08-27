@@ -1365,7 +1365,8 @@ void UMaterialInstance::PostLoad()
 	// Make sure static parameters are up to date and shaders are cached for the current platform
 	InitStaticPermutation();
 
-	if( GIsEditor && !IsTemplate() )
+	// BM: GEngine doesn't exist yet when loading startup packages
+	if( GIsEditor && GEngine && !IsTemplate() )
 	{
 		// Ensure that the ReferencedTextureGuids array is up to date.
 		UpdateLightmassTextureTracking();
