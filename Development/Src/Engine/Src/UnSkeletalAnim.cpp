@@ -199,19 +199,118 @@ struct FBundle
 	INT TracksAndHeadersOffset;
 	INT KeyframesOffset;
 };
+
+// 16 bytes - BM4 (Arkham Knight) bundle: 16-bit track count/indices, trailing 32-bit codec.
+struct FBundleBM4
+{
+	USHORT NumTracks;
+	USHORT NumFrames;
+	INT TracksAndHeadersOffset;
+	INT KeyframesOffset;
+	INT Codec;
+};
 #pragma pack(pop)
+
+// Experimental: read/write AnimZip data in BM4 format. Retail BM2 cannot load it.
+static UBOOL AnimZip_UseBM4Format()
+{
+	static UBOOL bInitialized = FALSE;
+	static UBOOL bUseBM4 = FALSE;
+	if (!bInitialized)
+	{
+		GConfig->GetBool(TEXT("BmEditor.Experimental"), TEXT("bWriteAnimZipAsBM4"), bUseBM4, GEditorIni);
+		bInitialized = TRUE;
+	}
+	return bUseBM4;
+}
+
+static INT AnimZip_BundleSize() { return AnimZip_UseBM4Format() ? (INT)sizeof(FBundleBM4) : (INT)sizeof(FBundle); }
+static INT AnimZip_TrackIndexSize() { return AnimZip_UseBM4Format() ? 2 : 1; }
+
+// Layout-independent bundle header.
+struct FBundleInfo
+{
+	BYTE Codec;
+	INT NumTracks;
+	INT NumFrames;
+	INT TracksAndHeadersOffset;
+	INT KeyframesOffset;
+};
+
+static FBundleInfo AnimZip_ReadBundle(const BYTE* Data, INT Offset)
+{
+	FBundleInfo Out;
+	if (AnimZip_UseBM4Format())
+	{
+		const FBundleBM4& B = *(const FBundleBM4*)&Data[Offset];
+		Out.Codec = (BYTE)B.Codec;
+		Out.NumTracks = B.NumTracks;
+		Out.NumFrames = B.NumFrames;
+		Out.TracksAndHeadersOffset = B.TracksAndHeadersOffset;
+		Out.KeyframesOffset = B.KeyframesOffset;
+	}
+	else
+	{
+		const FBundle& B = *(const FBundle*)&Data[Offset];
+		Out.Codec = B.Codec;
+		Out.NumTracks = B.NumTracks;
+		Out.NumFrames = B.NumFrames;
+		Out.TracksAndHeadersOffset = B.TracksAndHeadersOffset;
+		Out.KeyframesOffset = B.KeyframesOffset;
+	}
+	return Out;
+}
+
+static void AnimZip_WriteBundle(BYTE* Data, INT Offset, const FBundleInfo& In)
+{
+	if (AnimZip_UseBM4Format())
+	{
+		FBundleBM4& B = *(FBundleBM4*)&Data[Offset];
+		B.NumTracks = (USHORT)In.NumTracks;
+		B.NumFrames = (USHORT)In.NumFrames;
+		B.TracksAndHeadersOffset = In.TracksAndHeadersOffset;
+		B.KeyframesOffset = In.KeyframesOffset;
+		B.Codec = In.Codec;
+	}
+	else
+	{
+		FBundle& B = *(FBundle*)&Data[Offset];
+		B.Codec = In.Codec;
+		B.NumTracks = (BYTE)In.NumTracks;
+		B.NumFrames = (USHORT)In.NumFrames;
+		B.TracksAndHeadersOffset = In.TracksAndHeadersOffset;
+		B.KeyframesOffset = In.KeyframesOffset;
+	}
+}
+
+static INT AnimZip_ReadTrackIndex(const BYTE* TrackMap, INT Index)
+{
+	return AnimZip_UseBM4Format() ? ((const USHORT*)TrackMap)[Index] : TrackMap[Index];
+}
+
+static void AnimZip_WriteTrackIndex(BYTE* TrackMap, INT Index, INT Value)
+{
+	if (AnimZip_UseBM4Format())
+	{
+		((USHORT*)TrackMap)[Index] = (USHORT)Value;
+	}
+	else
+	{
+		TrackMap[Index] = (BYTE)Value;
+	}
+}
 
 // Resolved pointers into AnimZip_Data for a single bundle
 struct FResolvedBundle
 {
-	const BYTE* TrackToAnimTrack;	// NumTracks bytes: maps bundle track -> anim track index
+	const BYTE* TrackToAnimTrack;	// NumTracks entries: maps bundle track -> anim track index
 	const BYTE* Headers;			// Codec-specific per-track headers (follows TrackToAnimTrack)
 	const BYTE* Keyframes;			// Keyframe data
 
-	void Resolve(const BYTE* Data, const FBundle& B)
+	void Resolve(const BYTE* Data, const FBundleInfo& B)
 	{
 		TrackToAnimTrack = &Data[B.TracksAndHeadersOffset];
-		Headers = &Data[B.TracksAndHeadersOffset + B.NumTracks];
+		Headers = &Data[B.TracksAndHeadersOffset + B.NumTracks * AnimZip_TrackIndexSize()];
 		Keyframes = &Data[B.KeyframesOffset];
 	}
 };
@@ -516,14 +615,13 @@ void AnimZip_Sample_Track(const UAnimSequence* Seq, INT TrackIndex, FLOAT Normal
 	NormalizedTime = Clamp(NormalizedTime, 0.0f, 1.0f - (FLOAT)SMALL_NUMBER);
 
 	UBOOL bFoundRotation = FALSE;
-	const FBundle* RotBundles = (const FBundle*)&Data[Anim->RotationBundlesOffset];
 	for (INT i = 0; i < Anim->NumRotationBundles; i++)
 	{
-		const FBundle& B = RotBundles[i];
+		const FBundleInfo B = AnimZip_ReadBundle(Data, Anim->RotationBundlesOffset + i * AnimZip_BundleSize());
 		const BYTE* TrackMap = &Data[B.TracksAndHeadersOffset];
 		for (INT t = 0; t < B.NumTracks; t++)
 		{
-			if (TrackMap[t] == TrackIndex)
+			if (AnimZip_ReadTrackIndex(TrackMap, t) == TrackIndex)
 			{
 				FResolvedBundle RB;
 				RB.Resolve(Data, B);
@@ -542,14 +640,13 @@ void AnimZip_Sample_Track(const UAnimSequence* Seq, INT TrackIndex, FLOAT Normal
 	}
 
 	UBOOL bFoundTranslation = FALSE;
-	const FBundle* TransBundles = (const FBundle*)&Data[Anim->TranslationScaleBundlesOffset];
 	for (INT i = 0; i < Anim->NumTranslationScaleBundles; i++)
 	{
-		const FBundle& B = TransBundles[i];
+		const FBundleInfo B = AnimZip_ReadBundle(Data, Anim->TranslationScaleBundlesOffset + i * AnimZip_BundleSize());
 		const BYTE* TrackMap = &Data[B.TracksAndHeadersOffset];
 		for (INT t = 0; t < B.NumTracks; t++)
 		{
-			if (TrackMap[t] == TrackIndex)
+			if (AnimZip_ReadTrackIndex(TrackMap, t) == TrackIndex)
 			{
 				FResolvedBundle RB;
 				RB.Resolve(Data, B);
@@ -596,7 +693,7 @@ UBOOL AnimZip_Sample_Motion(const UAnimSequence* Seq, FLOAT NormalizedTime, FBon
 
 	if (RotOffset >= 0)
 	{
-		const FBundle& B = *(const FBundle*)&Data[RotOffset];
+		const FBundleInfo B = AnimZip_ReadBundle(Data, RotOffset);
 		FResolvedBundle RB;
 		RB.Resolve(Data, B);
 		FCatmullRomTime Time = FCatmullRomTime::Make(NormalizedTime, B.NumFrames);
@@ -605,7 +702,7 @@ UBOOL AnimZip_Sample_Motion(const UAnimSequence* Seq, FLOAT NormalizedTime, FBon
 
 	if (TransOffset >= 0)
 	{
-		const FBundle& B = *(const FBundle*)&Data[TransOffset];
+		const FBundleInfo B = AnimZip_ReadBundle(Data, TransOffset);
 		FResolvedBundle RB;
 		RB.Resolve(Data, B);
 		FCatmullRomTime Time = FCatmullRomTime::Make(NormalizedTime, B.NumFrames);
@@ -634,17 +731,16 @@ void AnimZip_Sample(const UAnimSequence* Seq, USkeletalMesh* SkelMesh,
 	// rotation, RefPose + Decoded for translation (Default.xex.c:2981587, :2967216).
 	const UBOOL bRetarget = Seq->Compression_RelativeToReferencePose;
 
-	const FBundle* RotBundles = (const FBundle*)&Data[Anim->RotationBundlesOffset];
 	for (INT i = 0; i < Anim->NumRotationBundles; i++)
 	{
-		const FBundle& B = RotBundles[i];
+		const FBundleInfo B = AnimZip_ReadBundle(Data, Anim->RotationBundlesOffset + i * AnimZip_BundleSize());
 		FResolvedBundle RB;
 		RB.Resolve(Data, B);
 		FCatmullRomTime Time = FCatmullRomTime::Make(NormalizedTime, B.NumFrames);
 
 		for (INT t = 0; t < B.NumTracks; t++)
 		{
-			INT AnimTrack = RB.TrackToAnimTrack[t];
+			INT AnimTrack = AnimZip_ReadTrackIndex(RB.TrackToAnimTrack, t);
 			INT BoneIdx = (AnimTrack < TrackToBoneTable.Num()) ? TrackToBoneTable(AnimTrack) : INDEX_NONE;
 			if (BoneIdx != INDEX_NONE && BoneIdx < NumBones)
 			{
@@ -659,17 +755,16 @@ void AnimZip_Sample(const UAnimSequence* Seq, USkeletalMesh* SkelMesh,
 		}
 	}
 
-	const FBundle* TransBundles = (const FBundle*)&Data[Anim->TranslationScaleBundlesOffset];
 	for (INT i = 0; i < Anim->NumTranslationScaleBundles; i++)
 	{
-		const FBundle& B = TransBundles[i];
+		const FBundleInfo B = AnimZip_ReadBundle(Data, Anim->TranslationScaleBundlesOffset + i * AnimZip_BundleSize());
 		FResolvedBundle RB;
 		RB.Resolve(Data, B);
 		FCatmullRomTime Time = FCatmullRomTime::Make(NormalizedTime, B.NumFrames);
 
 		for (INT t = 0; t < B.NumTracks; t++)
 		{
-			INT AnimTrack = RB.TrackToAnimTrack[t];
+			INT AnimTrack = AnimZip_ReadTrackIndex(RB.TrackToAnimTrack, t);
 			INT BoneIdx = (AnimTrack < TrackToBoneTable.Num()) ? TrackToBoneTable(AnimTrack) : INDEX_NONE;
 			if (BoneIdx != INDEX_NONE && BoneIdx < NumBones)
 			{
@@ -860,7 +955,7 @@ static FLOAT AnimZip_GetMaxTranslationError(const FVector& Ref, const TArray<FVe
 
 struct FIntermediateRotationTrack
 {
-	BYTE			AnimTrackIndex;	// index into UAnimSequence::RawAnimationData
+	WORD			AnimTrackIndex;	// index into UAnimSequence::RawAnimationData
 	BYTE			Codec;			// EAnimZipRotationCodec once selected
 	INT				NumFrames;		// post-downsample
 	TArray<FQuat>	Samples;		// massaged, pre-encode keys (length == NumFrames)
@@ -870,7 +965,7 @@ struct FIntermediateRotationTrack
 
 struct FIntermediateTransScaleTrack
 {
-	BYTE				AnimTrackIndex;
+	WORD				AnimTrackIndex;
 	BYTE				Codec;		// EAnimZipTranslationScaleCodec once selected
 	INT					NumFrames;
 	TArray<FVector>		Samples;	// translation only for now (no scale in scoped codec set)
@@ -1672,13 +1767,15 @@ static void AnimZip_DownsampleRotation(TArray<FQuat>& /*Samples*/, const FResolv
 static void AnimZip_DownsampleTranslation(TArray<FVector>& /*Samples*/, const FResolvedTrackSettings& /*Settings*/)
 { /* stub: disabled */ }
 
-// Group tracks sharing (Codec, NumFrames) into bundles, spilling past 255 (NumTracks is a BYTE).
+// Group tracks sharing (Codec, NumFrames) into bundles, spilling past the NumTracks field's max.
 static void AnimZip_GroupIntoBundles(
 	const TArray<FIntermediateRotationTrack>& RotTracks,
 	const TArray<FIntermediateTransScaleTrack>& TransTracks,
 	TArray<FIntermediateBundle>& OutRotBundles,
 	TArray<FIntermediateBundle>& OutTransBundles)
 {
+	const INT MaxTracksPerBundle = AnimZip_UseBM4Format() ? 65535 : 255;
+
 	OutRotBundles.Empty();
 	for (INT i = 0; i < RotTracks.Num(); i++)
 	{
@@ -1687,7 +1784,7 @@ static void AnimZip_GroupIntoBundles(
 		for (INT b = 0; b < OutRotBundles.Num(); b++)
 		{
 			FIntermediateBundle& B = OutRotBundles(b);
-			if (B.Codec == IT.Codec && B.NumFrames == IT.NumFrames && B.TrackIndices.Num() < 255)
+			if (B.Codec == IT.Codec && B.NumFrames == IT.NumFrames && B.TrackIndices.Num() < MaxTracksPerBundle)
 			{
 				Found = b; break;
 			}
@@ -1711,7 +1808,7 @@ static void AnimZip_GroupIntoBundles(
 		for (INT b = 0; b < OutTransBundles.Num(); b++)
 		{
 			FIntermediateBundle& B = OutTransBundles(b);
-			if (B.Codec == IT.Codec && B.NumFrames == IT.NumFrames && B.TrackIndices.Num() < 255)
+			if (B.Codec == IT.Codec && B.NumFrames == IT.NumFrames && B.TrackIndices.Num() < MaxTracksPerBundle)
 			{
 				Found = b; break;
 			}
@@ -1744,7 +1841,7 @@ void AnimZip_Compress(UAnimSequence* Seq)
 	const INT NumTracks = Seq->RawAnimationData.Num();
 	const INT NumFrames = Seq->NumFrames;
 
-	check(NumTracks <= 255); // FBundle::NumTracks is BYTE
+	check(NumTracks <= (AnimZip_UseBM4Format() ? 65535 : 255)); // track indices are BYTE (BM2) / WORD (BM4)
 
 	USkeletalMesh* RefMesh = NULL;
 	if (AnimSet->PreviewSkelMeshName != NAME_None)
@@ -1851,7 +1948,7 @@ void AnimZip_Compress(UAnimSequence* Seq)
 		const FRawAnimSequenceTrack& Track = Seq->RawAnimationData(AnimTrack);
 		FName BoneName = AnimSet->TrackBoneNames(AnimTrack);
 		FIntermediateRotationTrack IT;
-		IT.AnimTrackIndex = (BYTE)AnimTrack;
+		IT.AnimTrackIndex = (WORD)AnimTrack;
 		IT.NumFrames = NumFrames;
 		IT.Samples.Empty(NumFrames);
 		for (INT f = 0; f < NumFrames; f++)
@@ -1884,7 +1981,7 @@ void AnimZip_Compress(UAnimSequence* Seq)
 		const FRawAnimSequenceTrack& Track = Seq->RawAnimationData(AnimTrack);
 
 		FIntermediateTransScaleTrack IT;
-		IT.AnimTrackIndex = (BYTE)AnimTrack;
+		IT.AnimTrackIndex = (WORD)AnimTrack;
 		IT.NumFrames = NumFrames;
 		IT.Samples.Empty(NumFrames);
 		for (INT f = 0; f < NumFrames; f++)
@@ -1946,7 +2043,8 @@ void AnimZip_Compress(UAnimSequence* Seq)
 
 	// Compute layout offsets.
 	const INT AnimHeaderSize = 24; // sizeof(FAnim)
-	const INT BundleSize = 12;     // sizeof(FBundle) packed
+	const INT BundleSize = AnimZip_BundleSize();
+	const INT IndexSize = AnimZip_TrackIndexSize();
 
 	INT Cursor = AnimHeaderSize;
 
@@ -1967,7 +2065,7 @@ void AnimZip_Compress(UAnimSequence* Seq)
 	{
 		const INT KeySize = GRotationKeyframeSizes[MotionRotIT.Codec];
 		const INT HdrSize = GRotationHeaderSizes[MotionRotIT.Codec];
-		MotionRotTrackMapOffset = Cursor; Cursor += 1;
+		MotionRotTrackMapOffset = Cursor; Cursor += IndexSize;
 		MotionRotHeaderOffset = Cursor; Cursor += HdrSize;
 		MotionRotKeyframesOffset = Cursor; Cursor += KeySize * NumFrames;
 	}
@@ -1976,7 +2074,7 @@ void AnimZip_Compress(UAnimSequence* Seq)
 	{
 		const INT KeySize = GTranslationKeyframeSizes[MotionTransIT.Codec];
 		const INT HdrSize = GTranslationHeaderSizes[MotionTransIT.Codec];
-		MotionTransTrackMapOffset = Cursor; Cursor += 1;
+		MotionTransTrackMapOffset = Cursor; Cursor += IndexSize;
 		MotionTransHeaderOffset = Cursor; Cursor += HdrSize;
 		MotionTransKeyframesOffset = Cursor; Cursor += KeySize * NumFrames;
 	}
@@ -1991,7 +2089,7 @@ void AnimZip_Compress(UAnimSequence* Seq)
 		const INT HdrSize = GRotationHeaderSizes[B.Codec];
 
 		RotBundleTrackMapOffsets.AddItem(Cursor);
-		Cursor += NT;              // track map
+		Cursor += NT * IndexSize;  // track map
 		Cursor += NT * HdrSize;    // per-track headers
 		RotBundleKeyframesOffsets.AddItem(Cursor);
 		Cursor += NT * B.NumFrames * KeySize;
@@ -2007,7 +2105,7 @@ void AnimZip_Compress(UAnimSequence* Seq)
 		const INT HdrSize = GTranslationHeaderSizes[B.Codec];
 
 		TransBundleTrackMapOffsets.AddItem(Cursor);
-		Cursor += NT;
+		Cursor += NT * IndexSize;
 		Cursor += NT * HdrSize;
 		TransBundleKeyframesOffsets.AddItem(Cursor);
 		Cursor += NT * B.NumFrames * KeySize;
@@ -2032,13 +2130,14 @@ void AnimZip_Compress(UAnimSequence* Seq)
 	// so strip them here.
 	if (bHasMotionRot)
 	{
-		FBundle* MB = (FBundle*)&Data[MotionRotBundleOffset];
-		MB->Codec = MotionRotIT.Codec;
-		MB->NumTracks = 1;
-		MB->NumFrames = (USHORT)NumFrames;
-		MB->TracksAndHeadersOffset = MotionRotTrackMapOffset;
-		MB->KeyframesOffset = MotionRotKeyframesOffset;
-		Data[MotionRotTrackMapOffset] = 0;
+		FBundleInfo MB;
+		MB.Codec = MotionRotIT.Codec;
+		MB.NumTracks = 1;
+		MB.NumFrames = NumFrames;
+		MB.TracksAndHeadersOffset = MotionRotTrackMapOffset;
+		MB.KeyframesOffset = MotionRotKeyframesOffset;
+		AnimZip_WriteBundle(Data, MotionRotBundleOffset, MB);
+		AnimZip_WriteTrackIndex(&Data[MotionRotTrackMapOffset], 0, 0);
 
 		const INT HdrSize = GRotationHeaderSizes[MotionRotIT.Codec];
 		if (HdrSize > 0 && MotionRotIT.Header.Num() == HdrSize)
@@ -2050,13 +2149,14 @@ void AnimZip_Compress(UAnimSequence* Seq)
 	}
 	if (bHasMotionTrans)
 	{
-		FBundle* MB = (FBundle*)&Data[MotionTransBundleOffset];
-		MB->Codec = MotionTransIT.Codec;
-		MB->NumTracks = 1;
-		MB->NumFrames = (USHORT)NumFrames;
-		MB->TracksAndHeadersOffset = MotionTransTrackMapOffset;
-		MB->KeyframesOffset = MotionTransKeyframesOffset;
-		Data[MotionTransTrackMapOffset] = 0;
+		FBundleInfo MB;
+		MB.Codec = MotionTransIT.Codec;
+		MB.NumTracks = 1;
+		MB.NumFrames = NumFrames;
+		MB.TracksAndHeadersOffset = MotionTransTrackMapOffset;
+		MB.KeyframesOffset = MotionTransKeyframesOffset;
+		AnimZip_WriteBundle(Data, MotionTransBundleOffset, MB);
+		AnimZip_WriteTrackIndex(&Data[MotionTransTrackMapOffset], 0, 0);
 
 		const INT HdrSize = GTranslationHeaderSizes[MotionTransIT.Codec];
 		if (HdrSize > 0 && MotionTransIT.Header.Num() == HdrSize)
@@ -2074,20 +2174,21 @@ void AnimZip_Compress(UAnimSequence* Seq)
 		const INT KeySize = GRotationKeyframeSizes[IB.Codec];
 		const INT HdrSize = GRotationHeaderSizes[IB.Codec];
 		const INT TrackMapOff = RotBundleTrackMapOffsets(b);
-		const INT HeaderOff = TrackMapOff + NT;
+		const INT HeaderOff = TrackMapOff + NT * IndexSize;
 		const INT KeyframesOff = RotBundleKeyframesOffsets(b);
 
-		FBundle* OB = (FBundle*)&Data[RotBundlesOffset + b * BundleSize];
-		OB->Codec = IB.Codec;
-		OB->NumTracks = (BYTE)NT;
-		OB->NumFrames = (USHORT)IB.NumFrames;
-		OB->TracksAndHeadersOffset = TrackMapOff;
-		OB->KeyframesOffset = KeyframesOff;
+		FBundleInfo OB;
+		OB.Codec = IB.Codec;
+		OB.NumTracks = NT;
+		OB.NumFrames = IB.NumFrames;
+		OB.TracksAndHeadersOffset = TrackMapOff;
+		OB.KeyframesOffset = KeyframesOff;
+		AnimZip_WriteBundle(Data, RotBundlesOffset + b * BundleSize, OB);
 
 		for (INT t = 0; t < NT; t++)
 		{
 			const FIntermediateRotationTrack& IT = RotInterm(IB.TrackIndices(t));
-			Data[TrackMapOff + t] = IT.AnimTrackIndex;
+			AnimZip_WriteTrackIndex(&Data[TrackMapOff], t, IT.AnimTrackIndex);
 			if (HdrSize > 0 && IT.Header.Num() == HdrSize)
 			{
 				appMemcpy(&Data[HeaderOff + t * HdrSize], IT.Header.GetData(), HdrSize);
@@ -2111,20 +2212,21 @@ void AnimZip_Compress(UAnimSequence* Seq)
 		const INT KeySize = GTranslationKeyframeSizes[IB.Codec];
 		const INT HdrSize = GTranslationHeaderSizes[IB.Codec];
 		const INT TrackMapOff = TransBundleTrackMapOffsets(b);
-		const INT HeaderOff = TrackMapOff + NT;
+		const INT HeaderOff = TrackMapOff + NT * IndexSize;
 		const INT KeyframesOff = TransBundleKeyframesOffsets(b);
 
-		FBundle* OB = (FBundle*)&Data[TransBundlesOffset + b * BundleSize];
-		OB->Codec = IB.Codec;
-		OB->NumTracks = (BYTE)NT;
-		OB->NumFrames = (USHORT)IB.NumFrames;
-		OB->TracksAndHeadersOffset = TrackMapOff;
-		OB->KeyframesOffset = KeyframesOff;
+		FBundleInfo OB;
+		OB.Codec = IB.Codec;
+		OB.NumTracks = NT;
+		OB.NumFrames = IB.NumFrames;
+		OB.TracksAndHeadersOffset = TrackMapOff;
+		OB.KeyframesOffset = KeyframesOff;
+		AnimZip_WriteBundle(Data, TransBundlesOffset + b * BundleSize, OB);
 
 		for (INT t = 0; t < NT; t++)
 		{
 			const FIntermediateTransScaleTrack& IT = TransInterm(IB.TrackIndices(t));
-			Data[TrackMapOff + t] = IT.AnimTrackIndex;
+			AnimZip_WriteTrackIndex(&Data[TrackMapOff], t, IT.AnimTrackIndex);
 			if (HdrSize > 0 && IT.Header.Num() == HdrSize)
 			{
 				appMemcpy(&Data[HeaderOff + t * HdrSize], IT.Header.GetData(), HdrSize);
