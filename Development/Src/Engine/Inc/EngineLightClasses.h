@@ -857,6 +857,10 @@ public:
 
 	// ULightEnvironmentComponent interface.
 	virtual void UpdateLight(const ULightComponent* Light);
+#if BATMAN
+	/** Performs the full update queued by LightEnvironmentTick::QueueDeferredReset. */
+	void PerformDeferredReset();
+#endif
 
 	friend class FDynamicLightEnvironmentState;
 };

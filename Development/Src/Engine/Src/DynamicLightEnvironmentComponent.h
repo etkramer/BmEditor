@@ -20,6 +20,20 @@ enum EDLEC_Mode
 };
 extern EDLEC_Mode GDLEC_Mode;
 
+class UDynamicLightEnvironmentComponent;
+
+namespace LightEnvironmentTick
+{
+	/** Queues a full update of Component's environment, to be performed by the next TickDeferredResets. */
+	void QueueDeferredReset(UDynamicLightEnvironmentComponent* Component);
+
+	/** Drops a queued update, so a destroyed component isn't left in the queue. */
+	void CancelDeferredReset(UDynamicLightEnvironmentComponent* Component);
+
+	/** Drains the deferred reset queue, fully updating each queued environment. */
+	void TickDeferredResets();
+}
+
 struct FDirectionalApproximation
 {
 	FLinearColor Colour;

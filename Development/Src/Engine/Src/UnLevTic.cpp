@@ -13,6 +13,9 @@
 #include "EngineSequenceClasses.h"
 #include "EngineParticleClasses.h"
 #include "EngineAIClasses.h"
+#if BATMAN
+#include "DynamicLightEnvironmentComponent.h"
+#endif
 
 
 //@todo hack: Remove this hackiness after we have played with the decrease tick frequency stuff
@@ -3425,7 +3428,13 @@ void UWorld::Tick( ELevelTick TickType, FLOAT DeltaSeconds )
 		PersistentLineBatcher->UpdateComponent(Scene,NULL,FMatrix::Identity);
 		bPostTickComponentUpdate = FALSE;
 	}
-	
+
+#if BATMAN
+	// Light environments that couldn't gather when they attached are updated here, once every
+	// component has been attached for the frame.
+	LightEnvironmentTick::TickDeferredResets();
+#endif
+
 	// Finish up.
 	Ticked = !Ticked;
 	InTick = 0;

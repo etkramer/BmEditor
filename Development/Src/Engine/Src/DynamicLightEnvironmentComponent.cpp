@@ -17,6 +17,43 @@ EDLEC_Mode GDLEC_Mode = DLEC_APlus3D;
 FLOAT GDirectionalAmbientRatio = 0.15000001f;
 UBOOL bDoWeightedShadowAmbient = TRUE;
 extern FLinearColor GModulatedShadowsColor;
+
+namespace LightEnvironmentTick
+{
+	static TArray<UDynamicLightEnvironmentComponent*> GDeferredResets;
+
+	void QueueDeferredReset(UDynamicLightEnvironmentComponent* Component)
+	{
+		if (!Component->WaitingForDeferredReset)
+		{
+			Component->WaitingForDeferredReset = TRUE;
+			GDeferredResets.AddItem(Component);
+		}
+	}
+
+	void CancelDeferredReset(UDynamicLightEnvironmentComponent* Component)
+	{
+		Component->WaitingForDeferredReset = FALSE;
+		GDeferredResets.RemoveItemSwap(Component);
+	}
+
+	void TickDeferredResets()
+	{
+		if (!GDeferredResets.Num())
+		{
+			return;
+		}
+
+		// Updating an environment can queue further resets, so drain into a copy.
+		const TArray<UDynamicLightEnvironmentComponent*> PendingResets = GDeferredResets;
+		GDeferredResets.Empty();
+
+		for (INT ComponentIndex = 0; ComponentIndex < PendingResets.Num(); ComponentIndex++)
+		{
+			PendingResets(ComponentIndex)->PerformDeferredReset();
+		}
+	}
+}
 #endif
 
 DECLARE_STATS_GROUP(TEXT("DLE"),STATGROUP_DLE);
@@ -1333,6 +1370,8 @@ void FDynamicLightEnvironmentState::Update()
 #if BATMAN
 	if (!Component->AffectedComponents.Num() || !UpdateOwner())
 	{
+		// Retry once the environment has primitives to gather from.
+		LightEnvironmentTick::QueueDeferredReset(Component);
 		return;
 	}
 #else
@@ -1380,6 +1419,16 @@ void FDynamicLightEnvironmentState::Tick(FLOAT DeltaTime)
 	const FVector PreviousPredictedOwnerPosition = PredictedOwnerPosition;
 	const FBoxSphereBounds PreviousOwnerBounds = OwnerBounds;
 
+#if BATMAN
+	// Retail has no first-update branch here - the initial full update comes from the deferred
+	// reset queued by Attach, and a failed gather re-queues rather than being lost.
+	if (!Component->AffectedComponents.Num() || !UpdateOwner())
+	{
+		LightEnvironmentTick::QueueDeferredReset(Component);
+		return;
+	}
+	{
+#else
 	if(bFirstFullUpdate || Component->bRequiresNonLatentUpdates)
 	{
 		// The first time a light environment is ticked, perform a full update.
@@ -1388,6 +1437,7 @@ void FDynamicLightEnvironmentState::Tick(FLOAT DeltaTime)
 	}
 	else if(!bFirstFullUpdate)
 	{
+#endif
 		FLOAT LastRenderTime = -FLT_MAX;
 		for (INT ComponentIndex = 0; ComponentIndex < Component->AffectedComponents.Num(); ComponentIndex++)
 		{
@@ -1406,12 +1456,8 @@ void FDynamicLightEnvironmentState::Tick(FLOAT DeltaTime)
 		if(Component->bDynamic)
 		{
 			// Update the owner bounds and other info.
-#if BATMAN
-			if (!Component->AffectedComponents.Num() || !UpdateOwner())
-			{
-				return;
-			}
-#else
+#if !BATMAN
+			// BM: gathered once at the top of Tick instead.
 			UpdateOwner();
 #endif
 
@@ -2021,7 +2067,11 @@ void FDynamicLightEnvironmentState::AddReferencedObjects(TArray<UObject*>& Objec
 /** Forces a full update on the next Tick. */
 void FDynamicLightEnvironmentState::ResetEnvironment()
 {
+#if BATMAN
+	LightEnvironmentTick::QueueDeferredReset(Component);
+#else
 	bFirstFullUpdate = TRUE;
+#endif
 }
 
 UBOOL FDynamicLightEnvironmentState::IsLightVisible(const ULightComponent* Light, const FVector& OwnerPosition, UBOOL bIsDynamic, FLOAT& OutVisibilityFactor) const
@@ -2541,6 +2591,13 @@ void UDynamicLightEnvironmentComponent::FinishDestroy()
 {
 	Super::FinishDestroy();
 
+#if BATMAN
+	if (WaitingForDeferredReset)
+	{
+		LightEnvironmentTick::CancelDeferredReset(this);
+	}
+#endif
+
 	if (State)
 	{
 		State->ClearPreviewComponents();
@@ -2628,16 +2685,26 @@ void UDynamicLightEnvironmentComponent::Attach()
 	if(bEnabled)
 	{
 		// Initialize the light environment's state the first time it's attached.
+		const UBOOL bCreatedState = !State;
 		if(!State)
 		{
 			State = new FDynamicLightEnvironmentState(this);
 		}
 
+#if BATMAN
+		// Defer the update to the next world tick - the primitives using this environment attach
+		// after it does, so gathering here would find AffectedComponents empty.
+		if (bCreatedState || !GIsGame || (Scene->GetWorld() != NULL && Scene->GetWorld()->IsPaused()))
+		{
+			LightEnvironmentTick::QueueDeferredReset(this);
+		}
+#else
 		// if we know we're not going to be ticked, update the light environment now
 		if (!GIsGame || (Scene->GetWorld() != NULL && Scene->GetWorld()->IsPaused()))
 		{
 			State->Update();
 		}
+#endif
 
 		// Add the light environment to the world's list, so it can be updated when static lights change.
 		if(!GIsGame && Scene->GetWorld())
@@ -2711,6 +2778,18 @@ void UDynamicLightEnvironmentComponent::UpdateLight(const ULightComponent* Light
 		}
 	}
 }
+
+#if BATMAN
+void UDynamicLightEnvironmentComponent::PerformDeferredReset()
+{
+	WaitingForDeferredReset = FALSE;
+
+	if (!IsPendingKill() && IsAttached() && IsEnabled() && State)
+	{
+		State->Update();
+	}
+}
+#endif
 
 /** Forces a full update on the next Tick. */
 void UDynamicLightEnvironmentComponent::ResetEnvironment()
