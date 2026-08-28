@@ -248,11 +248,14 @@ WxPkgGrpNameCtrl::WxPkgGrpNameCtrl( wxWindow* parent, wxWindowID id, wxSizer* In
 		PkgCombo = new WxComboBox( this, IDCB_PACKAGE, TEXT(""), wxDefaultPosition, wxDefaultSize, 0, NULL, wxCB_DROPDOWN|wxCB_SORT );
 		
 		TArray<FString> PackageFiles = GPackageFileCache->GetPackageFileList();
+
+		PkgCombo->Freeze();
 		for ( TArray<FString>::TConstIterator PkgIter( PackageFiles ); PkgIter; ++PkgIter )
 		{
 			const FString& CurPkgFile = *PkgIter;
 			PkgCombo->Append( *( FFilename( CurPkgFile ).GetBaseFilename() ) );
 		}
+		PkgCombo->Thaw();
 
 		FlexGridSizer->Add( PkgCombo, 0, wxALIGN_LEFT|wxGROW|wxALL, 5 );
 
