@@ -154,7 +154,8 @@ UBOOL FPNGLoader::Decode( BYTE* OutDecompressedData )
 
 		// Note that PNGs on PC tend to be BGR
 		// @todo : How to detect BGR vs RGB. Is it just an endian thing; wouldn't that be ARGB vs BGRA? Seems like We are faced with RGBA vs BGRA!
-		png_read_png( PNGReadStruct, PNGInfo, PNG_TRANSFORM_BGR, NULL );
+		// BM: strip 16-bit channels down to 8, otherwise libpng writes 8 bytes/pixel into our 4 byte/pixel mip
+		png_read_png( PNGReadStruct, PNGInfo, PNG_TRANSFORM_BGR | PNG_TRANSFORM_STRIP_16, NULL );
 	}
 
 	////row_pointers = png_get_rows( png_ptr, info_ptr );
