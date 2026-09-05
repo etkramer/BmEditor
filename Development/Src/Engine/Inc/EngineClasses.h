@@ -19341,6 +19341,19 @@ public:
 	virtual FString GetCaption() const;
 };
 
+class UMaterialExpressionSaturate : public UMaterialExpression
+{
+public:
+    //## BEGIN PROPS MaterialExpressionSaturate
+    FExpressionInput Input;
+    //## END PROPS MaterialExpressionSaturate
+
+    DECLARE_CLASS(UMaterialExpressionSaturate,UMaterialExpression,0,Engine)
+	virtual INT Compile(FMaterialCompiler* Compiler);
+	virtual FString GetCaption() const;
+	virtual void SwapReferenceTo(UMaterialExpression* OldExpression,UMaterialExpression* NewExpression = NULL);
+};
+
 struct FMusicTrackStruct
 {
     class USoundCue* TheSoundCue;
@@ -22570,6 +22583,7 @@ AUTOGENERATE_FUNCTION(UUIManager,-1,execGetUIManager);
 	UMaterialExpressionLightingSpecularBlinnPhong::StaticClass(); \
 	UMaterialExpressionLightingSpecularHeidrichSeidel::StaticClass(); \
 	UMaterialExpressionLightingSpecularPhong::StaticClass(); \
+	UMaterialExpressionSaturate::StaticClass(); \
 	UModel::StaticClass(); \
 	UMusicTrackDataStructures::StaticClass(); \
 	UNavigationMeshBase::StaticClass(); \
@@ -24249,6 +24263,8 @@ VERIFY_CLASS_SIZE_NODIE(UMaterialExpressionLightingSpecularHeidrichSeidel)
 VERIFY_CLASS_OFFSET_NODIE(UMaterialExpressionLightingSpecularPhong,MaterialExpressionLightingSpecularPhong,Power)
 VERIFY_CLASS_OFFSET_NODIE(UMaterialExpressionLightingSpecularPhong,MaterialExpressionLightingSpecularPhong,Lookup)
 VERIFY_CLASS_SIZE_NODIE(UMaterialExpressionLightingSpecularPhong)
+VERIFY_CLASS_OFFSET_NODIE(UMaterialExpressionSaturate,MaterialExpressionSaturate,Input)
+VERIFY_CLASS_SIZE_NODIE(UMaterialExpressionSaturate)
 VERIFY_CLASS_SIZE_NODIE(UMusicTrackDataStructures)
 VERIFY_CLASS_OFFSET_NODIE(UObjectReferencer,ObjectReferencer,ReferencedObjects)
 VERIFY_CLASS_SIZE_NODIE(UObjectReferencer)

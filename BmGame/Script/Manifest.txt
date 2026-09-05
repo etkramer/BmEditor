@@ -947,6 +947,7 @@
   2 MaterialExpressionReflectionVector Engine [] []
   2 MaterialExpressionRotateAboutAxis Engine [] []
   2 MaterialExpressionRotator Engine [] []
+  2 MaterialExpressionSaturate Engine [] []
   2 MaterialExpressionSceneDepth Engine [] []
   2 MaterialExpressionSceneTexture Engine [] []
   2 MaterialExpressionScreenPosition Engine [] []

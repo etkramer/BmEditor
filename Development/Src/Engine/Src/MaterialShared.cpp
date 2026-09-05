@@ -4213,6 +4213,18 @@ private:
 		}
 	}
 
+#if BATMAN
+	virtual INT Saturate(INT X)
+	{
+		if(X == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
+		return AddCodeChunk(GetParameterType(X),0,GetTextureDependencyLength(X),TEXT("saturate(%s)"),GetParameterCode(X));
+	}
+#endif
+
 	virtual INT ReflectionVector()
 	{
 		if (ShaderFrequency != SF_Pixel)

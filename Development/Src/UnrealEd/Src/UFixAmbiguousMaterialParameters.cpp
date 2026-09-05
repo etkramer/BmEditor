@@ -115,6 +115,12 @@ public:
 	{
 		return INDEX_NONE;
 	}
+#if BATMAN
+	virtual INT Saturate(INT X)
+	{
+		return INDEX_NONE;
+	}
+#endif
 
 	virtual INT ReflectionVector()
 	{

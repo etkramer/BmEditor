@@ -386,6 +386,9 @@ struct FMaterialCompiler
 	virtual INT Frac(INT X) = 0;
 	virtual INT Fmod(INT A, INT B) = 0;
 	virtual INT Abs(INT X) = 0;
+#if BATMAN
+	virtual INT Saturate(INT X) = 0;
+#endif
 
 	virtual INT ReflectionVector() = 0;
 	virtual INT CameraVector() = 0;
@@ -514,6 +517,9 @@ struct FProxyMaterialCompiler: FMaterialCompiler
 	virtual INT Frac(INT X) { return Compiler->Frac(X); }
 	virtual INT Fmod(INT A, INT B) { return Compiler->Fmod(A,B); }
 	virtual INT Abs(INT X) { return Compiler->Abs(X); }
+#if BATMAN
+	virtual INT Saturate(INT X) { return Compiler->Saturate(X); }
+#endif
 
 	virtual INT ReflectionVector() { return Compiler->ReflectionVector(); }
 	virtual INT CameraVector() { return Compiler->CameraVector(); }

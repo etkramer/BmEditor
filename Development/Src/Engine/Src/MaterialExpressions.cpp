@@ -41,6 +41,9 @@ IMPLEMENT_CLASS(UMaterialExpressionCeil);
 IMPLEMENT_CLASS(UMaterialExpressionFmod);
 IMPLEMENT_CLASS(UMaterialExpressionFrac);
 IMPLEMENT_CLASS(UMaterialExpressionAbs);
+#if BATMAN
+IMPLEMENT_CLASS(UMaterialExpressionSaturate);
+#endif
 IMPLEMENT_CLASS(UMaterialExpressionDepthBiasBlend);
 IMPLEMENT_CLASS(UMaterialExpressionDepthBiasedAlpha);
 IMPLEMENT_CLASS(UMaterialExpressionDepthBiasedBlend);
@@ -3634,6 +3637,31 @@ void UMaterialExpressionAbs::SwapReferenceTo( UMaterialExpression* OldExpression
 	Super::SwapReferenceTo( OldExpression, NewExpression );
 	SWAP_REFERENCE_TO( Input, OldExpression, NewExpression );
 }
+
+#if BATMAN
+
+INT UMaterialExpressionSaturate::Compile( FMaterialCompiler* Compiler )
+{
+	if( !Input.Expression )
+	{
+		return Compiler->Errorf( TEXT("Missing Saturate input") );
+	}
+
+	return Compiler->Saturate( Input.Compile(Compiler) );
+}
+
+FString UMaterialExpressionSaturate::GetCaption() const
+{
+	return TEXT("Saturate");
+}
+
+void UMaterialExpressionSaturate::SwapReferenceTo( UMaterialExpression* OldExpression, UMaterialExpression* NewExpression )
+{
+	Super::SwapReferenceTo( OldExpression, NewExpression );
+	SWAP_REFERENCE_TO( Input, OldExpression, NewExpression );
+}
+
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 // UMaterialExpressionSceneTexture

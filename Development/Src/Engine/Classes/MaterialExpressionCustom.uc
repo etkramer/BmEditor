@@ -42,6 +42,7 @@ cpptext
 defaultproperties
 {
 	Description="Custom"
+	Code="1"
 	MenuCategories(0)="Custom"
 	OutputType=CMOT_Float3
 	Inputs(0)=(InputName="")
