@@ -1050,26 +1050,35 @@ void FMultiSizeIndexContainer::CopyIndexBuffer(const TArray<DWORD>& NewArray)
 
 FArchive& operator<<(FArchive& Ar, FMultiSizeIndexContainer& Buffer)
 {
-	if (Ar.IsLoading() && ((Ar.Ver() < VER_DWORD_SKELETAL_MESH_INDICES) || Ar.LicenseeVer() >= VER_BATMAN2))
+#if BATMAN
+	if (Ar.LicenseeVer() >= VER_BATMAN2)
+	{
+		// BM2 format only serializes NeedsCPUAccess, so recover DataTypeSize from the
+		// element size that FRawStaticIndexBuffer16or32's BulkSerialize writes next
+		Ar << Buffer.NeedsCPUAccess;
+
+		if (Ar.IsLoading())
+		{
+			INT PeekedElementSize = sizeof(WORD);
+			const INT PeekPos = Ar.Tell();
+			Ar << PeekedElementSize;
+			Ar.Seek(PeekPos);
+
+			Buffer.DataTypeSize = (PeekedElementSize == sizeof(DWORD)) ? sizeof(DWORD) : sizeof(WORD);
+
+			if (Buffer.DataTypeSize != sizeof(WORD))
+			{
+				warnf(NAME_Warning, TEXT("Skeletal mesh LOD uses 32-bit indices - it exceeds MAXWORD verts and will not load in the retail game"));
+			}
+		}
+	}
+	else
+#endif
+	if (Ar.IsLoading() && Ar.Ver() < VER_DWORD_SKELETAL_MESH_INDICES)
 	{
 		Buffer.NeedsCPUAccess = TRUE;
 		Buffer.DataTypeSize = sizeof(WORD);
-
-#if BATMAN
-		if (Ar.LicenseeVer() >= VER_BATMAN2)
-		{
-			Ar << Buffer.NeedsCPUAccess;
-		}
-#endif
 	}
-#if BATMAN
-	else if (Ar.LicenseeVer() >= VER_BATMAN2)
-	{
-		// BM2 format only serializes NeedsCPUAccess; DataTypeSize is implicitly WORD
-		Ar << Buffer.NeedsCPUAccess;
-		Buffer.DataTypeSize = sizeof(WORD);
-	}
-#endif
 	else
 	{
 		Ar << Buffer.NeedsCPUAccess;

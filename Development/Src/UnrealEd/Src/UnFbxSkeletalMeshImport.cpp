@@ -973,6 +973,25 @@ UObject* UnFbx::CFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray<KFbxN
 	// find the mesh by its name
 	KFbxMesh* FbxMesh = Node->GetMesh();
 
+#if BATMAN
+	// BM2 skeletal LODs use a 16-bit index buffer, so the whole mesh must fit in MAXWORD verts
+	INT TotalControlPoints = 0;
+	for( INT i = 0; i < NodeArray.Num(); i++ )
+	{
+		KFbxMesh* NodeMesh = NodeArray(i)->GetMesh();
+		if( NodeMesh )
+		{
+			TotalControlPoints += NodeMesh->GetControlPointsCount();
+		}
+	}
+
+	if( TotalControlPoints > MAXWORD )
+	{
+		appMsgf( AMT_OK, *LocalizeUnrealEd("Prompt_TooManyVertices") );
+		return NULL;
+	}
+#endif
+
 	if( !FbxMesh )
 	{
 		warnf(TEXT("Fbx node: '%s' is not a valid skeletal mesh"), ANSI_TO_TCHAR(Node->GetName()));

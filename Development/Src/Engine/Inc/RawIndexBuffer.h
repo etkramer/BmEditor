@@ -210,7 +210,7 @@ public:
 	*/
 	virtual void Serialize( FArchive& Ar )
 	{
-		if (Ar.IsLoading() && ((Ar.Ver() < VER_DWORD_SKELETAL_MESH_INDICES) || Ar.LicenseeVer() >= VER_BATMAN2)) // 16 bit
+		if (Ar.IsLoading() && Ar.Ver() < VER_DWORD_SKELETAL_MESH_INDICES) // 16 bit
 		{
 			TResourceArray<WORD,INDEXBUFFER_ALIGNMENT> WORDIndexBuffer;
 			WORDIndexBuffer.BulkSerialize(Ar);

@@ -783,7 +783,7 @@ UBOOL USkeletalMesh::CreateSkinningStreams(
 
 			// set the index entry for the newly added vertex
 			// check(V >= 0 && V <= MAXWORD);
-#if DISALLOW_32BIT_INDICES
+#if DISALLOW_32BIT_INDICES || BATMAN
 			if (V > MAXWORD)
 			{
 				bTooManyVerts = TRUE;
@@ -979,7 +979,7 @@ UBOOL USkeletalMesh::CreateSkinningStreams(
 	UBOOL bHasBadSections = FALSE;
 	UINT TotalNumberOfVerts = 0;
 
-#if DISALLOW_32BIT_INDICES
+#if DISALLOW_32BIT_INDICES || BATMAN
 	LODModel.MultiSizeIndexContainer.CreateIndexBuffer(sizeof(WORD));
 #else
 	LODModel.MultiSizeIndexContainer.CreateIndexBuffer((Wedges.Num() < MAXWORD)? sizeof(WORD): sizeof(DWORD));
