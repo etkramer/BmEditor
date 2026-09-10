@@ -64,6 +64,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Src\RLevelVolume.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Src\RPlayerStartInLevel.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\Src\RSkeletalMeshActor.cpp"
 				>
 			</File>

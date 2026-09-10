@@ -527,3 +527,13 @@ void FLevelUtils::SetLevelVisibility(ULevelStreaming* StreamingLevel, ULevel* Le
 
 	GCallbackEvent->Send( CALLBACK_RefreshEditor_LayerBrowser );
 }
+
+#if BATMAN
+
+UBOOL FLevelUtils::IsABaseLayerName( const FString& LevelName )
+{
+	const INT FirstUnderscore = LevelName.InStr(TEXT("_"));
+	return FirstUnderscore != INDEX_NONE && FirstUnderscore == LevelName.InStr(TEXT("_"), TRUE);
+}
+
+#endif

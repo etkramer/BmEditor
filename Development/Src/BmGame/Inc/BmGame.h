@@ -15,11 +15,15 @@
 #include "RSkeletalMeshActor.h"
 #include "RHidePoint.h"
 #include "RSniperPoint.h"
+#include "RLevelVolume.h"
+#include "RPlayerStartInLevel.h"
 
 // BM: registration entry points for extended script classes.
 extern void RegisterRSkeletalMeshActorNatives();
 extern void RegisterRHidePointNatives();
 extern void RegisterRSniperPointExtensions();
+extern void RegisterRLevelVolumeExtensions();
+extern void RegisterRPlayerStartInLevelExtensions();
 #endif
 
 

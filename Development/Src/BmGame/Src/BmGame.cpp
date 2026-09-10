@@ -72,6 +72,8 @@ void AutoInitializeRegistrantsBmGame( INT& Lookup )
 	RegisterRSkeletalMeshActorNatives();
 	RegisterRHidePointNatives();
 	RegisterRSniperPointExtensions();
+	RegisterRLevelVolumeExtensions();
+	RegisterRPlayerStartInLevelExtensions();
 #endif
 }
 

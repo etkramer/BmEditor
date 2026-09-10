@@ -163,6 +163,11 @@ public:
 	 * @param	bForceLayersVisible		If TRUE and the level is visible, force the level's layers to be visible.
 	 */
 	static void SetLevelVisibility(ULevelStreaming* StreamingLevel, ULevel* Level, UBOOL bShouldBeVisible, UBOOL bForceLayersVisible);
+
+#if BATMAN
+	// BM: base layers are named <Area>_<Layer>, so anything with a second underscore is a sub-layer.
+	static UBOOL IsABaseLayerName(const FString& LevelName);
+#endif
 };
 
 #endif
