@@ -14,10 +14,12 @@
 #if BATMAN
 #include "RSkeletalMeshActor.h"
 #include "RHidePoint.h"
+#include "RSniperPoint.h"
 
-// BM: native lookup table registration for extended script classes.
+// BM: registration entry points for extended script classes.
 extern void RegisterRSkeletalMeshActorNatives();
 extern void RegisterRHidePointNatives();
+extern void RegisterRSniperPointExtensions();
 #endif
 
 

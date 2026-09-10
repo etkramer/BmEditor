@@ -2335,6 +2335,73 @@ public:
 };
 } // namespace MoveSelectedActors
 
+#if BATMAN
+// Links each selected actor to the one selected before it; if the first doesn't accept the
+// second, the pair is tried the other way round.
+void UEditorEngine::LinkActors( UBOOL bUnlink )
+{
+	USelection* SelectedActors = GetSelectedActors();
+	AActor* PrevActor = NULL;
+
+	for( INT Index = 0; Index < SelectedActors->Num(); ++Index )
+	{
+		AActor* Actor = Cast<AActor>( (*SelectedActors)(Index) );
+		if( !Actor )
+		{
+			PrevActor = NULL;
+			continue;
+		}
+
+		if( PrevActor )
+		{
+			if( Actor->GetOutermost() != PrevActor->GetOutermost() )
+			{
+				appMsgf( AMT_OK, TEXT("Cannot link actors from different levels.") );
+				return;
+			}
+
+			if( bUnlink )
+			{
+				if( !PrevActor->UnlinkToActor( Actor ) )
+				{
+					Actor->UnlinkToActor( PrevActor );
+				}
+			}
+			else
+			{
+				if( !PrevActor->LinkToActor( Actor ) )
+				{
+					Actor->LinkToActor( PrevActor );
+				}
+			}
+
+			Actor->MarkComponentsAsDirty( TRUE );
+			PrevActor->MarkComponentsAsDirty( TRUE );
+		}
+		else if( SelectedActors->Num() == 1 )
+		{
+			if( bUnlink )
+			{
+				Actor->UnlinkToActor( NULL );
+			}
+			else
+			{
+				Actor->LinkToActor( NULL );
+			}
+
+			Actor->MarkComponentsAsDirty( TRUE );
+		}
+
+		PrevActor = Actor;
+	}
+
+	if( GEditor )
+	{
+		GEditor->NoteSelectionChange();
+	}
+}
+#endif
+
 /**
  * Moves selected actors to the current level.
  *

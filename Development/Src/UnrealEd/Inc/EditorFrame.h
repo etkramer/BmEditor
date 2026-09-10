@@ -502,6 +502,8 @@ private:
 	void MenuGenAllProcBuildingLODTex( wxCommandEvent& In );
 	void MenuGenSelProcBuildingLODTex( wxCommandEvent& In );
 	void MenuCleanBSPMaterials( wxCommandEvent& In );
+	// BM
+	void MenuLinkActors( wxCommandEvent& In );
 	void MenuWizardNewTerrain( wxCommandEvent& In );	
 	void MenuAboutBox( wxCommandEvent& In );	
 	void MenuOnlineHelp( wxCommandEvent& In );

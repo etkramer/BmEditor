@@ -2771,6 +2771,18 @@ UBOOL UUnrealEdEngine::Exec_Actor( const TCHAR* Str, FOutputDevice& Ar )
 		MoveSelectedActorsToCurrentLevel( bUseCurrentLevelGridVolume );
 		return TRUE;
 	}
+#if BATMAN
+	else if( ParseCommand(&Str,TEXT("LINK")) )
+	{
+		LinkActors( FALSE );
+		return TRUE;
+	}
+	else if( ParseCommand(&Str,TEXT("UNLINK")) )
+	{
+		LinkActors( TRUE );
+		return TRUE;
+	}
+#endif
 	else if(ParseCommand(&Str, TEXT("FIND"))) //ACTOR FIND KISMET
 	{
 		if(ParseCommand(&Str, TEXT("KISMET")))

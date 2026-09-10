@@ -723,6 +723,10 @@ WxMainMenu::WxMainMenu()
 		ToolsMenu->AppendSeparator();
 		ToolsMenu->Append( IDM_GENALLPROCBUILDINGLODTEX, *LocalizeUnrealEd("GenerateAllProcBuildingLODTex"), *LocalizeUnrealEd("MainMenu_RegenAllProcBuildingLODTex_ToolTip") );
 		ToolsMenu->Append( IDM_GENSELPROCBUILDINGLODTEX, *LocalizeUnrealEd("GenerateSelProcBuildingLODTex"), *LocalizeUnrealEd("MainMenu_RegenSelectedProcBuildingLODText_ToolTip") );
+		// BM
+		ToolsMenu->AppendSeparator();
+		ToolsMenu->Append( IDM_LINKACTORS, TEXT("Link Actors"), TEXT("Links the selected actors together in selection order") );
+		ToolsMenu->Append( IDM_UNLINKACTORS, TEXT("Unlink Actors"), TEXT("Breaks the links between the selected actors") );
 
 		Append( ToolsMenu, *LocalizeUnrealEd("Tools") );
 	}
@@ -1098,6 +1102,9 @@ BEGIN_EVENT_TABLE( WxEditorFrame, wxFrame )
 	EVT_MENU( IDM_GENALLPROCBUILDINGLODTEX,  WxEditorFrame::MenuGenAllProcBuildingLODTex )	
 	EVT_MENU( IDM_GENSELPROCBUILDINGLODTEX,  WxEditorFrame::MenuGenSelProcBuildingLODTex )	
 	EVT_MENU( IDM_CleanBSPMaterials, WxEditorFrame::MenuCleanBSPMaterials )
+	// BM
+	EVT_MENU( IDM_LINKACTORS, WxEditorFrame::MenuLinkActors )
+	EVT_MENU( IDM_UNLINKACTORS, WxEditorFrame::MenuLinkActors )
 	EVT_MENU( IDMENU_ABOUTBOX, WxEditorFrame::MenuAboutBox )	
 	EVT_MENU( IDMENU_ONLINEHELP, WxEditorFrame::MenuOnlineHelp )
 	EVT_MENU( IDMENU_GOTOFORUMS, WxEditorFrame::MenuGoToForums )
@@ -8831,6 +8838,12 @@ void WxEditorFrame::MenuGenSelProcBuildingLODTex( wxCommandEvent& In )
 void WxEditorFrame::MenuCleanBSPMaterials(wxCommandEvent& In)
 {
 	GUnrealEd->Exec( TEXT("CLEANBSPMATERIALS") );
+}
+
+// BM
+void WxEditorFrame::MenuLinkActors(wxCommandEvent& In)
+{
+	GUnrealEd->Exec( In.GetId() == IDM_LINKACTORS ? TEXT("ACTOR LINK") : TEXT("ACTOR UNLINK") );
 }
 
 /**

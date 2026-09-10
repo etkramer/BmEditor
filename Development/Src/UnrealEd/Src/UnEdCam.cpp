@@ -514,6 +514,10 @@ void UUnrealEdEngine::SelectActor(AActor* Actor, UBOOL bInSelected, FViewportCli
 			{
 				NoteSelectionChange();
 			}
+
+#if BATMAN
+			Actor->PostEditSelect( bInSelected );
+#endif
 		}
 		else
 		{

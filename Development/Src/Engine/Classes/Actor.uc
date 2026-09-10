@@ -907,6 +907,12 @@ cpptext
 	virtual UBOOL ShouldImport(FString* ActorPropString) { return TRUE; }
 #endif
 
+#if BATMAN
+	virtual UBOOL LinkToActor(AActor* LinkTarget);
+	virtual UBOOL UnlinkToActor(AActor* UnlinkTarget);
+	virtual void PostEditSelect(UBOOL bSelected) {}
+#endif
+
 	void EditorUpdateBase();
 	void EditorUpdateAttachedActors(const TArray<AActor*>& IgnoreActors);
 
@@ -3787,6 +3793,10 @@ simulated event RootMotionExtracted(SkeletalMeshComponent SkelComp, out BoneAtom
  * this is a good place to cache references to skeletal controllers, etc that the Actor modifies
  */
 event PostInitAnimTree(SkeletalMeshComponent SkelComp);
+
+// BM: called by the editor's "Link Actors" tooling. Return TRUE if the link was accepted.
+event bool LinkToActor(Actor LinkTarget);
+event bool UnlinkToActor(Actor UnlinkTarget);
 
 /** Looks up the GUID of a package on disk. The package must NOT be in the autodownload cache.
  * This may require loading the header of the package in question and is therefore slow.

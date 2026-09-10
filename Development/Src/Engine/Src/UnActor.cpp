@@ -1661,8 +1661,8 @@ void SetDefaultsForEditorPreview( UClass* Class )
 			UActorComponent* Sprite = AddDefaultComponent( Default, FindDefaultComponent( Source, TEXT("Sprite") ) );
 		}
 	}
-	// Give PathNode's sprite to RPatrolPoint
-	if( ClassName == TEXT("RPatrolPoint") )
+	// Give PathNode's sprite to RPatrolPoint and RSniperPoint
+	if( ClassName == TEXT("RPatrolPoint") || ClassName == TEXT("RSniperPoint") )
 	{
 		if( FindDefaultComponent( Default, TEXT("Sprite") ) == NULL )
 		{
@@ -1880,6 +1880,18 @@ void AActor::PostEditMove(UBOOL bFinished)
 	// Mark components as dirty so their rendering gets updated.
 	MarkComponentsAsDirty();
 }
+
+#if BATMAN
+UBOOL AActor::LinkToActor( AActor* LinkTarget )
+{
+	return eventLinkToActor(LinkTarget);
+}
+
+UBOOL AActor::UnlinkToActor( AActor* UnlinkTarget )
+{
+	return eventUnlinkToActor(UnlinkTarget);
+}
+#endif
 
 #if WITH_EDITOR
 /**

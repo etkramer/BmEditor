@@ -2446,8 +2446,9 @@ void UClass::Link( FArchive& Ar, UBOOL Props )
 		FClassExtension* Extension = FindClassExtension(this);
 		if( Extension )
 		{
-			checkf(Extension->ClassSize <= PropertiesSize, TEXT("Class extension %s is %i bytes but the script class is only %i - it must not declare data members"),
-				*GetPathName(), Extension->ClassSize, PropertiesSize);
+			const INT ClassSize = Align(PropertiesSize, MinAlignment);
+			checkf(Extension->ClassSize <= ClassSize, TEXT("Class extension %s is %i bytes but the script class is only %i - it must not declare data members"),
+				*GetPathName(), Extension->ClassSize, ClassSize);
 		}
 	}
 #endif

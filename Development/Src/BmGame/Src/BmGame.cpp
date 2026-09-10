@@ -71,6 +71,7 @@ void AutoInitializeRegistrantsBmGame( INT& Lookup )
 	// the script packages are bound, which is why it lives here.
 	RegisterRSkeletalMeshActorNatives();
 	RegisterRHidePointNatives();
+	RegisterRSniperPointExtensions();
 #endif
 }
 

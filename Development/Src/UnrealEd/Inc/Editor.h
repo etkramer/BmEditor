@@ -1499,6 +1499,15 @@ class UEditorEngine : public UEngine, public FCallbackEventDevice
 	 */
 	void DeselectActorsBelongingToPrefabs(TArray<APrefabInstance*>& OutPrefabInstances, UBOOL bNotify);
 
+#if BATMAN
+	/**
+	 * Links the selected actors together in selection order, or breaks those links.
+	 *
+	 * @param	bUnlink		If TRUE, unlink the selection instead of linking it.
+	 */
+	void LinkActors( UBOOL bUnlink );
+#endif
+
 	/**
 	 * Moves selected actors to the current level.
 	 *

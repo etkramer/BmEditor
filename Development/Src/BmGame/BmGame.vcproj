@@ -72,6 +72,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Src\RSniperPoint.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\Src\RInterpTrackFaceFXLookAt.cpp"
 				>
 			</File>

@@ -2062,6 +2062,22 @@ struct Actor_eventOnRigidBodySpringOverextension_Parms
     {
     }
 };
+struct Actor_eventUnlinkToActor_Parms
+{
+    class AActor* UnlinkTarget;
+    UBOOL ReturnValue;
+    Actor_eventUnlinkToActor_Parms(EEventParm)
+    {
+    }
+};
+struct Actor_eventLinkToActor_Parms
+{
+    class AActor* LinkTarget;
+    UBOOL ReturnValue;
+    Actor_eventLinkToActor_Parms(EEventParm)
+    {
+    }
+};
 struct Actor_eventPostInitAnimTree_Parms
 {
     class USkeletalMeshComponent* SkelComp;
@@ -3569,6 +3585,22 @@ public:
         Parms.BodyInstance=BodyInstance;
         ProcessEvent(FindFunctionChecked(ENGINE_OnRigidBodySpringOverextension),&Parms);
     }
+    UBOOL eventUnlinkToActor(class AActor* UnlinkTarget)
+    {
+        Actor_eventUnlinkToActor_Parms Parms(EC_EventParm);
+        Parms.ReturnValue=FALSE;
+        Parms.UnlinkTarget=UnlinkTarget;
+        ProcessEvent(FindFunctionChecked(ENGINE_UnlinkToActor),&Parms);
+        return Parms.ReturnValue;
+    }
+    UBOOL eventLinkToActor(class AActor* LinkTarget)
+    {
+        Actor_eventLinkToActor_Parms Parms(EC_EventParm);
+        Parms.ReturnValue=FALSE;
+        Parms.LinkTarget=LinkTarget;
+        ProcessEvent(FindFunctionChecked(ENGINE_LinkToActor),&Parms);
+        return Parms.ReturnValue;
+    }
     void eventPostInitAnimTree(class USkeletalMeshComponent* SkelComp)
     {
         Actor_eventPostInitAnimTree_Parms Parms(EC_EventParm);
@@ -4177,6 +4209,12 @@ public:
 	virtual UBOOL ShouldExport() { return TRUE; }
 	// Called before editor paste, TRUE allow import
 	virtual UBOOL ShouldImport(FString* ActorPropString) { return TRUE; }
+#endif
+
+#if BATMAN
+	virtual UBOOL LinkToActor(AActor* LinkTarget);
+	virtual UBOOL UnlinkToActor(AActor* UnlinkTarget);
+	virtual void PostEditSelect(UBOOL bSelected) {}
 #endif
 
 	void EditorUpdateBase();
