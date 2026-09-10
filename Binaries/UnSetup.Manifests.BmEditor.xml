@@ -58,6 +58,7 @@
     <string>BmGame/Autosaves</string>
     <string>BmGame/Cache</string>
     <string>BmGame/Content/(.*)</string>
+    <string>BmGame/^CookedPC$</string>
     <string>BmGame/CookedPCConsole/(.*)</string>
     <string>BmGame/CutdownPackages</string>
     <string>BmGame/Logs</string>
