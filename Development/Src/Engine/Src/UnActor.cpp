@@ -1653,7 +1653,7 @@ void SetDefaultsForEditorPreview( UClass* Class )
 		}
 	}
 	// Give TargetPoint's sprite to RDummyTarget
-	if( ClassName == TEXT("RDummyTarget") )
+	if( ClassName == TEXT("RDummyTarget") || ClassName == TEXT("RDummyTarget_LookAt") || ClassName == TEXT("RDummyTarget_Spawnable") )
 	{
 		if( FindDefaultComponent( Default, TEXT("Sprite") ) == NULL )
 		{
