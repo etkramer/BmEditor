@@ -1970,7 +1970,7 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 
 	Ar << Bounds;
 #if BATMAN
-	if (Ar.LicenseeVer() >= VER_BATMAN2)
+	if (Ar.LicenseeVer() >= VER_BATMAN1)
 	{
 		Ar << ConservativeBounds << PerBoneBounds;
 	}
@@ -2012,8 +2012,8 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 	Ar << PerPolyBoneKDOPs;
 
 #if BATMAN
-	// BM2 emits a DWORD holding bUseFullPrecisionUVs between PerPolyBoneKDOPs and BoneBreakNames.
-	if (Ar.LicenseeVer() >= VER_BATMAN2)
+	// BM emits a DWORD holding bUseFullPrecisionUVs between PerPolyBoneKDOPs and BoneBreakNames.
+	if (Ar.LicenseeVer() >= VER_BATMAN1)
 	{
 		UBOOL bFlag = bUseFullPrecisionUVs;
 		Ar << bFlag;

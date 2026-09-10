@@ -2350,6 +2350,21 @@ void UAnimSequence::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
 
+#if BATMAN
+	// BM1 has no ACF_Identity, so its format 6 is ACF_Fixed48Max
+	if (Ar.IsLoading() && Ar.LicenseeVer() == VER_BATMAN1)
+	{
+		if (RotationCompressionFormat == ACF_Identity)
+		{
+			RotationCompressionFormat = ACF_Fixed48Max;
+		}
+		if (TranslationCompressionFormat == ACF_Identity)
+		{
+			TranslationCompressionFormat = ACF_Fixed48Max;
+		}
+	}
+#endif
+
 	//@compatibility:
 	if( Ar.Ver() < VER_NATIVE_RAWANIMDATA_SERIALIZATION )
 	{

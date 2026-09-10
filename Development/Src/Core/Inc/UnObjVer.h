@@ -696,6 +696,9 @@ enum EUnrealEngineObjectVersion
 #if BATMAN
 enum ELicenseeVersion
 {
+	// - BM1 release
+	VER_BATMAN1 = 21,
+
 	// - BM2 release
 	VER_BATMAN2 = 101
 };

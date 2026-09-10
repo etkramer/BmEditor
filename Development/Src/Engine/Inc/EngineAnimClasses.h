@@ -133,7 +133,8 @@ enum AnimationCompressionFormat
     ACF_Fixed32NoW          =4,
     ACF_Float32NoW          =5,
     ACF_Identity            =6,
-    ACF_MAX                 =7,
+    ACF_Fixed48Max          =7,
+    ACF_MAX                 =8,
 };
 #define FOREACH_ENUM_ANIMATIONCOMPRESSIONFORMAT(op) \
     op(ACF_None) \
@@ -142,7 +143,8 @@ enum AnimationCompressionFormat
     op(ACF_IntervalFixed32NoW) \
     op(ACF_Fixed32NoW) \
     op(ACF_Float32NoW) \
-    op(ACF_Identity) 
+    op(ACF_Identity) \
+    op(ACF_Fixed48Max) 
 enum ESliderType
 {
     ST_1D                   =0,

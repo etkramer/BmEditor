@@ -222,8 +222,16 @@ void UModel::Serialize( FArchive& Ar )
 	}
 
 #if BATMAN
-	if (Ar.LicenseeVer() >= VER_BATMAN2)
+	if (Ar.LicenseeVer() >= VER_BATMAN1)
 	{
+		// BM1 emits two extra DWORDs here that BM2 dropped
+		if (Ar.LicenseeVer() == VER_BATMAN1)
+		{
+			DWORD Unk1 = 0;
+			DWORD Unk2 = 0;
+			Ar << Unk1 << Unk2;
+		}
+
 		UBOOL ForceShadowVolumes = FALSE;
 		Ar << ForceShadowVolumes;
 	}

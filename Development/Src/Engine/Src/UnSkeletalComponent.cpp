@@ -4389,7 +4389,11 @@ static UBOOL DoPhysicsAssetBounds(USkeletalMeshComponent* SkelComponent, UBOOL b
 		warnf(NAME_Warning, TEXT("%s: bConsiderAllBodiesForBounds is not currently implemented."), *SkelComponent->GetPathName());
 	}
 
-	check(PhysicsAsset->Bounds.Num() == PhysicsAsset->BoundsBodies.Num());
+	// BM1 has no cooked per-body bounds, so it fills BoundsBodies and leaves Bounds empty
+	if (PhysicsAsset->Bounds.Num() > 0)
+	{
+		check(PhysicsAsset->Bounds.Num() == PhysicsAsset->BoundsBodies.Num());
+	}
 
 	if (SkelComponent->BodyToBone.Num() != PhysicsAsset->BodySetup.Num())
 	{

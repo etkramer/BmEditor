@@ -595,6 +595,12 @@ FORCEINLINE void DecompressRotation(FQuat& Out, const BYTE* RESTRICT TopOfStream
 	{
 		Out = FQuat::Identity;
 	}
+#if BATMAN
+	else if ( FORMAT == ACF_Fixed48Max )
+	{
+		((FQuatFixed48Max*)KeyData)->ToQuat( Out );
+	}
+#endif
 	else
 	{
 		appErrorf( TEXT("%i: unknown or unsupported animation compression format"), (INT)FORMAT );

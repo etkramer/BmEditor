@@ -151,6 +151,12 @@ enum EStructFlags
 	STRUCT_Inherit				= STRUCT_HasComponents|STRUCT_Atomic|STRUCT_AtomicWhenCooked|STRUCT_StrictConfig,
 };
 
+#if BATMAN
+// BM1 declared a different set of structs immutable, so its cooked packages disagree with
+// STRUCT_Immutable/STRUCT_ImmutableWhenCooked in both directions - use this for BM1 archives instead.
+UBOOL IsLegacyImmutableStruct( FName StructName );
+#endif
+
 enum EComponentInstanceFlags
 {
 	/** only instance this component if it isn't found in the InstanceMap (see UStruct::InstanceComponentTemplates */

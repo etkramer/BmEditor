@@ -313,7 +313,7 @@ FArchive& operator<<(FArchive& Ar,FPositionVertexBuffer& VertexBuffer)
 	Ar << VertexBuffer.Stride << VertexBuffer.NumVertices;
 
 #if BATMAN
-	if (Ar.LicenseeVer() >= VER_BATMAN2)
+	if (Ar.LicenseeVer() >= VER_BATMAN1)
 	{
 		UBOOL bNeedsCPUAccess = TRUE;
 		Ar << bNeedsCPUAccess;

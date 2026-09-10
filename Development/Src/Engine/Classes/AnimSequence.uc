@@ -21,6 +21,8 @@ enum AnimationCompressionFormat
 	ACF_Fixed32NoW,
 	ACF_Float32NoW,
 	ACF_Identity,
+	// BM: BM1-only format, stored on disk as 6 and remapped on load
+	ACF_Fixed48Max,
 };
 
 enum EForwardYawDirection

@@ -1040,7 +1040,7 @@ void UObject::SetLinker( ULinkerLoad* LinkerLoad, INT LinkerIndex )
 	if( OldLinker )
 	{
 #if BATMAN
-		if (OldLinker->LicenseeVer() >= VER_BATMAN2 && OldLinker->ContainsCookedData())
+		if (OldLinker->LicenseeVer() >= VER_BATMAN1 && OldLinker->ContainsCookedData())
 		{
 			ClearFlags(RF_NeedLoad|RF_NeedPostLoad);
 		}

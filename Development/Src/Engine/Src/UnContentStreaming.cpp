@@ -202,6 +202,14 @@ struct FStreamingTexture
 		STAT_FAST( MostResidentMips = InTexture->ResidentMips );
 		LODGroup = (TextureGroup) InTexture->LODGroup;
 		NumMipTailLevels = Max(0, InTexture->Mips.Num() - InTexture->MipTailBaseIdx);
+#if BATMAN
+		// BM: mips the cooker kept in the package aren't in the TFC, so streaming can only ever read them as garbage
+		NumPackageMips = 0;
+		while( NumPackageMips < MipCount && !InTexture->Mips(MipCount - NumPackageMips - 1).Data.IsStoredInSeparateFile() )
+		{
+			NumPackageMips++;
+		}
+#endif
 		ForceLoadRefCount = 0;
 		bIsStreamingLightmap = IsStreamingLightmap( Texture );
 		bUsesStaticHeuristics = FALSE;
@@ -389,6 +397,10 @@ struct FStreamingTexture
 	INT				TextureLODBias;
 	/** Cached number of mip-maps in the mip-tail (on Xbox). */
 	INT				NumMipTailLevels;
+#if BATMAN
+	/** Cached number of trailing mip-maps the cooker kept in the package instead of the texture file cache. */
+	INT				NumPackageMips;
+#endif
 	/** Cached number of cinematic (high-resolution) mip-maps. Normally not streamed in, unless the texture is forcibly fully loaded. */
 	INT				NumCinematicMipLevels;
 
@@ -3470,6 +3482,9 @@ void FStreamingManagerTexture::CalcMinMaxMips( FStreamingTexture& StreamingTextu
 
 	// Calculate the minimum number of mip-levels required.
 	StreamingTexture.MinAllowedMips	= Max( StreamingTexture.MinTextureResidentMipCount, StreamingTexture.NumMipTailLevels );
+#if BATMAN
+	StreamingTexture.MinAllowedMips	= Max( StreamingTexture.MinAllowedMips, StreamingTexture.NumPackageMips );
+#endif
 
 	// Calculate the maximum number of mip-levels.
 	INT MaxTextureMipCount = GMaxTextureMipCount;

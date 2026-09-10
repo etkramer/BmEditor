@@ -13,6 +13,7 @@
 /BmGame/Autosaves/*
 /BmGame/Config/Bm*
 /BmGame/Content/*
+/BmGame/CookedPC/*
 /BmGame/CookedPCConsole/*
 /BmGame/Packages/*
 /BmGame/Logs/*

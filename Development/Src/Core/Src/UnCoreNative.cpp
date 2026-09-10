@@ -892,7 +892,7 @@ void UPackage::PatchNetObjectList( INT NewNumNetObjects )
 UBOOL UPackage::IsBmCooked() const
 {
 	ULinkerLoad* Linker = GetBaseLinker();
-	return Linker && Linker->LicenseeVer() >= VER_BATMAN2 && Linker->ContainsCookedData();
+	return Linker && Linker->LicenseeVer() >= VER_BATMAN1 && Linker->ContainsCookedData();
 }
 
 // BM

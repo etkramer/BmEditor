@@ -228,7 +228,11 @@ void FShaderParameterMap::VerifyBindingsAreComplete(const TCHAR* ShaderTypeName,
 			FString ErrorMessage = FString(TEXT("Found unbound parameters being used in shadertype ")) + ShaderTypeName + TEXT(" (VertexFactory: ") + VertexFactoryName + TEXT(")\n") + UnBoundParameters;
 			// An unbound parameter means the engine is not going to set its value (because it was never bound) 
 			// but it will be used in rendering, which will most likely cause artifacts
+#if BATMAN
+			warnf(*ErrorMessage);
+#else
 			appErrorf(*ErrorMessage);
+#endif
 		}
 	}
 #endif

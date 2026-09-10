@@ -1667,6 +1667,35 @@ IMPLEMENT_CLASS(UStruct);
 /*-----------------------------------------------------------------------------
 	UScriptStruct.
 -----------------------------------------------------------------------------*/
+#if BATMAN
+UBOOL IsLegacyImmutableStruct( FName StructName )
+{
+	// Every struct BM1 declared immutable or immutablewhencooked. BM1 shipped, so this list is final.
+	static const TCHAR* Names[] =
+	{
+		TEXT("Box"), TEXT("Color"), TEXT("FontCharacter"), TEXT("Guid"), TEXT("GuidImplementation"),
+		TEXT("IntPoint"), TEXT("IntRange"), TEXT("LinearColor"), TEXT("Matrix"), TEXT("Plane"),
+		TEXT("Quat"), TEXT("Range"), TEXT("Rotator"), TEXT("TwoVectors"), TEXT("Vector"),
+		TEXT("Vector2D"), TEXT("Vector4"),
+		TEXT("ActorReference"), TEXT("CovPosInfo"), TEXT("CoverInfo"), TEXT("CoverReference"),
+		TEXT("CoverSlot"), TEXT("CrossLevelReachSpec"), TEXT("DangerLink"), TEXT("ExposedLink"),
+		TEXT("FireLink"), TEXT("FireLinkItem"), TEXT("LinkSlotHelper"), TEXT("NavReference"),
+		TEXT("TargetInfo")
+	};
+
+	static TSet<FName> ImmutableNames;
+	if( ImmutableNames.Num() == 0 )
+	{
+		for( INT NameIndex = 0; NameIndex < ARRAY_COUNT(Names); NameIndex++ )
+		{
+			ImmutableNames.Add( FName(Names[NameIndex]) );
+		}
+	}
+
+	return ImmutableNames.Contains( StructName );
+}
+#endif
+
 UScriptStruct::UScriptStruct( ENativeConstructor, INT InSize, const TCHAR* InName, const TCHAR* InPackageName, EObjectFlags InFlags, UScriptStruct* InSuperStruct )
 :	UStruct			( EC_NativeConstructor, InSize, InName, InPackageName, InFlags, InSuperStruct )
 ,	StructDefaults	()

@@ -4256,6 +4256,15 @@ void UStructProperty::SerializeItem( FArchive& Ar, void* Value, INT MaxReadBytes
 									// when the min package version is bumped, the remainder of this check can be removed
 									&&	(Struct->GetFName() != NAME_FontCharacter || Ar.Ver() >= VER_FIXED_FONTS_SERIALIZATION));
 
+#if BATMAN
+	if( Ar.LicenseeVer() == VER_BATMAN1 && Ar.ContainsCookedData()
+		&& (Ar.IsLoading() || Ar.IsSaving())
+		&& !Ar.WantBinaryPropertySerialization() && !(Ar.GetPortFlags() & PPF_ForceBinarySerialization) )
+	{
+		bUseBinarySerialization = IsLegacyImmutableStruct( Struct->GetFName() );
+	}
+#endif
+
 	// Preload struct before serialization tracking to not double count time.
 	if ( bUseBinarySerialization == TRUE )
 	{

@@ -1553,7 +1553,7 @@ UBOOL ULinkerLoad::SerializeNameMap()
 #if BATMAN
 			// Precache only caches one compressed chunk at a time, so a multi-chunk request never
 			// completes. FArchiveAsync::Serialize blocks per-read anyway, so don't gate on it.
-			if( !bFinishedPrecaching && (Summary.PackageFlags & PKG_StoreCompressed) && LicenseeVer() >= VER_BATMAN2 )
+			if( !bFinishedPrecaching && (Summary.PackageFlags & PKG_StoreCompressed) && LicenseeVer() >= VER_BATMAN1 )
 			{
 				bFinishedPrecaching = TRUE;
 			}
@@ -3243,7 +3243,7 @@ UBOOL ULinkerLoad::VerifyImportInner(INT ImportIndex, FString& WarningSuffix)
 				if (FindObject != NULL && ((LoadFlags & LOAD_FindIfFail) || IsNativeTransient
 #if BATMAN
 					// BM: match CreateImport, which resolves these against memory rather than the source linker
-					|| LicenseeVer() >= VER_BATMAN2
+					|| LicenseeVer() >= VER_BATMAN1
 #endif
 					))
 				{
@@ -3294,7 +3294,7 @@ void ULinkerLoad::LoadAllObjects( UBOOL bForcePreload )
 
 #if BATMAN
 		// BM: Make sure forceexported sub-packages are marked as cooked too.
-		if (LicenseeVer() >= VER_BATMAN2 && ContainsCookedData())
+		if (LicenseeVer() >= VER_BATMAN1 && ContainsCookedData())
 		{
 			UPackage* PackageObject = Cast<UPackage>(Object);
 			if (PackageObject)
@@ -3828,6 +3828,20 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 			LoadClass = UClass::StaticClass();
 		}
 
+#if BATMAN
+		// BM: Skip unsupported BM1 types.
+		if (LicenseeVer() == VER_BATMAN1 && ContainsCookedData() && (
+			LoadClass->GetName() == "Class" ||
+			LoadClass->GetName() == "ApexAsset" ||
+			LoadClass->GetName() == "ApexClothingAsset" ||
+			LoadClass->GetName() == "ApexDestructibleAsset" ||
+            LoadClass->GetName() == "ApexGenericAsset"
+		))
+		{
+			return NULL;
+		}
+#endif
+
 #if SUPPORTS_SCRIPTPATCH_CREATION
 		//@script patcher: when running the patch commandlet, we'll have multiple versions of native classes in memory, but only the first will
 		// receive the correct ClassConstructor, so if we're about to create a class that already exists in memory (in another package), copy its class
@@ -3941,7 +3955,7 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 			if ( GIsEditor && !GIsUCC )
 			{
 #if BATMAN
-				if (LicenseeVer() >= VER_BATMAN2 && ContainsCookedData())
+				if (LicenseeVer() >= VER_BATMAN1 && ContainsCookedData())
 				{
 					// We expect this to happen a lot, and EdLoadErrorf is very slow...
 				}
@@ -4060,7 +4074,7 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 		}
 
 #if BATMAN
-		if (!Template && LicenseeVer() >= VER_BATMAN2)
+		if (!Template && LicenseeVer() >= VER_BATMAN1)
 		{
 			warnf(NAME_Warning, TEXT("Skipping object %s: no template (class %s has incomplete properties)"),
 				*Export.ObjectName.ToString(), *LoadClass->GetFullName());
@@ -4217,7 +4231,7 @@ UObject* ULinkerLoad::CreateImport( INT Index )
 		||	GIsScriptPatcherActive
 #endif
 #if BATMAN
-		|| LicenseeVer() >= VER_BATMAN2
+		|| LicenseeVer() >= VER_BATMAN1
 #endif
 			)
 		{
@@ -4232,8 +4246,8 @@ UObject* ULinkerLoad::CreateImport( INT Index )
 
 #if BATMAN
 					// BM: Resolve by path first, like seekfree, so embedded forced exports resolve in the editor.
-					// Filter on class too - BM2 packages can hold same-named objects of different classes in one outer.
-					if( LicenseeVer() >= VER_BATMAN2 )
+					// Filter on class too - BM packages can hold same-named objects of different classes in one outer.
+					if( LicenseeVer() >= VER_BATMAN1 )
 					{
 						Import.XObject = StaticFindObject( FindClass, NULL, *GetImportPathName(Index) );
 					}
@@ -4357,7 +4371,7 @@ UObject* ULinkerLoad::IndexToObject( PACKAGE_INDEX Index )
 		if( !ImportMap.IsValidIndex( -Index-1 ) )
 		{
 #if BATMAN
-			if (LicenseeVer() >= VER_BATMAN2)
+			if (LicenseeVer() >= VER_BATMAN1)
 			{
 				warnf( NAME_Warning, TEXT("Bad import index %i/%i (serializing %s at offset %i)"), -Index-1, ImportMap.Num(),
 					GSerializedObject ? *GSerializedObject->GetFullName() : TEXT("NULL"), Tell() );
@@ -4908,7 +4922,7 @@ FArchive& ULinkerLoad::operator<<( FName& Name )
 	if( !NameMap.IsValidIndex(NameIndex) )
 	{
 #if BATMAN
-		if (LicenseeVer() >= VER_BATMAN2)
+		if (LicenseeVer() >= VER_BATMAN1)
 		{
 			warnf( NAME_Warning, TEXT("Bad name index %i/%i (serializing %s at offset %i)"), NameIndex, NameMap.Num(),
 				GSerializedObject ? *GSerializedObject->GetFullName() : TEXT("NULL"), Tell() );

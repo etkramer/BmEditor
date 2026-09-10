@@ -677,6 +677,32 @@ void UTexture2D::Serialize(FArchive& Ar)
 		TIndirectArray<FTexture2DMipMap> CachedMips;
 		CachedMips.Serialize( Ar, this );
 	}
+
+	// BM: BM1 keeps the mip entries its cooker stripped, and our LOD settings don't reproduce that strip count.
+	if( Ar.IsLoading() && Ar.LicenseeVer() == VER_BATMAN1 && Ar.ContainsCookedData() )
+	{
+		INT NumStrippedMips = 0;
+		while( NumStrippedMips < Mips.Num() && !Mips(NumStrippedMips).Data.IsAvailableForUse() )
+		{
+			NumStrippedMips++;
+		}
+
+		if( NumStrippedMips > 0 && NumStrippedMips < Mips.Num() )
+		{
+			for( INT MipIndex=Mips.Num()-1; MipIndex>=0; MipIndex-- )
+			{
+				if( !Mips(MipIndex).Data.IsAvailableForUse() )
+				{
+					Mips.Remove( MipIndex );
+				}
+			}
+
+			// The cooker baked the LOD bias in when it stripped these
+			SizeX	= Max( SizeX >> NumStrippedMips, 1 );
+			SizeY	= Max( SizeY >> NumStrippedMips, 1 );
+			LODBias	= 0;
+		}
+	}
 #endif
 }
 
@@ -1001,8 +1027,8 @@ void UTexture2D::SetLinker( ULinkerLoad* LinkerLoad, INT LinkerIndex )
 	// and don't want to load the texture data in this case.
 #if BATMAN
 	// BM: check the incoming linker too, since ResetLoaders() leaves objects without one
-	if( (GetLinker() && GetLinker()->LicenseeVer() >= VER_BATMAN2 && GetLinker()->ContainsCookedData())
-		|| (LinkerLoad && LinkerLoad->LicenseeVer() >= VER_BATMAN2 && LinkerLoad->ContainsCookedData()) )
+	if( (GetLinker() && GetLinker()->LicenseeVer() >= VER_BATMAN1 && GetLinker()->ContainsCookedData())
+		|| (LinkerLoad && LinkerLoad->LicenseeVer() >= VER_BATMAN1 && LinkerLoad->ContainsCookedData()) )
 #else
 	if( GUseSeekFreeLoading )
 #endif
@@ -1730,10 +1756,10 @@ FTextureResource* UTexture2D::CreateResource()
 				// get cooked directory
 				FString CookedPath;
 #if BATMAN
-				// BM: The editor runs as PLATFORM_Windows, but BM2 TFCs live in CookedPCConsole.
-				const UE3::EPlatformType TextureCachePlatform = (GetLinker() && GetLinker()->LicenseeVer() >= VER_BATMAN2 && GetLinker()->ContainsCookedData())
-					? UE3::PLATFORM_WindowsConsole
-					: appGetPlatformType();
+				// BM: The editor runs as PLATFORM_Windows, but only BM1 TFCs live in CookedPC.
+				const UE3::EPlatformType TextureCachePlatform = (GetLinker() && GetLinker()->LicenseeVer() == VER_BATMAN1 && GetLinker()->ContainsCookedData())
+					? UE3::PLATFORM_Windows
+					: UE3::PLATFORM_WindowsConsole;
 				appGetCookedContentPath(TextureCachePlatform, CookedPath);
 #else
 				appGetCookedContentPath(appGetPlatformType(), CookedPath);
@@ -1822,6 +1848,15 @@ FTextureResource* UTexture2D::CreateResource()
 		RequestedMips	= Min( MipCount, RequestedMips );
 		// Make sure that we at least load the mips that reside in the packed miptail
 		RequestedMips	= Max( RequestedMips, NumMipTailLevels );
+#if BATMAN
+		// BM: mips the cooker kept in the package aren't in the TFC, so streaming can only ever read them as garbage
+		INT NumPackageMips = 0;
+		while( NumPackageMips < Mips.Num() && !Mips(Mips.Num() - NumPackageMips - 1).Data.IsStoredInSeparateFile() )
+		{
+			NumPackageMips++;
+		}
+		RequestedMips	= Max( RequestedMips, NumPackageMips );
+#endif
 		// should be as big as the mips we have already directly loaded into GPU mem
 		if( ResourceMem )
 		{	
