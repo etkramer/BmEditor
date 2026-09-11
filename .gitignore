@@ -17,6 +17,7 @@
 /BmGame/CookedPCConsole/*
 /BmGame/Packages/*
 /BmGame/Logs/*
+/BmGame/Unpublished/*
 /Development/External/GFx/*
 !**/MISSING_FILES.txt
 

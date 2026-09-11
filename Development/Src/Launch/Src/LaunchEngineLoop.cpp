@@ -57,7 +57,6 @@ void InitializeRegistrantsAndRegisterNames();
 //	AutoInitializeRegistrants* declarations.
 extern void AutoInitializeRegistrantsCore( INT& Lookup );
 extern void AutoInitializeRegistrantsEngine( INT& Lookup );
-extern void AutoInitializeRegistrantsGameFramework( INT& Lookup );
 extern void AutoInitializeRegistrantsIpDrv( INT& Lookup );
 extern void AutoInitializeRegistrantsXAudio2( INT& Lookup );
 extern void AutoInitializeRegistrantsALAudio( INT& Lookup );
@@ -118,7 +117,6 @@ extern void AutoInitializeRegistrantsGFxUI( INT& Lookup );
 //	AutoGenerateNames* declarations.
 extern void AutoGenerateNamesCore();
 extern void AutoGenerateNamesEngine();
-extern void AutoGenerateNamesGameFramework();
 extern void AutoGenerateNamesUnrealEd();
 extern void AutoGenerateNamesIpDrv();
 extern void AutoGenerateNamesOnlineSubsystemLive();
@@ -904,7 +902,6 @@ void appGetEngineScriptPackageNames(TArray<FString>& PackageNames, UBOOL bCanInc
 	// It is up to the script code not to use GFx code when WITH_GFx=0
 	PackageNames.AddItem(TEXT("GFxUI"));
 
-	PackageNames.AddItem(TEXT("GameFramework"));
 	if( bCanIncludeEditorOnlyPackages )
 	{
 		PackageNames.AddItem(TEXT("UnrealEd"));
@@ -1276,9 +1273,6 @@ void CheckNativeClassSizes()
 
 	extern void AutoCheckNativeClassSizesEngine( UBOOL& Mismatch );
 	AutoCheckNativeClassSizesEngine( Mismatch );
-
-	extern void AutoCheckNativeClassSizesGameFramework( UBOOL& Mismatch );
-	AutoCheckNativeClassSizesGameFramework( Mismatch );
 
 #if WITH_GFx
 	extern void AutoCheckNativeClassSizesGFxUI( UBOOL& Mismatch );
@@ -3891,7 +3885,6 @@ void InitializeRegistrantsAndRegisterNames()
 	// Auto-generated lookups and statics
 	AutoInitializeRegistrantsCore( Lookup );
 	AutoInitializeRegistrantsEngine( Lookup );
-	AutoInitializeRegistrantsGameFramework( Lookup );
 #if WITH_UE3_NETWORKING
 	AutoInitializeRegistrantsIpDrv( Lookup );
 #endif	//#if WITH_UE3_NETWORKING
@@ -4000,7 +3993,6 @@ void InitializeRegistrantsAndRegisterNames()
 //	AutoGenerateNames* declarations.
 	AutoGenerateNamesCore();
 	AutoGenerateNamesEngine();
-	AutoGenerateNamesGameFramework();
 #if WITH_GFx
     AutoGenerateNamesGFxUI();
 #endif // WITH_GFx

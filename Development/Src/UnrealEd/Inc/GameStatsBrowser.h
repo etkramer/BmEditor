@@ -10,7 +10,7 @@
 #ifndef __GAMESTATSBROWSER_H__
 #define __GAMESTATSBROWSER_H__
 
-#include "GameFrameworkGameStatsClasses.h"
+#include "EngineGameStatsClasses.h"
 #include "UnrealEdGameStatsClasses.h"
 
 

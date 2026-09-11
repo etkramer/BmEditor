@@ -265,6 +265,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Src\GameStats.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\Src\GlobalShader.cpp"
 				>
 			</File>
@@ -1950,6 +1954,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Inc\EngineGameStatsClasses.h"
+				>
+			</File>
+			<File
 				RelativePath=".\Inc\EngineInterpolationClasses.h"
 				>
 			</File>
@@ -2063,6 +2071,10 @@
 			</File>
 			<File
 				RelativePath=".\Inc\GameplayEventsUtilities.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Inc\GameStatsUtilities.h"
 				>
 			</File>
 			<File
@@ -8786,7 +8798,15 @@
 					>
 				</File>
 				<File
+					RelativePath=".\Classes\GameStateObject.uc"
+					>
+				</File>
+				<File
 					RelativePath=".\Classes\GameStats.uci"
+					>
+				</File>
+				<File
+					RelativePath=".\Classes\GameStatsAggregator.uc"
 					>
 				</File>
 				<File

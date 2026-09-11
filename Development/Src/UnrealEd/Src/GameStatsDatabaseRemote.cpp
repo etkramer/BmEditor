@@ -5,7 +5,7 @@
 =============================================================================*/
 
 #include "UnrealEd.h"
-#include "GameFrameworkGameStatsClasses.h"
+#include "EngineGameStatsClasses.h"
 #include "UnrealEdGameStatsClasses.h"
 #include "GameplayEventsUtilities.h"
 #include "GameStatsDatabaseTypes.h"

@@ -6,7 +6,7 @@
 
 #include "UnrealEd.h"
 #include "GameStatsUtilities.h"
-#include "GameFrameworkGameStatsClasses.h"
+#include "EngineGameStatsClasses.h"
 #include "UnrealEdGameStatsClasses.h"
 #include "UnIpDrv.h"
 #include "OnlineSubsystemUtilities.h"

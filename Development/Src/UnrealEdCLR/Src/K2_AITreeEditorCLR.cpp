@@ -8,7 +8,6 @@
 #include "EngineK2Classes.h"
 #include "K2.h"
 #include "EnginePrefabClasses.h"
-#include "GameFrameworkClasses.h"
 #include "K2_AITreeEditorShared.h"
 #include "UnCompileHelper.h"
 
@@ -544,32 +543,6 @@ public:
 
 		K2NewNodeOption^ NewRootOption = gcnew K2NewNodeOption(TEXT("Root"), CLRTools::ToString(UAICommandNodeRoot::StaticClass()->GetName()));
 		AllOptions->Add( NewRootOption );
-
-		for( FObjectIterator It; It; ++It )
-		{
-			UClass* Cls = Cast<UClass>(*It);
-			if( Cls == NULL || Cls->HasAnyClassFlags( CLASS_Abstract ) )
-			{
-				continue;
-			}
-
-			if( Cls->IsChildOf( UGameAICommand::StaticClass() ) )
-			{
-				FString ClsName = Cls->GetName();
-				if( appStristr( *ClsName, TEXT("NanoAIAction") ) == NULL )
-				{
-					K2NewNodeOption^ NewOption = gcnew K2NewNodeOption(TEXT("Command"), CLRTools::ToString(Cls->GetDesc()));
-					NewOption->mClassName = CLRTools::ToString(ClsName);
-					AllOptions->Add( NewOption );
-				}
-				else
-				{
-					K2NewNodeOption^ NewOption = gcnew K2NewNodeOption(TEXT("Action"), CLRTools::ToString(Cls->GetDesc()));
-					NewOption->mClassName = CLRTools::ToString(ClsName);
-					AllOptions->Add( NewOption );
-				}
-			}
-		}
 
 		return AllOptions;
 	}

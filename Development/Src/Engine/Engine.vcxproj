@@ -113,6 +113,7 @@
     <ClCompile Include="Src\ForceFieldShapeSphere.cpp" />
     <ClCompile Include="Src\FullScreenMovie.cpp" />
     <ClCompile Include="Src\GameplayEvents.cpp" />
+    <ClCompile Include="Src\GameStats.cpp" />
     <ClCompile Include="Src\GlobalShader.cpp" />
     <ClCompile Include="Src\GlobalShaderNGP.cpp" />
     <ClCompile Include="Src\GPUSkinVertexFactory.cpp" />
@@ -816,6 +817,7 @@
     <ClInclude Include="Inc\EngineFoliageClasses.h" />
     <ClInclude Include="Inc\EngineForceFieldClasses.h" />
     <ClInclude Include="Inc\EngineGameEngineClasses.h" />
+    <ClInclude Include="Inc\EngineGameStatsClasses.h" />
     <ClInclude Include="Inc\EngineInterpolationClasses.h" />
     <ClInclude Include="Inc\EngineK2Classes.h" />
     <ClInclude Include="Inc\EngineLensFlareClasses.h" />
@@ -854,6 +856,7 @@
     <ClInclude Include="Inc\FullScreenMovie.h" />
     <ClInclude Include="Inc\FullScreenMovieFallback.h" />
     <ClInclude Include="Inc\GameplayEventsUtilities.h" />
+    <ClInclude Include="Inc\GameStatsUtilities.h" />
     <ClInclude Include="Inc\GenericOctree.h" />
     <ClInclude Include="Inc\GenericOctreePublic.h" />
     <ClInclude Include="Inc\GlobalShader.h" />
@@ -1561,7 +1564,9 @@
     <None Include="Classes\GameplayEventsReader.uc" />
     <None Include="Classes\GameplayEventsWriter.uc" />
     <None Include="Classes\GameReplicationInfo.uc" />
+    <None Include="Classes\GameStateObject.uc" />
     <None Include="Classes\GameStats.uci" />
+    <None Include="Classes\GameStatsAggregator.uc" />
     <None Include="Classes\GameUISceneClient.uc" />
     <None Include="Classes\GameViewportClient.uc" />
     <None Include="Classes\GeneratedMeshAreaLight.uc" />

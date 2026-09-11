@@ -1382,7 +1382,12 @@ UBOOL ULinkerLoad::SerializePackageFileSummary()
 		if (GIsEditor)
 		{
 			Summary.PackageFlags &= ~PKG_RequireImportsAlreadyLoaded;
-			if ( GIsUCCMake )
+			if ( GIsUCCMake
+#if BATMAN
+			// BM: cooked packages merge into an already-loaded one, so they must still find its exports in memory.
+			&& !(Summary.GetFileVersionLicensee() >= VER_BATMAN1 && (Summary.PackageFlags & PKG_Cooked))
+#endif
+			)
 			{
 				// Clear the cook flag when running make so that CreateExport is forced
 				// to load from disk instead of trying to find in memory.

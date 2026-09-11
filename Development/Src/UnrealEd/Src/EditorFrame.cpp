@@ -55,7 +55,6 @@
 #include "Menus.h"
 #include "AssetSelection.h"
 #include "EngineAIClasses.h"
-#include "GameFrameworkClasses.h"
 #include "EditorLevelUtils.h"
 #include "MRUFavoritesList.h"
 #include "SourceControl.h"
@@ -1197,8 +1196,6 @@ BEGIN_EVENT_TABLE( WxEditorFrame, wxFrame )
 	EVT_MENU( IDMENU_ActorPopupPathClearProscribed, WxEditorFrame::MenuActorPopupPathClearProscribed )
 	EVT_MENU( IDMENU_ActorPopupPathClearForced, WxEditorFrame::MenuActorPopupPathClearForced )
 	EVT_MENU( IDMENU_ActorPopupPathStitchCover, WxEditorFrame::MenuActorPopupPathStitchCover )
-	EVT_MENU( IDMENU_ActorPopupLinkCrowdDestinations, WxEditorFrame::MenuActorPopupLinkCrowdDestinations )
-	EVT_MENU( IDMENU_ActorPopupUnlinkCrowdDestinations, WxEditorFrame::MenuActorPopupUnlinkCrowdDestinations )
 	EVT_MENU( IDMENU_SnapToFloor, WxEditorFrame::MenuSnapToFloor )
 	EVT_MENU( IDMENU_AlignToFloor, WxEditorFrame::MenuAlignToFloor )
 	EVT_MENU( IDMENU_SnapPivotToFloor, WxEditorFrame::MenuSnapPivotToFloor )
@@ -7667,50 +7664,6 @@ void WxEditorFrame::MenuActorPopupPathStitchCover( wxCommandEvent& In )
 		DestLink->ForceUpdateComponents(FALSE,FALSE);
 	}
 	GUnrealEd->RedrawAllViewports();
-}
-
-void WxEditorFrame::MenuActorPopupLinkCrowdDestinations( wxCommandEvent& In )
-{
-	TArray<AGameCrowdDestination*> Pts;
-	GEditor->GetSelectedActors()->GetSelectedObjects<AGameCrowdDestination>(Pts);
-	for (INT Idx = 0; Idx < Pts.Num(); Idx++)
-	{
-		AGameCrowdDestination *Pt = Pts(Idx);
-		for (INT InnerIdx = 0; InnerIdx < Pts.Num(); InnerIdx++)
-		{
-			if (InnerIdx != Idx)
-			{
-				Pt->NextDestinations.AddUniqueItem(Pts(InnerIdx));
-			}
-		}
-		UGameDestinationConnRenderingComponent *Comp = NULL;
-		if (Pt->Components.FindItemByClass<UGameDestinationConnRenderingComponent>(&Comp))
-		{
-			FComponentReattachContext Context(Comp);
-		}
-	}
-}
-
-void WxEditorFrame::MenuActorPopupUnlinkCrowdDestinations( wxCommandEvent& In )
-{
-	TArray<AGameCrowdDestination*> Pts;
-	GEditor->GetSelectedActors()->GetSelectedObjects<AGameCrowdDestination>(Pts);
-	for (INT Idx = 0; Idx < Pts.Num(); Idx++)
-	{
-		AGameCrowdDestination *Pt = Pts(Idx);
-		for (INT InnerIdx = 0; InnerIdx < Pts.Num(); InnerIdx++)
-		{
-			if (InnerIdx != Idx)
-			{
-				Pt->NextDestinations.RemoveItem(Pts(InnerIdx));
-			}
-		}
-		UGameDestinationConnRenderingComponent *Comp = NULL;
-		if (Pt->Components.FindItemByClass<UGameDestinationConnRenderingComponent>(&Comp))
-		{
-			FComponentReattachContext Context(Comp);
-		}
-	}
 }
 
 void WxEditorFrame::MenuSplineBreakAll( wxCommandEvent& In )

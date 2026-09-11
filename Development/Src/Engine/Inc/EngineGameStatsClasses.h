@@ -8,15 +8,15 @@
 #pragma pack (push,4)
 #endif
 
-#include "GameFrameworkNames.h"
+#include "EngineNames.h"
 
 // Split enums from the rest of the header so they can be included earlier
 // than the rest of the header file by including this file twice with different
 // #define wrappers. See Engine.h and look at EngineClasses.h for an example.
 #if !NO_ENUMS && !defined(NAMES_ONLY)
 
-#ifndef INCLUDED_GAMEFRAMEWORK_GAMESTATS_ENUMS
-#define INCLUDED_GAMEFRAMEWORK_GAMESTATS_ENUMS 1
+#ifndef INCLUDED_ENGINE_GAMESTATS_ENUMS
+#define INCLUDED_ENGINE_GAMESTATS_ENUMS 1
 
 enum GameSessionType
 {
@@ -32,7 +32,7 @@ enum GameSessionType
     op(GT_Coop) \
     op(GT_Multiplayer) 
 
-#endif // !INCLUDED_GAMEFRAMEWORK_GAMESTATS_ENUMS
+#endif // !INCLUDED_ENGINE_GAMESTATS_ENUMS
 #endif // !NO_ENUMS
 
 #if !ENUMS_ONLY
@@ -44,8 +44,8 @@ enum GameSessionType
 
 #ifndef NAMES_ONLY
 
-#ifndef INCLUDED_GAMEFRAMEWORK_GAMESTATS_CLASSES
-#define INCLUDED_GAMEFRAMEWORK_GAMESTATS_CLASSES 1
+#ifndef INCLUDED_ENGINE_GAMESTATS_CLASSES
+#define INCLUDED_ENGINE_GAMESTATS_CLASSES 1
 #define ENABLE_DECLARECLASS_MACRO 1
 #include "UnObjBas.h"
 #undef ENABLE_DECLARECLASS_MACRO
@@ -99,7 +99,7 @@ public:
         P_FINISH;
         this->Reset();
     }
-    DECLARE_CLASS(UGameStateObject,UGameplayEventsHandler,0|CLASS_Config,GameFramework)
+    DECLARE_CLASS(UGameStateObject,UGameplayEventsHandler,0|CLASS_Config,Engine)
 	/** Return the round number in a given match, -1 if its not multiplayer */
 	INT GetRoundNumber() { if (SessionType == GT_Multiplayer) { return RoundNumber; } else { return -1; } }
 
@@ -643,7 +643,7 @@ public:
         P_FINISH;
         *(UBOOL*)Result=this->GetAggregateMappingIDs(EventID,AggregateID,TargetAggregateID);
     }
-    DECLARE_CLASS(UGameStatsAggregator,UGameplayEventsHandler,0|CLASS_Config,GameFramework)
+    DECLARE_CLASS(UGameStatsAggregator,UGameplayEventsHandler,0|CLASS_Config,Engine)
 	/*
 	 *   Set the game state this aggregator will use
 	 * @param InGameState - game state object to use
@@ -717,7 +717,7 @@ public:
 #undef DECLARE_CASTED_CLASS
 #undef DECLARE_ABSTRACT_CLASS
 #undef DECLARE_ABSTRACT_CASTED_CLASS
-#endif // !INCLUDED_GAMEFRAMEWORK_GAMESTATS_CLASSES
+#endif // !INCLUDED_ENGINE_GAMESTATS_CLASSES
 #endif // !NAMES_ONLY
 
 AUTOGENERATE_FUNCTION(UGameStateObject,-1,execReset);
@@ -732,26 +732,26 @@ AUTOGENERATE_FUNCTION(UGameStatsAggregator,-1,execPreProcessStream);
 #endif
 
 #ifdef STATIC_LINKING_MOJO
-#ifndef GAMEFRAMEWORK_GAMESTATS_NATIVE_DEFS
-#define GAMEFRAMEWORK_GAMESTATS_NATIVE_DEFS
+#ifndef ENGINE_GAMESTATS_NATIVE_DEFS
+#define ENGINE_GAMESTATS_NATIVE_DEFS
 
-#define AUTO_INITIALIZE_REGISTRANTS_GAMEFRAMEWORK_GAMESTATS \
+#define AUTO_INITIALIZE_REGISTRANTS_ENGINE_GAMESTATS \
 	UGameStateObject::StaticClass(); \
-	GNativeLookupFuncs.Set(FName("GameStateObject"), GGameFrameworkUGameStateObjectNatives); \
+	GNativeLookupFuncs.Set(FName("GameStateObject"), GEngineUGameStateObjectNatives); \
 	UGameStatsAggregator::StaticClass(); \
-	GNativeLookupFuncs.Set(FName("GameStatsAggregator"), GGameFrameworkUGameStatsAggregatorNatives); \
+	GNativeLookupFuncs.Set(FName("GameStatsAggregator"), GEngineUGameStatsAggregatorNatives); \
 
-#endif // GAMEFRAMEWORK_GAMESTATS_NATIVE_DEFS
+#endif // ENGINE_GAMESTATS_NATIVE_DEFS
 
 #ifdef NATIVES_ONLY
-FNativeFunctionLookup GGameFrameworkUGameStateObjectNatives[] = 
+FNativeFunctionLookup GEngineUGameStateObjectNatives[] = 
 { 
 	MAP_NATIVE(UGameStateObject, execReset)
 	MAP_NATIVE(UGameStateObject, execPreProcessStream)
 	{NULL, NULL}
 };
 
-FNativeFunctionLookup GGameFrameworkUGameStatsAggregatorNatives[] = 
+FNativeFunctionLookup GEngineUGameStatsAggregatorNatives[] = 
 { 
 	MAP_NATIVE(UGameStatsAggregator, execGetAggregateMappingIDs)
 	MAP_NATIVE(UGameStatsAggregator, execReset)

@@ -13274,7 +13274,11 @@ UBOOL UEditorEngine::MakeScripts( UClass* BaseClass, FFeedbackContext* Warn, UBO
 		if ( (LimitOuter == NULL || ObjIt->IsIn(LimitOuter)) )
 		{
 			UClass* Class = *ObjIt;
+#if BATMAN
+			if ( bParseOnly && Class->ScriptText )
+#else
 			if ( bParseOnly )
+#endif
 				Class->ClassFlags &= ~CLASS_Parsed;
 
 			AllClasses.AddClass(Class);

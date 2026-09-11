@@ -7,7 +7,7 @@
 #include "UnrealEdPrivateClasses.h"
 #include "StaticMeshEditor.h"
 #include "PropertyUtils.h"
-#include "GameFrameworkGameStatsClasses.h"
+#include "EngineGameStatsClasses.h"
 #include "UnrealEdGameStatsClasses.h"
 #include "AssetSelection.h"
 #include "Factories.h"

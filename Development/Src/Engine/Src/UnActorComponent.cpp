@@ -599,7 +599,8 @@ UBOOL UActorComponent::IsValidComponent() const
 void UActorComponent::Attach()
 {
 	checkf(!HasAnyFlags(RF_Unreachable), TEXT("%s"), *GetDetailedInfo());
-	checkf(!GetOuter()->IsTemplate(), TEXT("'%s' (%s)"), *GetOuter()->GetFullName(), *GetDetailedInfo());
+	// BM: include the owning actor so template leaks can be traced back to a class
+	checkf(!GetOuter()->IsTemplate(), TEXT("'%s' (%s) owner '%s' archetype '%s'"), *GetOuter()->GetFullName(), *GetDetailedInfo(), Owner ? *Owner->GetFullName() : TEXT("None"), *GetArchetype()->GetFullName());
 	checkf(!IsTemplate(), TEXT("'%s' (%s)"), *GetOuter()->GetFullName(), *GetDetailedInfo() );
 	checkf(Scene, TEXT("Attach: %s to %s"), *GetDetailedInfo(), Owner ? *Owner->GetFullName() : TEXT("*** No Owner ***") );
 	checkf(IsValidComponent(), TEXT("Attach: %s to %s"), *GetDetailedInfo(), Owner ? *Owner->GetFullName() : TEXT("*** No Owner ***") );

@@ -221,6 +221,19 @@
         "internalConsoleOptions": "openOnSessionStart"
       },
       {
+        "name": "Launch Make (-user)",
+        "type": "cppvsdbg",
+        "request": "launch",
+        "program": "${workspaceFolder}/Binaries/Win32/Debug-BmGame.exe",
+        "args": ["make", "-user"],
+        "stopAtEntry": false,
+        "cwd": "${workspaceFolder}",
+        "environment": [],
+        "preLaunchTask": "Build Editor (Debug)",
+        "visualizerFile": "${workspaceFolder}/UE3.natvis",
+        "internalConsoleOptions": "openOnSessionStart"
+      },
+      {
         "name": "Launch ExtractPackages",
         "type": "cppvsdbg",
         "request": "launch",

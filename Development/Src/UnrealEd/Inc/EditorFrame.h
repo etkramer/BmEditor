@@ -719,9 +719,6 @@ private:
 	void MenuActorPopupPathClearForced( wxCommandEvent& In );
 	void MenuActorPopupPathStitchCover( wxCommandEvent& In );
 
-	void MenuActorPopupLinkCrowdDestinations( wxCommandEvent& In );
-	void MenuActorPopupUnlinkCrowdDestinations( wxCommandEvent& In );
-
 	void MenuSplineBreakAll( wxCommandEvent& In );
 	void MenuSplineConnect( wxCommandEvent& In );
 	void MenuSplineBreak( wxCommandEvent& In );

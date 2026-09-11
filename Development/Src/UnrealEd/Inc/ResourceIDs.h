@@ -1581,9 +1581,6 @@ enum
 	IDMENU_ActorPopupPathMenu,
 	IDMENU_ActorPopupComplexPathMenu,
 
-	IDMENU_ActorPopupLinkCrowdDestinations,
-	IDMENU_ActorPopupUnlinkCrowdDestinations,
-
 	IDMENU_ActorPopupConvertKActorToStaticMesh,
 	IDMENU_ActorPopupConvertKActorToMover,
 	IDMENU_ActorPopupConvertMoverToStaticMesh,

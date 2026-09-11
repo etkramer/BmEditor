@@ -3178,7 +3178,9 @@ UBOOL AreScriptPackagesOutOfDate()
 {
 	UBOOL bResult = FALSE;
 
-#if !SHIPPING_PC_GAME || UDK
+#if SHIPPING_PC_GAME && !UDK
+	const UBOOL bRunningAsUser = TRUE;
+#else
 	// If running in 'user mode', don't look to compile shipping script.
 	const UBOOL bRunningAsUser =
 		ParseParam(appCmdLine(), TEXT("user"))
@@ -3210,6 +3212,12 @@ UBOOL AreScriptPackagesOutOfDate()
 		bResult |= IsScriptManifestOutOfDate_Worker( ScriptPackagePath );
 	}
 #endif
+	// BM: mod script is only ever compiled in user mode, so don't report it as outdated otherwise.
+	if ( !bRunningAsUser )
+	{
+		return bResult;
+	}
+
 	// Look for uncompiled mod script.
 	// These are loaded from the editor ini because it's not signed in cooked pc builds.
 	const TCHAR* ModIni = GEditorIni;
@@ -3320,6 +3328,11 @@ INT UMakeCommandlet::Main( const FString& Params )
 	GConfig->GetArray( TEXT("UnrealEd.EditorEngine"), TEXT("OptionalScriptPackages"), OptionalPackages, GEngineIni );
 
 	FString ShippingOutputDir;
+#if BATMAN
+	// BM: shipping script lives in BmGame\Script, not in a seekfree cooked dir, so user mode
+	// reads it from the same place as a normal make. It's never written to from here either way.
+	ShippingOutputDir = appScriptOutputDir();
+#else
 	if ( bIsRunningAsUser )
 	{
 		USystem* DefaultSystemObject = USystem::StaticClass()->GetDefaultObject<USystem>();
@@ -3329,6 +3342,7 @@ INT UMakeCommandlet::Main( const FString& Params )
 	{
 		ShippingOutputDir = appScriptOutputDir();
 	}
+#endif
 
 	// Look to the editor ini for mod script because the editor ini is not signed in cooked pc builds.
 	const TCHAR* ModIni = GEditorIni;
@@ -3349,9 +3363,13 @@ INT UMakeCommandlet::Main( const FString& Params )
 	// Stores the index into PackagesAndPaths of the first mod package.
 	const INT FirstModPackageIndex = PackagesAndPaths.Num();
 
-	for ( INT PackageIndex = 0 ; PackageIndex < ModPackages.Num() ; ++PackageIndex )
+	// BM: mod packages can reference shipping content, so they're only compiled in user mode
+	if ( bIsRunningAsUser )
 	{
-		PackagesAndPaths.AddItem(FPackageShipInfo(*ModPackages(PackageIndex),FALSE));
+		for ( INT PackageIndex = 0 ; PackageIndex < ModPackages.Num() ; ++PackageIndex )
+		{
+			PackagesAndPaths.AddItem(FPackageShipInfo(*ModPackages(PackageIndex),FALSE));
+		}
 	}
 
 	// Store the script package directory and package list that are deletable.

@@ -382,6 +382,7 @@ struct FURL;
 #include "EngineLightClasses.h"
 #include "EngineSkeletalMeshClasses.h"
 #include "EngineReplicationInfoClasses.h"
+#include "EngineGameStatsClasses.h"
 #include "UnLightMap.h"						// Light-maps.
 #include "UnShadowMap.h"					// Shadow-maps.
 #include "UnModel.h"						// Model class.

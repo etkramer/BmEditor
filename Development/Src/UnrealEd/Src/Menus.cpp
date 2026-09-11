@@ -20,7 +20,6 @@
 #include "EngineProcBuildingClasses.h"
 #include "EngineFoliageClasses.h"
 #include "EngineAIClasses.h"
-#include "GameFrameworkClasses.h"
 #include "EditorLevelUtils.h"
 
 #if WITH_MANAGED_CODE
@@ -524,7 +523,6 @@ WxMainContextMenu::WxMainContextMenu()
 	INT NumSelectedBrushes = 0;
 	INT NumNavPoints = 0;
 	INT NumCoverLinks = 0;
-	INT NumCrowdDestinations = 0;
 	ALevelStreamingVolume* FirstSelectedLevelStreamingVolume = NULL;
 	ALevelGridVolume* FirstSelectedLevelGridVolume = NULL;
 
@@ -825,10 +823,6 @@ WxMainContextMenu::WxMainContextMenu()
 		else if( Actor->IsA(ASplineActor::StaticClass()) )
 		{
 			bHaveSpline = TRUE;
-		}
-		else if ( Actor->IsA(AGameCrowdDestination::StaticClass()) )
-		{
-			NumCrowdDestinations++;
 		}
 
 		if( !bHaveActorInPrefab )
@@ -1441,15 +1435,6 @@ WxMainContextMenu::WxMainContextMenu()
 	else
 	{
 		PathMenu = NULL;
-	}
-
-
-	// Crowd destinations: Link/unlink
-	if (NumCrowdDestinations > 1)
-	{
-		AppendSeparatorIfNeeded();
-		Append( IDMENU_ActorPopupLinkCrowdDestinations, *LocalizeUnrealEd("LinkCrowdDestinations"), TEXT("") );
-		Append( IDMENU_ActorPopupUnlinkCrowdDestinations, *LocalizeUnrealEd("UnlinkCrowdDestinations"), TEXT("") );
 	}
 
 

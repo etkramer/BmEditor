@@ -103,6 +103,7 @@ PRAGMA_DISABLE_OPTIMIZATION
 #include "EngineProcBuildingClasses.h"
 #include "EngineK2Classes.h"
 #include "EngineCameraClasses.h"
+#include "EngineGameStatsClasses.h"
 #undef AUTOGENERATE_FUNCTION
 #undef NAMES_ONLY
 
@@ -149,6 +150,7 @@ PRAGMA_DISABLE_OPTIMIZATION
 #include "EngineProcBuildingClasses.h"
 #include "EngineK2Classes.h"
 #include "EngineCameraClasses.h"
+#include "EngineGameStatsClasses.h"
 
 // STARTUPDATE_DWTRIOVIZ
 #include "DwTrioviz/DwTriovizImpl.h"
@@ -200,6 +202,7 @@ void AutoCheckNativeClassSizesEngine( UBOOL& Mismatch )
 #include "EngineK2Classes.h"
 #include "EngineFluidClasses.h"
 #include "EngineCameraClasses.h"
+#include "EngineGameStatsClasses.h"
 #undef AUTOGENERATE_FUNCTION
 #undef AUTOGENERATE_NAME
 #undef VERIFY_CLASS_SIZES
@@ -251,6 +254,7 @@ void AutoInitializeRegistrantsEngine( INT& Lookup )
 	AUTO_INITIALIZE_REGISTRANTS_ENGINE_K2
 	AUTO_INITIALIZE_REGISTRANTS_ENGINE_REPLICATIONINFO
 	AUTO_INITIALIZE_REGISTRANTS_ENGINE_CAMERA
+	AUTO_INITIALIZE_REGISTRANTS_ENGINE_GAMESTATS
 }
 
 /**
@@ -299,6 +303,7 @@ void AutoGenerateNamesEngine()
 	#include "EngineProcBuildingClasses.h"
 	#include "EngineK2Classes.h"
 	#include "EngineCameraClasses.h"
+	#include "EngineGameStatsClasses.h"
 	#undef AUTOGENERATE_FUNCTION
 	#undef NAMES_ONLY
 }

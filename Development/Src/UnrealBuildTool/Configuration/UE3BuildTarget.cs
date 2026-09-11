@@ -668,7 +668,6 @@ namespace UnrealBuildTool
 			GlobalCPPEnvironment.IncludePaths.Add("Core/Inc/Licensee");
 			GlobalCPPEnvironment.IncludePaths.Add("Core/Inc");
 			GlobalCPPEnvironment.IncludePaths.Add("Engine/Inc");
-			GlobalCPPEnvironment.IncludePaths.Add("GameFramework/Inc");
 			GlobalCPPEnvironment.IncludePaths.Add("IpDrv/Inc");
 			GlobalCPPEnvironment.IncludePaths.Add("UnrealEd/Inc");
 			GlobalCPPEnvironment.IncludePaths.Add("UnrealEd/FaceFX");
@@ -708,7 +707,6 @@ namespace UnrealBuildTool
             // Add the projects compiled for all games, all platforms.
             NonGameProjects.Add( new UE3ProjectDesc( "Core/Core.vcproj" ) );
             NonGameProjects.Add( new UE3ProjectDesc( "Engine/Engine.vcproj" ) );
-			NonGameProjects.Add( new UE3ProjectDesc( "GameFramework/GameFramework.vcproj" ) );
 			NonGameProjects.Add( new UE3ProjectDesc( "IpDrv/IpDrv.vcproj" ) );
 
             NonGameProjects.Add( new UE3ProjectDesc( "GFxUI/GFxUI.vcproj" ) );

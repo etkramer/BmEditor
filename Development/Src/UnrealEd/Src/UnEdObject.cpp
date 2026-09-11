@@ -177,6 +177,14 @@ static void CopyInheritedComponents( UClass* Class, FObjectInstancingGraph& Inst
 		const FName& ComponentName = It.Key();
 		UComponent* Component = It.Value();
 
+#if BATMAN
+		if( Component == NULL )
+		{
+			warnf(NAME_Warning, TEXT("Inherited component '%s' of %s is NULL"), *ComponentName.ToString(), *Class->GetPathName());
+			continue;
+		}
+#endif
+
 		// if this component is owned by a parent class
 		if( Component->GetOuter() != Class->GetDefaultObject())
 		{

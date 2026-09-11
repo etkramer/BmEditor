@@ -1604,11 +1604,37 @@ static UActorComponent* FindDefaultComponent( AActor* Default, const TCHAR* Comp
 	return NULL;
 }
 
+static UBOOL IsChildOfClassNamed( UClass* Class, const TCHAR* BaseName )
+{
+	for( UClass* Current = Class; Current != NULL; Current = Current->GetSuperClass() )
+	{
+		if( Current->GetFName() == BaseName )
+		{
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
+// A subclass CDO inherits the superclass's template pointer, which is never instanced onto level
+// actors, so every class in the hierarchy needs a template of its own.
 static UActorComponent* AddDefaultComponent( AActor* Default, UActorComponent* Template )
 {
-	UActorComponent* Component = ConstructObject<UActorComponent>( Template->GetClass(), Default, Template->GetFName(), RF_Public, Template );
+	UActorComponent* Inherited = FindDefaultComponent( Default, *Template->GetName() );
+	if( Inherited != NULL && Inherited->GetOuter() == Default )
+	{
+		return Inherited;
+	}
+
+	UActorComponent* Source = ( Inherited != NULL ) ? Inherited : Template;
+	UActorComponent* Component = ConstructObject<UActorComponent>( Source->GetClass(), Default, Source->GetFName(), RF_Public, Source );
+	if( Inherited != NULL )
+	{
+		Default->Components.RemoveItem( Inherited );
+	}
 	Default->Components.AddItem( Component );
 	Default->GetClass()->ComponentNameToDefaultObjectMap.Set( Component->GetFName(), (UComponent*)Component );
+	Default->GetClass()->ClassFlags |= CLASS_HasComponents;
 	return Component;
 }
 
@@ -1643,41 +1669,29 @@ void SetDefaultsForEditorPreview( UClass* Class )
 	const FName ClassName = Class->GetFName();
 
 	// Give PlayerStart's sprite to RPlayerStartInLevel
-	if( ClassName == TEXT("RPlayerStartInLevel") )
+	if( IsChildOfClassNamed( Class, TEXT("RPlayerStartInLevel") ) )
 	{
-		if( FindDefaultComponent( Default, TEXT("Sprite") ) == NULL )
-		{
-			AActor* Source = APlayerStart::StaticClass()->GetDefaultActor();
-			UActorComponent* Sprite = AddDefaultComponent( Default, FindDefaultComponent( Source, TEXT("Sprite") ) );
-			CastChecked<ANavigationPoint>( Default )->GoodSprite = CastChecked<USpriteComponent>( Sprite );
-		}
+		AActor* Source = APlayerStart::StaticClass()->GetDefaultActor();
+		UActorComponent* Sprite = AddDefaultComponent( Default, FindDefaultComponent( Source, TEXT("Sprite") ) );
+		CastChecked<ANavigationPoint>( Default )->GoodSprite = CastChecked<USpriteComponent>( Sprite );
 	}
 	// Give TargetPoint's sprite to RDummyTarget
-	if( ClassName == TEXT("RDummyTarget") || ClassName == TEXT("RDummyTarget_LookAt") || ClassName == TEXT("RDummyTarget_Spawnable") )
+	if( IsChildOfClassNamed( Class, TEXT("RDummyTarget") ) )
 	{
-		if( FindDefaultComponent( Default, TEXT("Sprite") ) == NULL )
-		{
-			AActor* Source = ATargetPoint::StaticClass()->GetDefaultActor();
-			UActorComponent* Sprite = AddDefaultComponent( Default, FindDefaultComponent( Source, TEXT("Sprite") ) );
-		}
+		AActor* Source = ATargetPoint::StaticClass()->GetDefaultActor();
+		AddDefaultComponent( Default, FindDefaultComponent( Source, TEXT("Sprite") ) );
 	}
 	// Give PathNode's sprite to RPatrolPoint and RSniperPoint
-	if( ClassName == TEXT("RPatrolPoint") || ClassName == TEXT("RSniperPoint") )
+	if( IsChildOfClassNamed( Class, TEXT("RPatrolPoint") ) || IsChildOfClassNamed( Class, TEXT("RSniperPoint") ) )
 	{
-		if( FindDefaultComponent( Default, TEXT("Sprite") ) == NULL )
-		{
-			AActor* Source = APathNode::StaticClass()->GetDefaultActor();
-			UActorComponent* Sprite = AddDefaultComponent( Default, FindDefaultComponent( Source, TEXT("Sprite") ) );
-		}
+		AActor* Source = APathNode::StaticClass()->GetDefaultActor();
+		AddDefaultComponent( Default, FindDefaultComponent( Source, TEXT("Sprite") ) );
 	}
 	// Give CoverLink's sprite to RGrapplePoint
-	if( ClassName == TEXT("RGrapplePoint") )
+	if( IsChildOfClassNamed( Class, TEXT("RGrapplePoint") ) )
 	{
-		if( FindDefaultComponent( Default, TEXT("Sprite") ) == NULL )
-		{
-			AActor* Source = ACoverLink::StaticClass()->GetDefaultActor();
-			UActorComponent* Sprite = AddDefaultComponent( Default, FindDefaultComponent( Source, TEXT("Sprite") ) );
-		}
+		AActor* Source = ACoverLink::StaticClass()->GetDefaultActor();
+		AddDefaultComponent( Default, FindDefaultComponent( Source, TEXT("Sprite") ) );
 	}
 	// Give preview meshes to RCinematicBatman (and co.)
 	else if( ClassName == TEXT("RCinematicBatman") || ClassName == TEXT("RCinematicRobin") || ClassName == TEXT("RCinematicCatwoman") )
