@@ -5319,6 +5319,15 @@ UBOOL FScriptCompiler::CompileExpr
 				FToken ContextToken;
 				GetToken(ContextToken);
 
+#if BATMAN
+				// BM: a second '.' means "A..B", which suppresses the "Accessed None" warning
+				UBOOL bSafeContext = ContextToken.Matches(TEXT("."));
+				if ( bSafeContext )
+				{
+					GetToken(ContextToken);
+				}
+#endif
+
 				// if the next field in the expression comes from an Outer class, insert the necessary bytecodes to navigate the context
 				UField* NextField = FindField(Token.PropertyClass, ContextToken.Identifier, TRUE, UField::StaticClass(), NULL, &OuterContextCount);
 				if ( NextField != NULL )
@@ -5334,7 +5343,11 @@ UBOOL FScriptCompiler::CompileExpr
 
 				// Emit object context override token.
 				FScriptLocation HighRetry;
+#if BATMAN
+				Writer << ( bSafeContext ? EX_SafeContext : EX_Context );
+#else
 				Writer << EX_Context;
+#endif
 
 				if ( Token.Type == CPT_Interface )
 				{

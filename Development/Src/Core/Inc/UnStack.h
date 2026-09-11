@@ -192,8 +192,9 @@ enum EExprToken
 	EX_MetaCastChecked		= 0x4E, // Checked metaclass cast (always returns NULL at runtime)
 	EX_DynamicCastChecked	= 0x4F, // Checked dynamic class cast with additional class flag validation
 
+	// Context override emitted for the "A..B" operator - no "Accessed None" on NULL
 	// https://github.com/EliotVU/Unreal-Library/blob/f7e45802bf69b89ce979af7c2dd8011f8ac6f4a8/src/Branch/UE3/RSS/EngineBranch.RSS.cs#L17
-	EX_RSSContext			= 0x50,
+	EX_SafeContext			= 0x50,
 #endif
 
 

@@ -1809,7 +1809,7 @@ IMPLEMENT_FUNCTION( UObject, EX_Context, execContext );
 
 #if BATMAN
 // Same as execContext, but silently zero-fills the result on NULL instead of logging
-// an "Accessed None" warning. BM2 emits this for safe-navigation expressions.
+// an "Accessed None" warning. Emitted for the "A..B" operator.
 void UObject::execSafeContext( FFrame& Stack, RESULT_DECL )
 {
 	GProperty = NULL;
@@ -1836,7 +1836,7 @@ void UObject::execSafeContext( FFrame& Stack, RESULT_DECL )
 		}
 	}
 }
-IMPLEMENT_FUNCTION( UObject, EX_RSSContext, execSafeContext );
+IMPLEMENT_FUNCTION( UObject, EX_SafeContext, execSafeContext );
 #endif
 
 ////////////////////

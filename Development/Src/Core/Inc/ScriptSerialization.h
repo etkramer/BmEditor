@@ -402,7 +402,7 @@
 			break;
 		}
 #if BATMAN
-		case EX_RSSContext:
+		case EX_SafeContext:
 #endif
 		case EX_ClassContext:
 		case EX_Context:
