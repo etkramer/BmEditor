@@ -19379,6 +19379,47 @@ public:
 	virtual FString GetCaption() const;
 };
 
+class UMaterialExpressionMax : public UMaterialExpression
+{
+public:
+    //## BEGIN PROPS MaterialExpressionMax
+    FExpressionInput A;
+    FExpressionInput B;
+    //## END PROPS MaterialExpressionMax
+
+    DECLARE_CLASS(UMaterialExpressionMax,UMaterialExpression,0,Engine)
+	virtual INT Compile(FMaterialCompiler* Compiler);
+	virtual FString GetCaption() const;
+	virtual void SwapReferenceTo(UMaterialExpression* OldExpression,UMaterialExpression* NewExpression = NULL);
+};
+
+class UMaterialExpressionMin : public UMaterialExpression
+{
+public:
+    //## BEGIN PROPS MaterialExpressionMin
+    FExpressionInput A;
+    FExpressionInput B;
+    //## END PROPS MaterialExpressionMin
+
+    DECLARE_CLASS(UMaterialExpressionMin,UMaterialExpression,0,Engine)
+	virtual INT Compile(FMaterialCompiler* Compiler);
+	virtual FString GetCaption() const;
+	virtual void SwapReferenceTo(UMaterialExpression* OldExpression,UMaterialExpression* NewExpression = NULL);
+};
+
+class UMaterialExpressionRound : public UMaterialExpression
+{
+public:
+    //## BEGIN PROPS MaterialExpressionRound
+    FExpressionInput Input;
+    //## END PROPS MaterialExpressionRound
+
+    DECLARE_CLASS(UMaterialExpressionRound,UMaterialExpression,0,Engine)
+	virtual INT Compile(FMaterialCompiler* Compiler);
+	virtual FString GetCaption() const;
+	virtual void SwapReferenceTo(UMaterialExpression* OldExpression,UMaterialExpression* NewExpression = NULL);
+};
+
 class UMaterialExpressionSaturate : public UMaterialExpression
 {
 public:
@@ -22621,6 +22662,9 @@ AUTOGENERATE_FUNCTION(UUIManager,-1,execGetUIManager);
 	UMaterialExpressionLightingSpecularBlinnPhong::StaticClass(); \
 	UMaterialExpressionLightingSpecularHeidrichSeidel::StaticClass(); \
 	UMaterialExpressionLightingSpecularPhong::StaticClass(); \
+	UMaterialExpressionMax::StaticClass(); \
+	UMaterialExpressionMin::StaticClass(); \
+	UMaterialExpressionRound::StaticClass(); \
 	UMaterialExpressionSaturate::StaticClass(); \
 	UModel::StaticClass(); \
 	UMusicTrackDataStructures::StaticClass(); \
@@ -24301,6 +24345,14 @@ VERIFY_CLASS_SIZE_NODIE(UMaterialExpressionLightingSpecularHeidrichSeidel)
 VERIFY_CLASS_OFFSET_NODIE(UMaterialExpressionLightingSpecularPhong,MaterialExpressionLightingSpecularPhong,Power)
 VERIFY_CLASS_OFFSET_NODIE(UMaterialExpressionLightingSpecularPhong,MaterialExpressionLightingSpecularPhong,Lookup)
 VERIFY_CLASS_SIZE_NODIE(UMaterialExpressionLightingSpecularPhong)
+VERIFY_CLASS_OFFSET_NODIE(UMaterialExpressionMax,MaterialExpressionMax,A)
+VERIFY_CLASS_OFFSET_NODIE(UMaterialExpressionMax,MaterialExpressionMax,B)
+VERIFY_CLASS_SIZE_NODIE(UMaterialExpressionMax)
+VERIFY_CLASS_OFFSET_NODIE(UMaterialExpressionMin,MaterialExpressionMin,A)
+VERIFY_CLASS_OFFSET_NODIE(UMaterialExpressionMin,MaterialExpressionMin,B)
+VERIFY_CLASS_SIZE_NODIE(UMaterialExpressionMin)
+VERIFY_CLASS_OFFSET_NODIE(UMaterialExpressionRound,MaterialExpressionRound,Input)
+VERIFY_CLASS_SIZE_NODIE(UMaterialExpressionRound)
 VERIFY_CLASS_OFFSET_NODIE(UMaterialExpressionSaturate,MaterialExpressionSaturate,Input)
 VERIFY_CLASS_SIZE_NODIE(UMaterialExpressionSaturate)
 VERIFY_CLASS_SIZE_NODIE(UMusicTrackDataStructures)

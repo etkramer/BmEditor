@@ -4214,6 +4214,16 @@ private:
 	}
 
 #if BATMAN
+	virtual INT Round(INT X)
+	{
+		if(X == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
+		return AddCodeChunk(GetParameterType(X),0,GetTextureDependencyLength(X),TEXT("round(%s)"),GetParameterCode(X));
+	}
+
 	virtual INT Saturate(INT X)
 	{
 		if(X == INDEX_NONE)

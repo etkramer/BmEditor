@@ -43,6 +43,9 @@ IMPLEMENT_CLASS(UMaterialExpressionFrac);
 IMPLEMENT_CLASS(UMaterialExpressionAbs);
 #if BATMAN
 IMPLEMENT_CLASS(UMaterialExpressionSaturate);
+IMPLEMENT_CLASS(UMaterialExpressionMin);
+IMPLEMENT_CLASS(UMaterialExpressionMax);
+IMPLEMENT_CLASS(UMaterialExpressionRound);
 #endif
 IMPLEMENT_CLASS(UMaterialExpressionDepthBiasBlend);
 IMPLEMENT_CLASS(UMaterialExpressionDepthBiasedAlpha);
@@ -3656,6 +3659,79 @@ FString UMaterialExpressionSaturate::GetCaption() const
 }
 
 void UMaterialExpressionSaturate::SwapReferenceTo( UMaterialExpression* OldExpression, UMaterialExpression* NewExpression )
+{
+	Super::SwapReferenceTo( OldExpression, NewExpression );
+	SWAP_REFERENCE_TO( Input, OldExpression, NewExpression );
+}
+
+INT UMaterialExpressionMin::Compile( FMaterialCompiler* Compiler )
+{
+	if( !A.Expression )
+	{
+		return Compiler->Errorf( TEXT("Missing Min input A") );
+	}
+	if( !B.Expression )
+	{
+		return Compiler->Errorf( TEXT("Missing Min input B") );
+	}
+
+	return Compiler->Min( A.Compile(Compiler), B.Compile(Compiler) );
+}
+
+FString UMaterialExpressionMin::GetCaption() const
+{
+	return TEXT("Min");
+}
+
+void UMaterialExpressionMin::SwapReferenceTo( UMaterialExpression* OldExpression, UMaterialExpression* NewExpression )
+{
+	Super::SwapReferenceTo( OldExpression, NewExpression );
+	SWAP_REFERENCE_TO( A, OldExpression, NewExpression );
+	SWAP_REFERENCE_TO( B, OldExpression, NewExpression );
+}
+
+INT UMaterialExpressionMax::Compile( FMaterialCompiler* Compiler )
+{
+	if( !A.Expression )
+	{
+		return Compiler->Errorf( TEXT("Missing Max input A") );
+	}
+	if( !B.Expression )
+	{
+		return Compiler->Errorf( TEXT("Missing Max input B") );
+	}
+
+	return Compiler->Max( A.Compile(Compiler), B.Compile(Compiler) );
+}
+
+FString UMaterialExpressionMax::GetCaption() const
+{
+	return TEXT("Max");
+}
+
+void UMaterialExpressionMax::SwapReferenceTo( UMaterialExpression* OldExpression, UMaterialExpression* NewExpression )
+{
+	Super::SwapReferenceTo( OldExpression, NewExpression );
+	SWAP_REFERENCE_TO( A, OldExpression, NewExpression );
+	SWAP_REFERENCE_TO( B, OldExpression, NewExpression );
+}
+
+INT UMaterialExpressionRound::Compile( FMaterialCompiler* Compiler )
+{
+	if( !Input.Expression )
+	{
+		return Compiler->Errorf( TEXT("Missing Round input") );
+	}
+
+	return Compiler->Round( Input.Compile(Compiler) );
+}
+
+FString UMaterialExpressionRound::GetCaption() const
+{
+	return TEXT("Round");
+}
+
+void UMaterialExpressionRound::SwapReferenceTo( UMaterialExpression* OldExpression, UMaterialExpression* NewExpression )
 {
 	Super::SwapReferenceTo( OldExpression, NewExpression );
 	SWAP_REFERENCE_TO( Input, OldExpression, NewExpression );
