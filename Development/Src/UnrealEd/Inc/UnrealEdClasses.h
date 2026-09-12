@@ -1986,6 +1986,16 @@ public:
     NO_DEFAULT_CONSTRUCTOR(URGenericBrowserType_AdditionalContent)
 };
 
+class URGenericBrowserType_BM2IdleConfig : public URGenericBrowserType
+{
+public:
+    //## BEGIN PROPS RGenericBrowserType_BM2IdleConfig
+    //## END PROPS RGenericBrowserType_BM2IdleConfig
+
+    DECLARE_CLASS(URGenericBrowserType_BM2IdleConfig,URGenericBrowserType,0,UnrealEd)
+    NO_DEFAULT_CONSTRUCTOR(URGenericBrowserType_BM2IdleConfig)
+};
+
 class UGeomModifier : public UObject
 {
 public:
@@ -5353,6 +5363,7 @@ AUTOGENERATE_FUNCTION(UGameStatsDBUploader,-1,execPostProcessStream);
 	UGenericBrowserType_TextureMovie::StaticClass(); \
 	URGenericBrowserType::StaticClass(); \
 	URGenericBrowserType_AdditionalContent::StaticClass(); \
+	URGenericBrowserType_BM2IdleConfig::StaticClass(); \
 	UGeomModifier::StaticClass(); \
 	UGeomModifier_Edit::StaticClass(); \
 	UGeomModifier_Clip::StaticClass(); \
@@ -5806,6 +5817,7 @@ VERIFY_CLASS_OFFSET_NODIE(URGenericBrowserType,RGenericBrowserType,SupportedClas
 VERIFY_CLASS_OFFSET_NODIE(URGenericBrowserType,RGenericBrowserType,SupportedClassName)
 VERIFY_CLASS_SIZE_NODIE(URGenericBrowserType)
 VERIFY_CLASS_SIZE_NODIE(URGenericBrowserType_AdditionalContent)
+VERIFY_CLASS_SIZE_NODIE(URGenericBrowserType_BM2IdleConfig)
 VERIFY_CLASS_OFFSET_NODIE(UGeomModifier,GeomModifier,Description)
 VERIFY_CLASS_OFFSET_NODIE(UGeomModifier,GeomModifier,CachedPolys)
 VERIFY_CLASS_SIZE_NODIE(UGeomModifier)

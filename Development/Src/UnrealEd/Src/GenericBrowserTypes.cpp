@@ -105,6 +105,7 @@ IMPLEMENT_CLASS(UGenericBrowserType_RenderTexture)
 #if BATMAN
 IMPLEMENT_CLASS(URGenericBrowserType)
 IMPLEMENT_CLASS(URGenericBrowserType_AdditionalContent)
+IMPLEMENT_CLASS(URGenericBrowserType_BM2IdleConfig)
 #endif
 IMPLEMENT_CLASS(UGenericBrowserType_Sequence)
 IMPLEMENT_CLASS(UGenericBrowserType_SkeletalMesh)

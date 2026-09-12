@@ -641,6 +641,7 @@
   2 GenericBrowserType_TextureMovie UnrealEd [] []
   2 RGenericBrowserType UnrealEd [A] []
    3 RGenericBrowserType_AdditionalContent UnrealEd [] []
+   3 RGenericBrowserType_BM2IdleConfig UnrealEd [] []
  1 GenericParamListStatEntry Engine [] []
  1 GeomModifier UnrealEd [A] []
   2 GeomModifier_Edit UnrealEd [] []
