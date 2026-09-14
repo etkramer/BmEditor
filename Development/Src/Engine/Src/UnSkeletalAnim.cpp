@@ -2378,7 +2378,18 @@ void UAnimSequence::Serialize(FArchive& Ar)
 	{
 		// NOTE: FRawAnimSequenceStruct uses BulkSerialize internally.
 		check(RawAnimData_DEPRECATED.Num() == 0);
-		Ar << RawAnimationData;
+#if BATMAN
+		// BM: Clear RawAnimationData when cooking.
+		if( Ar.IsSaving() && !Ar.IsTransacting() && GIsCooking )
+		{
+			TArray<FRawAnimSequenceTrack> StrippedRawAnimationData;
+			Ar << StrippedRawAnimationData;
+		}
+		else
+#endif
+		{
+			Ar << RawAnimationData;
+		}
 	}
 
 	if ( Ar.IsLoading() )
