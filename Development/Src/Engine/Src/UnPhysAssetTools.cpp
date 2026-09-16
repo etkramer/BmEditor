@@ -583,11 +583,39 @@ void UPhysicsAsset::UpdateBoundsBodiesArray()
 	for(INT i=0; i<BodySetup.Num(); i++)
 	{
 		check(BodySetup(i));
+#if BATMAN
+		// BM: also require a valid bone, since the cached bounds are stored in bone space
+		if(BodySetup(i)->bConsiderForBounds && BodySetup(i)->BoneName != NAME_None)
+#else
 		if(BodySetup(i)->bConsiderForBounds)
+#endif
 		{
 			BoundsBodies.AddItem(i);
 		}
 	}
+
+#if BATMAN
+	// BM: cache the local-space bounds of each body we consider
+	Bounds.Empty();
+	Bounds.AddZeroed(BoundsBodies.Num());
+
+	for(INT i=0; i<BoundsBodies.Num(); i++)
+	{
+		URB_BodySetup* BS = BodySetup(BoundsBodies(i));
+		const FBox Box = BS->AggGeom.CalcAABB(FMatrix::Identity, FVector(1,1,1));
+		if(Box.IsValid)
+		{
+			Bounds(i).Min = Box.Min;
+			Bounds(i).Max = Box.Max;
+		}
+		else
+		{
+			warnf(NAME_Warning, TEXT("UPhysicsAsset::UpdateBoundsBodiesArray %s: No valid bounds for body %s"), *GetPathName(), *BS->BoneName.ToString());
+			Bounds(i).Min = FVector(0,0,0);
+			Bounds(i).Max = FVector(0,0,0);
+		}
+	}
+#endif
 }
 
 /** Update the BoundsBodies array and cache the indices of bodies marked with bConsiderForBounds to BoundsBodies array. */
@@ -660,7 +688,8 @@ void UPhysicsAsset::PostLoad()
 	Super::PostLoad();
 
 	// Ensure array of bounds bodies is up to date.
-	if(BoundsBodies.Num() == 0)
+	// BM: also regenerate when the cached per-body bounds are missing or stale
+	if(BoundsBodies.Num() == 0 || BoundsBodies.Num() != Bounds.Num())
 	{
 		UpdateBoundsBodiesArray();
 	}
