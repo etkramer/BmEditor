@@ -213,17 +213,24 @@ FORCEINLINE void Copy( const Lightmass::FQuantizedSHVectorRGB& In, FQuantizedSHV
 }
 FORCEINLINE void Copy( const FGuid& In, Lightmass::FGuid& Out )
 {
-	Out.A = In.SmallGuid;
-	Out.B = Out.C = Out.D = 0;
+	Out.A = In.A;
+	Out.B = In.B;
+	Out.C = In.C;
+	Out.D = In.D;
 }
 FORCEINLINE void Copy( const Lightmass::FGuid& In, FGuid& Out )
 {
-	Out.SmallGuid = In.A;
+	Out.A = In.A;
+	Out.B = In.B;
+	Out.C = In.C;
+	Out.D = In.D;
 }
 FORCEINLINE void Copy( const FGuid& In, NSwarm::FGuid& Out )
 {
-	Out.A = In.SmallGuid;
-	Out.B = Out.C = Out.D = 0;
+	Out.A = In.A;
+	Out.B = In.B;
+	Out.C = In.C;
+	Out.D = In.D;
 }
 FORCEINLINE void Copy( const Lightmass::FGuid& In, NSwarm::FGuid& Out )
 {
@@ -234,7 +241,10 @@ FORCEINLINE void Copy( const Lightmass::FGuid& In, NSwarm::FGuid& Out )
 }
 FORCEINLINE void Copy( const NSwarm::FGuid& In, FGuid& Out )
 {
-	Out.SmallGuid = In.A;
+	Out.A = In.A;
+	Out.B = In.B;
+	Out.C = In.C;
+	Out.D = In.D;
 }
 FORCEINLINE void Copy( const ULightComponent* In, Lightmass::FLightData& Out )
 {
@@ -781,14 +791,7 @@ void FLightmassExporter::WriteToChannel( FGuid& DebugMappingGuid )
 
 void FLightmassExporter::WriteVisibilityData( INT Channel )
 {
-	// Wire format is the full 16-byte FGuid; expand our 4-byte FGuids before sending.
-	TArray<FGuidImplementation> WireGuids;
-	WireGuids.AddZeroed(VisibilityBucketGuids.Num());
-	for (INT GuidIdx = 0; GuidIdx < VisibilityBucketGuids.Num(); GuidIdx++)
-	{
-		WireGuids(GuidIdx).A = VisibilityBucketGuids(GuidIdx).SmallGuid;
-	}
-	Swarm.WriteChannel( Channel, WireGuids.GetData(), WireGuids.Num() * WireGuids.GetTypeSize() );
+	Swarm.WriteChannel( Channel, VisibilityBucketGuids.GetData(), VisibilityBucketGuids.Num() * VisibilityBucketGuids.GetTypeSize() );
 
 	INT NumVisVolumes = 0;
 	for( TObjectIterator<APrecomputedVisibilityVolume> It; It; ++It )
@@ -4412,9 +4415,8 @@ void FLightmassProcessor::ImportStaticLightingTextureMapping( const FGuid& Mappi
 		while (MappingsImported != NumMappings)
 		{
 			// Read in the next GUID and look up its mapping.
-			FGuidImplementation NextMappingGuidWire;
-			Swarm.ReadChannel(Channel, &NextMappingGuidWire, sizeof(FGuidImplementation));
-			FGuid NextMappingGuid(NextMappingGuidWire.A);
+			FGuid NextMappingGuid;
+			Swarm.ReadChannel(Channel, &NextMappingGuid, sizeof(FGuid));
 			FStaticLightingTextureMapping* TextureMapping = GetStaticLightingTextureMapping(NextMappingGuid);
 
 			// If we don't have a mapping pending, check to see if we've already imported
@@ -4526,9 +4528,8 @@ void FLightmassProcessor::ImportStaticLightingVertexMapping( const FGuid& Mappin
 		while (MappingsImported != NumMappings)
 		{
 			// Read in the next GUID and look up its mapping.
-			FGuidImplementation NextMappingGuidWire;
-			Swarm.ReadChannel(Channel, &NextMappingGuidWire, sizeof(FGuidImplementation));
-			FGuid NextMappingGuid(NextMappingGuidWire.A);
+			FGuid NextMappingGuid;
+			Swarm.ReadChannel(Channel, &NextMappingGuid, sizeof(FGuid));
 			FStaticLightingVertexMapping* VertexMapping = GetStaticLightingVertexMapping(NextMappingGuid);
 
 			// If we don't have a mapping pending, check to see if we've already imported
@@ -5133,9 +5134,8 @@ UBOOL FLightmassProcessor::ImportShadowMapData1D(INT Channel, TMap<ULightCompone
 {
 	for (INT SMIndex = 0; SMIndex < ShadowMapCount; SMIndex++)
 	{
-		FGuidImplementation LightGuidWire;
-		Swarm.ReadChannel(Channel, &LightGuidWire, sizeof(FGuidImplementation));
-		FGuid LightGuid(LightGuidWire.A);
+		FGuid LightGuid;
+		Swarm.ReadChannel(Channel, &LightGuid, sizeof(FGuid));
 
 		ULightComponent* LightComp = FindLight(LightGuid);
 		if (LightComp == NULL)
@@ -5182,9 +5182,8 @@ UBOOL FLightmassProcessor::ImportShadowMapData2D(INT Channel, TMap<ULightCompone
 {
 	for (INT SMIndex = 0; SMIndex < ShadowMapCount; SMIndex++)
 	{
-		FGuidImplementation LightGuidWire;
-		Swarm.ReadChannel(Channel, &LightGuidWire, sizeof(FGuidImplementation));
-		FGuid LightGuid(LightGuidWire.A);
+		FGuid LightGuid;
+		Swarm.ReadChannel(Channel, &LightGuid, sizeof(FGuid));
 
 		ULightComponent* LightComp = FindLight(LightGuid);
 		if (LightComp == NULL)
@@ -5250,9 +5249,8 @@ UBOOL FLightmassProcessor::ImportSignedDistanceFieldShadowMapData2D(INT Channel,
 {
 	for (INT SMIndex = 0; SMIndex < ShadowMapCount; SMIndex++)
 	{
-		FGuidImplementation LightGuidWire;
-		Swarm.ReadChannel(Channel, &LightGuidWire, sizeof(FGuidImplementation));
-		FGuid LightGuid(LightGuidWire.A);
+		FGuid LightGuid;
+		Swarm.ReadChannel(Channel, &LightGuid, sizeof(FGuid));
 
 		ULightComponent* LightComp = FindLight(LightGuid);
 		if (LightComp == NULL)
@@ -5332,9 +5330,7 @@ UBOOL FLightmassProcessor::ImportVertexMapping(INT Channel, FVertexMappingImport
 	for (INT i = 0; i < NumLights; i++)
 	{
 		const INT NewLightIndex = LightGuids.Add();
-		FGuidImplementation LightGuidWire;
-		Swarm.ReadChannel(Channel, &LightGuidWire, sizeof(FGuidImplementation));
-		LightGuids(NewLightIndex) = FGuid(LightGuidWire.A);
+		Swarm.ReadChannel(Channel, &LightGuids(NewLightIndex), sizeof(FGuid));
 	}
 
 	// allocate space to store the quantized data
@@ -5398,9 +5394,7 @@ UBOOL FLightmassProcessor::ImportTextureMapping(INT Channel, FTextureMappingImpo
 	for (INT i = 0; i < NumLights; i++)
 	{
 		const INT NewLightIndex = LightGuids.Add();
-		FGuidImplementation LightGuidWire;
-		Swarm.ReadChannel(Channel, &LightGuidWire, sizeof(FGuidImplementation));
-		LightGuids(NewLightIndex) = FGuid(LightGuidWire.A);
+		Swarm.ReadChannel(Channel, &LightGuids(NewLightIndex), sizeof(FGuid));
 	}
 
 	// allocate space to store the quantized data

@@ -213,6 +213,7 @@
   2 ConvertMapToNavMesh UnrealEd [] []
   2 CookPackagesCommandlet UnrealEd [] []
   2 DiffPackagesCommandlet UnrealEd [] []
+  2 DumpClassLayoutCommandlet UnrealEd [] []
   2 DumpEmittersCommandlet UnrealEd [] []
   2 DumpLightmapInfoCommandlet UnrealEd [] []
   2 DumpPropertiesCommandlet UnrealEd [] []

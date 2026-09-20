@@ -1183,10 +1183,9 @@ void appCleanFileCache()
 //
 FGuid appCreateGuid()
 {
-	// BM2 compacts FGuid down to 32 bits; XOR-fold all four DWORDs to retain entropy.
-	FGuidImplementation FullGuid;
-	verify( CoCreateGuid( (GUID*)&FullGuid )==S_OK );
-	return FGuid(FullGuid);
+	FGuid Result;
+	verify( CoCreateGuid( (GUID*)&Result )==S_OK );
+	return Result;
 }
 
 /*-----------------------------------------------------------------------------

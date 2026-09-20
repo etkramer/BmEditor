@@ -917,8 +917,10 @@ FNativeFunctionLookup GCoreUStateObjectNatives[] =
 #ifdef VERIFY_CLASS_SIZES
 VERIFY_CLASS_OFFSET_NODIE(UObject,Object,ObjectFlags)
 VERIFY_CLASS_OFFSET_NODIE(UObject,Object,EditorObjectFlags)
-VERIFY_CLASS_OFFSET_NODIE(UObject,Object,HashNext)
-VERIFY_CLASS_OFFSET_NODIE(UObject,Object,HashOuterNext)
+VERIFY_CLASS_OFFSET_NODIE(UObject,Object,HashIndexPrev)
+VERIFY_CLASS_OFFSET_NODIE(UObject,Object,HashIndexNext)
+VERIFY_CLASS_OFFSET_NODIE(UObject,Object,HashOuterIndexPrev)
+VERIFY_CLASS_OFFSET_NODIE(UObject,Object,HashOuterIndexNext)
 VERIFY_CLASS_OFFSET_NODIE(UObject,Object,Outer)
 VERIFY_CLASS_OFFSET_NODIE(UObject,Object,Name)
 VERIFY_CLASS_OFFSET_NODIE(UObject,Object,Class)

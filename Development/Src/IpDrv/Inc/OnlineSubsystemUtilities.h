@@ -592,7 +592,10 @@ public:
 	 */
 	friend inline FNboSerializeToBuffer& operator<<(FNboSerializeToBuffer& Ar,const FGuid& Guid)
 	{
-		Ar << Guid.SmallGuid;
+		Ar << Guid.A;
+		Ar << Guid.B;
+		Ar << Guid.C;
+		Ar << Guid.D;
 		return Ar;
 	}
 
@@ -933,7 +936,10 @@ public:
 	 */
 	friend inline FNboSerializeFromBuffer& operator>>(FNboSerializeFromBuffer& Ar,FGuid& Guid)
 	{
-		Ar >> Guid.SmallGuid;
+		Ar >> Guid.A;
+		Ar >> Guid.B;
+		Ar >> Guid.C;
+		Ar >> Guid.D;
 		return Ar;
 	}
 

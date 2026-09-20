@@ -596,7 +596,7 @@ FStaticLightingSystem::FStaticLightingSystem(const FLightingBuildOptions& InOpti
 				{
 					if (Mapping->Mesh)
 					{
-						Mapping->Mesh->Guid = FGuid(DeterministicIndex++);
+						Mapping->Mesh->Guid = FGuid(0,0,0,DeterministicIndex++);
 					}
 				}
 			}
@@ -612,7 +612,11 @@ FStaticLightingSystem::FStaticLightingSystem(const FLightingBuildOptions& InOpti
 			if (Mappings(CheckMapIdx)->bProcessMapping)
 			{
 				FGuid CheckGuid = Mappings(CheckMapIdx)->Mesh->Guid;
-				if (CheckGuid.SmallGuid >= (UINT)(Mappings.Num()))
+				if ((CheckGuid.A != 0) ||
+					(CheckGuid.B != 0) || 
+					(CheckGuid.C != 0) ||
+					(CheckGuid.D >= (UINT)(Mappings.Num()))
+					)
 				{
 					warnf(NAME_Warning, TEXT("Lightmass: Error in deterministic lighting for %s:%s"),
 						*(Mappings(CheckMapIdx)->Mesh->Guid.String()), *(Mappings(CheckMapIdx)->GetDescription()));
@@ -1268,7 +1272,7 @@ void FStaticLightingSystem::AddBSPStaticLightingInfo(ULevel* Level, UBOOL bBuild
 						Mappings.AddItem(CurrentMapping);
 						if (GLightmassDebugOptions.bUseDeterministicLighting && bBuildLightingForBSP)
 						{
-							CurrentMapping->Mesh->Guid = FGuid(DeterministicIndex++);
+							CurrentMapping->Mesh->Guid = FGuid(0,0,0,DeterministicIndex++);
 						}
 					}
 
@@ -1435,7 +1439,7 @@ void FStaticLightingSystem::AddBSPStaticLightingInfo(ULevel* Level, TArray<FNode
 					Mappings.AddItem(CurrentMapping);
 					if (GLightmassDebugOptions.bUseDeterministicLighting)
 					{
-						CurrentMapping->Mesh->Guid = FGuid(DeterministicIndex++);
+						CurrentMapping->Mesh->Guid = FGuid(0,0,0,DeterministicIndex++);
 					}
 				}
 
@@ -1480,7 +1484,7 @@ void FStaticLightingSystem::AddPrimitiveStaticLightingInfo(FStaticLightingPrimit
 		{
 			if (Mesh)
 			{
-				Mesh->Guid = FGuid(DeterministicIndex++);
+				Mesh->Guid = FGuid(0,0,0,DeterministicIndex++);
 			}
 		}
 		Meshes.AddItem(Mesh);

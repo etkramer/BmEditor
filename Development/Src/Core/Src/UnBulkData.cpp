@@ -563,6 +563,23 @@ UBOOL FUntypedBulkData::ShouldFreeOnEmpty() const
 	Serialization.
 -----------------------------------------------------------------------------*/
 
+#if BATMAN
+// BM: only BM widened the bulk data offset to 64 bits - stock UE3 packages still store an INT.
+static void SerializeBulkDataOffset( FArchive& Ar, SQWORD& Offset )
+{
+	if( Ar.LicenseeVer() >= VER_BATMAN2 )
+	{
+		Ar << Offset;
+	}
+	else
+	{
+		INT NarrowOffset = (INT)Offset;
+		Ar << NarrowOffset;
+		Offset = NarrowOffset;
+	}
+}
+#endif
+
 /**
 * Serialize function used to serialize this bulk data structure.
 *
@@ -639,7 +656,7 @@ void FUntypedBulkData::Serialize( FArchive& Ar, UObject* Owner, INT Idx )
 			// Size on disk, which in the case of compression is != GetBulkDataSize()
 			Ar << BulkDataSizeOnDisk;
 			// Offset in file.
-			Ar << BulkDataOffsetInFile;
+			SerializeBulkDataOffset( Ar, BulkDataOffsetInFile );
 
 #if BATMAN
 			// BM: remember these so re-saving a cooked package keeps pointing at the original .tfc payload.
@@ -696,7 +713,7 @@ void FUntypedBulkData::Serialize( FArchive& Ar, UObject* Owner, INT Idx )
 				Ar << SavedBulkDataFlags;
 				Ar << SavedElementCount;
 				Ar << SavedBulkDataSizeOnDisk;
-				Ar << SavedBulkDataOffsetInFile;
+				SerializeBulkDataOffset( Ar, SavedBulkDataOffsetInFile );
 			}
 			// Regular serialization.
 			else
@@ -723,7 +740,7 @@ void FUntypedBulkData::Serialize( FArchive& Ar, UObject* Owner, INT Idx )
 					SavedBulkDataOffsetInFilePos = Ar.Tell();
 					SavedBulkDataOffsetInFile = INDEX_NONE;
 					// And serialize the placeholder which is going to be overwritten later.
-					Ar << SavedBulkDataOffsetInFile;
+					SerializeBulkDataOffset( Ar, SavedBulkDataOffsetInFile );
 				}
 
 				// Keep track of bulk data start and end position so we can calculate the size on disk.
@@ -746,7 +763,7 @@ void FUntypedBulkData::Serialize( FArchive& Ar, UObject* Owner, INT Idx )
 
 					// Seek back and overwrite placeholder for BulkDataOffsetInFile
 					Ar.Seek( SavedBulkDataOffsetInFilePos );
-					Ar << SavedBulkDataOffsetInFile;
+					SerializeBulkDataOffset( Ar, SavedBulkDataOffsetInFile );
 
 					// Seek to the end of written data so we don't clobber any data in subsequent write 
 					// operations

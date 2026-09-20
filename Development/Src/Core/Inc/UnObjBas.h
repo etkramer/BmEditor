@@ -439,34 +439,44 @@ extern FString PerfMemRunResultStrings[4];
 	Core types.
 ----------------------------------------------------------------------------*/
 
-class FGuidImplementation
+//
+// Globally unique identifier.
+//
+class FGuid
 {
 public:
 	DWORD A,B,C,D;
-	FGuidImplementation()
+	FGuid()
 	{}
-	FGuidImplementation( DWORD InA, DWORD InB, DWORD InC, DWORD InD )
+	FGuid( DWORD InA, DWORD InB, DWORD InC, DWORD InD )
 	: A(InA), B(InB), C(InC), D(InD)
 	{}
-	explicit FORCEINLINE FGuidImplementation(EEventParm)
+	explicit FORCEINLINE FGuid(EEventParm)
 	: A(0), B(0), C(0), D(0)
-	{}
+    {
+    }
 
+	/**
+	 * Returns whether this GUID is valid or not. We reserve an all 0 GUID to represent "invalid".
+	 *
+	 * @return TRUE if valid, FALSE otherwise
+	 */
 	UBOOL IsValid() const
 	{
 		return (A | B | C | D) != 0;
 	}
 
+	/** Invalidates the GUID. */
 	void Invalidate()
 	{
 		A = B = C = D = 0;
 	}
 
-	friend UBOOL operator==(const FGuidImplementation& X, const FGuidImplementation& Y)
+	friend UBOOL operator==(const FGuid& X, const FGuid& Y)
 	{
 		return ((X.A ^ Y.A) | (X.B ^ Y.B) | (X.C ^ Y.C) | (X.D ^ Y.D)) == 0;
 	}
-	friend UBOOL operator!=(const FGuidImplementation& X, const FGuidImplementation& Y)
+	friend UBOOL operator!=(const FGuid& X, const FGuid& Y)
 	{
 		return ((X.A ^ Y.A) | (X.B ^ Y.B) | (X.C ^ Y.C) | (X.D ^ Y.D)) != 0;
 	}
@@ -481,6 +491,7 @@ public:
 		case 2: return C;
 		case 3: return D;
 		}
+
 		return A;
 	}
 	const DWORD& operator[]( INT Index ) const
@@ -494,86 +505,16 @@ public:
 		case 2: return C;
 		case 3: return D;
 		}
+
 		return A;
 	}
-	friend FArchive& operator<<( FArchive& Ar, FGuidImplementation& G )
+	friend FArchive& operator<<( FArchive& Ar, FGuid& G )
 	{
 		return Ar << G.A << G.B << G.C << G.D;
 	}
 	FString String() const
 	{
 		return FString::Printf( TEXT("%08X%08X%08X%08X"), A, B, C, D );
-	}
-	friend DWORD GetTypeHash(const FGuidImplementation& Guid)
-	{
-		return appMemCrc(&Guid,sizeof(FGuidImplementation));
-	}
-};
-
-// Globally unique identifier. BM2 keeps 32 bits in memory, but still serializes 16 bytes (FGuidImplementation).
-class FGuid
-{
-public:
-	DWORD SmallGuid;
-	FGuid()
-	{}
-	FGuid(FGuidImplementation InGuid)
-	: SmallGuid(InGuid.A ^ InGuid.B ^ InGuid.C ^ InGuid.D)
-	{}
-	FGuid( DWORD InA, DWORD InB = 0, DWORD InC = 0, DWORD InD = 0 )
-	: SmallGuid(InA ^ InB ^ InC ^ InD)
-	{}
-	explicit FORCEINLINE FGuid(EEventParm)
-	: SmallGuid(0)
-	{}
-
-	UBOOL IsValid() const
-	{
-		return SmallGuid != 0;
-	}
-
-	void Invalidate()
-	{
-		SmallGuid = 0;
-	}
-
-	friend UBOOL operator==(const FGuid& X, const FGuid& Y)
-	{
-		return (X.SmallGuid ^ Y.SmallGuid) == 0;
-	}
-	friend UBOOL operator!=(const FGuid& X, const FGuid& Y)
-	{
-		return (X.SmallGuid ^ Y.SmallGuid) != 0;
-	}
-	DWORD& operator[]( INT Index )
-	{
-		checkSlow(Index>=0);
-		checkSlow(Index<4);
-		return SmallGuid;
-	}
-	const DWORD& operator[]( INT Index ) const
-	{
-		checkSlow(Index>=0);
-		checkSlow(Index<4);
-		return SmallGuid;
-	}
-	friend FArchive& operator<<( FArchive& Ar, FGuid& G )
-	{
-		FGuidImplementation Impl(G.SmallGuid,0,0,0);
-		if ( Ar.IsLoading() || Ar.IsSaving() )
-		{
-			Ar << Impl;
-			G.SmallGuid = Impl.A ^ Impl.B ^ Impl.C ^ Impl.D;
-		}
-		else if ( Ar.IsCountingMemory() )
-		{
-			Ar.CountBytes(4, 4);
-		}
-		return Ar;
-	}
-	FString String() const
-	{
-		return FString::Printf( TEXT("%08X"), SmallGuid );
 	}
 	friend DWORD GetTypeHash(const FGuid& Guid)
 	{
@@ -1068,31 +1009,10 @@ FORCEINLINE INT GetObjectOuterHash(FName ObjName,PTRINT Outer)
 	return ((ObjName.GetIndex() ^ ObjName.GetNumber()) ^ (Outer >> 4)) & (OBJECT_HASH_BINS - 1);
 }
 
-// Side-storage for UObject fields moved off the struct to match BM2's layout. See Object.uc.
+// Side-storage for UObject fields moved off the struct to match BM's layout. See Object.uc.
 class ULinkerLoad;
 class UObject;
 struct FStateFrame;
-
-struct FObjectLinkerInfo
-{
-	ULinkerLoad* Linker;
-	PTRINT       LinkerIndex;
-	FObjectLinkerInfo() : Linker(NULL), LinkerIndex((PTRINT)INDEX_NONE) {}
-	FObjectLinkerInfo(ULinkerLoad* InLinker, PTRINT InIndex) : Linker(InLinker), LinkerIndex(InIndex) {}
-};
-
-class FObjectLinkerInfoManager
-{
-public:
-	static ULinkerLoad* GetLinker(const UObject* Object);
-	static PTRINT       GetLinkerIndex(const UObject* Object);
-	static void         SetLinker(const UObject* Object, ULinkerLoad* Linker);
-	static void         SetLinker(const UObject* Object, ULinkerLoad* Linker, PTRINT Index);
-	static void         SetLinkerIndex(const UObject* Object, PTRINT Index);
-	static void         Remove(const UObject* Object);
-private:
-	static TMap<const UObject*, FObjectLinkerInfo> Map;
-};
 
 class FObjectStateFrameManager
 {
@@ -1142,12 +1062,9 @@ class UObject
 	friend void PREFETCH_OBJECT_ARRAY(INT,INT);
 
 private:
-	// Internal per-object variables. Layout matches BM2's UObject.
+	// Internal per-object variables. Layout matches BM4's UObject.
 
-	/** Index of object into GObjObjects array. (= ObjectInternalInteger in script) */
-	INT								Index;
-
-	/** Flags split into two DWORDs to match BM2's editor layout. */
+	/** Flags split into two DWORDs to match BM's editor layout. */
 	union
 	{
 		EObjectFlags				ObjectFlags;
@@ -1158,11 +1075,27 @@ private:
 		};
 	};
 
-	/** Next object in this hash bin. */
-	UObject*						HashNext;
+	/** Previous/next object in this hash bin, as indices into GObjObjects. */
+	INT								HashIndexPrev;
+	INT								HashIndexNext;
 
-	/** Next object in the hash bin that includes outers */
-	UObject*						HashOuterNext;
+	/** Previous/next object in the hash bin that includes outers. */
+	INT								HashOuterIndexPrev;
+	INT								HashOuterIndexNext;
+
+	static FORCEINLINE UObject* GetHashObject( INT ObjectIndex )
+	{
+		return ObjectIndex != INDEX_NONE ? GObjObjects(ObjectIndex) : NULL;
+	}
+	FORCEINLINE UObject* GetHashNext() const		{ return GetHashObject(HashIndexNext); }
+	FORCEINLINE UObject* GetHashOuterNext() const	{ return GetHashObject(HashOuterIndexNext); }
+
+	/** Linker this object was loaded from, and this object's index in that linker's ExportMap. */
+	ULinkerLoad*					_Linker;
+	PTRINT							_LinkerIndex;
+
+	/** Index of object into GObjObjects array. (= ObjectInternalInteger in script) */
+	INT								Index;
 
 	/** Object this object resides in. */
 	UObject*						Outer;
@@ -1196,10 +1129,10 @@ private:
 	static INT						GImportCount;
 	/** Forced exports for EndLoad optimization.							*/
 	static INT						GForcedExportCount;
-	/** Object hash.														*/
-	static UObject*					GObjHash[OBJECT_HASH_BINS];
+	/** Object hash, holding the index of the first object in each bin.		*/
+	static INT						GObjHash[OBJECT_HASH_BINS];
 	/** Object hash that also uses the outer								*/
-	static UObject*					GObjHashOuter[OBJECT_HASH_BINS];
+	static INT						GObjHashOuter[OBJECT_HASH_BINS];
 	/** Objects to automatically register.									*/
 	static UObject*					GAutoRegister;
 	/** Objects that might need preloading.									*/
@@ -2615,7 +2548,7 @@ public:
 	 */
 	FORCEINLINE ULinkerLoad* GetLinker() const
 	{
-		return FObjectLinkerInfoManager::GetLinker(this);
+		return _Linker;
 	}
 	/**
 	 * Returns this object's LinkerIndex.
@@ -2625,7 +2558,7 @@ public:
 	 */
 	FORCEINLINE INT GetLinkerIndex() const
 	{
-		return FObjectLinkerInfoManager::GetLinkerIndex(this);
+		return (INT)_LinkerIndex;
 	}
 	/**
 	 * Returns the version of the linker for this object.
@@ -3310,6 +3243,9 @@ public:
 		ProcessEvent(FindFunctionChecked(NAME_ContinuedState),NULL);
 	}
 };
+
+// BM: offset-based property serialization is keyed to AK's 84-byte UObject.
+checkAtCompileTime(sizeof(UObject) == 0x54, UObjectMustMatchArkhamKnightLayout);
 
 /*-----------------------------------------------------------------------------
 	FObjectDuplicationParameters.

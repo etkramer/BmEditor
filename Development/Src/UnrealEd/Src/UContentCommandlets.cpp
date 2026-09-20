@@ -8221,3 +8221,96 @@ INT UFindUnreferencedFunctionsCommandlet::Main( const FString& Params )
 
 IMPLEMENT_CLASS(UFindUnreferencedFunctionsCommandlet);
 IMPLEMENT_CLASS(UByteCodeSerializer);
+
+/*-----------------------------------------------------------------------------
+	UDumpClassLayoutCommandlet
+-----------------------------------------------------------------------------*/
+
+IMPLEMENT_COMPARE_CONSTREF(FString, DumpClassLayout, { return appStricmp(*A,*B); })
+
+// BM: AK serializes cooked properties by offset, so our layout has to be diffable against theirs.
+static FString DescribeStructLayout( UStruct* Struct, const TCHAR* Kind )
+{
+	UStruct* Super = Struct->GetInheritanceSuper();
+	FString Result = FString::Printf(
+		TEXT("%s\t%s\tSuper=%s\tSuperSize=%d\tSize=%d\tAlign=%d") LINE_TERMINATOR,
+		Kind, *Struct->GetPathName(),
+		Super ? *Super->GetPathName() : TEXT("None"),
+		Super ? Super->GetPropertiesSize() : 0,
+		Struct->GetPropertiesSize(), Struct->GetMinAlignment() );
+
+	for( UField* Field=Struct->Children; Field; Field=Field->Next )
+	{
+		UProperty* Property = Cast<UProperty>( Field );
+		if( Property == NULL || Property->GetOuter() != Struct )
+		{
+			continue;
+		}
+
+		UBoolProperty* BoolProperty = Cast<UBoolProperty>( Property );
+		Result += FString::Printf(
+			TEXT("\tProp\t%s\t%s\tOffset=%d\t0x%X\tSize=%d\tElementSize=%d\tArrayDim=%d\tType=%s\tBitMask=0x%X") LINE_TERMINATOR,
+			*Struct->GetName(), *Property->GetName(),
+			Property->Offset, Property->Offset,
+			Property->GetSize(), Property->ElementSize, Property->ArrayDim,
+			*Property->GetID().ToString(),
+			BoolProperty ? (DWORD)BoolProperty->BitMask : 0 );
+	}
+
+	return Result;
+}
+
+void UDumpClassLayoutCommandlet::CreateCustomEngine()
+{
+	// Skip UEditorEngine::InitEditor - we only need the loaded classes, not a working editor.
+	UClass* EngineClass = UObject::StaticLoadClass( UEditorEngine::StaticClass(), NULL, TEXT("engine-ini:Engine.Engine.EditorEngine"), NULL, LOAD_None, NULL );
+	EngineClass->GetDefaultObject(TRUE);
+	EngineClass->ConditionalLink();
+	GEngine = GEditor = ConstructObject<UEditorEngine>( EngineClass );
+}
+
+INT UDumpClassLayoutCommandlet::Main( const FString& Params )
+{
+	FString OutputFilename;
+	if( !Parse(*Params, TEXT("OUT="), OutputFilename) )
+	{
+		OutputFilename = appGameLogDir() * TEXT("ClassLayout.txt");
+	}
+
+	const UBOOL bIncludeStructs = !ParseParam(*Params, TEXT("NOSTRUCTS"));
+
+	TArray<FString> Entries;
+	for( TObjectIterator<UStruct> It; It; ++It )
+	{
+		UStruct* Struct = *It;
+		const UBOOL bIsClass = Struct->IsA(UClass::StaticClass());
+		if( !bIsClass && !(bIncludeStructs && Struct->IsA(UScriptStruct::StaticClass())) )
+		{
+			continue;
+		}
+
+		Entries.AddItem( DescribeStructLayout(Struct, bIsClass ? TEXT("Class") : TEXT("Struct")) );
+	}
+
+	if( Entries.Num() > 0 )
+	{
+		Sort<USE_COMPARE_CONSTREF(FString,DumpClassLayout)>( &Entries(0), Entries.Num() );
+	}
+
+	FString Output = FString::Printf(TEXT("# UObject=%d") LINE_TERMINATOR, (INT)sizeof(UObject));
+	for( INT EntryIndex=0; EntryIndex<Entries.Num(); EntryIndex++ )
+	{
+		Output += Entries(EntryIndex);
+	}
+
+	if( !appSaveStringToFile(Output, *OutputFilename) )
+	{
+		warnf(NAME_Warning, TEXT("Failed to write class layout to %s"), *OutputFilename);
+		return 1;
+	}
+
+	warnf(NAME_Log, TEXT("Wrote layout for %i structs to %s"), Entries.Num(), *OutputFilename);
+	return 0;
+}
+
+IMPLEMENT_CLASS(UDumpClassLayoutCommandlet);

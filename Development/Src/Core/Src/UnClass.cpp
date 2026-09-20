@@ -1691,7 +1691,7 @@ UBOOL IsLegacyImmutableStruct( FName StructName )
 	// Every struct BM1 declared immutable or immutablewhencooked. BM1 shipped, so this list is final.
 	static const TCHAR* Names[] =
 	{
-		TEXT("Box"), TEXT("Color"), TEXT("FontCharacter"), TEXT("Guid"), TEXT("GuidImplementation"),
+		TEXT("Box"), TEXT("Color"), TEXT("FontCharacter"), TEXT("Guid"),
 		TEXT("IntPoint"), TEXT("IntRange"), TEXT("LinearColor"), TEXT("Matrix"), TEXT("Plane"),
 		TEXT("Quat"), TEXT("Range"), TEXT("Rotator"), TEXT("TwoVectors"), TEXT("Vector"),
 		TEXT("Vector2D"), TEXT("Vector4"),

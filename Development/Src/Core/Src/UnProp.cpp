@@ -4241,12 +4241,6 @@ void UStructProperty::SerializeItem( FArchive& Ar, void* Value, INT MaxReadBytes
 		}
 		return;
 	}
-	// Route to the native operator<< so script-side walking can't shrink the 16-byte on-disk read.
-	if (Struct->GetFName() == NAME_Guid)
-	{
-		Ar << *(FGuid*)Value;
-		return;
-	}
 #endif
 	UBOOL bUseBinarySerialization =	!(Ar.IsLoading() || Ar.IsSaving())
 								||	Ar.WantBinaryPropertySerialization()

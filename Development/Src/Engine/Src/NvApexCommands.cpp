@@ -3219,6 +3219,12 @@ void ReleaseApexCommands(FIApexCommands *ic)
 
 void InitializeApex(void)
 {
+	// BM: the script compiler has no asset data, and bringing up the APEX SDK there is not supported
+	if ( GIsUCCMake )
+	{
+		return;
+	}
+
 	if ( GApexManager == 0 )
 	{
 		GApexManager = CreateApexManager( GNovodexSDK, GNovodexCooking );

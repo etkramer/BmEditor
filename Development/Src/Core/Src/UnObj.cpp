@@ -31,8 +31,8 @@ UObject*					UObject::GAutoRegister							= NULL;
 UPackage*					UObject::GObjTransientPkg						= NULL;
 TCHAR						UObject::GObjCachedLanguage[32]					= TEXT("");
 TCHAR						UObject::GLanguage[64]							= TEXT("INT");
-UObject*					UObject::GObjHash[OBJECT_HASH_BINS];
-UObject*					UObject::GObjHashOuter[OBJECT_HASH_BINS];
+INT							UObject::GObjHash[OBJECT_HASH_BINS];
+INT							UObject::GObjHashOuter[OBJECT_HASH_BINS];
 TArray<UObject*>			UObject::GObjLoaded;
 /** Objects that have been constructed during async loading phase.						*/
 TArray<UObject*>			UObject::GObjConstructedDuringAsyncLoading;
@@ -68,60 +68,11 @@ TArray< INT >				UObject::GGCObjectsPendingDestruction;
 INT							UObject::GGCObjectsPendingDestructionCount		= 0;
 
 // Side-map definitions for fields moved off UObject.
-TMap<const UObject*, FObjectLinkerInfo>	FObjectLinkerInfoManager::Map;
 TMap<const UObject*, FStateFrame*>		FObjectStateFrameManager::Map;
 TMap<const UObject*, INT>				FObjectNetIndexManager::Map;
 
 // Auto-register chain "next pointer" used only during native registration.
 static TMap<UObject*, UObject*> GObjAutoRegisterNext;
-
-ULinkerLoad* FObjectLinkerInfoManager::GetLinker(const UObject* Object)
-{
-	const FObjectLinkerInfo* Info = Map.Find(Object);
-	return Info ? Info->Linker : NULL;
-}
-PTRINT FObjectLinkerInfoManager::GetLinkerIndex(const UObject* Object)
-{
-	const FObjectLinkerInfo* Info = Map.Find(Object);
-	return Info ? Info->LinkerIndex : (PTRINT)INDEX_NONE;
-}
-void FObjectLinkerInfoManager::SetLinker(const UObject* Object, ULinkerLoad* Linker)
-{
-	FObjectLinkerInfo* Existing = Map.Find(Object);
-	if (Existing)
-	{
-		Existing->Linker = Linker;
-	}
-	else if (Linker != NULL)
-	{
-		Map.Set(Object, FObjectLinkerInfo(Linker, (PTRINT)INDEX_NONE));
-	}
-}
-void FObjectLinkerInfoManager::SetLinker(const UObject* Object, ULinkerLoad* Linker, PTRINT Index)
-{
-	if (Linker == NULL && Index == (PTRINT)INDEX_NONE)
-	{
-		Map.Remove(Object);
-		return;
-	}
-	Map.Set(Object, FObjectLinkerInfo(Linker, Index));
-}
-void FObjectLinkerInfoManager::SetLinkerIndex(const UObject* Object, PTRINT Index)
-{
-	FObjectLinkerInfo* Existing = Map.Find(Object);
-	if (Existing)
-	{
-		Existing->LinkerIndex = Index;
-	}
-	else if (Index != (PTRINT)INDEX_NONE)
-	{
-		Map.Set(Object, FObjectLinkerInfo(NULL, Index));
-	}
-}
-void FObjectLinkerInfoManager::Remove(const UObject* Object)
-{
-	Map.Remove(Object);
-}
 
 FStateFrame* FObjectStateFrameManager::Get(const UObject* Object)
 {
@@ -200,9 +151,13 @@ UObject::UObject( const UObject& Src )
 		appErrorf( TEXT("Attempt to copy-construct %s from %s"), *GetFullName(), *Src.GetFullName() );
 }
 UObject::UObject( ENativeConstructor, UClass* InClass, const TCHAR* InName, const TCHAR* InPackageName, EObjectFlags InFlags )
-:	Index			( INDEX_NONE											)
-,	HashNext		( NULL													)
-,	HashOuterNext	( NULL													)
+:	HashIndexPrev		( INDEX_NONE										)
+,	HashIndexNext		( INDEX_NONE										)
+,	HashOuterIndexPrev	( INDEX_NONE										)
+,	HashOuterIndexNext	( INDEX_NONE										)
+,	_Linker			( NULL													)
+,	_LinkerIndex	( INDEX_NONE											)
+,	Index			( INDEX_NONE											)
 ,	Outer			( NULL													)
 ,	Name			( NAME_None												)
 ,	Class			( InClass												)
@@ -225,9 +180,13 @@ UObject::UObject( ENativeConstructor, UClass* InClass, const TCHAR* InName, cons
 		Register();
 }
 UObject::UObject( EStaticConstructor, const TCHAR* InName, const TCHAR* InPackageName, EObjectFlags InFlags )
-:	Index			( INDEX_NONE											)
-,	HashNext		( NULL													)
-,	HashOuterNext	( NULL													)
+:	HashIndexPrev		( INDEX_NONE										)
+,	HashIndexNext		( INDEX_NONE										)
+,	HashOuterIndexPrev	( INDEX_NONE										)
+,	HashOuterIndexNext	( INDEX_NONE										)
+,	_Linker			( NULL													)
+,	_LinkerIndex	( INDEX_NONE											)
+,	Index			( INDEX_NONE											)
 ,	Outer			( NULL													)
 ,	Name			( NAME_None												)
 ,	Class			( NULL													)
@@ -437,14 +396,14 @@ void UObject::VerifyObjectHashChain()
 	while( Object )
 	{
 		check(Object->IsValid());
-		Object = Object->HashNext;
+		Object = Object->GetHashNext();
 	}
 	// Iterate over outer hash chain.
 	Object = this;
 	while( Object )
 	{
 		check(Object->IsValid());
-		Object = Object->HashOuterNext;
+		Object = Object->GetHashOuterNext();
 	}
 }
 
@@ -456,13 +415,13 @@ void UObject::VerifyObjectHash()
 	// Iterate over all objects in hash and iterate over their hash and outer hash chains
 	for( INT iHash=0; iHash<OBJECT_HASH_BINS; iHash++ )
 	{
-		UObject* Object = GObjHash[iHash];
+		UObject* Object = GetHashObject(GObjHash[iHash]);
 		Object->VerifyObjectHashChain();
 	}
 	// Iterate over all objects in outer hash and iterate over their hash and outer hash chains
 	for( INT iHash=0; iHash<OBJECT_HASH_BINS; iHash++ )
 	{
-		UObject* Object = GObjHashOuter[iHash];
+		UObject* Object = GetHashObject(GObjHashOuter[iHash]);
 		Object->VerifyObjectHashChain();
 	}
 }
@@ -1055,7 +1014,8 @@ void UObject::SetLinker( ULinkerLoad* LinkerLoad, INT LinkerIndex )
 	}
 
 	// Set new linker.
-	FObjectLinkerInfoManager::SetLinker(this, LinkerLoad, (PTRINT)LinkerIndex);
+	_Linker		 = LinkerLoad;
+	_LinkerIndex = LinkerIndex;
 }
 
 /**
@@ -1549,7 +1509,6 @@ UObject::~UObject()
 			FObjectStateFrameManager::Remove(this);
 		}
 	}
-	FObjectLinkerInfoManager::Remove(this);
 	FObjectNetIndexManager::Remove(this);
 }
 
@@ -1739,9 +1698,7 @@ void UObject::Serialize( FArchive& Ar )
 		{
 			Ar << Class;
 		}
-		ULinkerLoad* LinkerRef = GetLinker();
-		Ar << LinkerRef;
-		FObjectLinkerInfoManager::SetLinker(this, LinkerRef);
+		Ar << *(UObject**)&_Linker;
 		if( !Ar.IsIgnoringArchetypeRef() )
 		{
 			Ar.AllowEliminatingReferences(FALSE);
@@ -3433,7 +3390,7 @@ UObject* UObject::StaticFindObjectFastExplicit( UClass* ObjectClass, FName Objec
 {
 	// Find an object with the specified name and (optional) class, in any package; if bAnyPackage is FALSE, only matches top-level packages
 	INT iHash = GetObjectHash( ObjectName );
-	for( UObject* Hash=GObjHash[iHash]; Hash!=NULL; Hash=Hash->HashNext )
+	for( UObject* Hash=GetHashObject(GObjHash[iHash]); Hash!=NULL; Hash=Hash->GetHashNext() )
 	{
 		/*
 		InName: the object name to search for. Two possibilities.
@@ -3489,7 +3446,7 @@ UObject* UObject::StaticFindObjectFastInternal( UClass* ObjectClass, UObject* Ob
 	{
 		// Find in the specified package using the outer hash
 		INT iHash = GetObjectOuterHash(ObjectName,(PTRINT)ObjectPackage);
-		for( UObject* Hash = GObjHashOuter[iHash]; Hash != NULL; Hash = Hash->HashOuterNext )
+		for( UObject* Hash = GetHashObject(GObjHashOuter[iHash]); Hash != NULL; Hash = Hash->GetHashOuterNext() )
 		{
 			/*
 			InName: the object name to search for. Two possibilities.
@@ -3530,7 +3487,7 @@ UObject* UObject::StaticFindObjectFastInternal( UClass* ObjectClass, UObject* Ob
 	{
 		// Find an object with the specified name and (optional) class, in any package; if bAnyPackage is FALSE, only matches top-level packages
 		INT iHash = GetObjectHash( ObjectName );
-		for( UObject* Hash=GObjHash[iHash]; Hash!=NULL; Hash=Hash->HashNext )
+		for( UObject* Hash=GetHashObject(GObjHash[iHash]); Hash!=NULL; Hash=Hash->GetHashNext() )
 		{
 			/*
 			InName: the object name to search for. Two possibilities.
@@ -4178,7 +4135,8 @@ void UObject::Register()
 	// Set object properties.
 	Outer        = CreatePackage(NULL,InOuter);
 	Name         = InName;
-	FObjectLinkerInfoManager::Remove(this);
+	_Linker		 = NULL;
+	_LinkerIndex = INDEX_NONE;
 	FObjectNetIndexManager::Remove(this);
 
 	// Validate the object.
@@ -4268,8 +4226,8 @@ void UObject::StaticInit()
 	}
 
 	// Init hash.
-	appMemzero(GObjHash,sizeof(UObject*) * OBJECT_HASH_BINS);
-	appMemzero(GObjHashOuter,sizeof(UObject*) * OBJECT_HASH_BINS);
+	appMemset(GObjHash,0xFF,sizeof(GObjHash));
+	appMemset(GObjHashOuter,0xFF,sizeof(GObjHashOuter));
 
 	// If statically linked, initialize registrants.
 	INT Lookup = 0; // Dummy required by AUTO_INITIALIZE_REGISTRANTS_CORE
@@ -5513,7 +5471,7 @@ UBOOL UObject::StaticExec( const TCHAR* Cmd, FOutputDevice& Ar )
 			for( INT i=0; i<ARRAY_COUNT(GObjHash); i++ )
 			{
 				INT c=0;
-				for( UObject* Hash=GObjHash[i]; Hash; Hash=Hash->HashNext )
+				for( UObject* Hash=GetHashObject(GObjHash[i]); Hash; Hash=Hash->GetHashNext() )
 					c++;
 				if( c )
 					HashCount++;
@@ -5533,7 +5491,7 @@ UBOOL UObject::StaticExec( const TCHAR* Cmd, FOutputDevice& Ar )
 			{
 				INT Collisions = 0;
 				// Get the first item in the slot
-				UObject* Hash = GObjHashOuter[CurrSlot];
+				UObject* Hash = GetHashObject(GObjHashOuter[CurrSlot]);
 				// Determine if this slot is being used
 				if (Hash != NULL)
 				{
@@ -5542,7 +5500,7 @@ UBOOL UObject::StaticExec( const TCHAR* Cmd, FOutputDevice& Ar )
 					// Now count how many hash collisions there are
 					while (Hash)
 					{
-						Hash = Hash->HashOuterNext;
+						Hash = Hash->GetHashOuterNext();
 						// If there is another item in the chain
 						if (Hash != NULL)
 						{
@@ -5570,11 +5528,11 @@ UBOOL UObject::StaticExec( const TCHAR* Cmd, FOutputDevice& Ar )
 				MaxCollisions);
 			// Dump the first 30 objects in the worst bin for inspection
 			INT Count = 0;
-			UObject* Hash = GObjHashOuter[MaxBin];
+			UObject* Hash = GetHashObject(GObjHashOuter[MaxBin]);
 			while (Hash != NULL && Count < 30)
 			{
 				Ar.Logf(TEXT("Object is %s (%s)"),*Hash->GetName(),*Hash->GetFullName());
-				Hash = Hash->HashOuterNext;
+				Hash = Hash->GetHashOuterNext();
 				Count++;
 			}
 			return TRUE;
@@ -5591,7 +5549,7 @@ UBOOL UObject::StaticExec( const TCHAR* Cmd, FOutputDevice& Ar )
 			{
 				INT Collisions = 0;
 				// Get the first item in the slot
-				UObject* Hash = GObjHash[CurrSlot];
+				UObject* Hash = GetHashObject(GObjHash[CurrSlot]);
 				// Determine if this slot is being used
 				if (Hash != NULL)
 				{
@@ -5600,7 +5558,7 @@ UBOOL UObject::StaticExec( const TCHAR* Cmd, FOutputDevice& Ar )
 					// Now count how many hash collisions there are
 					while (Hash)
 					{
-						Hash = Hash->HashNext;
+						Hash = Hash->GetHashNext();
 						// If there is another item in the chain
 						if (Hash != NULL)
 						{
@@ -5628,11 +5586,11 @@ UBOOL UObject::StaticExec( const TCHAR* Cmd, FOutputDevice& Ar )
 				MaxCollisions);
 			// Dump the first 30 objects in the worst bin for inspection
 			INT Count = 0;
-			UObject* Hash = GObjHash[MaxBin];
+			UObject* Hash = GetHashObject(GObjHash[MaxBin]);
 			while (Hash != NULL && Count < 30)
 			{
 				Ar.Logf(TEXT("Object is %s (%s)"),*Hash->GetName(),*Hash->GetFullName());
-				Hash = Hash->HashNext;
+				Hash = Hash->GetHashNext();
 				Count++;
 			}
 			return TRUE;
@@ -7746,14 +7704,24 @@ void UObject::HashObject()
 // @todo ObjHash change -- enable once the ensure has found all the culprits and all FindObject(ANY_PACKAGE) has been vetted
 //	if (IsNameHashed())
 	{
-		iHash = GetObjectHash( Name );
-		HashNext        = GObjHash[iHash];
-		GObjHash[iHash] = this;
+		iHash				= GetObjectHash( Name );
+		HashIndexPrev		= INDEX_NONE;
+		HashIndexNext		= GObjHash[iHash];
+		if( HashIndexNext != INDEX_NONE )
+		{
+			GObjObjects(HashIndexNext)->HashIndexPrev = Index;
+		}
+		GObjHash[iHash]		= Index;
 	}
 	// Now hash using the outer
-	iHash			= GetObjectOuterHash(Name,(PTRINT)Outer);
-	HashOuterNext	= GObjHashOuter[iHash];
-	GObjHashOuter[iHash] = this;
+	iHash					= GetObjectOuterHash(Name,(PTRINT)Outer);
+	HashOuterIndexPrev		= INDEX_NONE;
+	HashOuterIndexNext		= GObjHashOuter[iHash];
+	if( HashOuterIndexNext != INDEX_NONE )
+	{
+		GObjObjects(HashOuterIndexNext)->HashOuterIndexPrev = Index;
+	}
+	GObjHashOuter[iHash]	= Index;
 }
 
 //
@@ -7761,68 +7729,40 @@ void UObject::HashObject()
 //
 void UObject::UnhashObject()
 {
-	INT       iHash   = 0;
-	UObject** Hash    = NULL;
-#if _DEBUG
-	INT       Removed = 0;
-#endif
-
 // @todo ObjHash change -- enable once the ensure has found all the culprits and all FindObject(ANY_PACKAGE) has been vetted
 //	if (IsNameHashed())
 	{
-		iHash   = GetObjectHash( Name );
-		Hash    = &GObjHash[iHash];
-
-		while( *Hash != NULL )
+		const INT iHash = GetObjectHash( Name );
+		if( HashIndexPrev != INDEX_NONE )
 		{
-			if( *Hash != this )
-			{
-				Hash = &(*Hash)->HashNext;
- 			}
-			else
-			{
-				*Hash = (*Hash)->HashNext;
-#if _DEBUG
-				// Verify that we find one and just one object in debug builds.		
-				Removed++;
-#else
-				break;
-#endif
-			}
+			GObjObjects(HashIndexPrev)->HashIndexNext = HashIndexNext;
 		}
-#if _DEBUG
-		checkSlow(Removed != 0);
-		checkSlow(Removed == 1);
-#endif
+		else if( GObjHash[iHash] == Index )
+		{
+			GObjHash[iHash] = HashIndexNext;
+		}
+		if( HashIndexNext != INDEX_NONE )
+		{
+			GObjObjects(HashIndexNext)->HashIndexPrev = HashIndexPrev;
+		}
+		HashIndexPrev = HashIndexNext = INDEX_NONE;
 	}
 	// Remove the object from the outer hash.
 	// NOTE: It relies on the outer being untouched and treats it as an int to avoid potential crashes during GC
-	iHash   = GetObjectOuterHash(Name,(PTRINT)Outer);
-	Hash    = &GObjHashOuter[iHash];
-#if _DEBUG
-	Removed = 0;
-#endif
-	// Search through the hash bin and remove the item
-	while( *Hash != NULL )
+	const INT iOuterHash = GetObjectOuterHash(Name,(PTRINT)Outer);
+	if( HashOuterIndexPrev != INDEX_NONE )
 	{
-		if( *Hash != this )
-		{
-			Hash = &(*Hash)->HashOuterNext;
- 		}
-		else
-		{
-			*Hash = (*Hash)->HashOuterNext;
-#if _DEBUG
-			Removed++;
-#else
-			return;
-#endif
-		}
+		GObjObjects(HashOuterIndexPrev)->HashOuterIndexNext = HashOuterIndexNext;
 	}
-#if _DEBUG
-	checkSlow(Removed != 0);
-	checkSlow(Removed == 1);
-#endif
+	else if( GObjHashOuter[iOuterHash] == Index )
+	{
+		GObjHashOuter[iOuterHash] = HashOuterIndexNext;
+	}
+	if( HashOuterIndexNext != INDEX_NONE )
+	{
+		GObjObjects(HashOuterIndexNext)->HashOuterIndexPrev = HashOuterIndexPrev;
+	}
+	HashOuterIndexPrev = HashOuterIndexNext = INDEX_NONE;
 }
 
 /*-----------------------------------------------------------------------------
@@ -8192,9 +8132,11 @@ UObject* UObject::StaticAllocateObject
 
 	// Set the base properties.
 	Obj->Index			 = INDEX_NONE;
-	Obj->HashNext		 = NULL;
+	Obj->HashIndexPrev	 = Obj->HashIndexNext = INDEX_NONE;
+	Obj->HashOuterIndexPrev = Obj->HashOuterIndexNext = INDEX_NONE;
 	FObjectStateFrameManager::Remove(Obj);
-	FObjectLinkerInfoManager::SetLinker(Obj, Linker, (PTRINT)LinkerIndex);
+	Obj->_Linker		 = Linker;
+	Obj->_LinkerIndex	 = LinkerIndex;
 	Obj->Outer			 = InOuter;
 	Obj->ObjectFlags	 = InFlags;
 	Obj->Name			 = InName;

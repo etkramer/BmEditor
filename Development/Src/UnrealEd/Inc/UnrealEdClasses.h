@@ -634,6 +634,28 @@ public:
     NO_DEFAULT_CONSTRUCTOR(UCurveEdPreset_UserSet)
 };
 
+class UDumpClassLayoutCommandlet : public UCommandlet
+{
+public:
+    //## BEGIN PROPS DumpClassLayoutCommandlet
+    //## END PROPS DumpClassLayoutCommandlet
+
+    DECLARE_CLASS(UDumpClassLayoutCommandlet,UCommandlet,0|CLASS_Transient,UnrealEd)
+	/**
+	 * Creates a bare editor engine so the commandlet can run without the editor's content dependencies.
+	 */
+	virtual void CreateCustomEngine();
+
+	/**
+	 * Commandlet entry point
+	 *
+	 * @param	Params	the command line parameters that were passed in.
+	 *
+	 * @return	0 if the commandlet succeeded; otherwise, an error code defined by the commandlet.
+	 */
+	virtual INT Main(const FString& Params);
+};
+
 class UEditorUserSettings : public UObject
 {
 public:
@@ -5269,6 +5291,7 @@ AUTOGENERATE_FUNCTION(UGameStatsDBUploader,-1,execPostProcessStream);
 	UCurveEdPresetCurveFactoryNew::StaticClass(); \
 	UDecalMaterialFactoryNew::StaticClass(); \
 	UDiffPackagesCommandlet::StaticClass(); \
+	UDumpClassLayoutCommandlet::StaticClass(); \
 	UDumpEmittersCommandlet::StaticClass(); \
 	UDumpLightmapInfoCommandlet::StaticClass(); \
 	UDumpPropertiesCommandlet::StaticClass(); \
@@ -5654,6 +5677,7 @@ VERIFY_CLASS_OFFSET_NODIE(UCurveEdPreset_SineWave,CurveEdPreset_SineWave,Offset)
 VERIFY_CLASS_SIZE_NODIE(UCurveEdPreset_SineWave)
 VERIFY_CLASS_OFFSET_NODIE(UCurveEdPreset_UserSet,CurveEdPreset_UserSet,UserCurve)
 VERIFY_CLASS_SIZE_NODIE(UCurveEdPreset_UserSet)
+VERIFY_CLASS_SIZE_NODIE(UDumpClassLayoutCommandlet)
 VERIFY_CLASS_OFFSET_NODIE(UEditorComponent,EditorComponent,GridColorHi)
 VERIFY_CLASS_OFFSET_NODIE(UEditorComponent,EditorComponent,GridColorLo)
 VERIFY_CLASS_OFFSET_NODIE(UEditorComponent,EditorComponent,PerspectiveGridSize)

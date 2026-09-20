@@ -28,15 +28,19 @@ struct {QWORD} qword
 //=============================================================================
 // UObject variables.
 //
-// Layout matches BM2's Object.uc. Linker, LinkerIndex, and NetIndex
-// are no longer inline fields and live in external maps; StateFrame lives on StateObject.
+// Layout matches BM4's Object.uc. NetIndex is gone and StateFrame lives on
+// StateObject; the object hashes are doubly-linked indices into GObjObjects.
 
 var private native const editconst noexport		pointer VfTableObject;
-var private native const editconst noexport		pointer ObjectInternalInteger;
 var private native const editconst				int ObjectFlags;
 var private editoronly native const editconst	int EditorObjectFlags;
-var private native const editconst				pointer HashNext;
-var private native const editconst				pointer HashOuterNext;
+var private native const editconst				int HashIndexPrev;
+var private native const editconst				int HashIndexNext;
+var private native const editconst				int HashOuterIndexPrev;
+var private native const editconst				int HashOuterIndexNext;
+var private native const editconst noexport		Object Linker;
+var private native const editconst noexport		pointer LinkerIndex;
+var private native const editconst noexport		int ObjectInternalInteger;
 var native const editconst						Object Outer;
 var() native const editconst					name Name;
 var native const editconst						class Class;
@@ -153,12 +157,6 @@ struct InlinePointerArray_Mirror
 
 // A globally unique identifier.
 struct immutable Guid
-{
-	var pointer A;
-};
-
-// BM: Full 16-byte GUID data as serialized on disk.
-struct immutable GuidImplementation
 {
 	var int A, B, C, D;
 };

@@ -1759,7 +1759,7 @@ public:
 
 	friend DWORD GetTypeHash(const FStaticParameterSet &Ref)
 	{
-		return Ref.BaseMaterialId.SmallGuid;
+		return Ref.BaseMaterialId.A;
 	}
 
 	/** 
