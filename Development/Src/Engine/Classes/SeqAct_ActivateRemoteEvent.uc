@@ -24,6 +24,10 @@ var() Name EventName;
 /** For use in Kismet, to indicate if this variable is ok. Updated in UpdateStatus. */
 var transient bool bStatusIsOk;
 
+// BM
+/** Activate the remote event immediately rather than at the end of the frame */
+var() bool GuaranteedInstant;
+
 /**
  * Return the version number for this class.  Child classes should increment this method by calling Super then adding
  * a individual class version to the result.  When a class is first created, the number should be 0; each time one of the

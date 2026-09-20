@@ -9,6 +9,10 @@ cpptext
 	void Activated();
 }
 
+// BM
+/** Ignore the Z axis when measuring */
+var() bool bGet2DDistance;
+
 var() editconst float Distance;
 
 defaultproperties

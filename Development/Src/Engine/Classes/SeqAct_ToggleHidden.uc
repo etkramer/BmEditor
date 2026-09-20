@@ -3,6 +3,10 @@
  */
 class SeqAct_ToggleHidden extends SeqAct_Toggle;
 
+// BM
+var() bool bToggleCollision;
+// BM
+var() bool bDontAffectStaticMeshToggleableCollision;
 var() bool bToggleBasedActors;
 var() array< class<Actor> > IgnoreBasedClasses;
 

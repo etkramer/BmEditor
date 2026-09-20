@@ -92,11 +92,11 @@ var() int IncrementAmount;
 /** Loop index back to beginning to cycle */
 var() bool bLooping;
 
-/** List of links to activate */
-var() array<int> Indices;
-
 /** Automatically disable an output once its activated? */
 var() bool bAutoDisableLinks;
+
+/** List of links to activate */
+var() editconst array<int> Indices;
 
 
 defaultproperties

@@ -18,6 +18,10 @@ var() bool							bShouldBlockOnLoad;
 // BM
 var() bool							bRegisterLevelIfMissing;
 
+// BM
+/** Translation applied to the level when it is streamed in */
+var() vector						ApplyOffset;
+
 cpptext
 {
 	/**

@@ -3268,18 +3268,8 @@ simulated function OnTeleport(SeqAct_Teleport Action)
 {
 	local array<Object> objVars;
 	local int idx;
-	local Actor destActor, tempActor, A;
+	local Actor destActor, tempActor;
 	local Controller C;
-	local bool bOccupiedDest, bColliding;
-	local float ColRadius, ColHeight;
-	local Vector Extent;
-
-	GetBoundingCylinder( ColRadius, ColHeight);
-	Extent.X = ColRadius;
-	Extent.Y = ColRadius;
-	Extent.Z = ColHeight;
-
-	bOccupiedDest = FALSE;
 
 	// find the first supplied actor
 	Action.GetObjectVars(objVars,"Destination");
@@ -3298,29 +3288,14 @@ simulated function OnTeleport(SeqAct_Teleport Action)
 			tempActor = C.Pawn;
 		}
 
-		if( Action.bCheckOverlap )
-		{
-			bColliding = FALSE;
-			foreach VisibleCollidingActors ( class'Actor', A, ColRadius * 2.f, tempActor.Location, FALSE, Extent, TRUE )
-			{
-				if( IsBlockedBy( A ) )
-				{
-					bColliding = TRUE;
-					break;
-				}
-			}
-
-			bOccupiedDest = bColliding;
-		}
-
 		destActor = tempActor;
-		if( (!Action.bCheckOverlap || !bOccupiedDest) && destActor != None )
+		if( destActor != None )
 		{
 			break;
 		}
 	}
 	// and set to that actor's location
-	if (destActor != None && Action.ShouldTeleport(self, destActor.Location,Action.TeleportDistance,Action.TeleportVolumes))
+	if (destActor != None && Action.ShouldTeleport(self, destActor.Location))
 	{
 		if (SetLocation(destActor.Location))
 		{

@@ -270,8 +270,24 @@ var const array<SequenceOp> ActiveSequenceOps;
  */
 var transient const array<Sequence> NestedSequences;
 
+// BM
+/** Subset of NestedSequences that is currently ticking, and the additions pending for it */
+var transient const array<Sequence> ActiveNestedSequences;
+var transient const array<Sequence> PendingActiveNestedSequences;
+
+// BM
+/** TRUE while ActiveNestedSequences is being iterated, so additions go to the pending list */
+var transient const bool ActiveNestedSequencesLocked;
+
+/** Is this sequence currently enabled? */
+var() private{private} bool bEnabled;
+
+// BM
+/** List of events contained by this sequence */
+var transient const array<SequenceEvent> SequenceEvents;
+
 /** List of events that failed to register on first pass */
-var const array<SequenceEvent> UnregisteredEvents;
+var transient const array<SequenceEvent> UnregisteredEvents;
 
 /**
  * Used to save an op to activate and the impulse index.
@@ -291,8 +307,9 @@ struct native ActivateOp
 /** List of impulses that are currently delayed */
 var const array<ActivateOp> DelayedActivatedOps;
 
-/** Is this sequence currently enabled? */
-var() private{private} bool bEnabled;
+// BM
+/** Latent ops whose update is deferred */
+var const array<SequenceOp> DelayedLatentOps;
 
 /** Matches the SequenceEvent::ActivateEvent parms, for storing multiple activations per frame */
 struct native QueuedActivationInfo
@@ -307,9 +324,18 @@ var array<QueuedActivationInfo> QueuedActivations;
 
 
 /** Default position of origin when opening this sequence in Kismet. */
-var	int		DefaultViewX;
-var	int		DefaultViewY;
-var float	DefaultViewZoom;
+var	editoronly int		DefaultViewX;
+var	editoronly int		DefaultViewY;
+var editoronly float	DefaultViewZoom;
+
+// BM
+/** Sort key used when listing sequences in Kismet */
+struct native SequenceSortKey
+{
+	var int Priority;
+	var string Name;
+};
+var transient SequenceSortKey SortKey;
 
 /**
  * Fills supplied array with all sequence objects of the specified type.

@@ -3319,7 +3319,7 @@ simulated function OnTeleport(SeqAct_Teleport Action)
 
 	// find the first supplied actor
 	Action.GetObjectVars(objVars,"Destination");
-	if( !HandleTeleport( objVars, Action.bUpdateRotation, Action.bCheckOverlap, ,Action.TeleportVolumes ) )
+	if( !HandleTeleport( objVars, Action.bUpdateRotation, FALSE ) )
 	{
 		`warn( "failed to handle teleport kismet action properly"@Action );		
 	}

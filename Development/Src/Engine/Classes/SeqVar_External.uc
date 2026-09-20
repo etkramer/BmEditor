@@ -29,6 +29,13 @@ var() class<SequenceVariable> ExpectedType;
 /** Name of the variable link to create on the parent sequence */
 var() string VariableLabel;
 
+// BM
+/** Values used when nothing is linked to this external variable on the parent sequence */
+var() bool bUseDefaultValues;
+var() bool DefaultBool;
+var() int DefaultInt;
+var() float DefaultFloat;
+
 defaultproperties
 {
 	ObjName="External Variable"

@@ -52,6 +52,9 @@ var() bool bEnabled;
 /** Is this factory currently in the process of spawning? */
 var bool bIsSpawning;
 
+/** Prevent spawning at locations with bBlockActors */
+var() bool							bCheckSpawnCollision;
+
 /** Type of actor factory to use when creating the actor */
 var() export editinline ActorFactory Factory;
 
@@ -73,17 +76,22 @@ var() int							SpawnCount;
 /** Delay applied after creating an actor before creating the next one */
 var() float							SpawnDelay;
 
-/** Prevent spawning at locations with bBlockActors */
-var() bool							bCheckSpawnCollision;
-
 /** Last index used to spawn at, for PS_Normal/PS_Reverse */
 var int LastSpawnIdx;
+
+// BM
+/** Index being spawned at right now */
+var int CurrentSpawnIdx;
 
 /** Number of actors spawned so far */
 var int	SpawnedCount;
 
 /** Remaining time before attempting the next spawn */
 var float RemainingDelay;
+
+// BM
+/** The scale of spawned Objects, if SpawnPoints is empty */
+var() array<vector> SpawnScales;
 
 
 /**

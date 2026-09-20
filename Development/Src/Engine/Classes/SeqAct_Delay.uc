@@ -17,13 +17,13 @@ cpptext
 /** Is this delay currently active? */
 var const bool bDelayActive;
 
+/** When set triggering start again with restart the time without triggering the finished output, otherwise default behavior of not changing the initial delay time */
+var() bool	bStartWillRestart;
+
 var const float DefaultDuration;
 
 /** Default duration to use if no variables are linked */
 var() float Duration<autocomment=true>;
-
-/** When set triggering start again with restart the time without triggering the finished output, otherwise default behavior of not changing the initial delay time */
-var() bool	bStartWillRestart;
 
 /** Time at which this op was last updated, to prevent multiple updates per tick */
 var const float LastUpdateTime;

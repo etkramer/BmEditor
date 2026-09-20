@@ -9,12 +9,21 @@ class SeqAct_LevelVisibility extends SeqAct_Latent
 	native(Sequence);
 
 /** LevelStreaming object that is going to be associated/ dissociated on request */
-var() LevelStreaming Level;
+var transient LevelStreaming Level;
 
 /** LevelStreaming object name */
 var() Name LevelName<autocomment=true>;
 
+// BM
+/** Additional levels acted on alongside LevelName, and their resolved LevelStreaming objects */
+var() array<Name> Levels;
+var transient array<LevelStreaming> CachedLevels;
+
 var transient bool bStatusIsOk;
+
+// BM
+var transient bool bHidingLevels;
+var transient bool bSetLevelUnhidden;
 
 cpptext
 {

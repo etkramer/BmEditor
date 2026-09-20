@@ -25,6 +25,10 @@ var() vector TargetOffset;
 /** Cached log message to display */
 var string LogMessage;
 
+// BM
+/** How long the on-screen message stays up for */
+var() float OnscreenTime;
+
 
 /**
  * Return the version number for this class.  Child classes should increment this method by calling Super then adding

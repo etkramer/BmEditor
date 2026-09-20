@@ -51,6 +51,25 @@ enum EParticleEventOutputType
     op(ePARTICLEOUT_Death) \
     op(ePARTICLEOUT_Collision) \
     op(ePARTICLEOUT_Kismet) 
+enum RTriggerVolumeType
+{
+    TVT_BatmanOrBatmanInBatmobile=0,
+    TVT_BatmanOnly          =1,
+    TVT_BatmobileDrivenOrRemote=2,
+    TVT_BatmanInBatmobileOnly=3,
+    TVT_RemoteBatmobileOnly =4,
+    TVT_BatmanOrRemoteBatmobile=5,
+    TVT_TouchAnything       =6,
+    TVT_MAX                 =7,
+};
+#define FOREACH_ENUM_RTRIGGERVOLUMETYPE(op) \
+    op(TVT_BatmanOrBatmanInBatmobile) \
+    op(TVT_BatmanOnly) \
+    op(TVT_BatmobileDrivenOrRemote) \
+    op(TVT_BatmanInBatmobileOnly) \
+    op(TVT_RemoteBatmobileOnly) \
+    op(TVT_BatmanOrRemoteBatmobile) \
+    op(TVT_TouchAnything) 
 
 #endif // !INCLUDED_ENGINE_SEQUENCE_ENUMS
 #endif // !NO_ENUMS
@@ -96,11 +115,15 @@ class USequenceObject : public UStateObject
 public:
     //## BEGIN PROPS SequenceObject
     INT ObjInstanceVersion;
+    INT ObjInstanceVersionInitial;
     class USequence* ParentSequence;
+    class USequenceObject* PIESequenceObject;
     INT ObjPosX;
     INT ObjPosY;
     FStringNoInit ObjName;
     FStringNoInit ObjCategory;
+    FStringNoInit Created;
+    FStringNoInit LastEdit;
     FColor ObjColor;
     FColor ObjTitleColor;
     FStringNoInit ObjComment;
@@ -108,6 +131,7 @@ public:
     BITFIELD bDrawFirst:1;
     BITFIELD bDrawLast:1;
     BITFIELD bOutputObjCommentToScreen:1;
+    BITFIELD bRemoveAtCookTime:1;
     BITFIELD bSuppressAutoComment:1;
     INT DrawWidth;
     INT DrawHeight;
@@ -442,6 +466,9 @@ struct FSeqOpOutputLink
     BITFIELD bClampedMax:1;
     BITFIELD bClampedMin:1;
     INT OverrideDelta;
+    FLOAT PIEActivationTime;
+    BITFIELD bIsActivated:1;
+    SCRIPT_ALIGN;
 
      /** Constructors */
     FSeqOpOutputLink() {}
@@ -487,11 +514,13 @@ struct FSeqVarLink
     TArrayNoInit<class USequenceVariable*> LinkedVariables;
     FStringNoInit LinkDesc;
     FName LinkVar;
+    FName StructPropertyName;
     FName PropertyName;
     INT MinVars;
     INT MaxVars;
     INT DrawX;
     class UProperty* CachedProperty;
+    INT CachedPropertyOffset;
     BITFIELD bWriteable:1;
     BITFIELD bSequenceNeverReadsOnlyWritesToThisVar:1;
     BITFIELD bModifiesLinkedObject:1;
@@ -566,6 +595,9 @@ class USequenceOp : public USequenceObject
 {
 public:
     //## BEGIN PROPS SequenceOp
+    BITFIELD bIsActivated:1;
+    BITFIELD bIsCurrentDebuggerOp:1;
+    BITFIELD bKeepRenamedOutputLinks:1;
     BITFIELD bActive:1;
     BITFIELD bLatentExecution:1;
     BITFIELD bStripInputLinkDesc:1;
@@ -578,6 +610,13 @@ public:
     BITFIELD bPendingVarConnectorRecalc:1;
     BITFIELD bPendingInputConnectorRecalc:1;
     BITFIELD bPendingOutputConnectorRecalc:1;
+    BITFIELD bIsBreakpointSet:1;
+    BITFIELD bIsHiddenBreakpointSet:1;
+    FLOAT PIEActivationTime;
+    class USequenceOp* ActivatorSeqOp;
+    INT LastActivatedInputLink;
+    INT LastActivatedOutputLink;
+    INT FrameTag;
     TArrayNoInit<struct FSeqOpInputLink> InputLinks;
     TArrayNoInit<struct FSeqOpOutputLink> OutputLinks;
     TArrayNoInit<struct FSeqVarLink> VariableLinks;
@@ -837,6 +876,19 @@ struct FQueuedActivationInfo
     }
 };
 
+struct FSequenceSortKey
+{
+    INT Priority;
+    FStringNoInit Name;
+
+    /** Constructors */
+    FSequenceSortKey() {}
+    FSequenceSortKey(EEventParm)
+    {
+        appMemzero(this, sizeof(FSequenceSortKey));
+    }
+};
+
 class USequence : public USequenceOp
 {
 public:
@@ -845,15 +897,21 @@ public:
     TArrayNoInit<class USequenceObject*> SequenceObjects;
     TArrayNoInit<class USequenceOp*> ActiveSequenceOps;
     TArrayNoInit<class USequence*> NestedSequences;
-    TArrayNoInit<class USequenceEvent*> UnregisteredEvents;
-    TArrayNoInit<struct FActivateOp> DelayedActivatedOps;
+    TArrayNoInit<class USequence*> ActiveNestedSequences;
+    TArrayNoInit<class USequence*> PendingActiveNestedSequences;
+    BITFIELD ActiveNestedSequencesLocked:1;
 private:
     BITFIELD bEnabled:1;
 public:
+    TArrayNoInit<class USequenceEvent*> SequenceEvents;
+    TArrayNoInit<class USequenceEvent*> UnregisteredEvents;
+    TArrayNoInit<struct FActivateOp> DelayedActivatedOps;
+    TArrayNoInit<class USequenceOp*> DelayedLatentOps;
     TArrayNoInit<struct FQueuedActivationInfo> QueuedActivations;
     INT DefaultViewX;
     INT DefaultViewY;
     FLOAT DefaultViewZoom;
+    struct FSequenceSortKey SortKey;
     //## END PROPS Sequence
 
     void SetEnabled(UBOOL bInEnabled);
@@ -1231,6 +1289,7 @@ public:
     class AActor* Instigator;
     FName EventName;
     BITFIELD bStatusIsOk:1;
+    BITFIELD GuaranteedInstant:1;
     SCRIPT_ALIGN;
     //## END PROPS SeqAct_ActivateRemoteEvent
 
@@ -1520,6 +1579,7 @@ class USeqAct_GetDistance : public USequenceAction
 {
 public:
     //## BEGIN PROPS SeqAct_GetDistance
+    BITFIELD bGet2DDistance:1;
     FLOAT Distance;
     //## END PROPS SeqAct_GetDistance
 
@@ -1650,7 +1710,7 @@ public:
     //## BEGIN PROPS SeqAct_Latent
     TArrayNoInit<class AActor*> LatentActors;
     BITFIELD bAborted:1;
-    SCRIPT_ALIGN;
+    FLOAT LatentActivationTime;
     //## END PROPS SeqAct_Latent
 
     virtual void AbortFor(class AActor* latentActor);
@@ -1690,8 +1750,10 @@ public:
     INT SpawnCount;
     FLOAT SpawnDelay;
     INT LastSpawnIdx;
+    INT CurrentSpawnIdx;
     INT SpawnedCount;
     FLOAT RemainingDelay;
+    TArrayNoInit<FVector> SpawnScales;
     //## END PROPS SeqAct_ActorFactory
 
     DECLARE_CLASS(USeqAct_ActorFactory,USeqAct_Latent,0,Engine)
@@ -2163,6 +2225,7 @@ public:
     BITFIELD bShouldBlockOnLoad:1;
     BITFIELD bRegisterLevelIfMissing:1;
     SCRIPT_ALIGN;
+    FVector ApplyOffset;
     //## END PROPS SeqAct_LevelStreamingBase
 
     DECLARE_ABSTRACT_CLASS(USeqAct_LevelStreamingBase,USeqAct_Latent,0,Engine)
@@ -2222,6 +2285,8 @@ public:
     //## BEGIN PROPS SeqAct_MultiLevelStreaming
     TArrayNoInit<struct FLevelStreamingNameCombo> Levels;
     BITFIELD bUnloadAllOtherLevels:1;
+    BITFIELD bApplyToAllAvailableLevels:1;
+    BITFIELD bRemovedBlockOnLoad:1;
     BITFIELD bStatusIsOk:1;
     SCRIPT_ALIGN;
     //## END PROPS SeqAct_MultiLevelStreaming
@@ -2240,7 +2305,11 @@ public:
     //## BEGIN PROPS SeqAct_LevelVisibility
     class ULevelStreaming* Level;
     FName LevelName;
+    TArrayNoInit<FName> Levels;
+    TArrayNoInit<class ULevelStreaming*> CachedLevels;
     BITFIELD bStatusIsOk:1;
+    BITFIELD bHidingLevels:1;
+    BITFIELD bSetLevelUnhidden:1;
     SCRIPT_ALIGN;
     //## END PROPS SeqAct_LevelVisibility
 
@@ -2423,6 +2492,7 @@ public:
     FLOAT TargetDuration;
     FVector TargetOffset;
     FStringNoInit LogMessage;
+    FLOAT OnscreenTime;
     //## END PROPS SeqAct_Log
 
     DECLARE_CLASS(USeqAct_Log,USequenceAction,0,Engine)
@@ -3908,8 +3978,6 @@ public:
     BITFIELD bPlayerOnly:1;
     BITFIELD bRegistered:1;
     BITFIELD bClientSideOnly:1;
-    SCRIPT_ALIGN;
-    BYTE Priority;
     INT MaxWidth;
     //## END PROPS SequenceEvent
 
@@ -4210,6 +4278,8 @@ public:
     BITFIELD bUseInstigator:1;
     BITFIELD bAllowDeadPawns:1;
     TArrayNoInit<class AActor*> TouchedList;
+    BYTE TriggerType;
+    SCRIPT_ALIGN;
     //## END PROPS SeqEvent_Touch
 
     DECLARE_FUNCTION(execCheckTouchActivate);
@@ -4404,6 +4474,10 @@ public:
     //## BEGIN PROPS SeqVar_External
     class UClass* ExpectedType;
     FStringNoInit VariableLabel;
+    BITFIELD bUseDefaultValues:1;
+    BITFIELD DefaultBool:1;
+    INT DefaultInt;
+    FLOAT DefaultFloat;
     //## END PROPS SeqVar_External
 
     DECLARE_CLASS(USeqVar_External,USequenceVariable,0,Engine)
@@ -5132,11 +5206,11 @@ VERIFY_CLASS_OFFSET_NODIE(USequenceFrame,SequenceFrame,SizeX)
 VERIFY_CLASS_OFFSET_NODIE(USequenceFrame,SequenceFrame,FillMaterial)
 VERIFY_CLASS_SIZE_NODIE(USequenceFrame)
 VERIFY_CLASS_SIZE_NODIE(USequenceFrameWrapped)
-VERIFY_CLASS_OFFSET_NODIE(USequenceOp,SequenceOp,InputLinks)
+VERIFY_CLASS_OFFSET_NODIE(USequenceOp,SequenceOp,PIEActivationTime)
 VERIFY_CLASS_OFFSET_NODIE(USequenceOp,SequenceOp,SearchTag)
 VERIFY_CLASS_SIZE_NODIE(USequenceOp)
 VERIFY_CLASS_OFFSET_NODIE(USequence,Sequence,LogFile)
-VERIFY_CLASS_OFFSET_NODIE(USequence,Sequence,DefaultViewZoom)
+VERIFY_CLASS_OFFSET_NODIE(USequence,Sequence,SortKey)
 VERIFY_CLASS_SIZE_NODIE(USequence)
 VERIFY_CLASS_OFFSET_NODIE(UPrefabSequence,PrefabSequence,OwnerPrefab)
 VERIFY_CLASS_SIZE_NODIE(UPrefabSequence)
@@ -5195,9 +5269,10 @@ VERIFY_CLASS_OFFSET_NODIE(USeqAct_HeadTrackingControl,SeqAct_HeadTrackingControl
 VERIFY_CLASS_SIZE_NODIE(USeqAct_HeadTrackingControl)
 VERIFY_CLASS_SIZE_NODIE(USeqAct_IsInObjectList)
 VERIFY_CLASS_OFFSET_NODIE(USeqAct_Latent,SeqAct_Latent,LatentActors)
+VERIFY_CLASS_OFFSET_NODIE(USeqAct_Latent,SeqAct_Latent,LatentActivationTime)
 VERIFY_CLASS_SIZE_NODIE(USeqAct_Latent)
 VERIFY_CLASS_OFFSET_NODIE(USeqAct_ActorFactory,SeqAct_ActorFactory,Factory)
-VERIFY_CLASS_OFFSET_NODIE(USeqAct_ActorFactory,SeqAct_ActorFactory,RemainingDelay)
+VERIFY_CLASS_OFFSET_NODIE(USeqAct_ActorFactory,SeqAct_ActorFactory,SpawnScales)
 VERIFY_CLASS_SIZE_NODIE(USeqAct_ActorFactory)
 VERIFY_CLASS_SIZE_NODIE(USeqAct_ActorFactoryEx)
 VERIFY_CLASS_OFFSET_NODIE(USeqAct_ProjectileFactory,SeqAct_ProjectileFactory,PSTemplate)
@@ -5216,6 +5291,7 @@ VERIFY_CLASS_SIZE_NODIE(USeqAct_ForceGarbageCollection)
 VERIFY_CLASS_OFFSET_NODIE(USeqAct_Interp,SeqAct_Interp,SavedActorTransforms)
 VERIFY_CLASS_OFFSET_NODIE(USeqAct_Interp,SeqAct_Interp,RenderingOverrides)
 VERIFY_CLASS_SIZE_NODIE(USeqAct_Interp)
+VERIFY_CLASS_OFFSET_NODIE(USeqAct_LevelStreamingBase,SeqAct_LevelStreamingBase,ApplyOffset)
 VERIFY_CLASS_SIZE_NODIE(USeqAct_LevelStreamingBase)
 VERIFY_CLASS_OFFSET_NODIE(USeqAct_LevelStreaming,SeqAct_LevelStreaming,Level)
 VERIFY_CLASS_OFFSET_NODIE(USeqAct_LevelStreaming,SeqAct_LevelStreaming,LevelNameAsString)
@@ -5223,7 +5299,7 @@ VERIFY_CLASS_SIZE_NODIE(USeqAct_LevelStreaming)
 VERIFY_CLASS_OFFSET_NODIE(USeqAct_MultiLevelStreaming,SeqAct_MultiLevelStreaming,Levels)
 VERIFY_CLASS_SIZE_NODIE(USeqAct_MultiLevelStreaming)
 VERIFY_CLASS_OFFSET_NODIE(USeqAct_LevelVisibility,SeqAct_LevelVisibility,Level)
-VERIFY_CLASS_OFFSET_NODIE(USeqAct_LevelVisibility,SeqAct_LevelVisibility,LevelName)
+VERIFY_CLASS_OFFSET_NODIE(USeqAct_LevelVisibility,SeqAct_LevelVisibility,CachedLevels)
 VERIFY_CLASS_SIZE_NODIE(USeqAct_LevelVisibility)
 VERIFY_CLASS_OFFSET_NODIE(USeqAct_PlaySound,SeqAct_PlaySound,PlaySound)
 VERIFY_CLASS_OFFSET_NODIE(USeqAct_PlaySound,SeqAct_PlaySound,ParamNameList)
@@ -5243,7 +5319,7 @@ VERIFY_CLASS_SIZE_NODIE(USeqAct_StreamInTextures)
 VERIFY_CLASS_OFFSET_NODIE(USeqAct_WaitForLevelsVisible,SeqAct_WaitForLevelsVisible,LevelNames)
 VERIFY_CLASS_SIZE_NODIE(USeqAct_WaitForLevelsVisible)
 VERIFY_CLASS_OFFSET_NODIE(USeqAct_Log,SeqAct_Log,TargetDuration)
-VERIFY_CLASS_OFFSET_NODIE(USeqAct_Log,SeqAct_Log,LogMessage)
+VERIFY_CLASS_OFFSET_NODIE(USeqAct_Log,SeqAct_Log,OnscreenTime)
 VERIFY_CLASS_SIZE_NODIE(USeqAct_Log)
 VERIFY_CLASS_OFFSET_NODIE(USeqAct_ModifyCover,SeqAct_ModifyCover,Slots)
 VERIFY_CLASS_OFFSET_NODIE(USeqAct_ModifyCover,SeqAct_ModifyCover,ManualCoverType)
@@ -5416,7 +5492,7 @@ VERIFY_CLASS_OFFSET_NODIE(USeqEvent_TakeDamage,SeqEvent_TakeDamage,MinDamageAmou
 VERIFY_CLASS_OFFSET_NODIE(USeqEvent_TakeDamage,SeqEvent_TakeDamage,CurrentDamage)
 VERIFY_CLASS_SIZE_NODIE(USeqEvent_TakeDamage)
 VERIFY_CLASS_OFFSET_NODIE(USeqEvent_Touch,SeqEvent_Touch,ClassProximityTypes)
-VERIFY_CLASS_OFFSET_NODIE(USeqEvent_Touch,SeqEvent_Touch,TouchedList)
+VERIFY_CLASS_OFFSET_NODIE(USeqEvent_Touch,SeqEvent_Touch,TriggerType)
 VERIFY_CLASS_SIZE_NODIE(USeqEvent_Touch)
 VERIFY_CLASS_OFFSET_NODIE(USeqEvent_Used,SeqEvent_Used,InteractDistance)
 VERIFY_CLASS_OFFSET_NODIE(USeqEvent_Used,SeqEvent_Used,IgnoredClassProximityTypes)
@@ -5429,7 +5505,7 @@ VERIFY_CLASS_SIZE_NODIE(UInterpData)
 VERIFY_CLASS_OFFSET_NODIE(USeqVar_Bool,SeqVar_Bool,bValue)
 VERIFY_CLASS_SIZE_NODIE(USeqVar_Bool)
 VERIFY_CLASS_OFFSET_NODIE(USeqVar_External,SeqVar_External,ExpectedType)
-VERIFY_CLASS_OFFSET_NODIE(USeqVar_External,SeqVar_External,VariableLabel)
+VERIFY_CLASS_OFFSET_NODIE(USeqVar_External,SeqVar_External,DefaultFloat)
 VERIFY_CLASS_SIZE_NODIE(USeqVar_External)
 VERIFY_CLASS_OFFSET_NODIE(USeqVar_Float,SeqVar_Float,FloatValue)
 VERIFY_CLASS_SIZE_NODIE(USeqVar_Float)

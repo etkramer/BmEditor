@@ -188,8 +188,16 @@ protected:
 /** Class vs instance version, for offering updates in the Kismet editor */
 var const			int	ObjInstanceVersion;
 
+// BM
+/** Version this object was created at, never updated */
+var const			int	ObjInstanceVersionInitial;
+
 /** Sequence that contains this object */
 var const noimport Sequence ParentSequence;
+
+// BM
+/** Counterpart of this object in the PIE copy of the sequence */
+var transient nontransactional editoronly SequenceObject PIESequenceObject;
 
 /** Visual position of this object within a sequence */
 var editoronly int ObjPosX, ObjPosY;
@@ -202,6 +210,11 @@ var editoronly string ObjName;
  * should be placed in
  */
 var editoronly string ObjCategory;
+
+// BM
+/** Who created this object, and who last edited it */
+var() editconst editoronly string Created;
+var() editconst editoronly string LastEdit;
 
 /** Color used to draw the object */
 var editoronly color ObjColor;
@@ -224,11 +237,15 @@ var		bool					bDrawLast;
 /** Should this object display ObjComment when activated? */
 var()	bool					bOutputObjCommentToScreen;
 
+// BM
+/** Should this object be dropped when the package is cooked? */
+var		bool					bRemoveAtCookTime;
+
 /** Should we suppress the 'auto' comment text - values of properties flagged with the 'autocomment' metadata string. */
 var()	bool					bSuppressAutoComment;
 
 /** Cached drawing dimensions */
-var		int						DrawWidth, DrawHeight;
+var		transient editoronly int	DrawWidth, DrawHeight;
 
 /** Writes out the specified text to a dedicated scripting log file.
  * @param LogText the text to print

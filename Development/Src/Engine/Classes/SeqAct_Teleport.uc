@@ -5,13 +5,18 @@ class SeqAct_Teleport extends SequenceAction;
 
 /** If true, actor rotation will be aligned with destination actor */
 var() bool bUpdateRotation;
-/** If actor is more than this far away, it will be teleported. Ignored if < 0 */
-var() float TeleportDistance;
-/** If actor is NOT in one of these volumes, it will be teleported */
-var() array<Volume> TeleportVolumes;
-
-/** If TRUE, check to see if this actor overlaps any other colliding actors and don't teleport there if a better option exists */
-var() bool bCheckOverlap;
+// BM
+var() bool bDontResetCamera;
+var() bool bDontResetState;
+var() bool bSnapPlayerAnim;
+var() bool bStopAllMovement;
+var() bool bSpawnBatmobile;
+var() bool bForceResetBatmobileRigidBody;
+var() bool bForcePawnIntoCrouch;
+var() bool ForceAddStreamingLevelOffset;
+var() bool UseDestinationCharacterOrVehicleBottom;
+/** Rotation added on top of the destination's rotation */
+var() Rotator RotationOffset;
 
 /** @return Whether the given Actor should be teleported */
 final static function bool ShouldTeleport(Actor TestActor, vector TeleportLocation, optional float TeleportDist, optional array<Volume> Volumes )
@@ -41,8 +46,5 @@ defaultproperties
 	ObjName="Teleport"
 	ObjCategory="Actor"
 	VariableLinks(1)=(ExpectedType=class'SeqVar_Object',LinkDesc="Destination")
-	VariableLinks(2)=(ExpectedType=class'SeqVar_Object',LinkDesc="Teleport Volumes",PropertyName=TeleportVolumes,bHidden=TRUE)
 	bUpdateRotation=TRUE
-
-	TeleportDistance=-1.f
 }

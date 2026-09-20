@@ -9,20 +9,33 @@ var() bool		bDetach;
 /** Should hard attach to the actor */
 var() bool		bHardAttach;
 
-/** Bone Name to use for attachment */
-var() Name		BoneName;
-
 /** true if attachment should be set relatively to the target, using an offset */
 var() bool		bUseRelativeOffset;
-
-/** offset to use when attaching */
-var() vector	RelativeOffset;
 
 /** Use relative rotation offset */
 var() bool		bUseRelativeRotation;
 
+// BM
+var() bool		bIgnoreBaseRotation;
+var() bool		bUseTickGroup;
+var() bool		bDropOnCombatSp;
+var() bool		bAttachToWeapon;
+var() bool		bAttachToLeftProp;
+var() bool		bAttachToRightProp;
+var() bool		bAttemptToInheritLightEnvironment;
+
+/** Bone Name to use for attachment */
+var() Name		BoneName;
+
+/** offset to use when attaching */
+var() vector	RelativeOffset;
+
 /** relative rotation */
 var()	Rotator	RelativeRotation;
+
+// BM
+/** Tick group forced on the attachment when bUseTickGroup is set */
+var() ETickingGroup	TickGroup;
 
 /**
  * Return the version number for this class.  Child classes should increment this method by calling Super then adding

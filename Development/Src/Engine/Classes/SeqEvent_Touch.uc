@@ -22,6 +22,19 @@ protected:
 	virtual void DoUnTouchActivation(AActor *InOriginator, AActor *InInstigator, INT TouchIdx);
 };
 
+// BM
+/** Which of Batman and the Batmobile this touch event responds to */
+enum RTriggerVolumeType
+{
+	TVT_BatmanOrBatmanInBatmobile,
+	TVT_BatmanOnly,
+	TVT_BatmobileDrivenOrRemote,
+	TVT_BatmanInBatmobileOnly,
+	TVT_RemoteBatmobileOnly,
+	TVT_BatmanOrRemoteBatmobile,
+	TVT_TouchAnything,
+};
+
 //==========================
 // Base variables
 
@@ -45,6 +58,9 @@ var() bool bAllowDeadPawns;
 
 /** List of all actors that have activated this touch event, so that untouch may be properly fired. */
 var array<Actor> TouchedList;
+
+// BM
+var() RTriggerVolumeType TriggerType;
 
 native noexport final function bool CheckTouchActivate(Actor InOriginator, Actor InInstigator, optional bool bTest);
 native noexport final function bool CheckUnTouchActivate(Actor InOriginator, Actor InInstigator, optional bool bTest);

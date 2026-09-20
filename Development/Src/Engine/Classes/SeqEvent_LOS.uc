@@ -15,6 +15,11 @@ var() float TriggerDistance;
 /** Force a clear line of sight to the trigger? */
 var() bool bCheckForObstructions;
 
+// BM
+var() bool bRequiresDetectiveMode;
+// BM
+var() bool bRequiresZoom;
+
 static event int GetObjClassVersion()
 {
 	return Super.GetObjClassVersion() + 1;

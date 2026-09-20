@@ -11,8 +11,18 @@ var() editinline array<ParticleSystemComponent.ParticleSysParam>	InstanceParamet
 /** Should ScalarValue override any entries to InstanceParameters? */
 var() bool bOverrideScalar;
 
+// BM
+var() bool bOverrideVector;
+// BM
+var() bool bOverrideActor;
+
 /** Override scalar value */
 var() float ScalarValue;
+
+// BM
+var() vector VectorValue;
+// BM
+var() Actor ActorValue;
 
 defaultproperties
 {

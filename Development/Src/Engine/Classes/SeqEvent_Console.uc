@@ -11,7 +11,7 @@ class SeqEvent_Console extends SequenceEvent
 var() Name ConsoleEventName<autocomment=true>;
 
 /** Description to display when listing summary of all console events */
-var() string EventDesc;
+var() notforconsole string EventDesc;
 
 cpptext
 {

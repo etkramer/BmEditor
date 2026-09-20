@@ -22,6 +22,10 @@ var array<Actor> LatentActors;
 /** Indicates whether or not this latent action has been aborted */
 var bool bAborted;
 
+// BM
+/** Time this latent action was last activated */
+var float LatentActivationTime;
+
 /**
  * Allows an actor to abort this current latent action, forcing
  * the Aborted output link to be activated instead of the default

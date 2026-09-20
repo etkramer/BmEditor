@@ -89,14 +89,8 @@ var() float				ReTriggerDelay;
 /** Is this event currently enabled? */
 var() bool				bEnabled;
 
-/** Used by event managers (such as DialogueManager) to help filter out events that occur at same time */
-var() Byte				Priority;
-
 /** Require this event to be activated by a player? */
 var() bool 				bPlayerOnly;
-
-/** Editor only, max width of the title bar? */
-var	  int				MaxWidth;
 
 /** Has this event been successfully register? */
 var transient bool 		bRegistered;
@@ -107,6 +101,9 @@ var transient bool 		bRegistered;
  * bStatic or bNoDelete set; otherwise the reference will be NULL on the client
  */
 var() const bool bClientSideOnly;
+
+/** Editor only, max width of the title bar? */
+var	  editoronly int		MaxWidth;
 
 /**
  * Called when the sequence that contains this event is initialized (@see USequence::InitializeSequence).  For events

@@ -22,6 +22,14 @@ var() array<LevelStreamingNameCombo>	Levels;
 /** Should any levels not contained in Levels be unloaded? */
 var() bool bUnloadAllOtherLevels;
 
+// BM
+/** Act on every registered streaming level rather than just the ones in Levels */
+var() bool bApplyToAllAvailableLevels;
+
+// BM
+/** Set once this action has cleared bShouldBlockOnLoad on the levels it touched */
+var bool bRemovedBlockOnLoad;
+
 var transient bool bStatusIsOk;
 
 cpptext

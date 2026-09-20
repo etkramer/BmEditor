@@ -150,6 +150,18 @@ private:
 	void GetLinkedObjectsInternal(TArray<USequenceObject*>& out_Objects, UClass* ObjectType, UBOOL bRecurse);
 };
 
+// BM
+/** Set while this op is activated, for the Kismet debugger */
+var transient duplicatetransient noimport nontransactional editoronly bool bIsActivated;
+
+// BM
+/** TRUE if the Kismet debugger is currently stopped on this op */
+var transient duplicatetransient noimport nontransactional editoronly bool bIsCurrentDebuggerOp;
+
+// BM
+/** Keep output links whose description no longer matches a class output */
+var editoronly bool bKeepRenamedOutputLinks;
+
 /** Is this operation currently active? */
 var bool bActive;
 
@@ -185,6 +197,26 @@ var transient editoronly bool bPendingInputConnectorRecalc;
 
 /** True if there is a pending output connector position recalculation (I.E when a connector has just moved, or a connector as added or deleted */
 var transient editoronly bool bPendingOutputConnectorRecalc;
+
+// BM
+/** Kismet debugger breakpoints */
+var editoronly bool bIsBreakpointSet;
+var transient duplicatetransient noimport nontransactional editoronly bool bIsHiddenBreakpointSet;
+
+// BM
+/** Time this op was last activated in PIE, for connector highlighting */
+var transient editoronly float PIEActivationTime;
+
+// BM
+/** Op that last applied impulse to this one */
+var transient editoronly SequenceOp ActivatorSeqOp;
+
+// BM
+var transient editoronly int LastActivatedInputLink;
+var transient editoronly int LastActivatedOutputLink;
+
+// BM
+var transient int FrameTag;
 
 /**
  * Represents an input link for a SequenceOp, that is
@@ -342,6 +374,13 @@ struct native SeqOpOutputLink
 	/** The delta position that is applied to the connector in the event that it has moved */
 	var editoronly int			OverrideDelta;
 
+	// BM
+	/** Time this link was last activated in PIE */
+	var transient editoronly float	PIEActivationTime;
+
+	// BM
+	var transient noimport nontransactional editoronly bool	bIsActivated;
+
 structcpptext
 {
      /** Constructors */
@@ -413,6 +452,10 @@ struct native SeqVarLink
 	/** Name of the linked external variable that creates this link, for sub-Sequences */
 	var Name	LinkVar;
 
+	// BM
+	/** Name of the struct property that owns PropertyName, when the link targets a struct member */
+	var Name	StructPropertyName;
+
 	/** Name of the property this variable is associated with */
 	var Name	PropertyName;
 
@@ -427,6 +470,10 @@ struct native SeqVarLink
 
 	/** Cached property ref */
 	var const	transient	Property	CachedProperty;
+
+	// BM
+	/** Byte offset of CachedProperty within the op, including any owning struct */
+	var const	transient	int			CachedPropertyOffset;
 
 	/** Is this variable written to by this op? */
 	var bool	bWriteable;
