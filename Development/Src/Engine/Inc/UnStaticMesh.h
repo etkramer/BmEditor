@@ -1636,6 +1636,10 @@ struct FStaticMeshComponentLODInfo
 	friend FArchive& operator<<(FArchive& Ar,FStaticMeshComponentLODInfo& I)
 	{
 #if BATMAN
+		if( Ar.LicenseeVer() < VER_REMOVED_SMC_LODINFO_LIGHTMAPS )
+#endif
+		{
+#if BATMAN
 		if( Ar.IsLoading() && Ar.LicenseeVer() < 82 )
 		{
 			INT LegacyCount = 0;
@@ -1668,6 +1672,7 @@ struct FStaticMeshComponentLODInfo
 			Ar << I.ShadowVertexBuffers;
 		}
 		Ar << I.LightMap;
+		}
 		if( Ar.Ver() >= VER_MESH_PAINT_SYSTEM_ENUM )
 		{
 			if( Ar.Ver() >= VER_OVERWRITE_VERTEX_COLORS_MEM_OPTIMIZED )
@@ -1733,14 +1738,23 @@ class UStaticMeshComponent : public UMeshComponent
 public:
 	UStaticMeshComponent();
 
+	// BM
+	BYTE ForcedLodModel;
+
 	UStaticMesh* StaticMesh;
 	FColor WireframeColor;
 
 	/** Light map resolution used if bOverrideLightMapRes is TRUE */
 	INT OverriddenLightMapRes;
 
+	// BM: materials the lighting bake used, kept so a rebake can restore them
+	TArrayNoInit<UMaterialInterface*> LODBakeMaterials;
+
 	/** Whether to use per-vertex Rock atmospheric fog */
 	BITFIELD bPerVertexRockAtmosFog:1;
+
+	// BM
+	BITFIELD bIsEditorPreviewMesh:1;
 
 	/**
 	 *	Ignore this instance of this static mesh when calculating streaming information.

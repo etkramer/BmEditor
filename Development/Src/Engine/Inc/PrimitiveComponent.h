@@ -1399,6 +1399,14 @@ public:
 
 	TArrayNoInit<UMaterialInterface*>	Materials;
 
+	// BM
+	TArrayNoInit<UMaterialInterface*>	XRayMaterials;
+	TArrayNoInit<UMaterialInterface*>	ScanMaterials;
+	TArrayNoInit<UMaterialInterface*>	ThermalMaterials;
+	TArrayNoInit<UMaterialInterface*>	BatmobileViewMaterials;
+	TArrayNoInit<UMaterialInterface*>	DLCExtraViewMaterials;
+	BITFIELD							bAllowMaterialSwap:1;
+
 	/**
 	 * Called before destroying the object.  This is called immediately upon deciding to destroy the object, to allow the object to begin an
 	 * asynchronous cleanup process.

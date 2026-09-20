@@ -395,8 +395,6 @@ class USkeletalMeshComponent : public UMeshComponent
 	DECLARE_CLASS_NOEXPORT(USkeletalMeshComponent,UMeshComponent,0,Engine)
 
 	USkeletalMesh*						SkeletalMesh;
-	TArrayNoInit<class UMaterialInterface*> XRayMaterials;
-	TArrayNoInit<class UMaterialInterface*> ThermalMaterials;
 
 	/** If this component is attached to another SkeletalMeshComponent, this is the one it's attached to. */
 	USkeletalMeshComponent*				AttachedToSkelComponent;

@@ -4279,10 +4279,14 @@ void USkeletalMeshComponent::Serialize(FArchive& Ar)
 	Super::Serialize(Ar);
 
 #if BATMAN
-	if (Ar.LicenseeVer() >= VER_BATMAN2)
+	if (Ar.LicenseeVer() >= VER_SKELETALMESHCOMPONENT_VIEW_MATERIALS)
 	{
 		Ar << XRayMaterials;
 		Ar << ThermalMaterials;
+	}
+	if (Ar.LicenseeVer() >= VER_MESHCOMPONENT_BATMOBILE_VIEW_MATERIALS)
+	{
+		Ar << BatmobileViewMaterials;
 	}
 #endif
 		 	

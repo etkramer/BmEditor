@@ -729,17 +729,32 @@ enum ELicenseeVersion
 	// - Summary stores the index of the export the loader precaches first
 	VER_SUMMARY_PRECACHE_EXPORT = 87,
 
+	// - USkeletalMeshComponent serializes XRayMaterials and ThermalMaterials
+	VER_SKELETALMESHCOMPONENT_VIEW_MATERIALS = 95,
+
 	// - BM2 release
 	VER_BATMAN2 = 101,
+
+	// - UStaticMeshComponent serializes XRayMaterials and ThermalMaterials
+	VER_STATICMESHCOMPONENT_VIEW_MATERIALS = 102,
 
 	// - Summary stores a table of string triples
 	VER_SUMMARY_STRING_TABLE = 110,
 
+	// - UMeshComponent gained BatmobileViewMaterials
+	VER_MESHCOMPONENT_BATMOBILE_VIEW_MATERIALS = 138,
+
 	// - Summary stores the file offset of the precached export
 	VER_SUMMARY_PRECACHE_OFFSET = 175,
 
+	// - UStaticMeshComponent gained LODBakeMaterials
+	VER_STATICMESHCOMPONENT_LOD_BAKE_MATERIALS = 199,
+
 	// - NetIndex dropped from the object header
 	VER_REMOVED_NET_INDEX = 203,
+
+	// - FStaticMeshComponentLODInfo dropped its shadow maps and light map
+	VER_REMOVED_SMC_LODINFO_LIGHTMAPS = 207,
 
 	// - BM4 release
 	VER_BATMAN4 = 227

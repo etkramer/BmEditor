@@ -9,6 +9,14 @@ class MeshComponent extends PrimitiveComponent
 /** Per-Component material overrides.  These must NOT be set directly or a race condition can occur between GC and the rendering thread. */
 var(Rendering) const array<MaterialInterface>	Materials;
 
+// BM: per-view material overrides, swapped in for detective/thermal/batmobile vision.
+var(Rendering) const array<MaterialInterface>	XRayMaterials;
+var(Rendering) const array<MaterialInterface>	ScanMaterials;
+var(Rendering) const array<MaterialInterface>	ThermalMaterials;
+var(Rendering) const array<MaterialInterface>	BatmobileViewMaterials;
+var(Rendering) const array<MaterialInterface>	DLCExtraViewMaterials;
+var(Rendering) bool								bAllowMaterialSwap;
+
 /**
  * @param ElementIndex - The element to access the material of.
  * @return the material used by the indexed element of this mesh.
@@ -78,4 +86,5 @@ defaultproperties
 	bUseAsOccluder=TRUE
 	bCullModulatedShadowOnBackfaces=TRUE
 	bCullModulatedShadowOnEmissive=TRUE
+	bAllowMaterialSwap=TRUE
 }

@@ -9,14 +9,23 @@ class StaticMeshComponent extends MeshComponent
 	editinlinenew;
 
 
+// BM
+var byte ForcedLodModel;
+
 var() const StaticMesh StaticMesh;
 var() Color WireframeColor;
 
 /** Light map resolution used if bOverrideLightMapRes is TRUE */
 var() const int	 OverriddenLightMapRes;
 
+// BM: materials the lighting bake used, kept so a rebake can restore them
+var(Rendering) editoronly const array<editoronly MaterialInterface> LODBakeMaterials;
+
 /** Whether to use per-vertex Rock atmospheric fog */
 var() bool bPerVertexRockAtmosFog;
+
+// BM
+var bool bIsEditorPreviewMesh;
 
 /**
  *	Ignore this instance of this static mesh when calculating streaming information.

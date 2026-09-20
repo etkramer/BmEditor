@@ -13,9 +13,6 @@ class SkeletalMeshComponent extends MeshComponent
 /** The skeletal mesh used by this component. */
 var()	SkeletalMesh			SkeletalMesh;
 
-var(Rendering) const array<MaterialInterface> XRayMaterials;
-var(Rendering) const array<MaterialInterface> ThermalMaterials;
-
 /** The SkeletalMeshComponent that this one is possibly attached to. */
 var		SkeletalMeshComponent	AttachedToSkelComponent;
 

@@ -4253,7 +4253,21 @@ void UStaticMeshComponent::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
 #if BATMAN
-	if( Ar.IsLoading() && Ar.LicenseeVer() < 82 )
+	if( Ar.LicenseeVer() >= VER_STATICMESHCOMPONENT_VIEW_MATERIALS )
+	{
+		Ar << XRayMaterials;
+		Ar << ThermalMaterials;
+	}
+	if( Ar.LicenseeVer() >= VER_MESHCOMPONENT_BATMOBILE_VIEW_MATERIALS )
+	{
+		Ar << BatmobileViewMaterials;
+	}
+	if( Ar.LicenseeVer() >= VER_STATICMESHCOMPONENT_LOD_BAKE_MATERIALS )
+	{
+		Ar << LODBakeMaterials;
+	}
+
+	if( Ar.IsLoading() && (Ar.LicenseeVer() < 82 || (Ar.LicenseeVer() >= 114 && Ar.LicenseeVer() < 171)) )
 	{
 		INT LegacyLODCount = 0;
 		Ar << LegacyLODCount;
@@ -4283,20 +4297,6 @@ void UStaticMeshComponent::Serialize(FArchive& Ar)
 	}
 
 	// Serialize out the vert. position version number
-#if BATMAN
-	if( Ar.LicenseeVer() >= VER_BATMAN2 )
-	{
-		if ( Ar.Ver() >= VER_PRESERVE_SMC_VERT_COLORS && !Ar.IsTransacting() )
-		{
-			Ar << VertexPositionVersionNumber;
-		}
-		else
-		{
-			VertexPositionVersionNumber = 0;
-		}
-	}
-	else
-#endif
 	if( Ar.Ver() < VER_DEPRECATE_DOUBLY_SERIALISED_SMC )
 	{
 		if ( Ar.Ver() >= VER_PRESERVE_SMC_VERT_COLORS  )
