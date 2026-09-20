@@ -82,6 +82,17 @@ Beware that a clean package load is weak evidence about layouts. Only offset-onl
 
 An offset-only tag whose offset hits no property of ours, or a property of a different type, is reported as `[LAYOUT]` and the value is read into a scratch buffer and dropped. That is deliberate: writing retail's value at retail's offset on a class whose layout has drifted corrupts the object. The warnings are the work list.
 
+## Materials
+
+**Materials cannot be compiled and we are not going to try.** With the exception of parameters, all material expressions are stripped from cooked content. Rendering is meant to work the way BM2 did it: load retail's shader caches and render from those. That is a much larger task than content loading and is deliberately deferred - do not start it, and do not attempt to reconstruct or recompile expression graphs.
+
+What this means for layout work:
+- `UMaterial`'s own class layout still matters, because material assets themselves do appear in cooked content.
+- The *parameter* expression classes still matter (`MaterialExpressionScalarParameter`, `VectorParameter`, the `TextureSampleParameter` family and friends), since parameters survive cooking.
+- The rest of the `MaterialExpression` family does NOT matter for content loading. Its `[LAYOUT]` warnings in `_Engine.upk` come from class default objects, not from anything a content package contains.
+
+More generally: do not rank layout work by `[LAYOUT]` warning counts from `_Engine.upk`. That counts CDOs, and a class with many CDO warnings may never appear in real content. Rank by what actually shows up in the content packages we need to load.
+
 ## Retail Script Packages
 
 Classes the editor lacks are NOT meant to be hand-ported out of the decompile. The retail script packages supply them: copy the game's `Engine.upk` and `BmGame.upk` to `_Engine.upk` and `_BmGame.upk`, load them as startup packages, and their contents merge into the real `Engine`/`BmGame` packages alongside the editor's own compiled `Engine.u`/`BmGame.u`.
