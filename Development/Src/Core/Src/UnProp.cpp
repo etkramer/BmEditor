@@ -4226,6 +4226,8 @@ void UStructProperty::Link( FArchive& Ar, UProperty* Prev )
 		warnf(NAME_Warning, TEXT("UStructProperty::Link: NULL Struct for %s"), *GetFullName());
 		ElementSize = 0;
 		Offset = (GetOuter()->GetClass()->ClassCastFlags & CASTCLASS_UStruct) ? ((UStruct*)GetOuter())->GetPropertiesSize() : 0;
+		// Keep it off ConstructorLink - construction and destruction both walk Struct's own properties.
+		PropertyFlags &= ~CPF_NeedCtorLink;
 		return;
 	}
 #endif

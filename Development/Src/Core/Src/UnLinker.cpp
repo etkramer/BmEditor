@@ -3954,6 +3954,15 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 		if ( !LoadClass->HasAnyClassFlags(CLASS_Intrinsic) )
 		{
 			Preload( LoadClass );
+#if BATMAN
+			// BM: Preload refuses a class whose SuperStruct never resolved, so it has neither properties
+			// nor a super to take a template from - drop the export rather than fault on GetSuperClass().
+			if( LoadClass != UObject::StaticClass() && LoadClass->GetSuperClass() == NULL && LoadClass->HasAnyFlags(RF_NeedLoad) )
+			{
+				warnf( NAME_Error, TEXT("Skipping export %s: class %s was never loaded (missing SuperStruct)"), *GetExportFullName(Index), *LoadClass->GetPathName() );
+				return NULL;
+			}
+#endif
 			if ( LoadClass->HasAnyClassFlags(CLASS_Deprecated) && GIsEditor && !GIsUCC && !GIsGame )
 			{
 				if ( (Export.ObjectFlags&RF_ClassDefaultObject) == 0 )
@@ -4150,9 +4159,15 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 			// of this class unless it has a template to initialize itself against
 
 			//@script patcher (only need to call GetSuperClass()->GetDefaultObject() when running script patcher
-			Template = ((Export.ObjectFlags&RF_ClassDefaultObject) == 0 || LoadClass->GetFName() == NAME_Object)
-				? LoadClass->GetDefaultObject(TRUE)
-				: LoadClass->GetSuperClass()->GetDefaultObject(TRUE);
+			UClass* TemplateClass = ((Export.ObjectFlags&RF_ClassDefaultObject) == 0 || LoadClass->GetFName() == NAME_Object)
+				? LoadClass
+				: LoadClass->GetSuperClass();
+#if BATMAN
+			// BM: a class whose SuperStruct never resolved has no super to fall back on.
+			Template = TemplateClass ? TemplateClass->GetDefaultObject(TRUE) : NULL;
+#else
+			Template = TemplateClass->GetDefaultObject(TRUE);
+#endif
 		}
 
 #if BATMAN

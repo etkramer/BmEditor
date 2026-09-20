@@ -2701,10 +2701,12 @@ void UClass::Serialize( FArchive& Ar )
 	if( Ar.IsLoading() )
 	{
 #if BATMAN
-		if (Ar.LicenseeVer() >= VER_BATMAN2 && (DWORD)Align(GetPropertiesSize(), GetMinAlignment()) < sizeof(UObject))
+		// BM: a super we skipped for a missing SuperStruct leaves this class with no usable layout either.
+		const UBOOL bSuperUnloaded = GetSuperClass() != NULL && GetSuperClass()->HasAnyFlags(RF_NeedLoad);
+		if (Ar.LicenseeVer() >= VER_BATMAN2 && (bSuperUnloaded || (DWORD)Align(GetPropertiesSize(), GetMinAlignment()) < sizeof(UObject)))
 		{
-			warnf(NAME_Warning, TEXT("UClass::Serialize %s: PropertiesSize %i < sizeof(UObject) %i, skipping CDO"),
-				*GetFullName(), GetPropertiesSize(), (INT)sizeof(UObject));
+			warnf(NAME_Warning, TEXT("UClass::Serialize %s: PropertiesSize %i (min %i), super %s, skipping CDO"),
+				*GetFullName(), GetPropertiesSize(), (INT)sizeof(UObject), bSuperUnloaded ? TEXT("never loaded") : TEXT("loaded"));
 			UObject* DummyCDO = NULL;
 			Ar << DummyCDO;
 		}
@@ -3071,7 +3073,12 @@ void UFunction::Serialize( FArchive& Ar )
 			else if ( (FunctionFlags&FUNC_HasDefaults) != 0 )
 			{
 				UStructProperty* StructProp = Cast<UStructProperty>(Property,CLASS_IsAUStructProperty);
+#if BATMAN
+				// BM: an unresolved struct import leaves Struct NULL.
+				if ( StructProp && StructProp->Struct && StructProp->Struct->GetDefaultsCount() )
+#else
 				if ( StructProp && StructProp->Struct->GetDefaultsCount() )
+#endif
 				{
 					FirstStructWithDefaults = StructProp;
 					break;

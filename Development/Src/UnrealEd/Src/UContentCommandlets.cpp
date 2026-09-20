@@ -8288,6 +8288,8 @@ static void DescribeLoadedObject( UObject* Object )
 	}
 }
 
+void LoadStartupPackages();
+
 // BM: commandlets only load startup packages under -user, and without the script packages every class is
 // still the native stub the binary registered - no UProperties, so offset-addressed tags have nothing to land on.
 static void CreateBareEditorEngine()
@@ -8297,8 +8299,19 @@ static void CreateBareEditorEngine()
 	GIsEditor = GIsClient = GIsServer = TRUE;
 	GIsGame = FALSE;
 
+	// A map's embedded BmScript classes derive from BmGame classes that only retail _BmGame.upk supplies,
+	// so map loads need the [Engine.StartupPackages] merge, not just our own .u files.
+	const UBOOL bLoadStartupPackages = ParseParam( appCmdLine(), TEXT("startup") );
+
 	GIsUCC = FALSE;
-	LoadAllNativeScriptPackages( FALSE );
+	if( bLoadStartupPackages )
+	{
+		LoadStartupPackages();
+	}
+	else
+	{
+		LoadAllNativeScriptPackages( FALSE );
+	}
 	GIsUCC = TRUE;
 
 	// Skip UEditorEngine::InitEditor - deserializing content doesn't need the editor's own content set.
