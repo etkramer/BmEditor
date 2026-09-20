@@ -7,10 +7,18 @@
 
 class AnimSequence extends Object
 	native(Anim)
-	config(Engine)
 	dependson(RAnimZip_Settings)
 	hidecategories(Object)
 	autocollapsecategories(Info);
+
+// BM
+enum EAnimAudioStatus
+{
+	ASAS_InProgress,
+	ASAS_Completed,
+	ASAS_UnknownReimported,
+	ASAS_NotRequired,
+};
 
 enum AnimationCompressionFormat
 {
@@ -25,19 +33,17 @@ enum AnimationCompressionFormat
 	ACF_Fixed48Max,
 };
 
-// BM
-enum EAnimAudioStatus
-{
-	ASAS_InProgress,
-	ASAS_Completed,
-	ASAS_UnknownReimported,
-	ASAS_NotRequired,
-};
-
 enum EForwardYawDirection
 {
 	FYD_Clockwise,
 	FYD_AntiClockwise,
+};
+
+// BM
+enum EAnimCopyTime
+{
+	ANIMCOPYTIME_Start,
+	ANIMCOPYTIME_End,
 };
 
 enum EAnimPhysics
@@ -47,6 +53,8 @@ enum EAnimPhysics
 	APHYS_Floating,
 	APHYS_Falling,
 	APHYS_Ceiling,
+	APHYS_Driving,
+	APHYS_Shimmying,
 };
 
 enum ERootMotionRotationOption
@@ -61,6 +69,14 @@ enum ERootMotionTranslationOption
 	RMTO_On,
 	RMTO_NoExtraction,
 	RMTO_Off,
+};
+
+// BM
+enum EAnimBlockActors
+{
+	ANIMBLOCKACTORS_Automatic,
+	ANIMBLOCKACTORS_Yes,
+	ANIMBLOCKACTORS_No,
 };
 
 enum AnimationKeyFormat
@@ -86,6 +102,7 @@ struct RawAnimSequenceTrack
 	var array<vector>	PosKeys;
 	var array<quat>		RotKeys;
 	var array<float>	ScaleKeys;
+	var array<vector>	PosMinusScaleKeys;
 };
 
 struct native TimeModifier
@@ -132,40 +149,79 @@ struct native CompressedTrack
 	var float			Ranges[3];
 };
 
+struct native AnimLink
+{
+	var()	AnimSet		AnimSet;
+	var()	name		AnimName;
+	var		int			EditVersion;
+};
+
+struct native AnimReferenceCopy
+{
+	var()	AnimLink		Anim;
+	var()	EAnimCopyTime	Time;
+};
+
 struct native AnimReferenceOptions
 {
-	var() bool AutomaticFloorHeight;
-	var() EForwardYawDirection ForwardYawDirection;
-	var() float ForwardYaw;
-	var() float FloorHeight;
+	var()	rotator					ForwardRotation;
+	var		EForwardYawDirection	ForwardYawDirection;
+	var		float					ForwardYaw;
+	var()	float					FloorHeight;
+	var()	float					AutomaticFloorHeightOffset;
+	var()	bool					AutomaticFloorHeight;
+	var()	bool					AutomaticForwardRotation;
+	var()	bool					UseRootMotionRollPitch;
+	var		bool					CopyFromAnim_Enabled;
+	var()	AnimReferenceCopy		CopyFromAnim;
+};
+
+struct native AnimReferencePeriodsAdvanced
+{
+	var()	float	MinimumFloorHeight;
+	var()	bool	EnforceMinimumFloorHeight;
+	var()	bool	SimpleForwardRotation;
+	var()	bool	SimpleFloorHeight;
+	var()	bool	SimpleTranslationXY;
+	var()	bool	InheritRootMotionFromVelocity;
+	var()	bool	DisableProportionalMotionDuringBlendOut;
+	var		bool	SnapAxisToReferencePoint_Enabled;
+	var()	bool	ApplyMotionExtractionOffsetToLinearMotion;
+	// BM: AK types this as Object.ESimpleAxis, which this branch has no enum for
+	var()	byte	SnapAxisToReferencePoint;
+	var()	bool	AllowMultipleCollisionOptionNotifies;
 };
 
 struct native AnimReferencePeriods
 {
-	var() AnimReferenceOptions Start;
-	var() AnimReferenceOptions End;
-	var() bool EnforceMinimumFloorHeight;
-	var() float MinimumFloorHeight;
+	var()	AnimReferenceOptions			Start;
+	var()	AnimReferenceOptions			End;
+	var()	AnimReferencePeriodsAdvanced	Advanced;
+	var		bool							EnforceMinimumFloorHeight;
+	var		float							MinimumFloorHeight;
+	var		bool							SimpleForwardRotation;
+	var		bool							SimpleFloorHeight;
+	var		bool							SimpleTranslationXY;
+	var		bool							InheritRootMotionFromVelocity;
+	var		bool							DisableProportionalMotionDuringBlendOut;
 };
 
 struct native AnimCollisionOptions
 {
-	var() bool BlockActors;
-	var() bool CollideWorld;
-	var() bool DisableLegIK;
-	var() bool AllowIKWhenNotPHYSWalking;
-	var() bool PreviousVelocityOverridesAnimRootMotion;
-	var() EAnimPhysics Physics;
-	var() ERootMotionRotationOption RootMotionRotationOption;
-	var() ERootMotionTranslationOption RootMotionTranslationOption;
+	var()	EAnimPhysics					Physics;
+	var		EAnimBlockActors				BlockActors2;
+	var		ERootMotionRotationOption		RootMotionRotationOption;
+	var		ERootMotionTranslationOption	RootMotionTranslationOption;
+	var		bool							BlockActors;
+	var		bool							CollideWorld;
+	var()	bool							DisableLegIK;
+	var()	bool							AllowIKWhenNotPHYSWalking;
+	var()	bool							PreviousVelocityOverridesAnimRootMotion;
 
 	structdefaultproperties
 	{
-		BlockActors=true
-		CollideWorld=true
 		Physics=APHYS_Walking
-		RootMotionRotationOption=RMRO_On
-		RootMotionTranslationOption=RMTO_On
+		BlockActors2=ANIMBLOCKACTORS_Automatic
 	}
 };
 
@@ -175,83 +231,137 @@ struct native AnimCollisionPeriods
 	var() AnimCollisionOptions End;
 };
 
-struct native AnimTag
+struct native AnimCachedDialogue
 {
-	var string			Tag;
-	var array<string>	Contains;
+	// BM: AK types this as AkDialogueLine, which this branch has no class for
+	var()	Object	Line;
+	var()	float	Time;
+	var()	float	WavTime;
+	var()	float	Duration;
+	var()	bool	IsForOtherCharacter;
+	var()	bool	FromAutoTrigger;
+};
+
+struct native AutoTriggeredDialogueStruct
+{
+	// BM: AK types these as arrays of AkDialogueLine
+	var()	array<Object>	Lines;
+	var()	array<Object>	OtherCharacterLines;
+	var()	string			AnimTimecode;
+};
+
+struct native AnimLinearMotion
+{
+	var()	bool	Enabled;
+	var()	vector	TranslationOrigin;
+	var()	vector	TranslationSpan;
+	var()	quat	Rotation;
 };
 
 var		name									SequenceName;
 var()	editoronly array<editoronly AnimNotifyEvent>		Notifies;
-var()	vector									ReferencePoint;
-var()	float									ReferencePointYaw;
+var(ReferencePoint)	vector						ReferencePoint;
+var		float									ReferencePointYaw;
 // BM
-var()	rotator									ReferencePointRotation;
-var()	editoronly name							PreviewReferencePointMeshName;
+var(ReferencePoint)	rotator						ReferencePointRotation;
+var(ReferencePoint)	editoronly name				PreviewReferencePointMeshName;
 var(Audio) editoronly EAnimAudioStatus			AudioStatus;
 var(Combat) editoronly EAnimAudioStatus			CombatStatus;
 var const AnimationCompressionFormat			TranslationCompressionFormat;
 var const AnimationCompressionFormat			RotationCompressionFormat;
 var(Face) RSkeletalMeshComponent_Export.EFaceFXBaseExpression	FaceFXBaseExpression;
 // BM: AK types these three as RAutomaticTransitions enums, which this branch has no class for
-var(Info) byte									FootSyncOut;
-var(Info) byte									FootSyncOutSpeed;
-var(Info) byte									FootSyncOutDirection;
+var(Info) duplicatetransient byte				FootSyncOut;
+var(Info) duplicatetransient byte				FootSyncOutSpeed;
+var(Info) duplicatetransient byte				FootSyncOutDirection;
 var(Compression) RAnimZip_Settings.EAnimZipPreset	Compression_Preset;
 var const AnimationKeyFormat					KeyEncodingFormat;
-var(Info) editconst float						SequenceLength;
-var(Info) editconst int							NumFrames;
+var(Info) duplicatetransient float				SequenceLength;
+var(Info) duplicatetransient int				NumFrames;
 var()	float									RateScale;
-var()	bool									bUseSimpleForwardYaw;
-var()	bool									bUseSimpleFloorHeight;
-var()	bool									bUseSimpleRootMotionXY;
-var()	bool									bInheritRootMotionFromVelocity;
-var()	bool									DisableProportionalMotionDuringBlendOut;
-var()	bool									AllowCheekyBlendIn;
-var()	bool									AllowCheekyBlendOut;
-var(FaceFX) bool								EmbeddedFaceFXAnim_AllowAutomaticBlinks;
-var(Info) editconst bool						WeaponSwitchPointEnabled;
+var(FrameRate) duplicatetransient float			RawFramerate;
+var(FrameRate) float							OverrideFramerate;
+var		bool									OverrideFramerate_Enabled;
+var		bool									AllowCheekyBlendIn;
+var		bool									AllowCheekyBlendOut;
+var()	bool									AllowAdditiveTransitionBlendIn;
+var()	bool									AllowAdditiveTransitionBlendOut;
+var		bool									bUseSimpleForwardYaw;
+var		bool									bUseSimpleFloorHeight;
+var		bool									bUseSimpleRootMotionXY;
+var		bool									bInheritRootMotionFromVelocity;
+var		bool									DisableProportionalMotionDuringBlendOut;
+var(Face) bool									EmbeddedFaceFXAnim_AllowAutomaticBlinks;
+var		bool									FaceFXBaseExpression_Enabled;
+var(Face) bool									FaceOverlayHoldsLastFrame;
+var(IdleMatch) bool								IdleMatchEnabled;
+var(Face) bool									DisableAutomaticBlinks;
+var(Info) duplicatetransient bool				WeaponSwitchPointEnabled;
 var(Compression) bool							Compression_UseLinearInterpolation;
-var(Compression) bool							Compression_RelativeToReferencePose;
-var(Compression) editconst bool					Compression_UsingTemporaryCompression;
-var() editoronly const bool						bDoNotOverrideCompression;
+var(Compression) bool							Compression_ModelspaceGundummy;
+var		bool									AnimZip_RelativeToReferencePose;
+var		bool									AnimZip_IsPlaceholder;
+var		transient bool							FootCyclesValid;
+var		editoronly const bool					bDoNotOverrideCompression;
 var const transient bool						bHasBeenUsed;
+var		bool									bWasCompressedWithoutTranslations;
 var const transient bool						MetricWasRecorded;
-var	deprecated private const array<RawAnimSequenceTrack>	RawAnimData;
+var	deprecated nontransactional private const array<RawAnimSequenceTrack>	RawAnimData;
 var native private const array<RawAnimSequenceTrack>		RawAnimationData;
+var transient array<RawAnimSequenceTrack>		RawAnimationDataAfterFixup;
+var(Info) duplicatetransient array<float>		CameraFOV;
 var const array<CurveTrack>						CurveData;
-var(Info) editoronly editconst AnimationCompressionAlgorithm	CompressionScheme;
+var(Info) editoronly duplicatetransient AnimationCompressionAlgorithm	CompressionScheme;
+var(Face) duplicatetransient FaceFXAnimSet		EmbeddedFaceFXAnim;
+var(Face) AnimSet								FaceOverlayAnimSet;
+var(IdleMatch) AnimSet							IdleMatchAnimSet;
+// BM: AK types this as RAimingConfig, which this branch has no class for
+var(Aiming) Object								AimingConfig;
+var(Compression) editoronly export RAnimZip_Settings	Compression_CustomSettings;
 var			array<int>							CompressedTrackOffsets;
 var native	array<byte>							CompressedByteStream;
-var(Info) editoronly string						MaxFilePath;
-var(Info) editoronly string						MaxAuthor;
-var()	AnimReferencePeriods					ReferenceOptions;
-var()	float									ProportionalMotionDistanceCap;
-var()	AnimCollisionPeriods					CollisionOptions;
+var		editoronly string						MaxFilePath;
+var		editoronly string						MaxAuthor;
+var(Source) editoronly string					RootSourceFilePath;
+var(Source) editoronly string					SourceFilePath;
+var(Source) editoronly duplicatetransient string	SourceApplication;
+var(Source) editoronly duplicatetransient string	SourceFileTimestamp;
+var(Source) nontransactional duplicatetransient string	SourceAuthor;
+var(Source) editoronly duplicatetransient string	SourceRootBoneName;
+var(Source) editoronly duplicatetransient string	SourceTake;
+var	deprecated AnimReferencePeriods				ReferenceOptions;
+var()	AnimReferencePeriods					MotionOptions;
+var	deprecated AnimCollisionPeriods				CollisionOptions;
+var()	AnimCollisionOptions					CollisionOptions2;
 var()	float									BlendInDuration;
 var()	float									BlendOutDuration;
-var(FaceFX) editconst FaceFXAnimSet				EmbeddedFaceFXAnim;
-var(Info) editconst float						BlendInPoint;
-var(Info) editconst float						BlendOutPoint;
-var(Info) editconst float						ClippedStart;
-var(Info) editconst float						ClippedLength;
-var(Info) editconst float						CanCancelBeforeHerePoint;
-var(Info) editconst float						CanCancelAfterHerePoint;
-var(Info) editconst float						CanCorrectAfterHerePoint;
-var(Info) editconst float						ClipRootMotionInPoint;
-var(Info) editconst float						ClipRootMotionOutPoint;
-var(Info) editconst float						CollisionOptionsOutPoint;
-var(Info) editconst float						WeaponSwitchPoint;
-var(Compression) editoronly export RAnimZip_Settings	Compression_CustomSettings;
+var(Face) name									FaceOverlayAnimName;
+var(IdleMatch) name								IdleMatchAnimName;
+var(Info) duplicatetransient array<duplicatetransient AnimCachedDialogue>	CachedDialogue;
+var(Info) editoronly array<editoronly string>	CachedDialogueWarnings;
+var(Info) editoronly array<editoronly string>	CachedDialogueErrors;
+var(Face) AutoTriggeredDialogueStruct			AutoTriggeredDialogue;
+var(Info) duplicatetransient float				BlendInPoint;
+var(Info) duplicatetransient float				BlendOutPoint;
+var(Info) duplicatetransient float				ClippedStart;
+var(Info) duplicatetransient float				ClippedLength;
+var(Info) duplicatetransient float				CanCancelBeforeHerePoint;
+var(Info) duplicatetransient float				CanCancelAfterHerePoint;
+var(Info) duplicatetransient float				CanCorrectAfterHerePoint;
+var(Info) duplicatetransient float				RootBoneTranslationOffsetInPoint;
+var(Info) duplicatetransient float				RootBoneTranslationOffsetOutPoint;
+var(Info) duplicatetransient float				WeaponSwitchPoint;
+var		editoronly array<editoronly string>		UpdateSequenceDependentVariableErrors;
 var native	array<byte>							AnimZip_Data;
-var(Info) editconst vector						AnimZip_LinearOrigin;
-var(Info) editconst vector						AnimZip_LinearSpan;
+var(Info) duplicatetransient AnimLinearMotion	AnimZip_LinearMotion;
+var		editoronly array<editoronly string>		AnimZip_Errors;
+var		transient array<float>					FootCycles;
 var private transient native pointer			TranslationCodec;
 var private transient native pointer			RotationCodec;
 var const int									EncodingPkgVersion;
-var editoronly const int						CompressCommandletVersion;
+var		editoronly const int					CompressCommandletVersion;
 var const transient float						UseScore;
-var config editoronly array<AnimTag>			AnimTags;
+var		int										EditVersion;
 
 cpptext
 {
@@ -435,9 +545,19 @@ cpptext
  */
 native function float GetNotifyTimeByClass( class<AnimNotify> NotifyClass, optional float PlayRate = 1.f, optional float StartPosition = -1.f, optional out AnimNotify out_Notify, optional out float out_Duration );
 
+// BM: every value here is read out of retail Engine.upk's Default__AnimSequence tag stream
 defaultproperties
 {
+	ReferencePointRotation=(Pitch=0,Yaw=16384,Roll=0)
 	RateScale=1.0
+	OverrideFramerate=29.97
 	AllowCheekyBlendIn=true
 	AllowCheekyBlendOut=true
+	AllowAdditiveTransitionBlendIn=true
+	AllowAdditiveTransitionBlendOut=true
+	FaceOverlayHoldsLastFrame=true
+	BlendInDuration=0.2
+	BlendOutDuration=0.2
+	BlendOutPoint=1.0
+	RootBoneTranslationOffsetOutPoint=1.0
 }

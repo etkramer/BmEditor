@@ -78,6 +78,17 @@ enum AnimationKeyFormat
     op(AKF_ConstantKeyLerp) \
     op(AKF_VariableKeyLerp) \
     op(AKF_PerTrackCompression) 
+enum EAnimBlockActors
+{
+    ANIMBLOCKACTORS_Automatic=0,
+    ANIMBLOCKACTORS_Yes     =1,
+    ANIMBLOCKACTORS_No      =2,
+    ANIMBLOCKACTORS_MAX     =3,
+};
+#define FOREACH_ENUM_EANIMBLOCKACTORS(op) \
+    op(ANIMBLOCKACTORS_Automatic) \
+    op(ANIMBLOCKACTORS_Yes) \
+    op(ANIMBLOCKACTORS_No) 
 enum ERootMotionTranslationOption
 {
     RMTO_On                 =0,
@@ -107,14 +118,27 @@ enum EAnimPhysics
     APHYS_Floating          =2,
     APHYS_Falling           =3,
     APHYS_Ceiling           =4,
-    APHYS_MAX               =5,
+    APHYS_Driving           =5,
+    APHYS_Shimmying         =6,
+    APHYS_MAX               =7,
 };
 #define FOREACH_ENUM_EANIMPHYSICS(op) \
     op(APHYS_Walking) \
     op(APHYS_Flying) \
     op(APHYS_Floating) \
     op(APHYS_Falling) \
-    op(APHYS_Ceiling) 
+    op(APHYS_Ceiling) \
+    op(APHYS_Driving) \
+    op(APHYS_Shimmying) 
+enum EAnimCopyTime
+{
+    ANIMCOPYTIME_Start      =0,
+    ANIMCOPYTIME_End        =1,
+    ANIMCOPYTIME_MAX        =2,
+};
+#define FOREACH_ENUM_EANIMCOPYTIME(op) \
+    op(ANIMCOPYTIME_Start) \
+    op(ANIMCOPYTIME_End) 
 enum EForwardYawDirection
 {
     FYD_Clockwise           =0,
@@ -124,19 +148,6 @@ enum EForwardYawDirection
 #define FOREACH_ENUM_EFORWARDYAWDIRECTION(op) \
     op(FYD_Clockwise) \
     op(FYD_AntiClockwise) 
-enum EAnimAudioStatus
-{
-    ASAS_InProgress         =0,
-    ASAS_Completed          =1,
-    ASAS_UnknownReimported  =2,
-    ASAS_NotRequired        =3,
-    ASAS_MAX                =4,
-};
-#define FOREACH_ENUM_EANIMAUDIOSTATUS(op) \
-    op(ASAS_InProgress) \
-    op(ASAS_Completed) \
-    op(ASAS_UnknownReimported) \
-    op(ASAS_NotRequired) 
 enum AnimationCompressionFormat
 {
     ACF_None                =0,
@@ -158,6 +169,19 @@ enum AnimationCompressionFormat
     op(ACF_Float32NoW) \
     op(ACF_Identity) \
     op(ACF_Fixed48Max) 
+enum EAnimAudioStatus
+{
+    ASAS_InProgress         =0,
+    ASAS_Completed          =1,
+    ASAS_UnknownReimported  =2,
+    ASAS_NotRequired        =3,
+    ASAS_MAX                =4,
+};
+#define FOREACH_ENUM_EANIMAUDIOSTATUS(op) \
+    op(ASAS_InProgress) \
+    op(ASAS_Completed) \
+    op(ASAS_UnknownReimported) \
+    op(ASAS_NotRequired) 
 enum ESliderType
 {
     ST_1D                   =0,
@@ -831,13 +855,47 @@ struct FCompressedTrack
     }
 };
 
+struct FAnimLink
+{
+    class UAnimSet* AnimSet;
+    FName AnimName;
+    INT EditVersion;
+
+    /** Constructors */
+    FAnimLink() {}
+    FAnimLink(EEventParm)
+    {
+        appMemzero(this, sizeof(FAnimLink));
+    }
+};
+
+struct FAnimReferenceCopy
+{
+    struct FAnimLink Anim;
+    BYTE Time;
+    SCRIPT_ALIGN;
+
+    /** Constructors */
+    FAnimReferenceCopy() {}
+    FAnimReferenceCopy(EEventParm)
+    {
+        appMemzero(this, sizeof(FAnimReferenceCopy));
+    }
+};
+
 struct FAnimReferenceOptions
 {
-    BITFIELD AutomaticFloorHeight:1;
-    SCRIPT_ALIGN;
+    FRotator ForwardRotation;
     BYTE ForwardYawDirection;
     FLOAT ForwardYaw;
     FLOAT FloorHeight;
+    FLOAT AutomaticFloorHeightOffset;
+    BITFIELD AutomaticFloorHeight:1;
+    BITFIELD AutomaticForwardRotation:1;
+    BITFIELD UseRootMotionRollPitch:1;
+    BITFIELD CopyFromAnim_Enabled:1;
+    SCRIPT_ALIGN;
+    struct FAnimReferenceCopy CopyFromAnim;
 
     /** Constructors */
     FAnimReferenceOptions() {}
@@ -847,12 +905,44 @@ struct FAnimReferenceOptions
     }
 };
 
+struct FAnimReferencePeriodsAdvanced
+{
+    FLOAT MinimumFloorHeight;
+    BITFIELD EnforceMinimumFloorHeight:1;
+    BITFIELD SimpleForwardRotation:1;
+    BITFIELD SimpleFloorHeight:1;
+    BITFIELD SimpleTranslationXY:1;
+    BITFIELD InheritRootMotionFromVelocity:1;
+    BITFIELD DisableProportionalMotionDuringBlendOut:1;
+    BITFIELD SnapAxisToReferencePoint_Enabled:1;
+    BITFIELD ApplyMotionExtractionOffsetToLinearMotion:1;
+    SCRIPT_ALIGN;
+    BYTE SnapAxisToReferencePoint;
+    SCRIPT_ALIGN;
+    BITFIELD AllowMultipleCollisionOptionNotifies:1;
+    SCRIPT_ALIGN;
+
+    /** Constructors */
+    FAnimReferencePeriodsAdvanced() {}
+    FAnimReferencePeriodsAdvanced(EEventParm)
+    {
+        appMemzero(this, sizeof(FAnimReferencePeriodsAdvanced));
+    }
+};
+
 struct FAnimReferencePeriods
 {
     struct FAnimReferenceOptions Start;
     struct FAnimReferenceOptions End;
+    struct FAnimReferencePeriodsAdvanced Advanced;
     BITFIELD EnforceMinimumFloorHeight:1;
     FLOAT MinimumFloorHeight;
+    BITFIELD SimpleForwardRotation:1;
+    BITFIELD SimpleFloorHeight:1;
+    BITFIELD SimpleTranslationXY:1;
+    BITFIELD InheritRootMotionFromVelocity:1;
+    BITFIELD DisableProportionalMotionDuringBlendOut:1;
+    SCRIPT_ALIGN;
 
     /** Constructors */
     FAnimReferencePeriods() {}
@@ -864,15 +954,16 @@ struct FAnimReferencePeriods
 
 struct FAnimCollisionOptions
 {
+    BYTE Physics;
+    BYTE BlockActors2;
+    BYTE RootMotionRotationOption;
+    BYTE RootMotionTranslationOption;
+    SCRIPT_ALIGN;
     BITFIELD BlockActors:1;
     BITFIELD CollideWorld:1;
     BITFIELD DisableLegIK:1;
     BITFIELD AllowIKWhenNotPHYSWalking:1;
     BITFIELD PreviousVelocityOverridesAnimRootMotion:1;
-    SCRIPT_ALIGN;
-    BYTE Physics;
-    BYTE RootMotionRotationOption;
-    BYTE RootMotionTranslationOption;
     SCRIPT_ALIGN;
 
     /** Constructors */
@@ -896,16 +987,51 @@ struct FAnimCollisionPeriods
     }
 };
 
-struct FAnimTag
+struct FAnimCachedDialogue
 {
-    FStringNoInit Tag;
-    TArrayNoInit<FString> Contains;
+    class UObject* Line;
+    FLOAT Time;
+    FLOAT WavTime;
+    FLOAT Duration;
+    BITFIELD IsForOtherCharacter:1;
+    BITFIELD FromAutoTrigger:1;
+    SCRIPT_ALIGN;
 
     /** Constructors */
-    FAnimTag() {}
-    FAnimTag(EEventParm)
+    FAnimCachedDialogue() {}
+    FAnimCachedDialogue(EEventParm)
     {
-        appMemzero(this, sizeof(FAnimTag));
+        appMemzero(this, sizeof(FAnimCachedDialogue));
+    }
+};
+
+struct FAutoTriggeredDialogueStruct
+{
+    TArrayNoInit<class UObject*> Lines;
+    TArrayNoInit<class UObject*> OtherCharacterLines;
+    FStringNoInit AnimTimecode;
+
+    /** Constructors */
+    FAutoTriggeredDialogueStruct() {}
+    FAutoTriggeredDialogueStruct(EEventParm)
+    {
+        appMemzero(this, sizeof(FAutoTriggeredDialogueStruct));
+    }
+};
+
+struct FAnimLinearMotion
+{
+    BITFIELD Enabled:1;
+    SCRIPT_ALIGN;
+    FVector TranslationOrigin;
+    FVector TranslationSpan;
+    FQuat Rotation;
+
+    /** Constructors */
+    FAnimLinearMotion() {}
+    FAnimLinearMotion(EEventParm)
+    {
+        appMemzero(this, sizeof(FAnimLinearMotion));
     }
 };
 
@@ -932,35 +1058,67 @@ public:
     FLOAT SequenceLength;
     INT NumFrames;
     FLOAT RateScale;
+    FLOAT RawFramerate;
+    FLOAT OverrideFramerate;
+    BITFIELD OverrideFramerate_Enabled:1;
+    BITFIELD AllowCheekyBlendIn:1;
+    BITFIELD AllowCheekyBlendOut:1;
+    BITFIELD AllowAdditiveTransitionBlendIn:1;
+    BITFIELD AllowAdditiveTransitionBlendOut:1;
     BITFIELD bUseSimpleForwardYaw:1;
     BITFIELD bUseSimpleFloorHeight:1;
     BITFIELD bUseSimpleRootMotionXY:1;
     BITFIELD bInheritRootMotionFromVelocity:1;
     BITFIELD DisableProportionalMotionDuringBlendOut:1;
-    BITFIELD AllowCheekyBlendIn:1;
-    BITFIELD AllowCheekyBlendOut:1;
     BITFIELD EmbeddedFaceFXAnim_AllowAutomaticBlinks:1;
+    BITFIELD FaceFXBaseExpression_Enabled:1;
+    BITFIELD FaceOverlayHoldsLastFrame:1;
+    BITFIELD IdleMatchEnabled:1;
+    BITFIELD DisableAutomaticBlinks:1;
     BITFIELD WeaponSwitchPointEnabled:1;
     BITFIELD Compression_UseLinearInterpolation:1;
-    BITFIELD Compression_RelativeToReferencePose:1;
-    BITFIELD Compression_UsingTemporaryCompression:1;
+    BITFIELD Compression_ModelspaceGundummy:1;
+    BITFIELD AnimZip_RelativeToReferencePose:1;
+    BITFIELD AnimZip_IsPlaceholder:1;
+    BITFIELD FootCyclesValid:1;
     BITFIELD bDoNotOverrideCompression:1;
     BITFIELD bHasBeenUsed:1;
+    BITFIELD bWasCompressedWithoutTranslations:1;
     BITFIELD MetricWasRecorded:1;
     TArrayNoInit<FRawAnimSequenceTrack> RawAnimData_DEPRECATED;
     TArrayNoInit<FRawAnimSequenceTrack> RawAnimationData;
+    TArrayNoInit<FRawAnimSequenceTrack> RawAnimationDataAfterFixup;
+    TArrayNoInit<FLOAT> CameraFOV;
     TArrayNoInit<struct FCurveTrack> CurveData;
     class UAnimationCompressionAlgorithm* CompressionScheme;
+    class UFaceFXAnimSet* EmbeddedFaceFXAnim;
+    class UAnimSet* FaceOverlayAnimSet;
+    class UAnimSet* IdleMatchAnimSet;
+    class UObject* AimingConfig;
+    class URAnimZip_Settings* Compression_CustomSettings;
     TArrayNoInit<INT> CompressedTrackOffsets;
     TArrayNoInit<BYTE> CompressedByteStream;
     FStringNoInit MaxFilePath;
     FStringNoInit MaxAuthor;
-    struct FAnimReferencePeriods ReferenceOptions;
-    FLOAT ProportionalMotionDistanceCap;
-    struct FAnimCollisionPeriods CollisionOptions;
+    FStringNoInit RootSourceFilePath;
+    FStringNoInit SourceFilePath;
+    FStringNoInit SourceApplication;
+    FStringNoInit SourceFileTimestamp;
+    FStringNoInit SourceAuthor;
+    FStringNoInit SourceRootBoneName;
+    FStringNoInit SourceTake;
+    struct FAnimReferencePeriods ReferenceOptions_DEPRECATED;
+    struct FAnimReferencePeriods MotionOptions;
+    struct FAnimCollisionPeriods CollisionOptions_DEPRECATED;
+    struct FAnimCollisionOptions CollisionOptions2;
     FLOAT BlendInDuration;
     FLOAT BlendOutDuration;
-    class UFaceFXAnimSet* EmbeddedFaceFXAnim;
+    FName FaceOverlayAnimName;
+    FName IdleMatchAnimName;
+    TArrayNoInit<struct FAnimCachedDialogue> CachedDialogue;
+    TArrayNoInit<FString> CachedDialogueWarnings;
+    TArrayNoInit<FString> CachedDialogueErrors;
+    struct FAutoTriggeredDialogueStruct AutoTriggeredDialogue;
     FLOAT BlendInPoint;
     FLOAT BlendOutPoint;
     FLOAT ClippedStart;
@@ -968,20 +1126,20 @@ public:
     FLOAT CanCancelBeforeHerePoint;
     FLOAT CanCancelAfterHerePoint;
     FLOAT CanCorrectAfterHerePoint;
-    FLOAT ClipRootMotionInPoint;
-    FLOAT ClipRootMotionOutPoint;
-    FLOAT CollisionOptionsOutPoint;
+    FLOAT RootBoneTranslationOffsetInPoint;
+    FLOAT RootBoneTranslationOffsetOutPoint;
     FLOAT WeaponSwitchPoint;
-    class URAnimZip_Settings* Compression_CustomSettings;
+    TArrayNoInit<FString> UpdateSequenceDependentVariableErrors;
     TArrayNoInit<BYTE> AnimZip_Data;
-    FVector AnimZip_LinearOrigin;
-    FVector AnimZip_LinearSpan;
+    struct FAnimLinearMotion AnimZip_LinearMotion;
+    TArrayNoInit<FString> AnimZip_Errors;
+    TArrayNoInit<FLOAT> FootCycles;
     FPointer TranslationCodec;
     FPointer RotationCodec;
     INT EncodingPkgVersion;
     INT CompressCommandletVersion;
     FLOAT UseScore;
-    TArrayNoInit<struct FAnimTag> AnimTags;
+    INT EditVersion;
     //## END PROPS AnimSequence
 
     virtual FLOAT GetNotifyTimeByClass(class UClass* NotifyClass,FLOAT PlayRate=1.000000,FLOAT StartPosition=-1.000000,class UAnimNotify** out_Notify=NULL,FLOAT* out_Duration=NULL);
@@ -995,9 +1153,7 @@ public:
         P_FINISH;
         *(FLOAT*)Result=this->GetNotifyTimeByClass(NotifyClass,PlayRate,StartPosition,pout_Notify ? &out_Notify : NULL,pout_Duration ? &out_Duration : NULL);
     }
-    DECLARE_CLASS(UAnimSequence,UObject,0|CLASS_Config,Engine)
-    static const TCHAR* StaticConfigName() {return TEXT("Engine");}
-
+    DECLARE_CLASS(UAnimSequence,UObject,0,Engine)
 	// UObject interface
 
 	virtual void Serialize(FArchive& Ar);
@@ -5686,7 +5842,7 @@ VERIFY_CLASS_OFFSET_NODIE(USkelControlTrail,SkelControlTrail,ChainLength)
 VERIFY_CLASS_OFFSET_NODIE(USkelControlTrail,SkelControlTrail,OldLocalToWorld)
 VERIFY_CLASS_SIZE_NODIE(USkelControlTrail)
 VERIFY_CLASS_OFFSET_NODIE(UAnimSequence,AnimSequence,SequenceName)
-VERIFY_CLASS_OFFSET_NODIE(UAnimSequence,AnimSequence,AnimTags)
+VERIFY_CLASS_OFFSET_NODIE(UAnimSequence,AnimSequence,EditVersion)
 VERIFY_CLASS_SIZE_NODIE(UAnimSequence)
 VERIFY_CLASS_OFFSET_NODIE(UAnimSet,AnimSet,TrackBoneNames)
 VERIFY_CLASS_OFFSET_NODIE(UAnimSet,AnimSet,Compression_CustomSettings)

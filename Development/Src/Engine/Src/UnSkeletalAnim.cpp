@@ -729,7 +729,7 @@ void AnimZip_Sample(const UAnimSequence* Seq, USkeletalMesh* SkelMesh,
 
 	// Relative keys are composed back onto the refpose at sample time: RefPose * Decoded for
 	// rotation, RefPose + Decoded for translation (Default.xex.c:2981587, :2967216).
-	const UBOOL bRetarget = Seq->Compression_RelativeToReferencePose;
+	const UBOOL bRetarget = Seq->AnimZip_RelativeToReferencePose;
 
 	for (INT i = 0; i < Anim->NumRotationBundles; i++)
 	{
@@ -1161,14 +1161,6 @@ static UBOOL AnimZip_CanMoveInZ(BYTE Physics)
 	return Physics == 1 || Physics == 2 || Physics == 3 || Physics == 4;
 }
 
-// GetCollisionOptions (BmGame.exe.c:11383432): pick Middle or End by time.
-static FAnimCollisionOptions AnimZip_GetCollisionOptions(UAnimSequence* Seq, FLOAT NormTime)
-{
-	return (NormTime < Seq->CollisionOptionsOutPoint)
-		? Seq->CollisionOptions.Middle
-		: Seq->CollisionOptions.End;
-}
-
 // Sample Bip01's raw atom at a normalized time. Assumes encoding hasn't mutated RawAnimationData yet.
 static void AnimZip_SampleBip01Raw(UAnimSequence* Seq, FLOAT NormTime, FQuat& OutQ, FVector& OutT)
 {
@@ -1222,12 +1214,12 @@ static FLOAT AnimZip_GetBip01Yaw(UAnimSequence* Seq, FLOAT NormTime)
 	return AnimZip_GetWrappedAngle(Yaw);
 }
 
-// sub_23CF6A0 (BmGame.exe.c:11453464): simple URMotion yaw — lerp ReferenceOptions.Start/End yaw.
+// sub_23CF6A0 (BmGame.exe.c:11453464): simple URMotion yaw — lerp MotionOptions.Start/End yaw.
 static FLOAT AnimZip_URMotion_GetYawSimple(UAnimSequence* Seq, FLOAT NormTime)
 {
 	FLOAT Lo, Hi; AnimZip_URMotion_GetTimeRange(Seq, Lo, Hi);
-	const FAnimReferenceOptions& S = Seq->ReferenceOptions.Start;
-	const FAnimReferenceOptions& E = Seq->ReferenceOptions.End;
+	const FAnimReferenceOptions& S = Seq->MotionOptions.Start;
+	const FAnimReferenceOptions& E = Seq->MotionOptions.End;
 	FLOAT YawS = S.ForwardYaw * (FLOAT)(PI / 180.0);
 	if (S.ForwardYawDirection == 1) YawS = -YawS;
 	FLOAT YawE = E.ForwardYaw * (FLOAT)(PI / 180.0);
@@ -1239,8 +1231,8 @@ static FLOAT AnimZip_URMotion_GetYawSimple(UAnimSequence* Seq, FLOAT NormTime)
 static FLOAT AnimZip_URMotion_GetYawFull(UAnimSequence* Seq, FLOAT NormTime)
 {
 	FLOAT Lo, Hi; AnimZip_URMotion_GetTimeRange(Seq, Lo, Hi);
-	const FAnimReferenceOptions& S = Seq->ReferenceOptions.Start;
-	const FAnimReferenceOptions& E = Seq->ReferenceOptions.End;
+	const FAnimReferenceOptions& S = Seq->MotionOptions.Start;
+	const FAnimReferenceOptions& E = Seq->MotionOptions.End;
 	FLOAT YawS = S.ForwardYaw * (FLOAT)(PI / 180.0);
 	if (S.ForwardYawDirection == 1) YawS = -YawS;
 	FLOAT YawE = E.ForwardYaw * (FLOAT)(PI / 180.0);
@@ -1259,7 +1251,7 @@ static FLOAT AnimZip_URMotion_GetYawFull(UAnimSequence* Seq, FLOAT NormTime)
 static FLOAT AnimZip_URMotion_GetFloorHeight(UAnimSequence* Seq, FLOAT NormTime)
 {
 	FLOAT Lo, Hi; AnimZip_URMotion_GetTimeRange(Seq, Lo, Hi);
-	const FAnimReferencePeriods& Ref = Seq->ReferenceOptions;
+	const FAnimReferencePeriods& Ref = Seq->MotionOptions;
 	const FLOAT Zs = Ref.Start.AutomaticFloorHeight
 		? AnimZip_GetBip01Translation(Seq, Lo).Z - 120.0f
 		: Ref.Start.FloorHeight;
@@ -1278,14 +1270,14 @@ static FLOAT AnimZip_URMotion_GetFloorHeight(UAnimSequence* Seq, FLOAT NormTime)
 // sub_23CF9D0 (BmGame.exe.c:11453588): URMotion floor offset for CanMoveInZ physics.
 static FLOAT AnimZip_URMotion_GetFloorOffsetInZ(UAnimSequence* Seq, FLOAT NormTime)
 {
-	const FAnimCollisionOptions& Mid = Seq->CollisionOptions.Middle;
+	const FAnimCollisionOptions& Mid = Seq->CollisionOptions2;
 	const FLOAT EndT = (Mid.RootMotionTranslationOption == 3 || Mid.RootMotionTranslationOption == 1)
 		? 1.0f : Seq->BlendOutPoint;
 	FLOAT Lo = 0.0f;
 	FLOAT Hi = EndT;
 	if (Lo > Hi) { Hi = 0.5f * (Lo + Hi); Lo = Hi; }
 
-	const FAnimReferencePeriods& Ref = Seq->ReferenceOptions;
+	const FAnimReferencePeriods& Ref = Seq->MotionOptions;
 	const FLOAT OffsetS = Ref.Start.AutomaticFloorHeight
 		? -120.0f
 		: Ref.Start.FloorHeight - AnimZip_GetBip01Translation(Seq, Lo).Z;
@@ -1485,7 +1477,8 @@ static void AnimZip_GetMotionTrack(UAnimSequence* Seq, UAnimSet* AnimSet, USkele
 	for (INT f = 0; f < NumFrames; f++)
 	{
 		const FLOAT NormTime = (NumFrames > 1) ? (FLOAT)f / (FLOAT)(NumFrames - 1) : 0.0f;
-		const FAnimCollisionOptions Col = AnimZip_GetCollisionOptions(Seq, NormTime);
+		// BM: AK collapsed the Middle/End collision periods into a single CollisionOptions2.
+		const FAnimCollisionOptions& Col = Seq->CollisionOptions2;
 
 		const FLOAT Yaw = (Col.RootMotionRotationOption == 2 || UseSimpleYaw)
 			? AnimZip_URMotion_GetYawSimple(Seq, NormTime)
@@ -2258,13 +2251,13 @@ void AnimZip_Compress(UAnimSequence* Seq)
 		const FVector Mean = Sum / (FLOAT)MotionTransIT.Samples.Num();
 
 		const FQuat FirstQInv = FirstQ.Inverse();
-		Seq->AnimZip_LinearOrigin = FirstQInv.RotateVector((Mean - 0.5f * Span) - FirstT);
-		Seq->AnimZip_LinearSpan   = FirstQInv.RotateVector(Span);
+		Seq->AnimZip_LinearMotion.TranslationOrigin = FirstQInv.RotateVector((Mean - 0.5f * Span) - FirstT);
+		Seq->AnimZip_LinearMotion.TranslationSpan   = FirstQInv.RotateVector(Span);
 	}
 	else
 	{
-		Seq->AnimZip_LinearOrigin = FVector(0, 0, 0);
-		Seq->AnimZip_LinearSpan   = FVector(0, 0, 0);
+		Seq->AnimZip_LinearMotion.TranslationOrigin = FVector(0, 0, 0);
+		Seq->AnimZip_LinearMotion.TranslationSpan   = FVector(0, 0, 0);
 	}
 
 
@@ -3863,40 +3856,9 @@ UBOOL GBeingTraceAnimationUsage = TRUE;
 FString GLastFolderSaved;
 FLOAT	GLastOutputTime = 0.f;
 
-/*
-* return animation info tag
-* This is temporary until we add content tag to animation 
-* First they search from sequence name, and if nothing is found, they look for animset
-* Most of case, animset includes a lot of key information.
-*/
-FString GetAnimationTag( UAnimSequence * Sequence )
+// BM: AK's AnimSequence has no AnimTags array, so there is nothing to match against.
+FString GetAnimationTag( UAnimSequence * /*Sequence*/ )
 {
-	check (Sequence);
-
-	const TArray<FAnimTag> & AnimTags = Sequence->AnimTags;
-
-	FString AnimName = Sequence->SequenceName.GetNameString();
-	FString AnimSetName = Sequence->GetAnimSet()->GetName();
-
-	for ( INT I=0; I<AnimTags.Num(); ++I )
-	{
-		for ( INT J=0; J<AnimTags(I).Contains.Num(); ++J )
-		{
-			// first found, then return
-			// 0-end is priority
-			if (AnimName.InStr(AnimTags(I).Contains(J), FALSE, TRUE) != INDEX_NONE)
-			{
-				return AnimTags(I).Tag;
-			}
-			// if they don't find it from animname, try animset name
-			else if (AnimSetName.InStr(AnimTags(I).Contains(J), FALSE, TRUE) != INDEX_NONE)
-			{
-				return AnimTags(I).Tag;
-			}
-		}
-	}
-
-	// default
 	return TEXT("NONE");
 }
 
