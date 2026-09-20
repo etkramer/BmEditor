@@ -267,6 +267,8 @@ var		bool							CompressionNone;
 var		deprecated bool					CompressionNoMipmaps;
 var()	bool							CompressionFullDynamicRange;
 var()	bool							DeferCompression;
+// BM
+var		bool							ForceNonDeferredRecompression;
 var()	bool							ForceOldCompression;
 
 var()	bool							NeverStream;
@@ -282,6 +284,9 @@ var()	bool							bPreserveBorderB;
 var()	bool							bPreserveBorderA;
 /** If TRUE, the RHI texture will be created using TexCreate_NoTiling */
 var		const bool						bNoTiling;
+
+// BM
+var()	bool							DoNotCreateInPool;
 
 /** For DXT1 textures, setting this will cause the texture to be twice the size, but better looking, on iPhone */
 var(Mobile) bool						bForcePVRTC4;
@@ -304,6 +309,9 @@ var()	TextureFilter					Filter;
 
 /** Texture group this texture belongs to for LOD bias */
 var()	TextureGroup					LODGroup;
+
+// BM
+var		transient TextureGroup			CachedLODGroup;
 
 /** Per asset specific setting to define the mip-map generation properties like sharpening and kernel size. */
 var()	TextureMipGenSettings			MipGenSettings;
@@ -347,6 +355,9 @@ var() float AdjustHue;
 
 /** Internal LOD bias already applied by the texture format (eg TC_NormalMapUncompressed). Used to adjust MinLODMipCount and MaxLODMipCount in CalculateLODBias */
 var const int InternalFormatLODBias;
+
+// BM
+var int CachedMipGenSettings;
 
 cpptext
 {

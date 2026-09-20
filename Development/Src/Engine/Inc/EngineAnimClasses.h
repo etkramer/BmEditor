@@ -124,6 +124,19 @@ enum EForwardYawDirection
 #define FOREACH_ENUM_EFORWARDYAWDIRECTION(op) \
     op(FYD_Clockwise) \
     op(FYD_AntiClockwise) 
+enum EAnimAudioStatus
+{
+    ASAS_InProgress         =0,
+    ASAS_Completed          =1,
+    ASAS_UnknownReimported  =2,
+    ASAS_NotRequired        =3,
+    ASAS_MAX                =4,
+};
+#define FOREACH_ENUM_EANIMAUDIOSTATUS(op) \
+    op(ASAS_InProgress) \
+    op(ASAS_Completed) \
+    op(ASAS_UnknownReimported) \
+    op(ASAS_NotRequired) 
 enum AnimationCompressionFormat
 {
     ACF_None                =0,
@@ -902,7 +915,23 @@ public:
     //## BEGIN PROPS AnimSequence
     FName SequenceName;
     TArrayNoInit<struct FAnimNotifyEvent> Notifies;
-    BITFIELD AudioComplete:1;
+    FVector ReferencePoint;
+    FLOAT ReferencePointYaw;
+    FRotator ReferencePointRotation;
+    FName PreviewReferencePointMeshName;
+    BYTE AudioStatus;
+    BYTE CombatStatus;
+    BYTE TranslationCompressionFormat;
+    BYTE RotationCompressionFormat;
+    BYTE FaceFXBaseExpression;
+    BYTE FootSyncOut;
+    BYTE FootSyncOutSpeed;
+    BYTE FootSyncOutDirection;
+    BYTE Compression_Preset;
+    BYTE KeyEncodingFormat;
+    FLOAT SequenceLength;
+    INT NumFrames;
+    FLOAT RateScale;
     BITFIELD bUseSimpleForwardYaw:1;
     BITFIELD bUseSimpleFloorHeight:1;
     BITFIELD bUseSimpleRootMotionXY:1;
@@ -918,23 +947,14 @@ public:
     BITFIELD bDoNotOverrideCompression:1;
     BITFIELD bHasBeenUsed:1;
     BITFIELD MetricWasRecorded:1;
-    FLOAT SequenceLength;
-    INT NumFrames;
-    FLOAT RateScale;
     TArrayNoInit<FRawAnimSequenceTrack> RawAnimData_DEPRECATED;
     TArrayNoInit<FRawAnimSequenceTrack> RawAnimationData;
     TArrayNoInit<struct FCurveTrack> CurveData;
     class UAnimationCompressionAlgorithm* CompressionScheme;
-    BYTE TranslationCompressionFormat;
-    BYTE RotationCompressionFormat;
-    BYTE Compression_Preset;
-    BYTE KeyEncodingFormat;
     TArrayNoInit<INT> CompressedTrackOffsets;
     TArrayNoInit<BYTE> CompressedByteStream;
     FStringNoInit MaxFilePath;
     FStringNoInit MaxAuthor;
-    FVector ReferencePoint;
-    FLOAT ReferencePointYaw;
     struct FAnimReferencePeriods ReferenceOptions;
     FLOAT ProportionalMotionDistanceCap;
     struct FAnimCollisionPeriods CollisionOptions;

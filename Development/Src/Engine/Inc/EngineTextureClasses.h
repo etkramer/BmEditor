@@ -360,6 +360,7 @@ public:
     BITFIELD CompressionNoMipmaps_DEPRECATED:1;
     BITFIELD CompressionFullDynamicRange:1;
     BITFIELD DeferCompression:1;
+    BITFIELD ForceNonDeferredRecompression:1;
     BITFIELD ForceOldCompression:1;
     BITFIELD NeverStream:1;
     BITFIELD NeverStreamPCOnceCooked:1;
@@ -369,6 +370,7 @@ public:
     BITFIELD bPreserveBorderB:1;
     BITFIELD bPreserveBorderA:1;
     BITFIELD bNoTiling:1;
+    BITFIELD DoNotCreateInPool:1;
     BITFIELD bForcePVRTC4:1;
     BITFIELD bAsyncResourceReleaseHasBeenStarted:1;
     BITFIELD bUseCinematicMipLevels:1;
@@ -378,6 +380,7 @@ public:
     BYTE CompressionSettings;
     BYTE Filter;
     BYTE LODGroup;
+    BYTE CachedLODGroup;
     BYTE MipGenSettings;
     INT LODBias;
     INT CachedCombinedLODBias;
@@ -394,6 +397,7 @@ public:
     FLOAT AdjustRGBCurve;
     FLOAT AdjustHue;
     INT InternalFormatLODBias;
+    INT CachedMipGenSettings;
     //## END PROPS Texture
 
     DECLARE_ABSTRACT_CLASS(UTexture,USurface,0,Engine)
@@ -1846,7 +1850,7 @@ FNativeFunctionLookup GEngineUTextureRenderTarget2DNatives[] =
 
 #ifdef VERIFY_CLASS_SIZES
 VERIFY_CLASS_OFFSET_NODIE(UTexture,Texture,UnpackMin)
-VERIFY_CLASS_OFFSET_NODIE(UTexture,Texture,InternalFormatLODBias)
+VERIFY_CLASS_OFFSET_NODIE(UTexture,Texture,CachedMipGenSettings)
 VERIFY_CLASS_SIZE_NODIE(UTexture)
 VERIFY_CLASS_OFFSET_NODIE(UTexture2D,Texture2D,Mips)
 VERIFY_CLASS_OFFSET_NODIE(UTexture2D,Texture2D,Timer)

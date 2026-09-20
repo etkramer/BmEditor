@@ -25,6 +25,15 @@ enum AnimationCompressionFormat
 	ACF_Fixed48Max,
 };
 
+// BM
+enum EAnimAudioStatus
+{
+	ASAS_InProgress,
+	ASAS_Completed,
+	ASAS_UnknownReimported,
+	ASAS_NotRequired,
+};
+
 enum EForwardYawDirection
 {
 	FYD_Clockwise,
@@ -174,7 +183,25 @@ struct native AnimTag
 
 var		name									SequenceName;
 var()	editoronly array<editoronly AnimNotifyEvent>		Notifies;
-var(Audio) editoronly bool						AudioComplete;
+var()	vector									ReferencePoint;
+var()	float									ReferencePointYaw;
+// BM
+var()	rotator									ReferencePointRotation;
+var()	editoronly name							PreviewReferencePointMeshName;
+var(Audio) editoronly EAnimAudioStatus			AudioStatus;
+var(Combat) editoronly EAnimAudioStatus			CombatStatus;
+var const AnimationCompressionFormat			TranslationCompressionFormat;
+var const AnimationCompressionFormat			RotationCompressionFormat;
+var(Face) RSkeletalMeshComponent_Export.EFaceFXBaseExpression	FaceFXBaseExpression;
+// BM: AK types these three as RAutomaticTransitions enums, which this branch has no class for
+var(Info) byte									FootSyncOut;
+var(Info) byte									FootSyncOutSpeed;
+var(Info) byte									FootSyncOutDirection;
+var(Compression) RAnimZip_Settings.EAnimZipPreset	Compression_Preset;
+var const AnimationKeyFormat					KeyEncodingFormat;
+var(Info) editconst float						SequenceLength;
+var(Info) editconst int							NumFrames;
+var()	float									RateScale;
 var()	bool									bUseSimpleForwardYaw;
 var()	bool									bUseSimpleFloorHeight;
 var()	bool									bUseSimpleRootMotionXY;
@@ -190,23 +217,14 @@ var(Compression) editconst bool					Compression_UsingTemporaryCompression;
 var() editoronly const bool						bDoNotOverrideCompression;
 var const transient bool						bHasBeenUsed;
 var const transient bool						MetricWasRecorded;
-var(Info) editconst float						SequenceLength;
-var(Info) editconst int							NumFrames;
-var()	float									RateScale;
 var	deprecated private const array<RawAnimSequenceTrack>	RawAnimData;
 var native private const array<RawAnimSequenceTrack>		RawAnimationData;
 var const array<CurveTrack>						CurveData;
 var(Info) editoronly editconst AnimationCompressionAlgorithm	CompressionScheme;
-var const AnimationCompressionFormat			TranslationCompressionFormat;
-var const AnimationCompressionFormat			RotationCompressionFormat;
-var(Compression) RAnimZip_Settings.EAnimZipPreset	Compression_Preset;
-var const AnimationKeyFormat					KeyEncodingFormat;
 var			array<int>							CompressedTrackOffsets;
 var native	array<byte>							CompressedByteStream;
 var(Info) editoronly string						MaxFilePath;
 var(Info) editoronly string						MaxAuthor;
-var()	vector									ReferencePoint;
-var()	float									ReferencePointYaw;
 var()	AnimReferencePeriods					ReferenceOptions;
 var()	float									ProportionalMotionDistanceCap;
 var()	AnimCollisionPeriods					CollisionOptions;

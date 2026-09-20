@@ -13,6 +13,24 @@ enum EFaceFXRegisterOwner
 	FXREGISTEROWNER_Tweak,
 };
 
+enum EFaceFXBaseExpression
+{
+	FXBE_Default,
+	FXBE_None,
+	FXBE_Angry,
+	FXBE_Frown,
+	FXBE_Injured,
+	FXBE_Intense,
+	FXBE_KO,
+	FXBE_Smile,
+	FXBE_Smirk,
+	FXBE_Surprised,
+	FXBE_Scowl,
+	FXBE_Tired,
+	FXBE_BM_Angry_01,
+	FXBE_BM_Angry_02,
+};
+
 enum ESkeletalMeshComponentBoundsType
 {
 	SMCBT_Automatic,

@@ -41,15 +41,9 @@ enum EMaterialUsage
 	MATUSAGE_PointLights,
 };
 
-struct native PhysicalMaterialColorPair
-{
-	var() color					Color;
-	var() PhysicalMaterial		PhysMaterial;
-};
-
 /**
- * BM2 declares this struct on UMaterialInterface but doesn't expose it as a var.
- * Kept here only so MaterialInterface's script-visible struct list matches BM2.
+ * AK declares this struct on UMaterialInterface but doesn't expose it as a var.
+ * Kept here only so MaterialInterface's script-visible struct list matches AK.
  */
 struct native LightmassMaterialInterfaceSettings
 {
@@ -80,15 +74,6 @@ struct native LightmassMaterialInterfaceSettings
 /** A fence to track when the primitive is no longer used as a parent */
 var native const transient RenderCommandFence_Mirror ParentRefFence{FRenderCommandFence};
 
-/** Per-texel physical material mask texture. */
-var() RPhysicalMaterialTexture PhysicalMaterialTexture;
-
-/** Cached list of physical materials referenced by the physical material texture. */
-var transient array<PhysicalMaterial> PhysicalMaterialLookup;
-
-/** Mapping of mask colors to physical materials. */
-var array<PhysicalMaterialColorPair> PhysMaterialColourMap;
-
 /** Physical material to use for this graphics material. Used for sounds, effects etc. */
 var(PhysicalMaterial) PhysicalMaterial PhysMaterial;
 
@@ -97,6 +82,10 @@ var() editoronly string PreviewMesh;
 
 /** Unique ID for this material, used for caching during distributed lighting */
 var private editoronly const Guid LightingGuid;
+
+// BM
+var const bool bHasQualitySwitch;
+var(RS_Decal) bool bEnableDecalCollision;
 
 cpptext
 {
