@@ -671,11 +671,22 @@ void UTexture2D::Serialize(FArchive& Ar)
 	}
 
 #if BATMAN
-	// BM2 consumes the cached iPhone/PVRTC mip array from any package new enough to have it.
+	// BM: consume the cached iPhone/PVRTC mip array from any package new enough to have it.
 	if( Ar.Ver() >= VER_ADDED_CACHED_IPHONE_DATA )
 	{
-		TIndirectArray<FTexture2DMipMap> CachedMips;
-		CachedMips.Serialize( Ar, this );
+		TIndirectArray<FTexture2DMipMap> CachedPVRTCMips;
+		CachedPVRTCMips.Serialize( Ar, this );
+	}
+
+	// BM: retail reads these into locals and throws them away too.
+	if( Ar.Ver() >= VER_ADDED_ATITC_AND_FLASH_MIPS )
+	{
+		INT CachedFlashMipsMaxResolution = 0;
+		TIndirectArray<FTexture2DMipMap> CachedATITCMips;
+		FByteBulkData CachedFlashMips;
+		Ar << CachedFlashMipsMaxResolution;
+		CachedATITCMips.Serialize( Ar, this );
+		CachedFlashMips.Serialize( Ar, this, 0 );
 	}
 
 	// BM: BM1 keeps the mip entries its cooker stripped, and our LOD settings don't reproduce that strip count.
