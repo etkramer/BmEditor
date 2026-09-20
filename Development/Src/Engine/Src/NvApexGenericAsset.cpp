@@ -98,14 +98,18 @@ void UApexGenericAsset::Serialize(FArchive& Ar)
 				MApexAsset->DecRefCount(0);
 				MApexAsset = NULL;
 			}
-			char scratch[1024];
-			GetApexAssetName(this,scratch,1024,".acml");
-     		MApexAsset = GApexCommands->GetApexAssetFromMemory(scratch, (const void *)Buffer.GetData(), (NxU32)Size, TCHAR_TO_ANSI(*OriginalApexName), this);
-			if ( MApexAsset )
+			// BM: the buffer is still consumed when APEX is unavailable, so the archive stays in sync
+			if ( GApexCommands )
 			{
-				MApexAsset->IncRefCount(0);
+				char scratch[1024];
+				GetApexAssetName(this,scratch,1024,".acml");
+     			MApexAsset = GApexCommands->GetApexAssetFromMemory(scratch, (const void *)Buffer.GetData(), (NxU32)Size, TCHAR_TO_ANSI(*OriginalApexName), this);
+				if ( MApexAsset )
+				{
+					MApexAsset->IncRefCount(0);
+				}
+				GApexCommands->AddUpdateMaterials(this);
 			}
-			GApexCommands->AddUpdateMaterials(this);
 #else
 #endif
 		}

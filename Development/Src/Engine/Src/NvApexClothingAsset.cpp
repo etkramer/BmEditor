@@ -114,13 +114,17 @@ void UApexClothingAsset::Serialize(FArchive& Ar)
 				MApexAsset->DecRefCount(0);
 				MApexAsset = NULL;
 			}
-			char scratch[1024];
-			GetApexAssetName(this,scratch,1024,".aca");
-     		MApexAsset = GApexCommands->GetApexAssetFromMemory(scratch, (const void *)Buffer.GetData(), (NxU32)Size,  TCHAR_TO_ANSI(*OriginalApexName), this );
-			if ( MApexAsset )
+			// BM: the buffer is still consumed when APEX is unavailable, so the archive stays in sync
+			if ( GApexCommands )
 			{
-				MApexAsset->IncRefCount(0);
-				assert( MApexAsset->GetType() == AAT_CLOTHING );
+				char scratch[1024];
+				GetApexAssetName(this,scratch,1024,".aca");
+     			MApexAsset = GApexCommands->GetApexAssetFromMemory(scratch, (const void *)Buffer.GetData(), (NxU32)Size,  TCHAR_TO_ANSI(*OriginalApexName), this );
+				if ( MApexAsset )
+				{
+					MApexAsset->IncRefCount(0);
+					assert( MApexAsset->GetType() == AAT_CLOTHING );
+				}
 			}
 #else
 #endif

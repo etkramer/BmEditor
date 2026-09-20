@@ -514,6 +514,13 @@ namespace UnrealBuildTool
 
 		void SetUpSourceControlEnvironment()
 		{
+			// BM: Binaries/win64/p4api.dll is the x86 assembly, and it binds p4dn by a strong name the x64
+			// p4dn.dll does not carry, so the x64 editor uses the stub provider until a real x64 P4.NET exists.
+			if (Platform == UnrealTargetPlatform.Win64)
+			{
+				return;
+			}
+
 			// Perforce can only be used under managed code
 			if (UE3BuildConfiguration.bCompilePerforce && UE3BuildConfiguration.bBuildEditor && UE3BuildConfiguration.bAllowManagedCode)
 			{

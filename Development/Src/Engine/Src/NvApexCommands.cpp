@@ -3225,9 +3225,21 @@ void InitializeApex(void)
 		return;
 	}
 
+	// BM: CreateApexManager can refuse; everything below assumes a live SDK, so don't retry it
+	static UBOOL bApexUnavailable = FALSE;
+	if ( bApexUnavailable )
+	{
+		return;
+	}
+
 	if ( GApexManager == 0 )
 	{
 		GApexManager = CreateApexManager( GNovodexSDK, GNovodexCooking );
+		if ( GApexManager == 0 )
+		{
+			bApexUnavailable = TRUE;
+			return;
+		}
 		CreateApexCommands();
 		if ( GWorld && GWorld->RBPhysScene )
 		{

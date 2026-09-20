@@ -113,13 +113,17 @@ void UApexDestructibleAsset::Serialize(FArchive& Ar)
 			Buffer.Add( Size );
 			Ar.Serialize( Buffer.GetData(), Size );
 #if WITH_APEX
-			char scratch[1024];
-			GetApexAssetName(this,scratch,1024,".pda");
-     		MApexAsset = GApexCommands->GetApexAssetFromMemory(scratch, (const void *)Buffer.GetData(), (NxU32)Size,  TCHAR_TO_ANSI(*OriginalApexName), this );
-			if ( MApexAsset )
+			// BM: the buffer is still consumed when APEX is unavailable, so the archive stays in sync
+			if ( GApexCommands )
 			{
-				MApexAsset->IncRefCount(0);
-				assert( MApexAsset->GetType() == AAT_DESTRUCTIBLE );
+				char scratch[1024];
+				GetApexAssetName(this,scratch,1024,".pda");
+     			MApexAsset = GApexCommands->GetApexAssetFromMemory(scratch, (const void *)Buffer.GetData(), (NxU32)Size,  TCHAR_TO_ANSI(*OriginalApexName), this );
+				if ( MApexAsset )
+				{
+					MApexAsset->IncRefCount(0);
+					assert( MApexAsset->GetType() == AAT_DESTRUCTIBLE );
+				}
 			}
 
 			if ( GApexManager )

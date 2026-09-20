@@ -7,6 +7,9 @@
 !/Binaries/Win32/
 /Binaries/Win32/*
 !/Binaries/Win32/*.exe.config
+!/Binaries/Win64/
+/Binaries/Win64/*
+!/Binaries/Win64/*.exe.config
 /Engine/Shaders/Binaries/*
 /Engine/Shaders/WorkingDirectory/*
 /BmGame/_*/*

@@ -176,6 +176,40 @@ public:
 	void onDamageNotify( const NxApexDamageEventReportData& damageEvent );
 };
 
+#if BATMAN
+
+#ifdef PX_X64
+#define APEX_FRAMEWORK_DLL TEXT("ApexFramework_x64.dll")
+#else
+#define APEX_FRAMEWORK_DLL TEXT("ApexFramework_x86.dll")
+#endif
+
+// BM: our APEX headers describe the 1.1 callback/SDK vtables, so an older framework would dispatch the wrong slots.
+static UBOOL IsApexFrameworkCompatible(void)
+{
+	HMODULE Module = GetModuleHandle( APEX_FRAMEWORK_DLL );
+	HRSRC Resource = Module ? FindResource( Module, MAKEINTRESOURCE(VS_VERSION_INFO), RT_VERSION ) : NULL;
+	HGLOBAL Loaded = Resource ? LoadResource( Module, Resource ) : NULL;
+	const DWORD* Data = Loaded ? (const DWORD*)LockResource( Loaded ) : NULL;
+	if ( Data == NULL )
+	{
+		return FALSE;
+	}
+
+	// VS_FIXEDFILEINFO: signature, dwStrucVersion, dwFileVersionMS (major<<16 | minor)
+	const DWORD NumDWORDs = SizeofResource( Module, Resource ) / sizeof(DWORD);
+	for ( DWORD Index = 0; Index + 2 < NumDWORDs; Index++ )
+	{
+		if ( Data[Index] == 0xFEEF04BD )
+		{
+			return Data[Index + 2] >= ((1u << 16) | 1u);
+		}
+	}
+	return FALSE;
+}
+
+#endif // BATMAN
+
 class FApexManager : public FIApexManager,
 #if BATMAN
 	public physx::PxAllocatorCallback,
@@ -762,6 +796,13 @@ private:
 FIApexManager * CreateApexManager(NxPhysicsSDK *sdk,
 								 NxCookingInterface *cooking)
 {
+#if BATMAN
+	if ( !IsApexFrameworkCompatible() )
+	{
+		warnf(NAME_Warning, TEXT("ApexManager: %s predates the APEX 1.1 ABI this build targets; APEX is disabled."), APEX_FRAMEWORK_DLL);
+		return NULL;
+	}
+#endif
   	FApexManager *am = new FApexManager(sdk,cooking);
 	if ( am->GetApexSDK() == NULL )
 	{

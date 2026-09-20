@@ -1465,11 +1465,81 @@ public:
 #define MISSING_PHYSX_CAPTION TEXT( "Failed to Initialize PhysX Hardware Acceleration" )
 #define OUTOFDATE_PHYSX_MESSAGE TEXT( "Using hardware accelerated PhysX has been requested, but the drivers were out of date.\r\n\r\nPlease download the latest drivers from http://www.nvidia.com/object/physx_system_software.html\r\n\r\nFATAL ERROR - EXITING" )
 
+#if BATMAN && WITH_NOVODEX && _MSC_VER && !XBOX
+
+#if defined(_WIN64)
+#define PHYSX_UPDATE_LOADER_DLL TEXT("PhysXUpdateLoader64.dll")
+#else
+#define PHYSX_UPDATE_LOADER_DLL TEXT("PhysXUpdateLoader.dll")
+#endif
+
+// BM: PhysXLoader resolves the update loader by bare name, so the driver's copy is picked up off PATH and
+// faults on a 2.8.4 request - its engine set ends at 2.8.3. Hide it while PhysXLoader resolves modules;
+// with no update loader it falls back to the PhysXCore we ship alongside the executable.
+struct FScopedPhysXUpdateLoaderMask
+{
+	FScopedPhysXUpdateLoaderMask()
+	: bMasked(FALSE)
+	{
+		TCHAR Buffer[32768] = TEXT("");
+		const DWORD Length = GetEnvironmentVariable( TEXT("PATH"), Buffer, ARRAY_COUNT(Buffer) );
+		if( Length == 0 || Length >= ARRAY_COUNT(Buffer) )
+		{
+			return;
+		}
+
+		OldPath = Buffer;
+
+		TArray<FString> Entries;
+		OldPath.ParseIntoArray( &Entries, TEXT(";"), TRUE );
+
+		FString NewPath;
+		for( INT EntryIndex = 0; EntryIndex < Entries.Num(); EntryIndex++ )
+		{
+			const FString Candidate = Entries(EntryIndex) + PATH_SEPARATOR + PHYSX_UPDATE_LOADER_DLL;
+			if( GetFileAttributes(*Candidate) != INVALID_FILE_ATTRIBUTES )
+			{
+				debugf( NAME_DevPhysics, TEXT("Hiding %s from the PhysX loader"), *Candidate );
+				bMasked = TRUE;
+				continue;
+			}
+			if( NewPath.Len() > 0 )
+			{
+				NewPath += TEXT(";");
+			}
+			NewPath += Entries(EntryIndex);
+		}
+
+		if( bMasked )
+		{
+			SetEnvironmentVariable( TEXT("PATH"), *NewPath );
+		}
+	}
+
+	~FScopedPhysXUpdateLoaderMask()
+	{
+		if( bMasked )
+		{
+			SetEnvironmentVariable( TEXT("PATH"), *OldPath );
+		}
+	}
+
+private:
+	FString OldPath;
+	UBOOL bMasked;
+};
+
+#endif
+
 void InitGameRBPhys()
 {
 #if WITH_NOVODEX
 
 #if _MSC_VER && !XBOX // Windows only hack to bypass PhysX installation req
+#if BATMAN
+	// BM: stays in scope until every PhysXLoader lookup below is done
+	FScopedPhysXUpdateLoaderMask PhysXUpdateLoaderMask;
+#endif
 	UBOOL bDisablePhysXHardware;
 	verify( GConfig->GetBool(	TEXT("Engine.Engine"),	TEXT("bDisablePhysXHardwareSupport"	), bDisablePhysXHardware,		GEngineIni ) );
 	HMODULE PhysXLoader = NULL;
