@@ -16,7 +16,8 @@
 #endif
 #include <tbb/scalable_allocator.h>
 #ifdef UNDEFD_DEBUG
-	#define _DEBUG
+	// BM: restore the value too, an empty _DEBUG breaks #if tests on it
+	#define _DEBUG 1
 #endif
 
 #define MEM_TIME(st)

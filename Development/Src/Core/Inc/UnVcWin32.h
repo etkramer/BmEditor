@@ -912,7 +912,8 @@ inline DWORD appPointerToDWORD(void* Pointer)
 #if SERIAL_POINTER_INDEX
 	return SerialPointerIndex(Pointer);
 #else
-	return (DWORD)Pointer;
+	// BM: only reached for pre-577 bytecode, where the slot really is 32-bit
+	return (DWORD)(PTRINT)Pointer;
 #endif
 }
 
@@ -921,7 +922,7 @@ inline void* appDWORDToPointer(DWORD Value)
 #if SERIAL_POINTER_INDEX
 	return GSerializedPointers[Value];
 #else
-	return (void*)Value;
+	return (void*)(PTRINT)Value;
 #endif
 }
 #endif
