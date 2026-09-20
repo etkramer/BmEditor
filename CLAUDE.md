@@ -23,7 +23,7 @@ Build uses UnrealBuildTool. Building autonomously is expected on this branch - t
 
 For BM4 (Arkham Knight) specifically:
 
-- `C:\Users\elitk\Desktop\Batman4` - decompiled UnrealScript for retail AK. Authoritative for `.uc` class layouts, which offset-based serialization requires to be exactly right. Note it is an imperfect decompile: `atomicwhencooked` is not a real keyword, it is a misreading of `immutablewhencooked`, and unresolved default properties appear as `self[0xNNN]=`
+- `C:\Users\elitk\Desktop\Batman4` - decompiled UnrealScript for retail AK. Authoritative for `.uc` class layouts, which offset-based serialization requires to be exactly right. See the caveats below - trust it for property presence, order and type, not for keywords
 - `D:\SteamLibrary\steamapps\common\Batman Arkham Knight\Binaries\Win64\BatmanAK.exe.c` - decompiled retail AK executable (138 MB, no symbols). The ground truth for what the game's own loader actually does
 - `I:\UEViewer` - third-party asset viewer with BATMAN4 support; best reference for the BM4 binary format
 - `I:\Unreal-Library` - third-party C# package library, also supports BATMAN4
@@ -57,6 +57,15 @@ BM4 packages are all Ver=863, LicenseeVer=227. Reading the licensee as a stock U
 **The summary tail is four separately-gated fields, not four INTs.** From the retail serializer at `BatmanAK.exe.c:4121878`: an INT gated `licensee >= 87`, an INT gated `licensee >= 175`, the Enlighten version gated on the sign bit, and a `TArray` of 48-byte entries (three FStrings) gated `licensee >= 110`. Everything in the summary before that is bit-for-bit stock UE3.
 
 **FArchive field offsets in the decompile**, for anyone decoding archive accesses: +8 ArVer, +16 ArLicenseeVer, +20 ArEnlightenVer, +24 ArIsLoading, +28 ArIsSaving, +32 ArIsTransacting, +36 ArWantBinaryPropertySerialization, +68 ArContainsCookedData, +80 ArForceByteSwapping, +88/92/96 ArIgnore{Archetype,Outer,Class}Ref, +100 ArAllowEliminatingReferences, +116 ArPortFlags. The package tag is unchanged; grep the decompile for `-1641380927` (0x9E2A83C1).
+
+## Reading the AK Script Decompile
+
+Take property presence, declaration order and type from it. Do NOT take keywords from it - its flag decoding is broadly unreliable:
+
+- `atomicwhencooked` is not a real keyword; it is a misreading of `immutablewhencooked`. `duplicatetransient` and `nontransactional` are very likely not real either.
+- Assume keywords on properties that already exist in stock UE3 are UNCHANGED. If the decompile shows a different flag set on an existing property than this tree has, the decompile is wrong - keep ours.
+- This matters beyond cosmetics: keywords do not move offsets, but `transient` and friends decide whether a property serializes at all, so adopting a hallucinated flag corrupts the stream even when field order is perfect.
+- Unresolved default properties appear as `self[0xNNN]=`. Those offsets ARE reliable and are the primary evidence for verifying a layout.
 
 ## Class Layouts
 
