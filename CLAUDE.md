@@ -62,6 +62,10 @@ BM4 packages are all Ver=863, LicenseeVer=227. Reading the licensee as a stock U
 
 `sizeof(UObject)` is 84 (0x54) and is enforced by a `checkAtCompileTime` in `UnObjBas.h`. Dump the editor's own layouts with `Debug-BmGame.exe DumpClassLayout -unattended` and diff against AK's; see the build/run recipe below.
 
+**Match classes whole, never partially.** Fixing the fields one package happens to exercise leaves the rest silently wrong, and a wrong layout corrupts data without any warning: a cooked bool tag carries an entire bitfield dword, so a misordered bool block applies AK's bits to our flags with no type or offset mismatch to catch it. A class counts as done only when every `self[0xNNN]` entry in AK's `defaultproperties` for that class is accounted for, and a layout report must say which offsets were checked, not just that the checked ones matched.
+
+Beware that a clean package load is weak evidence about layouts. Only offset-only tags reach the offset-addressed path and `ReportLayoutMismatch`; named tags are matched by name and their offset is discarded.
+
 ## Build and Run
 
 1. `Development/Intermediate/UnrealBuildTool/Release/UnrealBuildTool.exe BmGame Win64 Debug`
