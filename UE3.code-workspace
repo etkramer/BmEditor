@@ -156,6 +156,8 @@
           "Development/Tools/UnSetup/UnSetup.csproj",
           "/p:Configuration=Release",
           "/v:minimal",
+          // C# Dev Kit injects targets that UnSetup.csproj's MSBuild 2003 namespace rejects
+          "/p:CustomAfterMicrosoftCommonTargets=",
         ],
         "options": {
           "cwd": "${workspaceFolder}",
