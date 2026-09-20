@@ -40,8 +40,8 @@ var private editoronly const array<guid> ReferencedTextureGuids;
 var private const Guid ParentLightingGuid;
 
 // BM
-var(Source) editoronly duplicatetransient string SourceTimestamp;
-var(Source) editoronly duplicatetransient string SourceAuthor;
+var(Source) editoronly editconst string SourceTimestamp;
+var(Source) editoronly editconst string SourceAuthor;
 
 cpptext
 {
