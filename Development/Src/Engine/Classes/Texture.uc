@@ -263,7 +263,7 @@ var		bool							RGBE;
 var		bool							bIsSourceArtUncompressed;
 
 var()	bool							CompressionNoAlpha;
-var		bool							CompressionNone;
+var()	bool							CompressionNone;
 var		deprecated bool					CompressionNoMipmaps;
 var()	bool							CompressionFullDynamicRange;
 var()	bool							DeferCompression;
@@ -357,7 +357,7 @@ var() float AdjustHue;
 var const int InternalFormatLODBias;
 
 // BM
-var int CachedMipGenSettings;
+var editoronly int CachedMipGenSettings;
 
 cpptext
 {
