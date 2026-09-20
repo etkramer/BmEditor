@@ -693,12 +693,8 @@ enum EUnrealEngineObjectVersion
 	VER_AUTOMATIC_VERSION_PLUS_ONE,
 
 #if BATMAN
-	// Stock UE3 versions past this branch's auto-counted range. None of the changes are implemented here,
-	// the constants only exist so BM4-era serialization can be gated by name instead of by magic number.
-	// - 16 bit skeletal mesh section/chunk indices widened to 32 bit
-	VER_DWORD_SKELETAL_MESH_SECTIONS = 806,
-	// - Added NativeClassName to UClass
-	VER_ADDED_NATIVE_CLASS_NAME = 813,
+	// Stock UE3 versions past the auto-counted range, which ends at 820 - VER_AUTOMATIC_VERSION_PLUS_ONE is 821, so
+	// anything at or below 820 is already named above. None of the changes are implemented, these only allow gating by name.
 	// - Added the extra static mesh LOD model
 	VER_ADDED_EXTRA_STATIC_MESH_LOD = 823,
 	// - Removed convex volumes from static meshes
