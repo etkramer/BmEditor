@@ -34,6 +34,15 @@ enum FlashTextureRescale
 	FlashTextureScale_None
 };
 
+// BM
+enum EPackedTextureResize
+{
+	EPackedTextureResize_None,
+	EPackedTextureResize_Power2,
+	EPackedTextureResize_Mult4,
+	EPackedTextureResize_Mult128
+};
+
 cpptext
 {
 	/** Set sRGB = OFF on all referenced Texture2Ds */
@@ -42,11 +51,16 @@ cpptext
 
 var() bool               bUsesFontlib;
 
-var(Import) editoronly string  SourceFile;
-
 var(Import) editconst bool bSetSRGBOnImportedTextures <Tooltip=Mark textures as sRGB when importing.>;
 var(Import) bool bPackTextures;
+// BM
+var(Import) bool bStoreDecompressedForFasterInit;
+
+var(Import) editoronly string  SourceFile;
+
 var(Import) int PackTextureSize <editcondition=bPackTextures | ClampMin=256 | Multiple=32>;
+// BM
+var(Import) EPackedTextureResize PackedTextureResize;
 var(Import) FlashTextureRescale TextureRescale;
 var(Import) editconst string TextureFormat;
 /** Date/Time-stamp of the file from the last import */

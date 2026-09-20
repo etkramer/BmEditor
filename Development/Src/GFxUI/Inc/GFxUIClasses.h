@@ -112,6 +112,19 @@ enum GFxDPGBias
     op(DPGB_FrontMost) \
     op(DPGB_Error) \
     op(DPGB_NoController) 
+enum EPackedTextureResize
+{
+    EPackedTextureResize_None=0,
+    EPackedTextureResize_Power2=1,
+    EPackedTextureResize_Mult4=2,
+    EPackedTextureResize_Mult128=3,
+    EPackedTextureResize_MAX=4,
+};
+#define FOREACH_ENUM_EPACKEDTEXTURERESIZE(op) \
+    op(EPackedTextureResize_None) \
+    op(EPackedTextureResize_Power2) \
+    op(EPackedTextureResize_Mult4) \
+    op(EPackedTextureResize_Mult128) 
 enum FlashTextureRescale
 {
     FlashTextureScale_High  =0,
@@ -1617,8 +1630,10 @@ public:
     BITFIELD bUsesFontlib:1;
     BITFIELD bSetSRGBOnImportedTextures:1;
     BITFIELD bPackTextures:1;
+    BITFIELD bStoreDecompressedForFasterInit:1;
     FStringNoInit SourceFile;
     INT PackTextureSize;
+    BYTE PackedTextureResize;
     BYTE TextureRescale;
     FStringNoInit TextureFormat;
     FStringNoInit SourceFileTimestamp;
