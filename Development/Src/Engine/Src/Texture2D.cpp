@@ -1961,7 +1961,7 @@ UBOOL UTexture2D::ShouldMipLevelsBeForcedResident() const
 		return TRUE;
 	}
 	FLOAT CurrentTime = FLOAT(appSeconds() - GStartTime);
-	if ( ForceMipLevelsToBeResidentTimestamp >= CurrentTime )
+	if ( PrestreamMipLevelsTimestamp >= CurrentTime )
 	{
 		return TRUE;
 	}
@@ -2028,7 +2028,7 @@ void UTexture2D::SetForceMipLevelsToBeResident( FLOAT Seconds, INT CinematicText
 	DWORD TextureGroupBitfield = (DWORD) CinematicTextureGroups;
 	DWORD MyTextureGroup = GBitFlag[LODGroup];
 	bUseCinematicMipLevels = (TextureGroupBitfield & MyTextureGroup) ? TRUE : FALSE;
-	ForceMipLevelsToBeResidentTimestamp = FLOAT(appSeconds() - GStartTime) + Seconds;
+	PrestreamMipLevelsTimestamp = FLOAT(appSeconds() - GStartTime) + Seconds;
 }
 
 #if WITH_EDITOR

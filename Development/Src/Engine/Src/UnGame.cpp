@@ -2712,7 +2712,7 @@ UBOOL UGameEngine::LoadMap( const FURL& URL, UPendingLevel* Pending, FString& Er
 	// remove any prestream requests from textures still in memory
 	for (TObjectIterator<UTexture2D> It; It; ++It)
 	{
-		if (It->ForceMipLevelsToBeResidentTimestamp > 0.0f)
+		if (It->PrestreamMipLevelsTimestamp > 0.0f)
 		{
 			It->SetForceMipLevelsToBeResident(-1.0f);
 		}

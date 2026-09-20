@@ -591,16 +591,29 @@ public:
     BYTE AddressY;
     SCRIPT_ALIGN;
     BITFIELD XboxForcePWLCorrection:1;
+    BITFIELD UseCustomDxtWeights:1;
     BITFIELD bIsStreamable:1;
     BITFIELD bHasCancelationPending:1;
     BITFIELD bHasBeenLoadedFromPersistentArchive:1;
     BITFIELD bForceMiplevelsToBeResident:1;
     BITFIELD bGlobalForceMipLevelsToBeResident:1;
-    FLOAT ForceMipLevelsToBeResidentTimestamp;
+    BITFIELD PrestreamMipLevelsFullMips:1;
+    BITFIELD PrestreamMipLevelsHighPriority:1;
+    BITFIELD PrestreamGentleLastRenderTimeHint:1;
+    BITFIELD bIsCompositingSource:1;
+    BITFIELD bHasBeenPaintedInEditor:1;
+    BITFIELD bHeightmapTexture:1;
+    BITFIELD IsALightingGel:1;
+    SCRIPT_ALIGN;
+    FLinearColor CustomDxtWeights;
+    FLOAT PrestreamMipLevelsTimestamp;
+    INT GelIndex;
+    INT GelMipOffset;
     FName TextureFileCacheName;
     FGuid TextureFileCacheGuid;
     INT RequestedMips;
     INT ResidentMips;
+    INT MipsToRemoveOnCompress;
     mutable FThreadSafeCounter PendingMipChangeRequestStatus;
 private:
     TArrayNoInit<BYTE> SystemMemoryData;
@@ -611,6 +624,7 @@ public:
     FTexture2DResourceMem* ResourceMem;
     INT FirstResourceMemMip;
     FLOAT Timer;
+    FPointer CompressSourceArtTask;
     //## END PROPS Texture2D
 
     void SetForceMipLevelsToBeResident(FLOAT Seconds,INT CinematicTextureGroups=0);
@@ -1853,7 +1867,7 @@ VERIFY_CLASS_OFFSET_NODIE(UTexture,Texture,UnpackMin)
 VERIFY_CLASS_OFFSET_NODIE(UTexture,Texture,CachedMipGenSettings)
 VERIFY_CLASS_SIZE_NODIE(UTexture)
 VERIFY_CLASS_OFFSET_NODIE(UTexture2D,Texture2D,Mips)
-VERIFY_CLASS_OFFSET_NODIE(UTexture2D,Texture2D,Timer)
+VERIFY_CLASS_OFFSET_NODIE(UTexture2D,Texture2D,CompressSourceArtTask)
 VERIFY_CLASS_SIZE_NODIE(UTexture2D)
 VERIFY_CLASS_OFFSET_NODIE(UTextureFlipBook,TextureFlipBook,TimeIntoMovie)
 VERIFY_CLASS_OFFSET_NODIE(UTextureFlipBook,TextureFlipBook,ReleaseResourcesFence)

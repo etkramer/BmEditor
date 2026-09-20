@@ -59,6 +59,9 @@ var() TextureAddress AddressY;
 
 var() bool XboxForcePWLCorrection;
 
+// BM
+var() editoronly bool							UseCustomDxtWeights;
+
 /** Whether the texture is currently streamable or not.						*/
 var transient const bool						bIsStreamable;
 /** Whether the current texture mip change request is pending cancelation.	*/
@@ -74,8 +77,31 @@ var transient const bool						bHasBeenLoadedFromPersistentArchive;
 var transient bool								bForceMiplevelsToBeResident;
 /** Global/ serialized version of ForceMiplevelsToBeResident.				*/
 var() const bool								bGlobalForceMipLevelsToBeResident;
+
+// BM
+var transient bool								PrestreamMipLevelsFullMips;
+// BM
+var transient bool								PrestreamMipLevelsHighPriority;
+// BM
+var transient bool								PrestreamGentleLastRenderTimeHint;
+// BM
+var() const bool								bIsCompositingSource;
+// BM
+var editoronly bool								bHasBeenPaintedInEditor;
+// BM
+var() const bool								bHeightmapTexture;
+// BM
+var() const bool								IsALightingGel;
+// BM
+var() editoronly LinearColor					CustomDxtWeights;
+
 /** WorldInfo timestamp that tells the streamer to force all miplevels to be resident up until that time. */
-var private transient float						ForceMipLevelsToBeResidentTimestamp;
+var transient float								PrestreamMipLevelsTimestamp;
+
+// BM
+var transient int								GelIndex;
+// BM
+var transient int								GelMipOffset;
 
 /** Name of texture file cache texture mips are stored in, NAME_None if it is not part of one. */
 var		name									TextureFileCacheName;
@@ -86,6 +112,8 @@ var native const guid							TextureFileCacheGuid;
 var transient const int							RequestedMips;
 /** Number of miplevels currently resident.									*/
 var transient const int							ResidentMips;
+// BM
+var() int										MipsToRemoveOnCompress;
 /**
  * Thread-safe counter indicating the texture streaming state. The definitions below are mirrored in UnTex.h.
  *
@@ -145,6 +173,9 @@ var private const int							FirstResourceMemMip;
 
 /** Used for various timing measurements, e.g. streaming latency. */
 var private const native transient float		Timer;
+
+// BM
+var private const native transient pointer		CompressSourceArtTask;
 
 /**
  * Tells the streaming system that it should force all mip-levels to be resident for a number of seconds.
@@ -493,5 +524,6 @@ static native noexport final function Texture2D Create(int InSizeX, int InSizeY,
 
 defaultproperties
 {
+	GelIndex=-1
 	StreamingIndex=-1
 }

@@ -1960,7 +1960,7 @@ UBOOL FStreamingManagerTexture::StreamOutTextureData( INT RequiredMemorySize )
 			if ( Texture->MipTailBaseIdx < 0 || CurrentBaseMip < Texture->MipTailBaseIdx )
 			{
 				// Figure out whether texture should be forced resident based on bools and forced resident time.
-				UBOOL bForceMipLevelsToBeResident = (Texture->ShouldMipLevelsBeForcedResident() || Texture->ForceMipLevelsToBeResidentTimestamp >= CurrentTime);
+				UBOOL bForceMipLevelsToBeResident = (Texture->ShouldMipLevelsBeForcedResident() || Texture->PrestreamMipLevelsTimestamp >= CurrentTime);
 				if ( bForceMipLevelsToBeResident == FALSE && Texture->Resource )
 				{
 					// Don't try to stream out if the texture isn't ready.
@@ -4338,7 +4338,7 @@ void FStreamingManagerTexture::InvestigateTexture( const FString& InvestigateTex
 			else if ( Texture2D->ShouldMipLevelsBeForcedResident() )
 			{
 				FLOAT CurrentTime = FLOAT(appSeconds() - GStartTime);
-				FLOAT TimeLeft = CurrentTime - Texture2D->ForceMipLevelsToBeResidentTimestamp;
+				FLOAT TimeLeft = CurrentTime - Texture2D->PrestreamMipLevelsTimestamp;
 				debugf( TEXT("  Force all mips:  %.1f seconds left"), Max(TimeLeft,0.0f) );
 			}
 			else if ( StreamingTexture.MipCount == 1 )
