@@ -521,6 +521,21 @@ private:
 	void			AddResourceMemInfo( INT SizeX, INT SizeY, INT NumMips, DWORD Format, DWORD TexCreateFlags );
 };
 
+#if BATMAN
+// BM: entry in the summary's trailing string table - always empty in retail packages, purpose unknown
+struct FPackageSummaryStringEntry
+{
+	FString	A;
+	FString	B;
+	FString	C;
+
+	friend FArchive& operator<<( FArchive& Ar, FPackageSummaryStringEntry& Entry )
+	{
+		return Ar << Entry.A << Entry.B << Entry.C;
+	}
+};
+#endif
+
 /**
  * A "table of contents" for an Unreal package file.  Stored at the top of the file.
  */
@@ -660,6 +675,24 @@ public:
 	 */
 	FTextureAllocations	TextureAllocations;
 
+#if BATMAN
+	/**
+	 * Index of the export the game precaches first, and that export's offset in the file.
+	 */
+	INT		PrecacheExportIndex;
+	INT		PrecacheExportOffset;
+
+	/**
+	 * Enlighten version, only present when the licensee word carries VER_LICENSEE_ENLIGHTEN.
+	 */
+	INT		EnlightenVersion;
+
+	/**
+	 * Trailing string table, always empty in retail packages.
+	 */
+	TArray<FPackageSummaryStringEntry> StringTable;
+#endif
+
 	/** Constructor */
 	FPackageFileSummary();
 
@@ -671,8 +704,25 @@ public:
 
 	INT GetFileVersionLicensee() const
 	{
+#if BATMAN
+		// BM: the top bit of the licensee word is a flag, not part of the version
+		return ((FileVersion >> 16) & VER_LICENSEE_MASK);
+#else
 		return ((FileVersion >> 16) & 0xffff);
+#endif
 	}
+
+#if BATMAN
+	UBOOL HasEnlightenVersion() const
+	{
+		return (((DWORD)FileVersion & 0x80000000) != 0);
+	}
+
+	INT GetFileVersionEnlighten() const
+	{
+		return HasEnlightenVersion() ? EnlightenVersion : 0;
+	}
+#endif
 
 	INT GetCookedContentVersion() const
 	{
@@ -681,7 +731,12 @@ public:
 
 	void SetFileVersions(INT Epic, INT Licensee)
 	{
+#if BATMAN
+		FileVersion = (INT)(((((DWORD)Licensee & VER_LICENSEE_MASK) | VER_LICENSEE_ENLIGHTEN) << 16) | (DWORD)Epic);
+		EnlightenVersion = GPackageFileEnlightenVersion;
+#else
 		FileVersion = ((Licensee << 16) | Epic);
+#endif
 	}
 
 	/** I/O function */

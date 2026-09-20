@@ -690,7 +690,38 @@ enum EUnrealEngineObjectVersion
 	// -----<new versions can be added before this line>-------------------------------------------------
 
 	// - this needs to be the last line (see note below)
-	VER_AUTOMATIC_VERSION_PLUS_ONE
+	VER_AUTOMATIC_VERSION_PLUS_ONE,
+
+#if BATMAN
+	// Stock UE3 versions past this branch's auto-counted range. None of the changes are implemented here,
+	// the constants only exist so BM4-era serialization can be gated by name instead of by magic number.
+	// - 16 bit skeletal mesh section/chunk indices widened to 32 bit
+	VER_DWORD_SKELETAL_MESH_SECTIONS = 806,
+	// - Added NativeClassName to UClass
+	VER_ADDED_NATIVE_CLASS_NAME = 813,
+	// - Added the extra static mesh LOD model
+	VER_ADDED_EXTRA_STATIC_MESH_LOD = 823,
+	// - Removed convex volumes from static meshes
+	VER_REMOVED_CONVEX_VOLUMES = 829,
+	// - Added the tessellation adjacency index buffer
+	VER_ADDED_ADJACENCY_INDEX_BUFFER = 841,
+	// - Added WiiU sound data
+	VER_ADDED_WIIU_SOUND_DATA = 845,
+	// - Added iPhone sound data
+	VER_ADDED_IPHONE_SOUND_DATA = 851,
+	// - Added Flash sound data
+	VER_ADDED_FLASH_SOUND_DATA = 854,
+	// - Added CachedATITCMips and CachedFlashMips to UTexture2D
+	VER_ADDED_ATITC_AND_FLASH_MIPS = 857,
+	// - Added the material resource quality mask
+	VER_ADDED_MATERIAL_RESOURCE_MASK = 858,
+	// - Added a trailing int to UStaticMesh
+	VER_ADDED_STATIC_MESH_TRAILING_INT = 859,
+	// - BM4 release
+	VER_BATMAN4_ENGINE = 863,
+	// - Added CachedETCMips to UTexture2D, past BM4 and must not be read
+	VER_ADDED_ETC_MIPS = 864
+#endif
 };
 
 #if BATMAN
@@ -699,9 +730,28 @@ enum ELicenseeVersion
 	// - BM1 release
 	VER_BATMAN1 = 21,
 
+	// - Summary stores the index of the export the loader precaches first
+	VER_SUMMARY_PRECACHE_EXPORT = 87,
+
 	// - BM2 release
-	VER_BATMAN2 = 101
+	VER_BATMAN2 = 101,
+
+	// - Summary stores a table of string triples
+	VER_SUMMARY_STRING_TABLE = 110,
+
+	// - Summary stores the file offset of the precached export
+	VER_SUMMARY_PRECACHE_OFFSET = 175,
+
+	// - BM4 release
+	VER_BATMAN4 = 227
 };
+
+// The licensee word on disk is the version ORed with VER_LICENSEE_ENLIGHTEN, which marks the trailing Enlighten version
+#define VER_LICENSEE_MASK									0x7fff
+#define VER_LICENSEE_ENLIGHTEN								0x8000
+
+// Highest Enlighten version this engine understands
+#define VER_LATEST_ENLIGHTEN								9
 #endif
 
 // !!
@@ -712,9 +762,13 @@ enum ELicenseeVersion
 // !! WARNING: Only modify this in //depot/UnrealEngine3/Development/Src/Core/Inc/UnObjVer.h on the Epic Perforce server. All 
 // !! WARNING: other places should modify VER_LATEST_ENGINE_LICENSEE instead.
 // !!
+#if BATMAN
+#define VER_LATEST_ENGINE									(PREPROCESSOR_ENUM_PROTECT(VER_BATMAN4_ENGINE))
+#else
 #define VER_LATEST_ENGINE									(PREPROCESSOR_ENUM_PROTECT(VER_AUTOMATIC_VERSION_PLUS_ONE) - 1)
+#endif
 
-#define VER_LATEST_ENGINE_LICENSEE							(PREPROCESSOR_ENUM_PROTECT(VER_BATMAN2))
+#define VER_LATEST_ENGINE_LICENSEE							(PREPROCESSOR_ENUM_PROTECT(VER_BATMAN4))
 
 // Cooked packages loaded with an older package version are recooked
 #define VER_LATEST_COOKED_PACKAGE							129
@@ -735,5 +789,8 @@ extern INT			GEngineNegotiationVersion;		// Base protocol version to negotiate i
 extern INT			GPackageFileVersion;			// The current Unrealfile version.
 extern INT			GPackageFileMinVersion;			// The earliest file version that can be loaded with complete backward compatibility.
 extern INT			GPackageFileLicenseeVersion;	// Licensee Version Number.
+#if BATMAN
+extern INT			GPackageFileEnlightenVersion;	// Enlighten Version Number.
+#endif
 
 extern INT          GPackageFileCookedContentVersion;  // version of the cooked content

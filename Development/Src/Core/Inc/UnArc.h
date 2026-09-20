@@ -269,6 +269,9 @@ public:
 	FORCEINLINE INT Ver()									const	{return ArVer;}
 	FORCEINLINE INT NetVer()								const	{return ArNetVer&0x7fffffff;}
 	FORCEINLINE INT LicenseeVer()							const	{return ArLicenseeVer;}
+#if BATMAN
+	FORCEINLINE INT EnlightenVer()							const	{return ArEnlightenVer;}
+#endif
 	FORCEINLINE UBOOL IsLoading()							const	{return ArIsLoading;}
 	FORCEINLINE UBOOL IsSaving()							const	{return ArIsSaving;}
 	FORCEINLINE UBOOL IsSaveGame()							const	{return ArIsSaveGame;}
@@ -319,6 +322,9 @@ public:
 	 * @param Ver	new version number
 	 */
 	void SetLicenseeVer(INT InVer)	{ ArLicenseeVer = InVer; }
+#if BATMAN
+	void SetEnlightenVer(INT InVer)	{ ArEnlightenVer = InVer; }
+#endif
 
 	/**
 	 * Toggle saving as Unicode. This is needed when we need to make sure ANSI strings are saved as Unicode
@@ -436,6 +442,10 @@ protected:
 	INT ArVer;
 	INT ArNetVer;
 	INT ArLicenseeVer;
+#if BATMAN
+	// BM: fourth version field, sits alongside ArVer/ArLicenseeVer in retail
+	INT ArEnlightenVer;
+#endif
 	UBOOL ArIsLoading;
 	UBOOL ArIsSaving;
 	UBOOL ArIsTransacting;
@@ -495,6 +505,9 @@ protected:
 		ArVer								= GPackageFileVersion;
 		ArNetVer							= GEngineNegotiationVersion;
 		ArLicenseeVer						= GPackageFileLicenseeVersion;
+#if BATMAN
+		ArEnlightenVer						= GPackageFileEnlightenVersion;
+#endif
 		ArIsLoading							= FALSE;
 		ArIsSaving							= FALSE;
 		ArIsTransacting						= FALSE;
@@ -548,6 +561,9 @@ public:
 		ArVer								= InnerArchive.Ver();
 		ArNetVer							= InnerArchive.NetVer();
 		ArLicenseeVer						= InnerArchive.LicenseeVer();
+#if BATMAN
+		ArEnlightenVer						= InnerArchive.EnlightenVer();
+#endif
 		// BM: cookedness has to follow the inner archive, or BM2 gates misfire behind a proxy.
 		ArContainsCookedData				= InnerArchive.ContainsCookedData();
 		ArIsLoading							= InnerArchive.IsLoading();

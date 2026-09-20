@@ -410,6 +410,9 @@ FArchive& operator<<( FArchive& Ar, FTextureAllocations& TextureAllocations );
 FPackageFileSummary::FPackageFileSummary()
 {
 	appMemzero( this, sizeof(*this) );
+#if BATMAN
+	PrecacheExportIndex = INDEX_NONE;
+#endif
 }
 
 FArchive& operator<<( FArchive& Ar, FPackageFileSummary& Sum )
@@ -496,6 +499,40 @@ FArchive& operator<<( FArchive& Ar, FPackageFileSummary& Sum )
 		{
 			Ar << Sum.TextureAllocations;
 		}
+
+#if BATMAN
+		if (Sum.GetFileVersionLicensee() >= VER_SUMMARY_PRECACHE_EXPORT)
+		{
+			Ar << Sum.PrecacheExportIndex;
+		}
+		else
+		{
+			Sum.PrecacheExportIndex = INDEX_NONE;
+		}
+
+		if (Sum.GetFileVersionLicensee() >= VER_SUMMARY_PRECACHE_OFFSET)
+		{
+			Ar << Sum.PrecacheExportOffset;
+		}
+		else
+		{
+			Sum.PrecacheExportOffset = 0;
+		}
+
+		if (Sum.HasEnlightenVersion())
+		{
+			Ar << Sum.EnlightenVersion;
+		}
+		else
+		{
+			Sum.EnlightenVersion = 0;
+		}
+
+		if (Sum.GetFileVersionLicensee() >= VER_SUMMARY_STRING_TABLE)
+		{
+			Ar << Sum.StringTable;
+		}
+#endif
 	}
 
 	return Ar;
@@ -1400,6 +1437,10 @@ UBOOL ULinkerLoad::SerializePackageFileSummary()
 		Loader->SetLicenseeVer(Summary.GetFileVersionLicensee());
 		ArVer = Summary.GetFileVersion();
 		ArLicenseeVer = Summary.GetFileVersionLicensee();
+#if BATMAN
+		Loader->SetEnlightenVer(Summary.GetFileVersionEnlighten());
+		ArEnlightenVer = Summary.GetFileVersionEnlighten();
+#endif
 
 		// Package has been stored compressed.
 #if DEBUG_DISTRIBUTED_COOKING

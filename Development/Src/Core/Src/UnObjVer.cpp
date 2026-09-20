@@ -29,8 +29,11 @@ INT	GBuiltFromChangeList		= BUILT_FROM_CHANGELIST;
 INT	GEngineNegotiationVersion	= 3077;
 
 // @see UnObjVer.h for the list of changes/defines
-INT	GPackageFileVersion			= 805;
+INT	GPackageFileVersion			= VER_LATEST_ENGINE;
 INT	GPackageFileMinVersion		= 491;
 INT GPackageFileCookedContentVersion = VER_LATEST_COOKED_PACKAGE | (VER_LATEST_COOKED_PACKAGE_LICENSEE << 16);
 
 INT	GPackageFileLicenseeVersion = VER_LATEST_ENGINE_LICENSEE;
+#if BATMAN
+INT	GPackageFileEnlightenVersion = VER_LATEST_ENLIGHTEN;
+#endif
