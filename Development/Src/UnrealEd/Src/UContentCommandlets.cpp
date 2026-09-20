@@ -8239,7 +8239,10 @@ public:
 		if( Event == NAME_Error
 		||	Event == NAME_Critical
 		||	Line.InStr( TEXT("[LAYOUT]") ) != INDEX_NONE
-		||	Line.InStr( TEXT("skipping CDO") ) != INDEX_NONE )
+		||	Line.InStr( TEXT("skipping CDO") ) != INDEX_NONE
+		||	Line.InStr( TEXT("Type mismatch in ") ) != INDEX_NONE
+		||	Line.InStr( TEXT("struct type mismatch") ) != INDEX_NONE
+		||	Line.InStr( TEXT("is not serializable for package") ) != INDEX_NONE )
 		{
 			Failures.AddItem( Line );
 		}

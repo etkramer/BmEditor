@@ -3867,6 +3867,10 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 		UClass* LoadClass = (UClass*)IndexToObject( Export.ClassIndex );
 		if( !LoadClass && Export.ClassIndex!=UCLASS_INDEX ) // Hack to load packages with classes which do not exist.
 		{
+#if BATMAN
+			// BM: stock UE3 drops the export without a word, so a package half-loads silently.
+			warnf( NAME_Warning, TEXT("Missing class %s for export %s in %s"), *GetExportClassName(Index).ToString(), *GetExportFullName(Index), *Filename );
+#endif
 			return NULL;
 		}
 		if( !LoadClass )

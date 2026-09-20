@@ -643,8 +643,7 @@ static FName GetBmSimpleTypeID( INT TypeIndex )
 	switch( TypeIndex )
 	{
 	case NAME_VectorProperty:
-	case NAME_RotatorProperty:
-	case NAME_GUIDProperty:			return FName(NAME_StructProperty);
+	case NAME_RotatorProperty:		return FName(NAME_StructProperty);
 	case NAME_ObjectNCRProperty:	return FName(NAME_ObjectProperty);
 	default:						return FName((EName)TypeIndex);
 	}
@@ -672,6 +671,22 @@ static void ReportLayoutMismatch( const UStruct* Struct, const UProperty* Prop, 
 	warnf( NAME_Warning, TEXT("[LAYOUT] %s: offset %u holds %s %s (%s), but the package writes %s there (package %s)"),
 		*Struct->GetName(), (UINT)Tag.PropertyOffset, *Prop->GetID().ToString(), *Prop->GetName(),
 		*Prop->GetOuter()->GetName(), *Tag.Type.ToString(), *Ar.GetArchiveName() );
+}
+
+// BM: named cooked tags carry retail's offset as well, so every one of them is a free layout assertion.
+static void ReportNamedTagOffsetMismatch( const UStruct* Struct, const UProperty* Prop, const FPropertyTag& Tag, INT ExpectedOffset, FArchive& Ar )
+{
+	static TSet<QWORD> ReportedSites;
+	const QWORD Site = ((QWORD)Struct->GetFName().GetIndex() << 32) | (QWORD)Prop->GetFName().GetIndex();
+	if( ReportedSites.Contains(Site) )
+	{
+		return;
+	}
+	ReportedSites.Add( Site );
+
+	warnf( NAME_Warning, TEXT("[LAYOUT] %s: %s %s (%s) is at offset %d, but the package writes it at %u (package %s)"),
+		*Struct->GetName(), *Prop->GetID().ToString(), *Prop->GetName(), *Prop->GetOuter()->GetName(),
+		ExpectedOffset, (UINT)Tag.PropertyOffset, *Ar.GetArchiveName() );
 }
 #endif
 
@@ -758,9 +773,6 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 						break;
 					case NAME_ObjectNCRProperty:
 						Ar << *(UObject**)Dest;
-						break;
-					case NAME_GUIDProperty:
-						Ar << *(FGuid*)Dest;
 						break;
 					default:
 						appErrorf(TEXT("BM: unexpected simple type %s at offset %u in %s"),
@@ -862,6 +874,21 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 				RemainingArrayDim = Property ? Property->ArrayDim : 0;
 			}
 
+#if BATMAN
+			// BM: the tag's offset is retail's layout - checking it turns every named tag into a layout assertion.
+			if( Property != NULL && FPropertyTag::IsBmCookedTag(Ar) && Tag.ArrayIndex >= 0 && Tag.ArrayIndex < Property->ArrayDim )
+			{
+				const UClass* SerializedClass = ConstCast<UClass>(this);
+				if( SerializedClass == NULL || !SerializedClass->HasAnyClassFlags(CLASS_Intrinsic) )
+				{
+					const INT ExpectedOffset = Property->Offset + Tag.ArrayIndex * Property->ElementSize;
+					if( (INT)Tag.PropertyOffset != ExpectedOffset )
+					{
+						ReportNamedTagOffsetMismatch( this, Property, Tag, ExpectedOffset, Ar );
+					}
+				}
+			}
+#endif
 
 			//@{
 			//@compatibility
