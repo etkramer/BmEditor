@@ -1910,6 +1910,15 @@ void UState::Serialize( FArchive& Ar )
 	Ar << ProbeMask;
 #if BATMAN
 	}
+
+	// BM: AK narrows StateFlags to a WORD (UELib UState.cs:98).
+	if( Ar.LicenseeVer() >= VER_BATMAN4 )
+	{
+		WORD NarrowStateFlags = (WORD)StateFlags;
+		Ar << LabelTableOffset << NarrowStateFlags;
+		StateFlags = NarrowStateFlags;
+	}
+	else
 #endif
 	Ar << LabelTableOffset << StateFlags;
 	// serialize the function map
