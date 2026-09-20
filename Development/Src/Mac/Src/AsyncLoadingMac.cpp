@@ -40,7 +40,7 @@ DECLARE_FLOAT_ACCUMULATOR_STAT(TEXT("Platform read time"),STAT_AsyncIO_PlatformR
  *
  * @return	TRUE if read was successful, FALSE otherwise
  */
-UBOOL FAsyncIOSystemMac::PlatformReadDoNotCallDirectly( FAsyncIOHandle FileHandle, INT Offset, INT Size, void* Dest )
+UBOOL FAsyncIOSystemMac::PlatformReadDoNotCallDirectly( FAsyncIOHandle FileHandle, SQWORD Offset, INT Size, void* Dest )
 {
 	ssize_t BytesRead = 0;
 	UBOOL bSeekFailed = FALSE;

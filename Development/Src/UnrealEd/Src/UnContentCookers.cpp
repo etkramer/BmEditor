@@ -8808,7 +8808,8 @@ void UCookPackagesCommandlet::SaveMipToTextureFileCache( UPackage* Package, UTex
 
 	BulkDataInfo->SavedBulkDataFlags		= Mip.Data.GetSavedBulkDataFlags();
 	BulkDataInfo->SavedElementCount			= Mip.Data.GetSavedElementCount();
-	BulkDataInfo->SavedBulkDataOffsetInFile	= Mip.Data.GetSavedBulkDataOffsetInFile();
+	// BM: the cooker's own archives are still 32-bit, so anything it wrote fits in an INT.
+	BulkDataInfo->SavedBulkDataOffsetInFile	= (INT)Mip.Data.GetSavedBulkDataOffsetInFile();
 	BulkDataInfo->SavedBulkDataSizeOnDisk	= Mip.Data.GetSavedBulkDataSizeOnDisk();
 	BulkDataInfo->TextureFileCacheName		= TextureFileCache;
 
@@ -12207,7 +12208,7 @@ void UPersistentCookerData::GatherCookedBulkDataInfos( UObject* Outer )
 						FCookedBulkDataInfo Info;
 						Info.SavedBulkDataFlags			= Mip.Data.GetSavedBulkDataFlags();
 						Info.SavedElementCount			= Mip.Data.GetSavedElementCount();
-						Info.SavedBulkDataOffsetInFile	= Mip.Data.GetSavedBulkDataOffsetInFile();
+						Info.SavedBulkDataOffsetInFile	= (INT)Mip.Data.GetSavedBulkDataOffsetInFile();
 						Info.SavedBulkDataSizeOnDisk	= Mip.Data.GetSavedBulkDataSizeOnDisk();
 						Info.TextureFileCacheName		= NAME_None;
 						SetBulkDataInfo( Texture2D, *FString::Printf(TEXT("MipLevel_%i"),MipLevel), Info );

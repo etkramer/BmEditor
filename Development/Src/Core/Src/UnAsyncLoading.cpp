@@ -832,7 +832,7 @@ UBOOL GbLogAsyncLoading = FALSE;
  */
 QWORD FAsyncIOSystemBase::QueueIORequest( 
 	const FString& FileName, 
-	INT Offset, 
+	SQWORD Offset, 
 	INT Size, 
 	INT UncompressedSize, 
 	void* Dest, 
@@ -927,7 +927,7 @@ void FAsyncIOSystemBase::LogIORequest(const FString& Message, const FAsyncIORequ
  *
  * @return	TRUE if read was successful, FALSE otherwise
  */	
-UBOOL FAsyncIOSystemBase::InternalRead( FAsyncIOHandle FileHandle, INT Offset, INT Size, void* Dest )
+UBOOL FAsyncIOSystemBase::InternalRead( FAsyncIOHandle FileHandle, SQWORD Offset, INT Size, void* Dest )
 {
 	FScopeLock ScopeLock( ExclusiveReadCriticalSection );
 
@@ -1020,7 +1020,7 @@ void FAsyncIOSystemBase::FulfillCompressedRead( const FAsyncIORequest& IORequest
 		// if it doesn't equal the swapped version, then data is corrupted
 		if (HeaderData[0] != PACKAGE_FILE_TAG_SWAPPED)
 		{
-			warnf(NAME_Warning, TEXT("Detected data corruption [header] trying to read %i bytes at offset %i from '%s'. Please delete file and recook."),
+			warnf(NAME_Warning, TEXT("Detected data corruption [header] trying to read %i bytes at offset %I64d from '%s'. Please delete file and recook."),
 				IORequest.UncompressedSize, 
 				IORequest.Offset ,
 				*IORequest.FileName );
@@ -1079,7 +1079,7 @@ void FAsyncIOSystemBase::FulfillCompressedRead( const FAsyncIORequest& IORequest
 
 	if (CompressionChunks[0].UncompressedSize != CalculatedUncompressedSize)
 	{
-		warnf(NAME_Warning, TEXT("Detected data corruption [incorrect uncompressed size] calculated %i bytes, requested %i bytes at offset %i from '%s'. Please delete file and recook."),
+		warnf(NAME_Warning, TEXT("Detected data corruption [incorrect uncompressed size] calculated %i bytes, requested %i bytes at offset %I64d from '%s'. Please delete file and recook."),
 			CalculatedUncompressedSize,
 			IORequest.UncompressedSize, 
 			IORequest.Offset ,
@@ -1090,7 +1090,7 @@ void FAsyncIOSystemBase::FulfillCompressedRead( const FAsyncIORequest& IORequest
 
 	if (ChunkInfoSize + HeaderSize + CompressionChunks[0].CompressedSize > IORequest.Size )
 	{
-		warnf(NAME_Warning, TEXT("Detected data corruption [undershoot] trying to read %i bytes at offset %i from '%s'. Please delete file and recook."),
+		warnf(NAME_Warning, TEXT("Detected data corruption [undershoot] trying to read %i bytes at offset %I64d from '%s'. Please delete file and recook."),
 			IORequest.UncompressedSize, 
 			IORequest.Offset ,
 			*IORequest.FileName );
@@ -1100,7 +1100,7 @@ void FAsyncIOSystemBase::FulfillCompressedRead( const FAsyncIORequest& IORequest
 
 	if (IORequest.UncompressedSize != CalculatedUncompressedSize)
 	{
-		warnf(NAME_Warning, TEXT("Detected data corruption [incorrect uncompressed size] calculated %i bytes, requested %i bytes at offset %i from '%s'. Please delete file and recook."),
+		warnf(NAME_Warning, TEXT("Detected data corruption [incorrect uncompressed size] calculated %i bytes, requested %i bytes at offset %I64d from '%s'. Please delete file and recook."),
 			CalculatedUncompressedSize,
 			IORequest.UncompressedSize, 
 			IORequest.Offset ,
@@ -1251,7 +1251,7 @@ FAsyncIOHandle* FAsyncIOSystemBase::FindCachedFileHandle( const FString& FileNam
  */
 QWORD FAsyncIOSystemBase::LoadData( 
 	const FString& FileName, 
-	INT Offset, 
+	SQWORD Offset, 
 	INT Size, 
 	void* Dest, 
 	FThreadSafeCounter* Counter,
@@ -1283,7 +1283,7 @@ QWORD FAsyncIOSystemBase::LoadData(
  */
 QWORD FAsyncIOSystemBase::LoadCompressedData( 
 	const FString& FileName, 
-	INT Offset, 
+	SQWORD Offset, 
 	INT Size, 
 	INT UncompressedSize, 
 	void* Dest, 

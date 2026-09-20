@@ -37,7 +37,7 @@ struct FAsyncIOSystemMac : public FAsyncIOSystemBase
 	 *
 	 * @return	TRUE if read was successful, FALSE otherwise
 	 */
-	virtual UBOOL PlatformReadDoNotCallDirectly(FAsyncIOHandle FileHandle, INT Offset, INT Size, void* Dest);
+	virtual UBOOL PlatformReadDoNotCallDirectly(FAsyncIOHandle FileHandle, SQWORD Offset, INT Size, void* Dest);
 
 	/** 
 	 * Creates a file handle for the passed in file name

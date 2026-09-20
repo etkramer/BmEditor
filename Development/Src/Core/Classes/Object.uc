@@ -100,11 +100,12 @@ struct UntypedBulkData_Mirror
 	var native const pointer	VfTable;
 	var native const int		BulkDataFlags_LockStatus_ShouldFreeOnEmpty;
 	var native const int		ElementCount;
-	var native const int		BulkDataOffsetInFile;
+	// BM: 64-bit file offsets, declared as int pairs to keep the 4-byte packed native layout.
+	var native const int		BulkDataOffsetInFile[2];
 	var native const int 		BulkDataSizeOnDisk;
 	var editoronly native const int	SavedBulkDataFlags;
 	var editoronly native const int	SavedElementCount;
-	var editoronly native const int	SavedBulkDataOffsetInFile;
+	var editoronly native const int	SavedBulkDataOffsetInFile[2];
 	var editoronly native const int	SavedBulkDataSizeOnDisk;
 	var native const pointer	BulkData;
 	var native const pointer	AttachedAr;

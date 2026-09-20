@@ -157,7 +157,7 @@ struct FUntypedBulkData
 	 *
 	 * @return Offset into the file or INDEX_NONE in case there is no association
 	 */
-	INT GetBulkDataOffsetInFile() const;
+	SQWORD GetBulkDataOffsetInFile() const;
 	/**
 	 * Returns whether the bulk data is stored compressed on disk.
 	 *
@@ -238,13 +238,13 @@ private:
 	 *
 	 * @return Last saved Offset into the file or INDEX_NONE in case there is no association
 	 */
-	INT GetSavedBulkDataOffsetInFile() const;
+	SQWORD GetSavedBulkDataOffsetInFile() const;
 	/**
 	 * Sets last saved offset into the file the bulk data is located at.
 	 *
 	 * @param NewOffset offset to save
 	 */
-	void SetSavedBulkDataOffsetInFile(INT NewOffset)
+	void SetSavedBulkDataOffsetInFile(SQWORD NewOffset)
 	{
 		SavedBulkDataOffsetInFile = NewOffset;
 	}
@@ -380,7 +380,7 @@ private:
 		UBOOL bShouldStoreInSeparateFile, 
 		INT InSavedBulkDataFlags		= 0, 
 		INT InSavedElementCount			= INDEX_NONE, 
-		INT	InSavedBulkDataOffsetInFile	= INDEX_NONE,
+		SQWORD InSavedBulkDataOffsetInFile = INDEX_NONE,
 		INT InSavedBulkDataSizeOnDisk	= INDEX_NONE );
 
 	/**
@@ -437,12 +437,13 @@ public:
 	BYTE				LockStatus;
 	WORD				BulkDataFlags;
 	INT					ElementCount;
-	INT					BulkDataOffsetInFile;
+	// BM: only the offset widened to 64-bit; ElementCount and SizeOnDisk stay INT on disk.
+	SQWORD				BulkDataOffsetInFile;
 	INT					BulkDataSizeOnDisk;
 
 	DWORD				SavedBulkDataFlags;
 	INT					SavedElementCount;
-	INT					SavedBulkDataOffsetInFile;
+	SQWORD				SavedBulkDataOffsetInFile;
 	INT					SavedBulkDataSizeOnDisk;
 
 	void*				BulkData;

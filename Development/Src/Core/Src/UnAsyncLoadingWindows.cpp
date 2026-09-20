@@ -30,7 +30,7 @@ DECLARE_FLOAT_ACCUMULATOR_STAT(TEXT("Platform read time"),STAT_AsyncIO_PlatformR
  *
  * @return	TRUE if read was successful, FALSE otherwise
  */
-UBOOL FAsyncIOSystemWindows::PlatformReadDoNotCallDirectly( FAsyncIOHandle FileHandle, INT Offset, INT Size, void* Dest )
+UBOOL FAsyncIOSystemWindows::PlatformReadDoNotCallDirectly( FAsyncIOHandle FileHandle, SQWORD Offset, INT Size, void* Dest )
 {
 	DWORD BytesRead		= 0;
 	UBOOL bSeekFailed	= FALSE;
@@ -39,7 +39,10 @@ UBOOL FAsyncIOSystemWindows::PlatformReadDoNotCallDirectly( FAsyncIOHandle FileH
 		SCOPED_FILE_IO_ASYNC_READ_STATS(FileHandle.StatsHandle,Size,Offset);
 		if( Offset != INDEX_NONE )
 		{
-			bSeekFailed = SetFilePointer( FileHandle.Handle, Offset, NULL, FILE_BEGIN ) == INVALID_SET_FILE_POINTER;
+			// BM: TFCs are larger than 4 GB, so the seek has to be 64-bit.
+			LARGE_INTEGER SeekPos;
+			SeekPos.QuadPart = Offset;
+			bSeekFailed = SetFilePointerEx( FileHandle.Handle, SeekPos, NULL, FILE_BEGIN ) == 0;
 		}
 		if( !bSeekFailed )
 		{

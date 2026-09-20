@@ -114,7 +114,7 @@ struct FIOSystem
 	 */
 	virtual QWORD LoadData( 
 		const FString& Filename, 
-		INT Offset, 
+		SQWORD Offset, 
 		INT Size, 
 		void* Dest, 
 		FThreadSafeCounter* Counter,
@@ -136,7 +136,7 @@ struct FIOSystem
 	 */
 	virtual QWORD LoadCompressedData( 
 		const FString& Filename, 
-		INT Offset, 
+		SQWORD Offset, 
 		INT Size, 
 		INT UncompressedSize, 
 		void* Dest, 
@@ -238,7 +238,7 @@ struct FAsyncIOSystemBase : public FIOSystem, FRunnable
 	 */
 	virtual QWORD LoadData( 
 		const FString& FileName, 
-		INT Offset, 
+		SQWORD Offset, 
 		INT Size, 
 		void* Dest, 
 		FThreadSafeCounter* Counter,
@@ -260,7 +260,7 @@ struct FAsyncIOSystemBase : public FIOSystem, FRunnable
 	 */
 	virtual QWORD LoadCompressedData( 
 		const FString& FileName, 
-		INT Offset, 
+		SQWORD Offset, 
 		INT Size, 
 		INT UncompressedSize, 
 		void* Dest, 
@@ -358,7 +358,7 @@ protected:
 		/** Name of file.																			*/
 		FString				FileName;
 		/** Offset into file.																		*/
-		INT					Offset;
+		SQWORD				Offset;
 		/** Size in bytes of data to read.															*/
 		INT					Size;
 		/** Uncompressed size in bytes of original data, 0 if data is not compressed on disc		*/
@@ -395,7 +395,7 @@ protected:
 		 */
 		FString ToString() const
 		{
-			return FString::Printf(TEXT("%11.1f, %10d, %10d, %10d, %10d, 0x%p, 0x%08x, 0x%08x, %d, %s"),
+			return FString::Printf(TEXT("%11.1f, %10d, %10I64d, %10d, %10d, 0x%p, 0x%08x, 0x%08x, %d, %s"),
 				(DOUBLE)RequestIndex, FileSortKey, Offset, Size, UncompressedSize, Dest, (DWORD)CompressionFlags,
 				(DWORD)Priority, bIsDestroyHandleRequest ? 1 : 0, *FileName);
 		}
@@ -411,7 +411,7 @@ protected:
 	 *
 	 * @return	TRUE if read was successful, FALSE otherwise
 	 */	
-	UBOOL InternalRead( FAsyncIOHandle FileHandle, INT Offset, INT Size, void* Dest );
+	UBOOL InternalRead( FAsyncIOHandle FileHandle, SQWORD Offset, INT Size, void* Dest );
 
 	/** 
 	 * Pure virtual of platform specific read functionality that needs to be implemented by
@@ -424,7 +424,7 @@ protected:
 	 *
 	 * @return	TRUE if read was successful, FALSE otherwise
 	 */
-	virtual UBOOL PlatformReadDoNotCallDirectly( FAsyncIOHandle FileHandle, INT Offset, INT Size, void* Dest ) = 0;
+	virtual UBOOL PlatformReadDoNotCallDirectly( FAsyncIOHandle FileHandle, SQWORD Offset, INT Size, void* Dest ) = 0;
 
 	/** 
 	 * Pure virtual of platform specific file handle creation functionality that needs to be 
@@ -538,7 +538,7 @@ protected:
 	 */
 	QWORD QueueIORequest( 
 		const FString& FileName, 
-		INT Offset, 
+		SQWORD Offset, 
 		INT Size, 
 		INT UncompressedSize, 
 		void* Dest, 
@@ -606,7 +606,7 @@ struct FAsyncIOSystemWindows : public FAsyncIOSystemBase
 	 *
 	 * @return	TRUE if read was successful, FALSE otherwise
 	 */
-	virtual UBOOL PlatformReadDoNotCallDirectly( FAsyncIOHandle FileHandle, INT Offset, INT Size, void* Dest );
+	virtual UBOOL PlatformReadDoNotCallDirectly( FAsyncIOHandle FileHandle, SQWORD Offset, INT Size, void* Dest );
 
 	/** 
 	 * Creates a file handle for the passed in file name
@@ -659,7 +659,7 @@ struct FAsyncIOSystemXenon : public FAsyncIOSystemBase
 	 *
 	 * @return	TRUE if read was successful, FALSE otherwise
 	 */
-	virtual UBOOL PlatformReadDoNotCallDirectly( FAsyncIOHandle FileHandle, INT Offset, INT Size, void* Dest );
+	virtual UBOOL PlatformReadDoNotCallDirectly( FAsyncIOHandle FileHandle, SQWORD Offset, INT Size, void* Dest );
 
 	/** 
 	 * Creates a file handle for the passed in file name

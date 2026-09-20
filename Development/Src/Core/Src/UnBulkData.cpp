@@ -235,7 +235,7 @@ INT FUntypedBulkData::GetBulkDataSizeOnDisk() const
  *
  * @return Offset into the file or INDEX_NONE in case there is no association
  */
-INT FUntypedBulkData::GetBulkDataOffsetInFile() const
+SQWORD FUntypedBulkData::GetBulkDataOffsetInFile() const
 {
 	return BulkDataOffsetInFile;
 }
@@ -315,7 +315,7 @@ INT FUntypedBulkData::GetSavedElementCount() const
  *
  * @return Last saved Offset into the file or INDEX_NONE in case there is no association
  */
-INT FUntypedBulkData::GetSavedBulkDataOffsetInFile() const
+SQWORD FUntypedBulkData::GetSavedBulkDataOffsetInFile() const
 {
 	return SavedBulkDataOffsetInFile;
 }
@@ -810,7 +810,7 @@ void FUntypedBulkData::StoreInSeparateFile(
 	UBOOL bShouldStoreInSeparateFile, 
 	INT InSavedBulkDataFlags, 
 	INT InSavedElementCount, 
-	INT	InSavedBulkDataOffsetInFile,
+	SQWORD InSavedBulkDataOffsetInFile,
 	INT InSavedBulkDataSizeOnDisk )
 {
 	// Set flag to store bulk data in separate file.
@@ -1030,7 +1030,8 @@ void FUntypedBulkData::LoadDataIntoMemory( void* Dest )
 	// Keep track of current position in file so we can restore it later.
 	INT PushedPos = AttachedAr->Tell();
 	// Seek to the beginning of the bulk data in the file.
-	AttachedAr->Seek( BulkDataOffsetInFile );
+	// BM: only in-package bulk data is ever attached to an archive, and FArchive positions are still 32-bit.
+	AttachedAr->Seek( (INT)BulkDataOffsetInFile );
 		
 	SerializeBulkData( *AttachedAr, Dest );
 
