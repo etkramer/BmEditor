@@ -618,7 +618,8 @@ struct FActorHorizontalEdge
 	SWORD PointBX;
 	SWORD PointBY;
 	SWORD PointBZ;
-	BYTE EdgeType;
+	// BM: AK widened EdgeType to a WORD - bit 0x0800 occurs in retail levels
+	WORD EdgeType;
 
 	friend FArchive& operator<<( FArchive& Ar, FActorHorizontalEdge& E )
 	{
@@ -673,9 +674,12 @@ struct FActorEdgeCollection : public FEdgeCollectionBase
 	TArray<FActorHorizontalEdge> Edges;
 	TArray<FActorHorizontalEdge> RailingTops;
 	TArray<WORD> ConnectedCollections;
+	// BM: AK records the primitive the collection was built from
+	class UPrimitiveComponent* Component;
 
 	FActorEdgeCollection()
 	:	BoundingBox(0)
+	,	Component(NULL)
 	{}
 
 	virtual INT GetNumEdges() const;
@@ -687,6 +691,10 @@ struct FActorEdgeCollection : public FEdgeCollectionBase
 	friend FArchive& operator<<( FArchive& Ar, FActorEdgeCollection& C )
 	{
 		Ar << C.Edges << C.BoundingBox << C.ConnectedCollections << C.RailingTops;
+		if( Ar.LicenseeVer() >= VER_BATMAN4 )
+		{
+			Ar << C.Component;
+		}
 		return Ar;
 	}
 };
@@ -751,6 +759,11 @@ class ULevel : public ULevelBase
 
 	/** Static information used by texture streaming code, generated during PreSave									*/
 	TMap<UTexture2D*,TArray<FStreamableTextureInstance> >	TextureToInstancesMap;
+
+#if BATMAN
+	/** BM: cooked SIMD form of TextureToInstancesMap, which AK stores rather than rebuilding it at load */
+	TMap<UTexture2D*,TArray<FStreamableTextureInstance4> >	TextureToInstances4Map;
+#endif
 
 	/** Information about textures on dynamic primitives. Used by texture streaming code, generated during PreSave.		*/
 	TMap<UPrimitiveComponent*,TArray<FDynamicTextureInstance> >	DynamicTextureInstances;
@@ -870,6 +883,12 @@ class ULevel : public ULevelBase
 	TArray<FEdgeCollection>						HorizontalEdges;
 	TArray<FActorEdgeCollection>				ActorHorizontalEdges;
 	UBOOL										bEdgesValid;
+	/** BM: unidentified BYTE AK writes ahead of ActorHorizontalEdges - zero in every retail level seen */
+	BYTE										EdgeCollectionFlag;
+	/** BM: unidentified block AK appends after PrecomputedVolumeDistanceField, kept so saves round-trip */
+	FLOAT										LevelTailValues[4];
+	TArray<INT>									LevelTailArray;
+	INT											LevelTailInts[5];
 #endif
 
 	/** Contains precomputed visibility data for this level. */

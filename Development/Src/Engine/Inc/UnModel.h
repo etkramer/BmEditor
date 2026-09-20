@@ -25,6 +25,14 @@ public:
 	FVector2D BackfaceShadowTexCoord;
 #endif
 
+#if BATMAN
+	// BM: AK's cooked FVert stops after ShadowTexCoord - the bulk element is 16 bytes, not 24
+	static UBOOL DropsBackfaceShadowTexCoord( FArchive& Ar )
+	{
+		return Ar.LicenseeVer() >= VER_BATMAN4 && Ar.ContainsCookedData();
+	}
+#endif
+
 	// Functions.
 	friend FArchive& operator<< (FArchive &Ar, FVert &Vert)
 	{
@@ -34,10 +42,21 @@ public:
 		Ar << Vert.ShadowTexCoord;
 #if !CONSOLE
 		UBOOL const bIsCookedForConsole = IsPackageCookedForConsole(Ar);
-		if ( !bIsCookedForConsole && (!Ar.IsSaving() || !GIsCooking || !(GCookingTarget & UE3::PLATFORM_Console)) )
+		if ( !bIsCookedForConsole
+#if BATMAN
+			&& !DropsBackfaceShadowTexCoord(Ar)
+#endif
+			&& (!Ar.IsSaving() || !GIsCooking || !(GCookingTarget & UE3::PLATFORM_Console)) )
 		{
 			Ar << Vert.BackfaceShadowTexCoord;
 		}
+#if BATMAN
+		else if( Ar.IsLoading() )
+		{
+			// BM: nothing on disk to read it from, so keep it defined for BuildVertexBuffers
+			Vert.BackfaceShadowTexCoord = Vert.ShadowTexCoord;
+		}
+#endif
 #endif
 		return Ar;
 	}
@@ -53,7 +72,11 @@ public:
 	{
 #if !CONSOLE
 		UBOOL const bIsCookedForConsole = IsPackageCookedForConsole(Ar);
-		if( bIsCookedForConsole || ( Ar.IsSaving() && GIsCooking && (GCookingTarget & UE3::PLATFORM_Console) ) )
+		if( bIsCookedForConsole
+#if BATMAN
+			|| DropsBackfaceShadowTexCoord(Ar)
+#endif
+			|| ( Ar.IsSaving() && GIsCooking && (GCookingTarget & UE3::PLATFORM_Console) ) )
 		{
 			return sizeof(FVert) - sizeof(FVector2D);
 		}

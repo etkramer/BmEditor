@@ -334,6 +334,11 @@ void ULevel::Serialize( FArchive& Ar )
 
 #if BATMAN
 		FStreamableTextureInstance::SerializationBoundingSpheres = NULL;
+
+		if (Ar.LicenseeVer() >= VER_BATMAN4)
+		{
+			Ar << TextureToInstances4Map;
+		}
 #endif
 
 		if ( Ar.Ver() >= VER_DYNAMICTEXTUREINSTANCES )
@@ -479,6 +484,10 @@ void ULevel::Serialize( FArchive& Ar )
 	{
 		Ar << NodeEdgeCollection;
 		Ar << HorizontalEdges;
+		if (Ar.LicenseeVer() >= VER_BATMAN4)
+		{
+			Ar << EdgeCollectionFlag;
+		}
 		Ar << ActorHorizontalEdges;
 		Ar << bEdgesValid;
 	}
@@ -502,6 +511,22 @@ void ULevel::Serialize( FArchive& Ar )
 	{
 		Ar << PrecomputedVolumeDistanceField;
 	}
+
+#if BATMAN
+	// BM: unidentified tail AK writes last; shape is byte-proven, meaning is not
+	if (Ar.LicenseeVer() >= VER_BATMAN4)
+	{
+		for (INT i = 0; i < ARRAY_COUNT(LevelTailValues); i++)
+		{
+			Ar << LevelTailValues[i];
+		}
+		Ar << LevelTailArray;
+		for (INT i = 0; i < ARRAY_COUNT(LevelTailInts); i++)
+		{
+			Ar << LevelTailInts[i];
+		}
+	}
+#endif
 }
 
 

@@ -599,6 +599,16 @@ struct FStreamableTextureInstance4
 	FVector4 BoundingSphereRadius;
 	/** Texel scale factors for 4 texture instances */
 	FVector4 TexelFactor;
+
+#if BATMAN
+	// BM: AK cooks these alongside ULevel::TextureToInstancesMap instead of rebuilding them at load
+	friend FArchive& operator<<( FArchive& Ar, FStreamableTextureInstance4& Instance )
+	{
+		Ar << Instance.BoundingSphereX << Instance.BoundingSphereY << Instance.BoundingSphereZ;
+		Ar << Instance.BoundingSphereRadius << Instance.TexelFactor;
+		return Ar;
+	}
+#endif
 };
 
 

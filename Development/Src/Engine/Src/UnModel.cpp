@@ -193,6 +193,16 @@ void UModel::Serialize( FArchive& Ar )
 		}
 	}
 	Ar << Surfs;
+#if BATMAN
+	// BM: AK's cooked FVert is narrower than ours, so read the pool element-wise instead of as a memory dump
+	if( FVert::DropsBackfaceShadowTexCoord(Ar) )
+	{
+		INT SerializedElementSize = FVert::GetSizeForBulkSerialization(Ar);
+		Ar << SerializedElementSize;
+		Ar << (TArray<FVert>&)Verts;
+	}
+	else
+#endif
 	Verts.BulkSerialize( Ar, FVert::GetSizeForBulkSerialization(Ar) );
 	Ar << NumSharedSides << NumZones;
 	for( INT i=0; i<NumZones; i++ )
@@ -221,21 +231,7 @@ void UModel::Serialize( FArchive& Ar )
 		CalculateUniqueVertCount();
 	}
 
-#if BATMAN
-	if (Ar.LicenseeVer() >= VER_BATMAN1)
-	{
-		// BM1 emits two extra DWORDs here that BM2 dropped
-		if (Ar.LicenseeVer() == VER_BATMAN1)
-		{
-			DWORD Unk1 = 0;
-			DWORD Unk2 = 0;
-			Ar << Unk1 << Unk2;
-		}
-
-		UBOOL ForceShadowVolumes = FALSE;
-		Ar << ForceShadowVolumes;
-	}
-#endif
+	// BM: AK serializes nothing between the vertex buffer and LightingGuid - the BM1/BM2 ForceShadowVolumes flag is gone
 
 	// serialize the lighting guid if it's there
 	if (Ar.Ver() >= VER_INTEGRATED_LIGHTMASS)
