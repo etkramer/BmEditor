@@ -499,7 +499,8 @@ void URB_BodySetup::ClearShapeCache()
 {
 #if WITH_NOVODEX
 	// Clear pre-cooked data.
-	PreCachedPhysData.Empty();
+	PreCachedPhysData.CachedConvexElements.Empty();
+	PreCachedPhys3Data_ReflectedX.CachedConvexElements.Empty();
 
 
 	// Clear created shapes.
@@ -545,21 +546,11 @@ void URB_BodySetup::ClearShapeCache()
 /** Pre-cache this mesh at all desired scales. */
 void URB_BodySetup::PreCachePhysicsData()
 {
-	PreCachedPhysData.Empty();
+	PreCachedPhysData.CachedConvexElements.Empty();
 
 #if WITH_NOVODEX
-	// Go over each scale we want to pre-cache data for.
-	for(INT i=0; i<PreCachedPhysScale.Num(); i++)
-	{
-		INT NewDataIndex = PreCachedPhysData.AddZeroed();
-		FKCachedConvexData& NewCachedData = PreCachedPhysData(NewDataIndex);
-
-		FVector Scale3D = PreCachedPhysScale(i);
-		if(Scale3D.GetMin() > KINDA_SMALL_NUMBER)
-		{
-			MakeCachedConvexDataForAggGeom( &NewCachedData, AggGeom.ConvexElems, Scale3D, *GetName() );
-		}
-	}
+	// BM: AK keeps a single cache, cooked unscaled, rather than one per entry of a scale list.
+	MakeCachedConvexDataForAggGeom( &PreCachedPhysData, AggGeom.ConvexElems, FVector(1.f,1.f,1.f), *GetName() );
 
 	// Save version number
 	PreCachedPhysDataVersion = GCurrentCachedPhysDataVersion;
@@ -593,7 +584,21 @@ void URB_BodySetup::PreSave()
 void URB_BodySetup::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
+#if BATMAN
+	// BM: AK stores one unscaled cache plus an X-mirrored one where stock UE3 stored a per-scale array.
+	if( Ar.LicenseeVer() < VER_BATMAN4 )
+	{
+		TArray<FKCachedConvexData> LegacyPerScaleData;
+		Ar << LegacyPerScaleData;
+		if( Ar.IsLoading() && LegacyPerScaleData.Num() > 0 )
+		{
+			PreCachedPhysData = LegacyPerScaleData(0);
+		}
+		return;
+	}
+#endif
 	Ar << PreCachedPhysData;
+	Ar << PreCachedPhys3Data_ReflectedX;
 }
 
 

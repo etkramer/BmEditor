@@ -1161,12 +1161,6 @@ void RestoreExistingMeshData(struct ExistingStaticMeshData* ExistingMeshDataPtr,
 				NewMesh->BodySetup->COMNudge = ExistingMeshDataPtr->ExistingBodySetup->COMNudge;
 				NewMesh->BodySetup->MassScale = ExistingMeshDataPtr->ExistingBodySetup->MassScale;
 				NewMesh->BodySetup->PhysMaterial = ExistingMeshDataPtr->ExistingBodySetup->PhysMaterial;
-
-				NewMesh->BodySetup->PreCachedPhysScale.Empty( ExistingMeshDataPtr->ExistingBodySetup->PreCachedPhysScale.Num() );
-				for( INT i = 0; i < ExistingMeshDataPtr->ExistingBodySetup->PreCachedPhysScale.Num(); i++ )
-				{
-					NewMesh->BodySetup->PreCachedPhysScale( i ) = ExistingMeshDataPtr->ExistingBodySetup->PreCachedPhysScale( i );
-				}
 			}
 		}
 	}

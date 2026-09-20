@@ -86,13 +86,12 @@ var		const native array<vector>	CollisionGeomScale3D;
 
 // PRECOOKED COLLISION
 
-/** Scales to pre-cache physics data for this collision at. */
-var()	const array<vector>						PreCachedPhysScale;
-
 /** Script mirror of cached pre-cooked physics data for one convex hull */
 struct KCachedConvexDataElement
 {
 	var native array<byte>						ConvexElementData;
+	var native transient pointer				ConvexMesh;
+	var native int								ConvexMeshDataSize;
 };
 
 /** Script mittot of cached pre-cooked physics data for this simplified collision */
@@ -101,8 +100,12 @@ struct KCachedConvexData
 	var native array<KCachedConvexDataElement>	CachedConvexElements;
 };
 
-/** Array of cached convex physics data. */
-var		const native array<KCachedConvexData>	PreCachedPhysData;
+/** Cached convex physics data, cooked at unit scale. */
+var		const native KCachedConvexData			PreCachedPhysData;
+
+// BM
+/** Cached convex physics data for the X-mirrored form of this collision. */
+var		const native KCachedConvexData			PreCachedPhys3Data_ReflectedX;
 
 /** Version of cached physics data. */
 var		const int								PreCachedPhysDataVersion;

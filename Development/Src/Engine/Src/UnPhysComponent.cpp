@@ -4514,18 +4514,14 @@ FKCachedConvexData* USkeletalMeshComponent::GetBoneCachedPhysConvexData(const FV
 			}
 		}
 
-		if( bUsePrecookedPhysData && 
-			BS && 
+		// BM: the single pre-cached cache is cooked unscaled.
+		if( bUsePrecookedPhysData &&
+			BS &&
 			BS->PreCachedPhysDataVersion == GCurrentCachedPhysDataVersion &&
-			BS->PreCachedPhysScale.Num() == BS->PreCachedPhysData.Num() )
+			BS->PreCachedPhysData.CachedConvexElements.Num() > 0 &&
+			(InScale3D - FVector(1.f,1.f,1.f)).IsNearlyZero() )
 		{
-			for(INT i=0; i<BS->PreCachedPhysScale.Num(); i++)
-			{
-				if((BS->PreCachedPhysScale(i) - InScale3D).IsNearlyZero())
-				{
-					return &BS->PreCachedPhysData(i);
-				}
-			}
+			return &BS->PreCachedPhysData;
 		}
 
 		//
@@ -4698,18 +4694,14 @@ FKCachedConvexData* UStaticMeshComponent::GetCachedPhysConvexData(const FVector&
 #if WITH_NOVODEX
 		// See if the body setup itself has data cooked for that scale.
 		URB_BodySetup* BS = StaticMesh->BodySetup;
-		if( bUsePrecookedPhysData && 
-			BS && 
+		// BM: the single pre-cached cache is cooked unscaled.
+		if( bUsePrecookedPhysData &&
+			BS &&
 			BS->PreCachedPhysDataVersion == GCurrentCachedPhysDataVersion &&
-			BS->PreCachedPhysScale.Num() == BS->PreCachedPhysData.Num() )
+			BS->PreCachedPhysData.CachedConvexElements.Num() > 0 &&
+			(InScale3D - FVector(1.f,1.f,1.f)).IsNearlyZero() )
 		{
-			for(INT i=0; i<BS->PreCachedPhysScale.Num(); i++)
-			{
-				if((BS->PreCachedPhysScale(i) - InScale3D).IsNearlyZero())
-				{
-					return &BS->PreCachedPhysData(i);
-				}
-			}
+			return &BS->PreCachedPhysData;
 		}
 #endif // WITH_NOVODEX
 		// If not - look in level cooked data cache.

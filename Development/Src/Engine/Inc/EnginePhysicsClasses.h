@@ -930,8 +930,8 @@ public:
     FLOAT MassScale;
     TArrayNoInit<FPointer> CollisionGeom;
     TArrayNoInit<FVector> CollisionGeomScale3D;
-    TArrayNoInit<FVector> PreCachedPhysScale;
-    TArrayNoInit<FKCachedConvexData> PreCachedPhysData;
+    FKCachedConvexData PreCachedPhysData;
+    FKCachedConvexData PreCachedPhys3Data_ReflectedX;
     INT PreCachedPhysDataVersion;
     //## END PROPS RB_BodySetup
 

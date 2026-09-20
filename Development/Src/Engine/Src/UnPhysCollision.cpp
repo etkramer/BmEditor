@@ -1879,6 +1879,7 @@ void FKConvexElem::Reset()
 	EdgeDirections.Empty();
 	FaceNormalDirections.Empty();
 	FacePlaneData.Empty();
+	BevelPlaneData.Empty();
 	ElemBox.Init();
 }
 
