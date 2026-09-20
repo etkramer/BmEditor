@@ -44,6 +44,13 @@ struct native RawDistributionFloat extends RawDistribution
 	var() export noclear DistributionFloat Distribution;
 };
 
+// BM
+struct native MatineeRawDistributionFloat extends RawDistributionFloat
+{
+	var float MatineeValue;
+	var bool bInMatinee;
+};
+
 cpptext
 {
 

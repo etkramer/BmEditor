@@ -58,6 +58,10 @@ struct native RawDistributionVector extends RawDistribution
 	}
 
 	var() export noclear DistributionVector Distribution;
+	// BM
+	var vector MinRange;
+	var vector MaxRange;
+	var bool RangesCached;
 };
 
 cpptext

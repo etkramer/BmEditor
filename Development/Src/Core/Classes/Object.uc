@@ -200,6 +200,13 @@ struct immutable Quat
 	var() float X, Y, Z, W;
 };
 
+// BM
+// A packed normal, mirrors FPackedNormal.
+struct immutable PackedNormal
+{
+	var() byte X, Y, Z, W;
+};
+
 /**
  * Screen coordinates
  */

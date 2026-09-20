@@ -1649,10 +1649,10 @@ public:
     BITFIELD bEnabled:1;
     BITFIELD ConvertedModules:1;
     class UParticleModuleRequired* RequiredModule;
-    TArrayNoInit<class UParticleModule*> Modules;
     class UParticleModule* TypeDataModule;
     class UParticleModuleSpawn* SpawnModule;
     class UParticleModuleEventGenerator* EventGenerator;
+    TArrayNoInit<class UParticleModule*> Modules;
     TArrayNoInit<class UParticleModuleSpawnBase*> SpawningModules;
     TArrayNoInit<class UParticleModule*> SpawnModules;
     TArrayNoInit<class UParticleModule*> UpdateModules;
@@ -1746,6 +1746,7 @@ public:
     INT PeakActiveParticles;
     INT InitialAllocationCount;
     FLOAT MediumDetailSpawnRateScale;
+    TArrayNoInit<FPointer> SharedEmitterInstances;
     //## END PROPS ParticleEmitter
 
     virtual FLOAT GetMaxLifespan(FLOAT InComponentDelay);
@@ -6635,7 +6636,7 @@ VERIFY_CLASS_SIZE_NODIE(UParticleSystemComponent)
 VERIFY_CLASS_SIZE_NODIE(UDistributionFloatParticleParameter)
 VERIFY_CLASS_SIZE_NODIE(UDistributionVectorParticleParameter)
 VERIFY_CLASS_OFFSET_NODIE(UParticleEmitter,ParticleEmitter,EmitterName)
-VERIFY_CLASS_OFFSET_NODIE(UParticleEmitter,ParticleEmitter,MediumDetailSpawnRateScale)
+VERIFY_CLASS_OFFSET_NODIE(UParticleEmitter,ParticleEmitter,SharedEmitterInstances)
 VERIFY_CLASS_SIZE_NODIE(UParticleEmitter)
 VERIFY_CLASS_SIZE_NODIE(UParticleSpriteEmitter)
 VERIFY_CLASS_OFFSET_NODIE(UParticleLODLevel,ParticleLODLevel,Level)

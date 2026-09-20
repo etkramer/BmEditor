@@ -261,6 +261,20 @@ struct FRawDistributionFloat : public FRawDistribution
 	
 };
 
+struct FMatineeRawDistributionFloat : public FRawDistributionFloat
+{
+    FLOAT MatineeValue;
+    BITFIELD bInMatinee:1;
+    SCRIPT_ALIGN;
+
+    /** Constructors */
+    FMatineeRawDistributionFloat() {}
+    FMatineeRawDistributionFloat(EEventParm)
+    {
+        appMemzero(this, sizeof(FMatineeRawDistributionFloat));
+    }
+};
+
 class UDistributionFloat : public UComponent, public FCurveEdInterface
 {
 public:
@@ -328,6 +342,10 @@ public:
 struct FRawDistributionVector : public FRawDistribution
 {
     class UDistributionVector* Distribution;
+    FVector MinRange;
+    FVector MaxRange;
+    BITFIELD RangesCached:1;
+    SCRIPT_ALIGN;
 
 	#if !CONSOLE
 		/**

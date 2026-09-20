@@ -15,11 +15,10 @@ var const				int						Level;
 /** True if the LOD level is enabled, meaning it should be updated and rendered.	*/
 var						bool					bEnabled;
 
+var						bool					ConvertedModules;
+
 /** The required module for this LOD level											*/
 var editinline export	ParticleModuleRequired	RequiredModule;
-
-/** An array of particle modules that contain the adjusted data for the LOD level	*/
-var editinline export	array<ParticleModule>	Modules;
 
 // Module<SINGULAR> used for emitter type "extension".
 var				export	ParticleModule			TypeDataModule;
@@ -29,6 +28,9 @@ var				export	ParticleModuleSpawn		SpawnModule;
 
 /** The optional EventGenerator module. */
 var				export	ParticleModuleEventGenerator	EventGenerator;
+
+/** An array of particle modules that contain the adjusted data for the LOD level	*/
+var editinline export	array<ParticleModule>	Modules;
 
 /** SpawningModules - These are called to determine how many particles to spawn.	*/
 var native				array<ParticleModuleSpawnBase>	SpawningModules;
@@ -45,7 +47,6 @@ var native				array<ParticleModuleOrbit>		OrbitModules;
 /** Event receiver modules only! */
 var native				array<ParticleModuleEventReceiverBase>	EventReceiverModules;
 
-var						bool					ConvertedModules;
 var						int						PeakActiveParticles;
 
 cpptext

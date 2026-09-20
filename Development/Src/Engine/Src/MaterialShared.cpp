@@ -1234,8 +1234,10 @@ FString FMaterialResource::GetBaseMaterialPathName() const { return Material->Ge
 #if BATMAN
 UBOOL FMaterialResource::IsBmCookedMaterialResource() const
 {
+	// BM: AK's cooked shader cache is skipped on load, so its materials have no cooked shader map to use.
 	ULinkerLoad* MaterialLinker = Material ? Material->GetLinker() : NULL;
-	return MaterialLinker && MaterialLinker->LicenseeVer() >= VER_BATMAN2 && MaterialLinker->ContainsCookedData();
+	return MaterialLinker && MaterialLinker->LicenseeVer() >= VER_BATMAN2 && MaterialLinker->LicenseeVer() < VER_BATMAN4
+		&& MaterialLinker->ContainsCookedData();
 }
 #endif
 

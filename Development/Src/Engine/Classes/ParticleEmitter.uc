@@ -90,6 +90,20 @@ var(Cascade) editoronly color EmitterEditorColor;
 //=============================================================================
 var editinline export		array<ParticleLODLevel>		LODLevels;
 var							bool						ConvertedModules;
+
+/** This value indicates the emitter should be drawn 'collapsed' in Cascade */
+var(Cascade) editoronly		bool						bCollapsed;
+
+/** If TRUE, then show only this emitter in the editor */
+var transient				bool						bIsSoloing;
+
+/**
+ *	If TRUE, then this emitter was 'cooked out' by the cooker.
+ *	This means it was completely disabled, but to preserve any
+ *	indexing schemes, it is left in place.
+ */
+var bool bCookedOut;
+
 var							int							PeakActiveParticles;
 
 //=============================================================================
@@ -109,18 +123,8 @@ var(Particle)				int							InitialAllocationCount;
  */
 var(Particle)				float						MediumDetailSpawnRateScale;
 
-/** This value indicates the emitter should be drawn 'collapsed' in Cascade */
-var(Cascade) editoronly		bool						bCollapsed;
-
-/** If TRUE, then show only this emitter in the editor */
-var transient				bool						bIsSoloing;
-
-/** 
- *	If TRUE, then this emitter was 'cooked out' by the cooker. 
- *	This means it was completely disabled, but to preserve any
- *	indexing schemes, it is left in place.
- */
-var bool bCookedOut;
+// BM
+var native const transient	array<Pointer>				SharedEmitterInstances;
 
 
 /** 

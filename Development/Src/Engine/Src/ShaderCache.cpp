@@ -588,6 +588,14 @@ void UShaderCache::Serialize(FArchive& Ar)
 	}
 	else if(Ar.IsLoading())
 	{
+#if BATMAN
+		// BM: retail's cooked cache holds AK shader types this binary does not have, so every entry would be skipped anyway.
+		if( Ar.ContainsCookedData() && Ar.LicenseeVer() >= VER_BATMAN4 )
+		{
+			warnf( NAME_Warning, TEXT("Skipping retail shader cache %s"), *GetPathName() );
+			return;
+		}
+#endif
 		Load(Ar, (this->GetFlags() & RF_DisregardForGC) != 0);
 	}
 

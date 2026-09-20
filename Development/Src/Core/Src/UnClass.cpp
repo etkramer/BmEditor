@@ -1370,6 +1370,13 @@ void UStruct::Serialize( FArchive& Ar )
 		// Compiler info.
 		Ar << Line << TextPos;
 	}
+#if BATMAN
+	// BM: without the compiler info, Line must read as "no replication defs" rather than line 0.
+	else if( Ar.IsLoading() )
+	{
+		Line = TextPos = INDEX_NONE;
+	}
+#endif
 #endif
 
 	//@script patcher: if script patches were applied to our linker, then we need to check to see if this struct's bytecode is being patched.
