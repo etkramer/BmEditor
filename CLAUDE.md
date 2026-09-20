@@ -66,6 +66,14 @@ BM4 packages are all Ver=863, LicenseeVer=227. Reading the licensee as a stock U
 
 Beware that a clean package load is weak evidence about layouts. Only offset-only tags reach the offset-addressed path and `ReportLayoutMismatch`; named tags are matched by name and their offset is discarded.
 
+## Retail Script Packages
+
+Classes the editor lacks are NOT meant to be hand-ported out of the decompile. The retail script packages supply them: copy the game's `Engine.upk` and `BmGame.upk` to `_Engine.upk` and `_BmGame.upk`, load them as startup packages, and their contents merge into the real `Engine`/`BmGame` packages alongside the editor's own compiled `Engine.u`/`BmGame.u`.
+
+The plumbing already exists from the BM2 era. `BmRemapPackageName` (`Core/Src/UnLinker.cpp:3780`) strips a leading underscore, and it is applied at the forced-export, import and export creation sites (`UnLinker.cpp:2533`, `2538`, `3970`, `3982`, `4309`, `4332`). The startup package list lives in `BmGame/Config/DefaultEngine.ini` under `[Engine.StartupPackages]`, which already carries `+Package=_Engine` and `+Package=_BmGame`.
+
+Consequence for the port: getting this merge working for BM4 is a prerequisite for maps, and it is the correct fix for missing classes. Hand-porting a `.uc` class is only right for NATIVE classes, whose C++ layout we must match anyway. Note that AK's `Engine.upk` and `BmGame.upk` have their name/export tables far past `TotalHeaderSize` (NameOffset 72446905 and 356085334), so any header precache keyed on `TotalHeaderSize` has to cope.
+
 ## Build and Run
 
 1. `Development/Intermediate/UnrealBuildTool/Release/UnrealBuildTool.exe BmGame Win64 Debug`
