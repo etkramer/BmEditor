@@ -5557,54 +5557,6 @@ UBOOL UEditorEngine::Exec( const TCHAR* Stream, FOutputDevice& Ar )
 		return TRUE;
 	}
 	//----------------------------------------------------------------------------------
-	// SETSHADOWPARENT - Forcibly sets shadow parents of DynamicSMActors.
-	//
-	else if( ParseCommand(&Str,TEXT("SETSHADOWPARENT")) )
-	{
-		ADynamicSMActor*			ShadowParent = NULL;
-		TArray<ADynamicSMActor*>	ChildActors;
-
-		for( FSelectedActorIterator It; It; ++It )
-		{
-			ADynamicSMActor* Actor = Cast<ADynamicSMActor>(*It);
-			if ( Actor && Actor->StaticMeshComponent )
-			{
-				// The first found actor is the shadow parent.
-				if ( !ShadowParent )
-				{
-					ShadowParent = Actor;
-				}
-				else
-				{
-					ChildActors.AddItem( Actor );
-				}
-			}
-		}
-
-		if ( ShadowParent && ChildActors.Num() > 0 )
-		{
-			Ar.Logf( TEXT("Shadow parent is %s"), *ShadowParent->GetName() );
-			const FScopedTransaction Transaction( TEXT("SetShadowParent") );
-			// Make sure the parent object itself is not parented.
-			ShadowParent->StaticMeshComponent->SetShadowParent( NULL );
-			// Parent child actors to parent.
-			for ( INT i = 0 ; i < ChildActors.Num() ; ++i )
-			{
-				ADynamicSMActor* Actor = ChildActors(i);
-				Actor->StaticMeshComponent->Modify();
-				Actor->StaticMeshComponent->MarkPackageDirty();
-				Actor->StaticMeshComponent->SetShadowParent( ShadowParent->StaticMeshComponent );
-				Ar.Logf( TEXT("Parenting %s to %s"), *Actor->GetName(), *ShadowParent->GetName() );
-			}
-		}
-		else
-		{
-			Ar.Logf( TEXT("couldn't find at least 2 DynamicSMActors") );
-		}
-
-		return TRUE;
-	}
-	//----------------------------------------------------------------------------------
 	// LIGHTMASSDEBUG - Toggles whether UnrealLightmass.exe is launched automatically (default),
 	// or must be launched manually (e.g. through a debugger) with the -debug command line parameter.
 	//

@@ -715,24 +715,9 @@ void WxCascade::SetLODValue(INT LODSetting)
 		}
 		if (PartSysComp)
 		{
-			const INT OldEditorLODLevel = PartSysComp->EditorLODLevel;
 			PartSysComp->EditorLODLevel = LODSetting;
 			PartSysComp->SetLODLevel(LODSetting);
 
-			if (PartSysComp->EditorLODLevel < PartSys->LODSettings.Num()
-				&& OldEditorLODLevel < PartSys->LODSettings.Num()
-				&& PartSysComp->EditorLODLevel != OldEditorLODLevel
-				&& PartSys->LODSettings(OldEditorLODLevel).bLit != PartSys->LODSettings(PartSysComp->EditorLODLevel).bLit)
-			{
-				if (PartSys->LODSettings(PartSysComp->EditorLODLevel).bLit)
-				{
-					PartSysComp->SetLightEnvironment(ParticleLightEnv);
-				}
-				else
-				{
-					PartSysComp->SetLightEnvironment(NULL);
-				}
-			}
 		}
 	}
 }

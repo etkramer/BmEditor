@@ -246,7 +246,6 @@ defaultproperties
 
 	Begin Object Class=StaticMeshComponent Name=StaticMeshComponent0
 	    BlockRigidBody=false
-		LightEnvironment=MyLightEnvironment
 		bUsePrecomputedShadows=FALSE
 	End Object
 	CollisionComponent=StaticMeshComponent0

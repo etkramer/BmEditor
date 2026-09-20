@@ -4352,7 +4352,6 @@ void UStaticMeshComponent::CheckForErrors()
 		&& AlwaysLoadOnServer
 		&& !IsA(UFracturedSkinnedMeshComponent::StaticClass())
 		&& !bUsePrecomputedShadows 
-		&& (!LightEnvironment || !LightEnvironment->IsEnabled())
 		// Don't warn for meshes with custom lighting channels (often using cinematic lighting)
 		&& !LightingChannels.OverlapsWith(NonDefaultChannels))
 	{

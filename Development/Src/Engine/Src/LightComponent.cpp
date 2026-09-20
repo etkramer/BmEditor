@@ -46,12 +46,7 @@ UBOOL ULightComponent::AffectsPrimitive(const UPrimitiveComponent* Primitive, UB
 	}
 #endif
 
-	ULightEnvironmentComponent* PrimitiveLightEnvironment = Primitive->LightEnvironment;
-	if(PrimitiveLightEnvironment && !PrimitiveLightEnvironment->IsEnabled())
-	{
-		PrimitiveLightEnvironment = NULL;
-	}
-	if(PrimitiveLightEnvironment != LightEnvironment)
+	if(LightEnvironment)
 	{
 		return FALSE;
 	}
@@ -70,13 +65,6 @@ UBOOL ULightComponent::AffectsPrimitive(const UPrimitiveComponent* Primitive, UB
 	{
 		return FALSE;
 	}
-
-#if BATMAN
-	if( bCastStaticModulatedShadows && !Primitive->bCastStaticModulatedShadows && !Primitive->bRecieveStaticModulatedShadows )
-	{
-		return FALSE;
-	}
-#endif
 
 	// Explicitly assigned lights only affect their assigned meshes
 	if (bExplicitlyAssignedLight)

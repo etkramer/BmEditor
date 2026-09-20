@@ -98,7 +98,7 @@ void FPrimitiveSceneInfoCompact::Init(FPrimitiveSceneInfo* InPrimitiveSceneInfo)
 	bFirstFrameOcclusion = PrimitiveSceneInfo->bFirstFrameOcclusion;
 	bAcceptsLights = PrimitiveSceneInfo->bAcceptsLights;
 	bHasViewDependentDPG = Proxy->HasViewDependentDPG();
-	bShouldCullModulatedShadows = Component->ShouldCullModulatedShadows();
+	bShouldCullModulatedShadows = FALSE;
 	bCastDynamicShadow = PrimitiveSceneInfo->bCastDynamicShadow;
 #if BATMAN
 	bCastStaticModulatedShadows = PrimitiveSceneInfo->bCastStaticModulatedShadows;
@@ -200,12 +200,10 @@ FPrimitiveSceneInfo::FPrimitiveSceneInfo(UPrimitiveComponent* InComponent,FPrimi
 	bCastStaticShadow(InComponent->CastShadow),
 	bCastHiddenShadow(InComponent->bCastHiddenShadow),
 #if BATMAN
-	bCastStaticModulatedShadows(InComponent->bCastStaticModulatedShadows),
+	bCastStaticModulatedShadows(FALSE),
 #endif
 	bCastShadowAsTwoSided(InComponent->bCastShadowAsTwoSided),
-	bAllowPreShadow((InComponent->LightEnvironment && InComponent->LightEnvironment->IsEnabled()) ?
-		InComponent->LightEnvironment->AllowPreShadow() :
-		TRUE),
+	bAllowPreShadow(TRUE),
 	bAcceptsLights(InComponent->bAcceptsLights),
 	bAcceptsDynamicLights(InComponent->bAcceptsDynamicLights),
 	bUseOnePassLightingOnTranslucency(InComponent->bUseOnePassLightingOnTranslucency && !InComponent->HasStaticShadowing()),
@@ -216,43 +214,28 @@ FPrimitiveSceneInfo::FPrimitiveSceneInfo(UPrimitiveComponent* InComponent,FPrimi
 	bIgnoreNearPlaneIntersection(InComponent->bIgnoreNearPlaneIntersection),
 	bSelectable(InComponent->bSelectable),
 	bNeedsStaticMeshUpdate(FALSE),
-	bCullModulatedShadowOnBackfaces(InComponent->bCullModulatedShadowOnBackfaces),
-	bCullModulatedShadowOnEmissive(InComponent->bCullModulatedShadowOnEmissive),
+	bCullModulatedShadowOnBackfaces(FALSE),
+	bCullModulatedShadowOnEmissive(FALSE),
 	bRenderSHLightInBasePass(FALSE),
-	bLightEnvironmentForceNonCompositeDynamicLights(InComponent->LightEnvironment ? InComponent->LightEnvironment->bForceNonCompositeDynamicLights : TRUE),
+	bLightEnvironmentForceNonCompositeDynamicLights(TRUE),
 	bHasCustomOcclusionBounds(InProxy->HasCustomOcclusionBounds()),
 	bAllowShadowFade(InComponent->bAllowShadowFade),
-	bAllowDominantLightInfluence(
-		!InComponent->LightEnvironment 
-		|| !InComponent->LightEnvironment->IsEnabled() 
-		|| InComponent->LightEnvironment->GetAffectingDominantLight() != NULL),
-	bAllowDynamicShadowsOnTranslucency((InComponent->LightEnvironment && InComponent->LightEnvironment->IsEnabled()) ?
-		InComponent->LightEnvironment->AllowDynamicShadowsOnTranslucency() :
-		FALSE),
-	bTranslucencyShadowed((InComponent->LightEnvironment && InComponent->LightEnvironment->IsEnabled()) ?
-		InComponent->LightEnvironment->IsTranslucencyShadowed() :
-		FALSE),
+	bAllowDominantLightInfluence(TRUE),
+	bAllowDynamicShadowsOnTranslucency(FALSE),
+	bTranslucencyShadowed(FALSE),
 	bHasVelocity(FALSE),
 	bVelocityIsSupressed(FALSE),
 	PreviewEnvironmentShadowing(InComponent->PreviewEnvironmentShadowing),
 	Bounds(InComponent->Bounds),
 	MaxDrawDistance(InComponent->CachedMaxDrawDistance),
 	MinDrawDistance(0.0f),
-	MotionBlurInstanceScale(InComponent->MotionBlurScale),
+	MotionBlurInstanceScale(InComponent->MotionBlurInstanceScale),
 #if BATMAN
 	CachedSquaredDistanceToViewOrigin(0.0f),
 #endif
 	LightingChannels(InComponent->LightingChannels),
-	LightEnvironment(
-		(InComponent->LightEnvironment && InComponent->LightEnvironment->IsEnabled()) ?
-			InComponent->LightEnvironment :
-			NULL
-		),
-	AffectingDominantLight(
-		(InComponent->LightEnvironment && InComponent->LightEnvironment->IsEnabled()) ?
-			InComponent->LightEnvironment->GetAffectingDominantLight() :
-			NULL
-		),
+	LightEnvironment(NULL),
+	AffectingDominantLight(NULL),
 	OverrideLightComponent(NULL),
 	LevelName(InComponent->GetOutermost()->GetFName()),
 	LightList(NULL),
@@ -264,13 +247,9 @@ FPrimitiveSceneInfo::FPrimitiveSceneInfo(UPrimitiveComponent* InComponent,FPrimi
 	AmbientPlus3DLight(NULL),
 	bRenderAPlus3DLightInBasePass(FALSE),
 #endif
-	DominantShadowFactor(
-		(InComponent->LightEnvironment && InComponent->LightEnvironment->IsEnabled()) ?
-			InComponent->LightEnvironment->GetDominantShadowFactor() :
-			1.0f
-		),
+	DominantShadowFactor(1.0f),
 	BrightestDominantLightSceneInfo(NULL),
-	ShadowParent(InComponent->ShadowParent),
+	ShadowParent(NULL),
 	FogVolumeSceneInfo(NULL),
 	LastRenderTime(-FLT_MAX),
 	LastVisibilityChangeTime(0.0f),
@@ -282,14 +261,7 @@ FPrimitiveSceneInfo::FPrimitiveSceneInfo(UPrimitiveComponent* InComponent,FPrimi
 	InComponent->SceneInfo = this;
 	Proxy->PrimitiveSceneInfo = this;
 
-	// if the primitive is shadow parented then use cull mode of its parent
-	if( ShadowParent )
-	{
-		bCullModulatedShadowOnBackfaces = ShadowParent->bCullModulatedShadowOnBackfaces;
-		bCullModulatedShadowOnEmissive = ShadowParent->bCullModulatedShadowOnEmissive;
-	}
-
-	if(InComponent->MotionBlurScale == 0.0f)
+	if(InComponent->MotionBlurInstanceScale == 0.0f)
 	{
 		bVelocityIsSupressed = TRUE;
 	}

@@ -18,10 +18,11 @@ struct MaterialViewRelevance
 	var bool bUsesSceneColor;
 };
 
-enum LoadedPhysMaterial
+/** Which heightmap layer an object overrides. */
+enum EHeightmapOverrideFilter
 {
-	LPM_NoLoadedPhysMat,
-	LPM_MAX
+	HMO_FearGasLayer,
+	HMO_PollenLayer
 };
 
 /** Enum indicating different type of objects for rigid-body collision purposes. */
@@ -34,18 +35,46 @@ enum ERBCollisionChannel
 	RBCC_Water,
 	RBCC_GameplayPhysics,
 	RBCC_EffectPhysics,
-	RBCC_Untitled1,
-	RBCC_Untitled2,
-	RBCC_Untitled3,
-	RBCC_Untitled4,
+	RBCC_FloatingRaft,
+	RBCC_Gargoyles,
+	RBCC_PawnRagdoll,
+	RBCC_Rope,
 	RBCC_Cloth,
-	RBCC_FluidDrain,
-	RBCC_SoftBody,
-	RBCC_FracturedMeshPart,
+	RBCC_CapeOnlyCollision,
+	RBCC_PropStaticChunks,
+	RBCC_FlyingVehicle,
 	RBCC_BlockingVolume,
 	RBCC_DeadPawn,
 	RBCC_Clothing,
-	RBCC_ClothingCollision
+	RBCC_ClothingCollision,
+	RBCC_FlexAsset,
+	RBCC_Cape,
+	RBCC_CinematicCape,
+	RBCC_PawnRagdollStrungUp,
+	RBCC_Projectile,
+	RBCC_PropDynamicChunks,
+	RBCC_Grate,
+	RBCC_Prop,
+	RBCC_MagneticDynamicObjects,
+	RBCC_MagneticProp,
+	RBCC_VehicleBlocker,
+	RBCC_RobinCape,
+	RBCC_PhysicsPuzzleObject
+};
+
+/** Per-shape PhysX filter bits. */
+enum EPhysXShapeFilterFlags
+{
+	EPSF_NotifyOnCollision,
+	EPSF_DisableCollisionResponse,
+	EPSF_UsePairwiseCollisionFilter,
+	EPSF_ContactModification,
+	EPSF_DoNotNotifyOnCollisionWithVehicle,
+	EPSF_HasCollidedWithFloor,
+	EPSF_NotifyOnSelfCollision,
+	EPSF_ForceDisableContactModification,
+	EPSF_CapeCollisionTrigger,
+	EPSF_DetachedVehiclePart
 };
 
 /**
@@ -61,18 +90,49 @@ struct RBCollisionChannelContainer
 	var()	const bool	Water;
 	var()	const bool	GameplayPhysics;
 	var()	const bool	EffectPhysics;
-	var()	const bool	Untitled1;
-	var()	const bool	Untitled2;
-	var()	const bool	Untitled3;
-	var()	const bool	Untitled4;
+	var()	const bool	FloatingRaft;
+	var()	const bool	Gargoyles;
+	var()	const bool	PawnRagdoll;
+	var()	const bool	Rope;
 	var()	const bool	Cloth;
-	var()	const bool	FluidDrain;
-	var()	const bool	SoftBody;
-	var()	const bool	FracturedMeshPart;
+	var()	const bool	CapeOnlyCollision;
+	var()	const bool	PropStaticChunks;
+	var()	const bool	FlyingVehicle;
 	var()	const bool	BlockingVolume;
 	var()	const bool	DeadPawn;
 	var()	const bool	Clothing;
 	var()	const bool	ClothingCollision;
+	var()	const bool	FlexAsset;
+	var()	const bool	Cape;
+	var()	const bool	CinematicCape;
+	var()	const bool	PawnRagdollStrungUp;
+	var()	const bool	Projectile;
+	var()	const bool	PropDynamicChunks;
+	var()	const bool	Grate;
+	var()	const bool	Prop;
+	var()	const bool	MagneticDynamicObjects;
+	var()	const bool	MagneticProp;
+	var()	const bool	VehicleBlocker;
+	var()	const bool	RobinCape;
+	var()	const bool	PhysicsPuzzleObject;
+};
+
+/**
+ *	Per-shape PhysX filter flags.
+ *	Mirrored manually in UnPhysPublic.h
+ */
+struct PhysXShapeFilterFlagsContainer
+{
+	var	transient bool	NotifyOnCollision;
+	var	transient bool	DisableCollisionResponse;
+	var	transient bool	UsePairwiseCollisionFilter;
+	var	transient bool	ContactModification;
+	var	transient bool	DoNotNotifyOnCollisionWithVehicle;
+	var	transient bool	HasCollidedWithFloor;
+	var	transient bool	NotifyOnSelfCollision;
+	var	transient bool	ForceDisableContactModification;
+	var	transient bool	CapeCollisionTrigger;
+	var	transient bool	DetachedVehiclePart;
 };
 
 /** Return codes for ClosestPointToPrimitive functions */
@@ -91,6 +151,14 @@ enum ERadialImpulseFalloff
 
 	/** Impulse should get linearly weaker the further from origin. */
 	RIF_Linear
+};
+
+/** How a radial impulse is applied to a body. */
+enum ERadialImpulseType
+{
+	ERIT_Impulse,
+	ERIT_VelocityChange,
+	ERIT_SurfaceAreaApproximation
 };
 
 var const native transient int Tag;
@@ -113,77 +181,68 @@ var native transient const float LocalToWorldDeterminant;
 /**
  *	The index for the primitive component in the MotionBlurInfo array of the scene.
  *	Render-thread usage only.
- *	This assumes that there is only one scene that requires motion blur, as there is only
- *	a single index... If the application requires a primitive component to exist in multiple
- *	scenes and have motion blur in each of them, this can be changed into a mapping of the
- *	scene pointer to the index. (Associated functions would have to be updated as well...)
  */
 var native transient const int MotionBlurInfoIndex;
 
-// Shadow grouping.  An optimization which tells the renderer to use a single shadow for a group of primitive components.
-
-var const PrimitiveComponent ShadowParent;
-
 /** Replacement primitive to draw instead of this one (multiple UPrim's will point to the same Replacement) */
-var(Rendering) crosslevelpassive PrimitiveComponent ReplacementPrimitive;
+var(Rendering) edithide editinline export crosslevelpassive PrimitiveComponent ReplacementPrimitive;
 
-var StaticMesh AutoLODOverride;
+var(Rendering) editoronly StaticMesh AutoLODOverride;
 
 /** Keeps track of which fog component this primitive is using. */
-var const transient FogVolumeDensityComponent FogVolumeComponent;
-
-// Rendering flags.
-
-/** The lighting environment to take the primitive's lighting from. */
-var const LightEnvironmentComponent LightEnvironment;
-
-/** Stores the previous light environment if SetLightEnvironment is called while the primitive is attached, so that Detach can notify the previous light environment correctly. */
-var transient private const LightEnvironmentComponent PreviousLightEnvironment;
+var const editinline export transient FogVolumeDensityComponent FogVolumeComponent;
 
 /**
  * The distance at which the renderer will switch from parent (low LOD) to children (high LOD).
  * This is basically the same as MinDrawDistance, except that the low LOD will draw even up close, if there are no children.
- * This is needed so the high lod meshes can be in a streamable sublevel, and if streamed out, the low LOD will draw up close.
  */
-var(Rendering) float MassiveLODDistance;
+var(LOD) float MassiveLODDistance;
 
-var int MassiveLODAttachedPrimitives;
+var(LOD) editconst int MassiveLODAttachedPrimitives;
+
+var(LOD) editoronly float AutoLODImportanceWeighting;
 
 /**
  * Max draw distance exposed to LDs. The real max draw distance is the min (disregarding 0) of this and volumes affecting this object.
  * This is renamed to LDMaxDrawDistance in c++
  */
-var(Rendering) const private noexport float MaxDrawDistance;
+var(CullingAndOcclusion) const private noexport float MaxDrawDistance;
 
 /**
  * The distance to cull this primitive at.
  * A CachedMaxDrawDistance of 0 indicates that the primitive should not be culled by distance.
  */
-var(Rendering) editconst float CachedMaxDrawDistance;
+var editconst float CachedMaxDrawDistance;
+
+var(Rendering) float MotionBlurInstanceScale;
+
+/** Per-instance random value handed to the material. */
+var duplicatetransient float PerInstanceRandom;
+
+var(Rendering) interp float PerInstanceRandomOverride;
 
 var const float CullArea;
-var const float CullAreaMultiplier;
+var(CullingAndOcclusion) const float CullAreaMultiplier;
 
 /** Environment shadow factor used when previewing unbuilt lighting on this primitive. */
-var				byte		PreviewEnvironmentShadowing;
-
-var float MotionBlurScale;
+var				editoronly byte		PreviewEnvironmentShadowing;
 
 /** Allows you to override the PhysicalMaterial to use for this PrimitiveComponent. */
 var(Physics)	const PhysicalMaterial			PhysMaterialOverride;
 
-var	duplicatetransient	const native RB_BodyInstance	BodyInstance;
+var	const native RB_BodyInstance	BodyInstance;
 
 var() const vector			Translation;
 var() const rotator			Rotation;
 var() const float			Scale <UIMin=0.0 | UIMax=4.0>;
 var() const vector			Scale3D;
 
+/** Plane the reflection shadow of this primitive is projected onto. */
+var() plane					ReflectionShadowPlane;
+
 /**
  * The value of WorldInfo->TimeSeconds for the frame when this actor was last rendered.  This is written
- * from the render thread, which is up to a frame behind the game thread, so you should allow this time to
- * be at least a frame behind the game thread's world time before you consider the actor non-visible.
- * There's an equivalent variable in PrimitiveComponent.
+ * from the render thread, which is up to a frame behind the game thread.
  */
 var transient float	LastRenderTime;
 
@@ -192,53 +251,81 @@ var transient float	LastRenderTime;
  */
 var float ScriptRigidBodyCollisionThreshold;
 
-var LoadedPhysMaterial PhysMaterialOverrideDropDown;
-var const bool bHighlightDepthPriorityGroupInXray;
-var const bool bHighlightXrayDepthPriorityGroupInXray;
-var const bool bHighlightDepthPriorityGroupInThermal;
-var const bool bHighlightThermalDepthPriorityGroupInThermal;
-var bool PhysMaterialOverrideDropDownUPDATELIST;
+/** Named collision setup this primitive uses. */
+var(Collision)	const ECollisionFilter			CollisionFilter;
+
+/** Which heightmap layer this primitive overrides. */
+var()			const EHeightmapOverrideFilter	HeightmapOverrideType;
+
+var bool bForceEdCanScale;
+var bool bForceEdCanNonUniformScale;
+
+var(ViewMode) const bool bDrawAsGauntletProjectionMesh;
+var(ViewMode) const bool bDrawInFrontOfPostProcessWhenInXrayMode;
+var(ViewMode) const bool bDrawInForegroundAndInFrontOfPostProcessWhenInXrayMode;
+var(ViewMode) const bool bDrawInFrontOfPostProcessWhenInScanMode;
+var(ViewMode) const bool bDrawInForegroundAndInFrontOfPostProcessWhenInScanMode;
+var(ViewMode) const bool bDrawInFrontOfPostProcessWhenInThermalMode;
+var(ViewMode) const bool bDrawInForegroundAndInFrontOfPostProcessWhenInThermalMode;
+var(ViewMode) const bool bDrawInFrontOfPostProcessWhenInBatmobileViewMode;
+var(ViewMode) const bool bDrawInForegroundAndInFrontOfPostProcessWhenInBatmobileViewMode;
+var(ViewMode) const bool bDrawAsDisruptorSniperHighlightMesh;
+var(ViewMode) const bool bDrawInFrontOfPostProcessWhenInDLCViewMode;
+var(ViewMode) const bool bDrawInForegroundAndInFrontOfPostProcessWhenInDLCViewMode;
 
 /** Whether to accept cull distance volumes to modify cached cull distance. */
-var(Rendering) const bool	bAllowCullDistanceVolume;
+var(CullingAndOcclusion) const bool	bAllowCullDistanceVolume;
 
-var(Rendering) const bool	HiddenGame;
-var(Rendering) const bool	HiddenEditor;
+var(CullingAndOcclusion) const bool	HiddenGame;
+var(CullingAndOcclusion) const bool	HiddenEditor;
 
 /** If this is True, this component won't be visible when the view actor is the component's owner, directly or indirectly. */
-var(Rendering) const bool bOwnerNoSee;
+var const bool bOwnerNoSee;
 
 /** If this is True, this component will only be visible when the view actor is the component's owner, directly or indirectly. */
-var(Rendering) const bool bOnlyOwnerSee;
+var const bool bOnlyOwnerSee;
 
-var const bool bXrayNoSee;
-var const bool bOnlyXraySee;
-var const bool bScanModeNoSee;
-var const bool bOnlyScanModeSee;
-var const bool bThermalNoSee;
-var const bool bOnlyThermalSee;
-var const bool bOnlyReflectionSee;
-var const bool bReflectionNoSee;
-var const bool DontDrawThisFrame;
-var bool ForceOnBakeIntoBackgroundForAutoLOD;
-var bool ForceOffBakeIntoBackgroundForAutoLOD;
-var bool NeverHideDuringAutoLOD;
+var(ViewMode) const bool bXrayNoSee;
+var(ViewMode) const bool bOnlyXraySee;
+var(ViewMode) const bool bScanModeNoSee;
+var(ViewMode) const bool bOnlyScanModeSee;
+var(ViewMode) const bool bThermalNoSee;
+var(ViewMode) const bool bOnlyThermalSee;
+var(ViewMode) const bool bBatmobileViewNoSee;
+var(ViewMode) const bool bOnlyBatmobileViewSee;
+var(CullingAndOcclusion) const bool bOnlyReflectionSee;
+var(CullingAndOcclusion) const bool bReflectionNoSee;
+var(CullingAndOcclusion) const bool bOnlyReflectionProbeSee;
+var(CullingAndOcclusion) const bool bReflectionProbeNoSee;
+var(CullingAndOcclusion) const bool bExcludeFromRainVolume;
+var const bool bOverrideHeightmapObjectOnly;
+var const transient bool DontDrawThisFrame;
+var(LOD) bool NotCountedInParentMassiveLODAttachedPrimitives;
+var(LOD) bool ForceOnBakeIntoBackgroundForAutoLOD;
+var(LOD) bool ForceOffBakeIntoBackgroundForAutoLOD;
+var(LOD) bool ForceOffAutoLODOverride;
+var(LOD) bool ForceOffAutoLODMasked;
+var(LOD) bool ForceOnAutoLODMasked;
+var(LOD) bool ForceOffTwoSided;
+var(LOD) bool NeverHideDuringAutoLOD;
+var(LOD) bool AlwaysHideDuringAutoLOD;
 
 /** If true, bHidden on the Owner of this component will be ignored. */
-var(Rendering) const bool bIgnoreOwnerHidden;
+var const bool bIgnoreOwnerHidden;
 
 /**
  * Whether to render the primitive in the depth only pass.
- * Setting this to FALSE will cause artifacts with dominant light shadows and potentially large performance loss,
- * So it should be TRUE on all lit objects, setting it to FALSE is mostly only useful for debugging.
  */
-var bool bUseAsOccluder;
+var(CullingAndOcclusion) bool bUseAsOccluder;
 
-var bool bUseAsOccluderAutomatic;
-var bool bAllowOcclusionTesting;
+var(CullingAndOcclusion) bool bUseAsOccluderAutomatic;
+var(CullingAndOcclusion) bool bAllowOcclusionTesting;
 
 /** If this is True, this component doesn't need exact occlusion info. */
-var(Rendering) bool bAllowApproximateOcclusion;
+var(CullingAndOcclusion) bool bAllowApproximateOcclusion;
+
+var(CullingAndOcclusion) bool bUmbraUseAsOccluder;
+var bool bUmbraDoNotIdCull;
 
 /** If this is True, this component will return 0.0f as their occlusion when first rendered. */
 var bool bFirstFrameOcclusion;
@@ -260,144 +347,104 @@ var(Rendering) const bool bAcceptsDynamicDecals;
 
 var native transient const bool bIsRefreshingDecals;
 
-var native transient bool bAllowDecalAutomaticReAttach;
+var transient bool bAllowDecalAutomaticReAttach;
 
-var(Rendering) bool bContributesToLightEnvironmentBounds;
+var bool bUsePerInstanceHitProxies;
 
 // Lighting flags
 
-/**
- * Whether to cast any shadows or not
- *
- * controls whether the primitive component should cast a shadow or not. Currently dynamic primitives will not receive shadows from static objects unless both this flag and bCastDynamicSahdow are enabled.
- **/
+/** Whether to cast any shadows or not */
 var(Lighting)	bool		CastShadow;
 
-/**
- * If true, forces all static lights to use light-maps for direct lighting on this primitive, regardless of the light's UseDirectLightMap property.
- *
- * forces the use of lightmaps for all static lights affecting this primitive even though the light might not be set to use light maps. This means that the primitive will not receive any shadows from dynamic objects obstructing static lights. It will correctly shadow in the case of dynamic lights
- */
-var(Lighting)	const bool	bForceDirectLightMap;
+/** If true, forces all static lights to use light-maps for direct lighting on this primitive. */
+var				const bool	bForceDirectLightMap;
 
-/** If false, primitive does not cast dynamic shadows.
- *
- * controls whether the primitive should cast shadows in the case of non precomputed shadowing like e.g. the primitive being in between a light and a dynamic object. This flag is only used if CastShadow is TRUE. Currently dynamic primitives will not receive shadows from static objects unless both this flag and CastShadow are enabled.
- *
- **/
+/** If false, primitive does not cast dynamic shadows. */
 var(Lighting)	bool		bCastDynamicShadow;
 
-var(Lighting)	bool		bDisableDynamicShadowCastingOnPS3;
+/** If false, primitive does not cast static shadows. */
+var(Lighting)	bool		bCastStaticShadow;
 
 /**
  * If true, the primitive will only shadow itself and will not cast a shadow on other primitives.
- * This can be used as an optimization when the shadow on other primitives won't be noticeable.
  */
-var(Lighting)	bool		bSelfShadowOnly;
+var				bool		bSelfShadowOnly;
+
+var transient	bool		bMeshAddedToScene;
 
 /**
  * Optimization for objects which don't need to receive dominant light shadows.
- * This is useful for objects which eat up a lot of GPU time and are heavily texture bound yet never receive noticeable shadows from dominant lights like trees.
  */
-var(Lighting)	bool		bAcceptsDynamicDominantLightShadows;
+var				bool		bAcceptsDynamicDominantLightShadows;
 
 /**
  *	If TRUE, the primitive will cast shadows even if bHidden is TRUE.
- *
- *	Controls whether the primitive should cast shadows when hidden.
- *	This flag is only used if CastShadow is TRUE.
- *
  */
-var(Lighting)	bool		bCastHiddenShadow;
+var				bool		bCastHiddenShadow;
 
 /** Whether this primitive should cast dynamic shadows as if it were a two sided material. */
-var(Lighting)	bool		bCastShadowAsTwoSided;
+var				bool		bCastShadowAsTwoSided;
+
+/** Does this primitive accept lights? */
+var				const bool	bAcceptsLights;
+
+/** Whether this primitives accepts dynamic lights */
+var				const bool	bAcceptsDynamicLights;
 
 /**
- * Does this primitive accept lights?
- *
- * controls whether the primitive accepts any lights. Should be set to FALSE for e.g. unlit objects as its a nice optimization - especially for larger objects.
- **/
-var(Lighting)	const bool	bAcceptsLights;
-
-/**
- * Whether this primitives accepts dynamic lights
- *
- * controls whether the object should be affected by dynamic lights.
- **/
-var(Lighting)	const bool	bAcceptsDynamicLights;
-
-/**
- * If TRUE, dynamically lit translucency on this primitive will render in one pass,
- * Which is cheaper and ensures correct blending but approximates lighting using one directional light and all other lights in an unshadowed SH environment.
- * If FALSE, dynamically lit translucency will render in multiple passes which uses more shader instructions and results in incorrect blending.
+ * If TRUE, dynamically lit translucency on this primitive will render in one pass.
  */
-var(Lighting)	const bool bUseOnePassLightingOnTranslucency;
+var				const bool bUseOnePassLightingOnTranslucency;
 
 /** Whether the primitive supports/ allows static shadowing */
-var(Lighting)	const bool	bUsePrecomputedShadows;
+var				const bool	bUsePrecomputedShadows;
 
-var(Lighting)	const bool	bCastStaticModulatedShadows;
-var(Lighting)	const bool	bRecieveStaticModulatedShadows;
-var(Lighting)	const bool	bRecieveDynamicDirectionalLights;
-var(Lighting)	const bool	bRecieveDynamicSpotLights;
-var(Lighting)	const bool	bRecieveDynamicPointLights;
-
-/**
-* TRUE if ShadowParent was set through SetShadowParent,
-* FALSE if ShadowParent is set automatically based on Owner->bShadowParented.
-*/
-var private transient const bool bHasExplicitShadowParent;
-
-/**
-* If TRUE, the primitive backfaces won't allow for modulated shadows to be cast on them.
-* If FALSE, could help performance since the mesh doesn't have to be drawn again to cull the backface shadows
-*/
-var	bool bCullModulatedShadowOnBackfaces;
-/**
-* If TRUE, the emissive areas of the primitive won't allow for modulated shadows to be cast on them.
-* If FALSE, could help performance since the mesh doesn't have to be drawn again to cull the emissive areas in shadow
-*/
-var	bool bCullModulatedShadowOnEmissive;
+var				const bool	bAgeSorted;
 
 var deprecated bool bAllowAmbientOcclusion;
 
 // Collision flags.
 
 var(Collision)	const bool	CollideActors <DMCOnly=true>;
-
-/** when this is on, this primitive component get collision tests even if it isn't the actor's collision component */
-var const bool  AlwaysCheckCollision;
-
 var(Collision)	const bool	BlockActors <DMCOnly=true>;
-var(Collision)	const bool	BlockZeroExtent <DMCOnly=true>;
-var(Collision)	const bool	BlockNonZeroExtent <DMCOnly=true>;
+var			const bool	BlockZeroExtent <DMCOnly=true>;
+var			const bool	BlockNonZeroExtent <DMCOnly=true>;
 /** TRUE if this primitive is eligible to block camera traces, FALSE if the camera should ignore it. */
-var(Collision)	const bool	CanBlockCamera;
+var			const bool	CanBlockCamera;
 var(Collision)	const bool	BlockRigidBody;
-var(Collision)	const bool	BlockRigidBodyPhysX;
+var			const bool	BlockRigidBodyInitial;
+var			const bool	bBlockFootPlacement;
+var			const bool	BlockRigidBodyPhysX;
+
+/** If TRUE, CollisionFilter is used in place of the one the owner supplies. */
+var(Collision)	const bool	OverrideCollisionFilter;
+
+var(Collision)	nontransactional const bool	BlockTurbulence;
 
 /** Never create any physics engine representation for this body. */
 var(Physics) const bool bDisableAllRigidBody;
 
 /** When creating rigid body, will skip normal geometry creation step, and will rely on ModifyNxActorDesc to fill in geometry. */
-var(Physics) const bool	bSkipRBGeomCreation;
+var const bool	bSkipRBGeomCreation;
 
 /**
  *	Flag that indicates if OnRigidBodyCollision function should be called for physics collisions involving this PrimitiveComponent.
  */
 var(Physics) const bool	bNotifyRigidBodyCollision;
 
-var(Physics) const bool	bEnableContactModificationCallback;
-var bool bDisableMinCollisionThickness;
+var bool bNotifyRigidBodyCollisionIgnoredWhenFarAway;
+var const bool bNotifyRigidBodyCollisionOnSelfCollision;
+var const bool	bEnableContactModificationCallback;
+var const bool	bEnableSleepWakeNotifies;
+var(Collision) bool bDisableMinCollisionThickness;
 
 // Novodex fluids
 
 /** Whether this object should act as a 'drain' for fluid, and destroy fluid particles when they contact it. */
-var(Physics) const bool	bFluidDrain;
+var const bool	bFluidDrain;
 
-/** Indicates that fluid interaction with this object should be 'two-way' - that is, force should be applied to both fluid and object. */
-var(Physics) const bool	bFluidTwoWay;
+/** Indicates that fluid interaction with this object should be 'two-way'. */
+var const bool	bFluidTwoWay;
 
 // Physics
 
@@ -408,11 +455,10 @@ var(Physics)	bool		bIgnoreRadialImpulse;
 var(Physics)	bool		bIgnoreRadialForce;
 
 /** Will ignore force field applied to this component. */
-var(Physics)	bool		bIgnoreForceField;
+var				bool		bIgnoreForceField;
 
-/** Place into a NxCompartment that will run in parallel with the primary scene's physics with potentially different simulation parameters.
- *  If double buffering is enabled in the WorldInfo then physics will run in parallel with the entire game for this component. */
-var(Physics)	const bool		bUseCompartment;
+/** Place into a NxCompartment that will run in parallel with the primary scene's physics. */
+var				const bool		bUseCompartment;
 
 // General flags.
 
@@ -423,39 +469,49 @@ var private const bool AlwaysLoadOnClient;
 var private const bool AlwaysLoadOnServer;
 
 /** Allow certain components to render even if the parent actor is part of the camera's HiddenActors array. */
-var() bool bIgnoreHiddenActorsMembership;
+var bool bIgnoreHiddenActorsMembership;
 
 var() const bool			AbsoluteTranslation;
 var() const bool			AbsoluteRotation;
 var() const bool			AbsoluteScale;
 
-/** Determines whether or not we allow shadowing fading.  Some objects (especially in cinematics) having the shadow fade/pop out looks really bad. **/
+/** Determines whether or not we allow shadowing fading. **/
 var bool bAllowShadowFade;
+
+var bool bSupportedOnMobile;
 
 // Internal scene data.
 
 var const native transient bool bWasSNFiltered;
-var const native transient int QuadTreeEntry;
 
+var editoronly bool bEnableRBFixedFlag;
+var bool bAddPxShapesToSceneQueryStructure;
+
+var const native transient int QuadTreeEntry;
 
 /**
  * Translucent objects with a lower sort priority draw behind objects with a higher priority.
- * Translucent objects with the same priority are rendered from back-to-front based on their bounds origin.
- *
- * Ignored if the object is not translucent.  The default priority is zero.
- * Warning: This should never be set to a non-default value unless you know what you are doing, as it will prevent the renderer from sorting correctly.
- * It is especially problematic on dynamic gameplay effects.
  **/
 var(Rendering) int TranslucencySortPriority;
 
+/** Index into the level's precomputed visibility data. */
+var duplicatetransient int VisibilityId;
+
+/** Umbra occlusion object id. */
+var duplicatetransient int UmbraId;
+
+var duplicatetransient editoronly int UmbraIdVersion;
+
 /**
  * Lighting channels controlling light/ primitive interaction. Only allows interaction if at least one channel is shared
- *
  */
 var(Lighting)	const LightingChannelContainer	LightingChannels;
 
 /** Types of objects that this physics objects will collide with. */
 var(Collision) const RBCollisionChannelContainer	RBCollideWithChannels;
+
+/** Per-shape PhysX filter bits. */
+var transient PhysXShapeFilterFlagsContainer	PhysXShapeFilterFlags;
 
 /** Enum indicating what type of object this should be considered for rigid body collision. */
 var(Collision)	const ERBCollisionChannel	RBChannel;
@@ -464,7 +520,7 @@ var(Collision)	const ERBCollisionChannel	RBChannel;
 var(Rendering) const ESceneDepthPriorityGroup DepthPriorityGroup;
 
 /** If detail mode is >= system detail mode, primitive won't be rendered. */
-var(Rendering) const EDetailMode DetailMode;
+var const EDetailMode DetailMode;
 
 /**
  *	Used for creating one-way physics interactions (via constraints or contacts)
@@ -473,6 +529,9 @@ var(Rendering) const EDetailMode DetailMode;
 var(Physics)	byte		RBDominanceGroup;
 
 var int LevelEdgeCollectionIndex;
+
+/** Physics scene this component is forced into, instead of the world's. */
+var native pointer OverrideRBPhysScene{FRBPhysScene};
 
 /**
  *	Add an impulse to the physics of this PrimitiveComponent.
@@ -676,18 +735,6 @@ native final function SetOnlyOwnerSee(bool bNewOnlyOwnerSee);
 native final function SetIgnoreOwnerHidden(bool bNewIgnoreOwnerHidden);
 
 /**
- * Changes the value of ShadowParent.
- * @param NewShadowParent - The value to assign to ShadowParent.
- */
-native final function SetShadowParent(PrimitiveComponent NewShadowParent);
-
-/**
- * Changes the value of LightEnvironment.
- * @param NewLightEnvironment - The value to assign to LightEnvironment.
- */
-native final function SetLightEnvironment(LightEnvironmentComponent NewLightEnvironment);
-
-/**
  * Changes the value of CullDistance.
  * @param NewCullDistance - The value to assign to CullDistance.
  */
@@ -717,7 +764,7 @@ native final function SetViewOwnerDepthPriorityGroup(
 
 native final function SetTraceBlocking(bool NewBlockZeroExtent, bool NewBlockNonZeroExtent);
 
-native final function SetActorCollision(bool NewCollideActors, bool NewBlockActors, optional bool NewAlwaysCheckCollision);
+native final function SetActorCollision(bool NewCollideActors, bool NewBlockActors);
 
 // Copied from TransformComponent
 native function k2call SetTranslation(vector NewTranslation);
@@ -759,32 +806,41 @@ native final function GJKResult ClosestPointOnComponentToPoint(out vector POI, o
 */
 native function GJKResult ClosestPointOnComponentToComponent(out PrimitiveComponent OtherComponent, out vector PointOnComponentA, out vector PointOnComponentB);
 
+// BM: defaults are AK's, read out of Default__PrimitiveComponent's cooked tag stream.
 defaultproperties
 {
-	LastRenderTime=-1000
+	MotionBlurInstanceScale=1.0
+	PerInstanceRandom=0.3731803
+	PerInstanceRandomOverride=-1.0
+	CullArea=10000000000000.0
+	CullAreaMultiplier=1.0
 	Scale=1.0
 	Scale3D=(X=1.0,Y=1.0,Z=1.0)
-	DepthPriorityGroup=SDPG_World
+
 	bAllowCullDistanceVolume=TRUE
-	bContributesToLightEnvironmentBounds=TRUE
-	bUseAsOccluder=FALSE
-	CastShadow=FALSE
+	bUseAsOccluderAutomatic=TRUE
+	bAllowOcclusionTesting=TRUE
+	bAllowApproximateOcclusion=TRUE
+	bUmbraUseAsOccluder=TRUE
+	bSelectable=TRUE
+	bAllowDecalAutomaticReAttach=TRUE
 	bCastDynamicShadow=TRUE
 	bAcceptsDynamicDominantLightShadows=TRUE
-	bAcceptsLights=FALSE
 	bAcceptsDynamicLights=TRUE
-	bSelectable=TRUE
-	bAcceptsStaticDecals=FALSE
-	bAcceptsDynamicDecals=TRUE
-	bAllowDecalAutomaticReAttach=TRUE
+	CanBlockCamera=TRUE
+	bBlockFootPlacement=TRUE
+	bNotifyRigidBodyCollisionIgnoredWhenFarAway=TRUE
+	bDisableMinCollisionThickness=TRUE
 	AlwaysLoadOnClient=TRUE
 	AlwaysLoadOnServer=TRUE
 	bAllowShadowFade=TRUE
-	RBChannel=RBCC_Default
+	bSupportedOnMobile=TRUE
+	bAddPxShapesToSceneQueryStructure=TRUE
+
+	VisibilityId=-1
+	UmbraId=-1
+	RBCollideWithChannels=(Default=TRUE)
+	DepthPriorityGroup=SDPG_World
 	RBDominanceGroup=15
-	PreviewEnvironmentShadowing=180
-	bCullModulatedShadowOnBackfaces=FALSE
-	bCullModulatedShadowOnEmissive=FALSE
-	CanBlockCamera=TRUE
-	bAllowAmbientOcclusion=TRUE
+	LevelEdgeCollectionIndex=65535
 }

@@ -413,7 +413,7 @@ void AActor::UpdateComponentsInternal(UBOOL bCollisionUpdate)
 		{
 			UPrimitiveComponent*	primComp = Cast<UPrimitiveComponent>(this->Components(ComponentIndex));
 
-			if( primComp != NULL && primComp->IsAttached() && (primComp == CollisionComponent || primComp->AlwaysCheckCollision) )
+			if( primComp != NULL && primComp->IsAttached() && primComp == CollisionComponent )
 			{
 				primComp->UpdateComponent(GWorld->Scene,this,ActorToWorld,TRUE);
 			}

@@ -3213,36 +3213,11 @@ void ASkeletalMeshActor::CheckForErrors()
 
 	if(SkeletalMeshComponent && SkeletalMeshComponent->SkeletalMesh)
 	{
-		UDynamicLightEnvironmentComponent* DynLightEnv = Cast<UDynamicLightEnvironmentComponent>(SkeletalMeshComponent->LightEnvironment);
 		if(!SkeletalMeshComponent->PhysicsAsset 
 			&& SkeletalMeshComponent->CastShadow 
-			&& SkeletalMeshComponent->bCastDynamicShadow
-			// Warn if the DLE is disabled or enabled but shadow casting is disabled
-			&& (!DynLightEnv || !DynLightEnv->IsEnabled() || DynLightEnv->bCastShadows))
+			&& SkeletalMeshComponent->bCastDynamicShadow)
 		{
 			GWarn->MapCheck_Add(MCTYPE_PERFORMANCEWARNING, this, TEXT("SkeletalMeshActor casts shadow but has no PhysicsAsset assigned.  The shadow will be low res and inefficient."), MCACTION_NONE, TEXT("SkelMeshActorNoPhysAsset"));
-		}
-
-		const UBOOL bPreShadowAllowed = SkeletalMeshComponent->LightEnvironment && SkeletalMeshComponent->LightEnvironment->IsEnabled() && !CastChecked<UDynamicLightEnvironmentComponent>(SkeletalMeshComponent->LightEnvironment)->bUseBooleanEnvironmentShadowing;
-		if(SkeletalMeshComponent->CastShadow 
-			&& SkeletalMeshComponent->bCastDynamicShadow 
-			&& SkeletalMeshComponent->IsAttached() 
-			&& SkeletalMeshComponent->Bounds.SphereRadius > 2000.0f
-			&& bPreShadowAllowed)
-		{
-			// Large shadow casting objects that create preshadows will cause a massive performance hit, since preshadows are meant for small shadow casters.
-			// Setting bUseBooleanEnvironmentShadowing=TRUE will prevent the preshadow from being created.
-			GWarn->MapCheck_Add(MCTYPE_PERFORMANCEWARNING, this, TEXT("Large actor casts a shadow and will cause an extreme performance hit unless bUseBooleanEnvironmentShadowing is set to TRUE."), MCACTION_NONE, TEXT("ActorLargeShadowCaster"));
-		}
-
-		if (SkeletalMeshComponent->bAcceptsLights 
-			&& SkeletalMeshComponent->AlwaysLoadOnClient 
-			&& SkeletalMeshComponent->AlwaysLoadOnServer
-			&& (!LightEnvironment || !LightEnvironment->IsEnabled())
-			// Don't warn for meshes with custom lighting channels (often using cinematic lighting)
-			&& (SkeletalMeshComponent->LightingChannels.Dynamic || SkeletalMeshComponent->LightingChannels.Static))
-		{
-			GWarn->MapCheck_Add( MCTYPE_PERFORMANCEWARNING, Owner, *FString::Printf(TEXT("Skeletal Mesh component not using a light environment or custom lighting channels, will be inefficient and have incorrect lighting!") ), MCACTION_NONE, TEXT("NotUsingALightEnv") );
 		}
 
 		if(!SkeletalMeshComponent->PhysicsAsset && bCollideActors)

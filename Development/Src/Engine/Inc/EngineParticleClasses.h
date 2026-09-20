@@ -1479,7 +1479,6 @@ public:
 	virtual void Tick(FLOAT DeltaTime);
 
 	virtual FPrimitiveSceneProxy* CreateSceneProxy();
-	virtual void SetLightEnvironment(ULightEnvironmentComponent* NewLightEnvironment);
 
 	/** 
 	 * Retrieves the materials used in this component 

@@ -2202,13 +2202,6 @@ void UUnrealEdEngine::edactSelectRelevantLights(UBOOL bDominantOnly)
 				UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(Actor->AllComponents(ComponentIndex));
 				if (Primitive)
 				{
-					// Primitives with light environments have to be handled specially, 
-					// Since lights that are composited into the DLE won't show up as influences
-					if (Primitive->LightEnvironment && Primitive->LightEnvironment->IsEnabled())
-					{
-						Primitive->LightEnvironment->AddRelevantLights(RelevantLightList, bDominantOnly);
-					}
-					else
 					{
 						TArray<const ULightComponent*> RelevantLightComponents;
 						GWorld->Scene->GetRelevantLights(Primitive, &RelevantLightComponents);

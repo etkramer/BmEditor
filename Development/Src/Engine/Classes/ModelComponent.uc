@@ -22,6 +22,4 @@ defaultproperties
 	bAcceptsStaticDecals=TRUE
 	bUsePrecomputedShadows=TRUE
 	bUseAsOccluder=TRUE
-	bCullModulatedShadowOnBackfaces=TRUE
-	bCullModulatedShadowOnEmissive=TRUE
 }

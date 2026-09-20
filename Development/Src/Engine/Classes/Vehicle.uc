@@ -402,9 +402,6 @@ simulated function AttachDriver( Pawn P )
 	P.SetHardAttach(true);
 	P.SetPhysics( PHYS_None );
 
-	if ( (P.Mesh != None) && (Mesh != None) )
-		P.Mesh.SetShadowParent(Mesh);
-
 	if ( !bDriverIsVisible )
 	{
 		P.SetHidden(True);

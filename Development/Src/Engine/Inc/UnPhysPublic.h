@@ -105,18 +105,31 @@ enum ERBCollisionChannel
 	RBCC_Water				= 4,
 	RBCC_GameplayPhysics	= 5,
 	RBCC_EffectPhysics		= 6,
-	RBCC_Untitled1			= 7,
-	RBCC_Untitled2			= 8,
-	RBCC_Untitled3			= 9,
-	RBCC_Untitled4			= 10,
+	RBCC_FloatingRaft		= 7,
+	RBCC_Gargoyles			= 8,
+	RBCC_PawnRagdoll		= 9,
+	RBCC_Rope				= 10,
 	RBCC_Cloth				= 11,
-	RBCC_FluidDrain			= 12,
-	RBCC_SoftBody			= 13,
-	RBCC_FracturedMeshPart	= 14,
+	RBCC_CapeOnlyCollision	= 12,
+	RBCC_PropStaticChunks	= 13,
+	RBCC_FlyingVehicle		= 14,
 	RBCC_BlockingVolume		= 15,
 	RBCC_DeadPawn			= 16,
 	RBCC_Clothing           = 17,
-	RBCC_ClothingCollision  = 18
+	RBCC_ClothingCollision  = 18,
+	RBCC_FlexAsset			= 19,
+	RBCC_Cape				= 20,
+	RBCC_CinematicCape		= 21,
+	RBCC_PawnRagdollStrungUp= 22,
+	RBCC_Projectile			= 23,
+	RBCC_PropDynamicChunks	= 24,
+	RBCC_Grate				= 25,
+	RBCC_Prop				= 26,
+	RBCC_MagneticDynamicObjects = 27,
+	RBCC_MagneticProp		= 28,
+	RBCC_VehicleBlocker		= 29,
+	RBCC_RobinCape			= 30,
+	RBCC_PhysicsPuzzleObject= 31
 };
 
 /** 
@@ -136,18 +149,31 @@ struct FRBCollisionChannelContainer
 			BITFIELD	Water:1;
 			BITFIELD	GameplayPhysics:1;
 			BITFIELD	EffectPhysics:1;
-			BITFIELD	Untitled1:1;
-			BITFIELD	Untitled2:1;
-			BITFIELD	Untitled3:1;
-			BITFIELD	Untitled4:1;
+			BITFIELD	FloatingRaft:1;
+			BITFIELD	Gargoyles:1;
+			BITFIELD	PawnRagdoll:1;
+			BITFIELD	Rope:1;
 			BITFIELD	Cloth:1;
-			BITFIELD	FluidDrain:1;
-			BITFIELD	SoftBody:1;
-			BITFIELD	FracturedMeshPart:1;
+			BITFIELD	CapeOnlyCollision:1;
+			BITFIELD	PropStaticChunks:1;
+			BITFIELD	FlyingVehicle:1;
 			BITFIELD	BlockingVolume:1;
 			BITFIELD	DeadPawn:1;
 			BITFIELD    Clothing:1;
 			BITFIELD    ClothingCollision:1;
+			BITFIELD	FlexAsset:1;
+			BITFIELD	Cape:1;
+			BITFIELD	CinematicCape:1;
+			BITFIELD	PawnRagdollStrungUp:1;
+			BITFIELD	Projectile:1;
+			BITFIELD	PropDynamicChunks:1;
+			BITFIELD	Grate:1;
+			BITFIELD	Prop:1;
+			BITFIELD	MagneticDynamicObjects:1;
+			BITFIELD	MagneticProp:1;
+			BITFIELD	VehicleBlocker:1;
+			BITFIELD	RobinCape:1;
+			BITFIELD	PhysicsPuzzleObject:1;
 		};
 		DWORD Bitfield;
 	};
@@ -160,6 +186,31 @@ struct FRBCollisionChannelContainer
 
 	/** Set the status of a particular channel in the structure. */
 	void SetChannel(ERBCollisionChannel Channel, UBOOL bNewState);
+};
+
+/**
+ *	Per-shape PhysX filter bits.
+ *	Mirrored manually in PrimitiveComponent.uc
+ */
+struct FPhysXShapeFilterFlagsContainer
+{
+	union
+	{
+		struct
+		{
+			BITFIELD	NotifyOnCollision:1;
+			BITFIELD	DisableCollisionResponse:1;
+			BITFIELD	UsePairwiseCollisionFilter:1;
+			BITFIELD	ContactModification:1;
+			BITFIELD	DoNotNotifyOnCollisionWithVehicle:1;
+			BITFIELD	HasCollidedWithFloor:1;
+			BITFIELD	NotifyOnSelfCollision:1;
+			BITFIELD	ForceDisableContactModification:1;
+			BITFIELD	CapeCollisionTrigger:1;
+			BITFIELD	DetachedVehiclePart:1;
+		};
+		DWORD Bitfield;
+	};
 };
 
 /** 

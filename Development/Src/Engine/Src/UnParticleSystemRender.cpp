@@ -8502,14 +8502,6 @@ FPrimitiveSceneProxy* UParticleSystemComponent::CreateSceneProxy()
 	return NewProxy;
 }
 
-void UParticleSystemComponent::SetLightEnvironment(ULightEnvironmentComponent* NewLightEnvironment)
-{
-	// Verify that any light environments set on this component derive from UParticleLightEnvironmentComponent to avoid leaking DLE's
-	UParticleLightEnvironmentComponent* ParticleDLE = Cast<UParticleLightEnvironmentComponent>(NewLightEnvironment);
-	check(!NewLightEnvironment || ParticleDLE);
-	Super::SetLightEnvironment(NewLightEnvironment);
-}
-
 #if WITH_EDITOR
 void DrawParticleSystemHelpers(UParticleSystemComponent* InPSysComp, const FSceneView* View,FPrimitiveDrawInterface* PDI)
 {

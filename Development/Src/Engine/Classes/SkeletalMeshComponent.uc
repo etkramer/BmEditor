@@ -1501,7 +1501,6 @@ defaultproperties
 	bSyncActorLocationToRootRigidBody=TRUE
 
 	// this will allow modulated shadows on backfaces which might not be noticeable so don't pay a perf cost
-	bCullModulatedShadowOnBackfaces=FALSE
 
 	// re-rendering mesh for each decal is slow, and sometimes can't even be seen
  	bAcceptsStaticDecals=FALSE

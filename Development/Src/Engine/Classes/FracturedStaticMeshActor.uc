@@ -532,7 +532,7 @@ simulated event Explode()
 			if(FracPart != None)
 			{
 				// When something explodes we disallow collisions between all those parts.
-				FracPart.FracturedStaticMeshComponent.SetRBCollidesWithChannel(RBCC_FracturedMeshPart, FALSE);
+				FracPart.FracturedStaticMeshComponent.SetRBCollidesWithChannel(RBCC_FlyingVehicle, FALSE);
 			}
 
 			FragmentVis[i] = 0;
@@ -685,7 +685,6 @@ defaultproperties
 
 	Begin Object Class=FracturedSkinnedMeshComponent Name=FracturedSkinnedComponent0
 		bDisableAllRigidBody=TRUE
-		LightEnvironment=LightEnvironment0
 	End Object
 	Components.Add(FracturedSkinnedComponent0)
 	SkinnedComponent=FracturedSkinnedComponent0

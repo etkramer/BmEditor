@@ -195,7 +195,6 @@ defaultproperties
 		PhysicsWeight=1.0
 		RBChannel=RBCC_GameplayPhysics
 		RBCollideWithChannels=(Default=TRUE,BlockingVolume=TRUE,GameplayPhysics=TRUE,EffectPhysics=TRUE)
-		LightEnvironment=MyLightEnvironment
 		bSkipAllUpdateWhenPhysicsAsleep=TRUE
 	End Object
 	CollisionComponent=KAssetSkelMeshComponent

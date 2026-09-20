@@ -615,8 +615,6 @@ public:
 	// INDEX_NONE or index into MotionBlurInfoArray
 	INT MotionBlurInfoIndex;
 
-	UPrimitiveComponent* ShadowParent;
-
 	/** Replacement primitive to draw instead of this one (multiple UPrim's will point to the same Replacement) */
 	UPrimitiveComponent* ReplacementPrimitive;
 
@@ -625,16 +623,12 @@ public:
 	/** Keeps track of which fog component this primitive is using. */
 	class UFogVolumeDensityComponent* FogVolumeComponent;
 
-	/** The lighting environment to take the primitive's lighting from. */
-	class ULightEnvironmentComponent* LightEnvironment;
-
-	/** Stores the previous light environment if SetLightEnvironment is called while the primitive is attached. */
-	ULightEnvironmentComponent* PreviousLightEnvironment;
-
 	/** The distance at which the renderer will switch from parent (low LOD) to children (high LOD). */
 	FLOAT MassiveLODDistance;
 
 	INT MassiveLODAttachedPrimitives;
+
+	FLOAT AutoLODImportanceWeighting;
 
 	/** Max draw distance exposed to LDs. Renamed to LDMaxDrawDistance in c++ */
 	FLOAT LDMaxDrawDistance;
@@ -642,13 +636,16 @@ public:
 	/** The distance to cull this primitive at. 0 indicates the primitive should not be culled by distance. */
 	FLOAT CachedMaxDrawDistance;
 
+	FLOAT MotionBlurInstanceScale;
+
+	FLOAT PerInstanceRandom;
+	FLOAT PerInstanceRandomOverride;
+
 	FLOAT CullArea;
 	FLOAT CullAreaMultiplier;
 
 	/** Environment shadow factor used when previewing unbuilt lighting on this primitive. */
 	BYTE PreviewEnvironmentShadowing;
-
-	FLOAT MotionBlurScale;
 
 	class UPhysicalMaterial* PhysMaterialOverride;
 	class URB_BodyInstance* BodyInstance;
@@ -658,21 +655,37 @@ public:
 	FLOAT		Scale;
 	FVector		Scale3D;
 
+	// BM: script aligns Plane to 16, so this lands 8 bytes past Scale3D - as it does in AK.
+	FPlane		ReflectionShadowPlane;
+
 	/** Last render time in seconds since level started play. */
 	FLOAT		LastRenderTime;
 
 	/** if > 0, the script RigidBodyCollision() event will be called on our Owner when a physics collision occurs */
 	FLOAT ScriptRigidBodyCollisionThreshold;
 
-	BYTE PhysMaterialOverrideDropDown;
+	/** ECollisionFilter - named collision setup this primitive uses. */
+	BYTE CollisionFilter;
+
+	/** EHeightmapOverrideFilter - which heightmap layer this primitive overrides. */
+	BYTE HeightmapOverrideType;
 
 	SCRIPT_ALIGN;
 
-	BITFIELD	bHighlightDepthPriorityGroupInXray:1;
-	BITFIELD	bHighlightXrayDepthPriorityGroupInXray:1;
-	BITFIELD	bHighlightDepthPriorityGroupInThermal:1;
-	BITFIELD	bHighlightThermalDepthPriorityGroupInThermal:1;
-	BITFIELD	PhysMaterialOverrideDropDownUPDATELIST:1;
+	BITFIELD	bForceEdCanScale:1;
+	BITFIELD	bForceEdCanNonUniformScale:1;
+	BITFIELD	bDrawAsGauntletProjectionMesh:1;
+	BITFIELD	bDrawInFrontOfPostProcessWhenInXrayMode:1;
+	BITFIELD	bDrawInForegroundAndInFrontOfPostProcessWhenInXrayMode:1;
+	BITFIELD	bDrawInFrontOfPostProcessWhenInScanMode:1;
+	BITFIELD	bDrawInForegroundAndInFrontOfPostProcessWhenInScanMode:1;
+	BITFIELD	bDrawInFrontOfPostProcessWhenInThermalMode:1;
+	BITFIELD	bDrawInForegroundAndInFrontOfPostProcessWhenInThermalMode:1;
+	BITFIELD	bDrawInFrontOfPostProcessWhenInBatmobileViewMode:1;
+	BITFIELD	bDrawInForegroundAndInFrontOfPostProcessWhenInBatmobileViewMode:1;
+	BITFIELD	bDrawAsDisruptorSniperHighlightMesh:1;
+	BITFIELD	bDrawInFrontOfPostProcessWhenInDLCViewMode:1;
+	BITFIELD	bDrawInForegroundAndInFrontOfPostProcessWhenInDLCViewMode:1;
 	BITFIELD	bAllowCullDistanceVolume:1;
 	BITFIELD	HiddenGame:1;
 	BITFIELD	HiddenEditor:1;
@@ -684,17 +697,31 @@ public:
 	BITFIELD	bOnlyScanModeSee:1;
 	BITFIELD	bThermalNoSee:1;
 	BITFIELD	bOnlyThermalSee:1;
+	BITFIELD	bBatmobileViewNoSee:1;
+	BITFIELD	bOnlyBatmobileViewSee:1;
 	BITFIELD	bOnlyReflectionSee:1;
 	BITFIELD	bReflectionNoSee:1;
+	BITFIELD	bOnlyReflectionProbeSee:1;
+	BITFIELD	bReflectionProbeNoSee:1;
+	BITFIELD	bExcludeFromRainVolume:1;
+	BITFIELD	bOverrideHeightmapObjectOnly:1;
 	BITFIELD	DontDrawThisFrame:1;
+	BITFIELD	NotCountedInParentMassiveLODAttachedPrimitives:1;
 	BITFIELD	ForceOnBakeIntoBackgroundForAutoLOD:1;
 	BITFIELD	ForceOffBakeIntoBackgroundForAutoLOD:1;
+	BITFIELD	ForceOffAutoLODOverride:1;
+	BITFIELD	ForceOffAutoLODMasked:1;
+	BITFIELD	ForceOnAutoLODMasked:1;
+	BITFIELD	ForceOffTwoSided:1;
 	BITFIELD	NeverHideDuringAutoLOD:1;
+	BITFIELD	AlwaysHideDuringAutoLOD:1;
 	BITFIELD	bIgnoreOwnerHidden:1;
 	BITFIELD	bUseAsOccluder:1;
 	BITFIELD	bUseAsOccluderAutomatic:1;
 	BITFIELD	bAllowOcclusionTesting:1;
 	BITFIELD	bAllowApproximateOcclusion:1;
+	BITFIELD	bUmbraUseAsOccluder:1;
+	BITFIELD	bUmbraDoNotIdCull:1;
 	BITFIELD	bFirstFrameOcclusion:1;
 	BITFIELD	bIgnoreNearPlaneIntersection:1;
 	BITFIELD	bSelectable:1;
@@ -703,12 +730,13 @@ public:
 	BITFIELD	bAcceptsDynamicDecals:1;
 	BITFIELD	bIsRefreshingDecals:1;
 	BITFIELD	bAllowDecalAutomaticReAttach:1;
-	BITFIELD	bContributesToLightEnvironmentBounds:1;
+	BITFIELD	bUsePerInstanceHitProxies:1;
 	BITFIELD	CastShadow:1;
 	BITFIELD	bForceDirectLightMap:1;
 	BITFIELD	bCastDynamicShadow:1;
-	BITFIELD	bDisableDynamicShadowCastingOnPS3:1;
+	BITFIELD	bCastStaticShadow:1;
 	BITFIELD	bSelfShadowOnly:1;
+	BITFIELD	bMeshAddedToScene:1;
 	BITFIELD	bAcceptsDynamicDominantLightShadows:1;
 	BITFIELD	bCastHiddenShadow:1;
 	BITFIELD	bCastShadowAsTwoSided:1;
@@ -716,27 +744,26 @@ public:
 	BITFIELD	bAcceptsDynamicLights:1;
 	BITFIELD	bUseOnePassLightingOnTranslucency:1;
 	BITFIELD	bUsePrecomputedShadows:1;
-	BITFIELD	bCastStaticModulatedShadows:1;
-	BITFIELD	bRecieveStaticModulatedShadows:1;
-	BITFIELD	bRecieveDynamicDirectionalLights:1;
-	BITFIELD	bRecieveDynamicSpotLights:1;
-	BITFIELD	bRecieveDynamicPointLights:1;
-	BITFIELD	bHasExplicitShadowParent:1;
-	BITFIELD	bCullModulatedShadowOnBackfaces:1;
-	BITFIELD	bCullModulatedShadowOnEmissive:1;
+	BITFIELD	bAgeSorted:1;
 	BITFIELD	bAllowAmbientOcclusion:1;
 	BITFIELD	CollideActors:1;
-	BITFIELD	AlwaysCheckCollision:1;
 	BITFIELD	BlockActors:1;
 	BITFIELD	BlockZeroExtent:1;
 	BITFIELD	BlockNonZeroExtent:1;
 	BITFIELD	CanBlockCamera:1;
 	BITFIELD	BlockRigidBody:1;
+	BITFIELD	BlockRigidBodyInitial:1;
+	BITFIELD	bBlockFootPlacement:1;
 	BITFIELD	BlockRigidBodyPhysX:1;
+	BITFIELD	OverrideCollisionFilter:1;
+	BITFIELD	BlockTurbulence:1;
 	BITFIELD	bDisableAllRigidBody:1;
 	BITFIELD	bSkipRBGeomCreation:1;
 	BITFIELD	bNotifyRigidBodyCollision:1;
+	BITFIELD	bNotifyRigidBodyCollisionIgnoredWhenFarAway:1;
+	BITFIELD	bNotifyRigidBodyCollisionOnSelfCollision:1;
 	BITFIELD	bEnableContactModificationCallback:1;
+	BITFIELD	bEnableSleepWakeNotifies:1;
 	BITFIELD	bDisableMinCollisionThickness:1;
 	BITFIELD	bFluidDrain:1;
 	BITFIELD	bFluidTwoWay:1;
@@ -751,18 +778,31 @@ public:
 	BITFIELD	AbsoluteRotation:1;
 	BITFIELD	AbsoluteScale:1;
 	BITFIELD	bAllowShadowFade:1;
+	BITFIELD	bSupportedOnMobile:1;
 	BITFIELD	bWasSNFiltered:1;
+	BITFIELD	bEnableRBFixedFlag:1;
+	BITFIELD	bAddPxShapesToSceneQueryStructure:1;
 
 	INT QuadTreeEntry;
 
 	/** Translucent objects with a lower sort priority draw before objects with a higher priority. */
 	INT TranslucencySortPriority;
 
+	/** Index into the level's precomputed visibility data. */
+	INT VisibilityId;
+
+	/** Umbra occlusion object id. */
+	INT UmbraId;
+	INT UmbraIdVersion;
+
 	/** Lighting channels controlling light/ primitive interaction. */
 	FLightingChannelContainer	LightingChannels;
 
 	/** Types of objects that this physics objects will collide with. */
 	FRBCollisionChannelContainer RBCollideWithChannels;
+
+	/** Per-shape PhysX filter bits. */
+	FPhysXShapeFilterFlagsContainer PhysXShapeFilterFlags;
 
 	/** Enum indicating what type of object this should be considered for rigid body collision. */
 	BYTE		RBChannel;
@@ -778,14 +818,8 @@ public:
 
 	INT LevelEdgeCollectionIndex;
 
-	/**
-	* Check if this primitive needs to be rendered for masking modulated shadows
-	* @return TRUE if modulated shadows should be culled based on emissive or backfaces
-	*/
-	FORCEINLINE UBOOL ShouldCullModulatedShadows()
-	{
-		return bCullModulatedShadowOnEmissive || bCullModulatedShadowOnBackfaces;
-	}
+	/** Physics scene this component is forced into, instead of the world's. */
+	class FRBPhysScene* OverrideRBPhysScene;
 
 	// Should this Component be in the Octree for collision
 	UBOOL ShouldCollide() const;
@@ -1128,7 +1162,7 @@ public:
 		return FALSE;
 	}
 
-	/** allows components with 'AlwaysCheckCollision' set to TRUE to override trace flags during collision testing */
+	/** allows non-collision components to override trace flags during collision testing */
 	virtual void OverrideTraceFlagsForNonCollisionComponentChecks( DWORD& Flags ){/*default to do nothing*/}
 
 	/** @return number of material elements in this primitive */
@@ -1189,8 +1223,6 @@ public:
 	DECLARE_FUNCTION(execSetOwnerNoSee);
 	DECLARE_FUNCTION(execSetOnlyOwnerSee);
 	DECLARE_FUNCTION(execSetIgnoreOwnerHidden);
-	DECLARE_FUNCTION(execSetShadowParent);
-	DECLARE_FUNCTION(execSetLightEnvironment);
 	DECLARE_FUNCTION(execSetCullDistance);
 	DECLARE_FUNCTION(execSetLightingChannels);
 	DECLARE_FUNCTION(execSetDepthPriorityGroup);
@@ -1354,8 +1386,6 @@ public:
 	 *	@param	NewHidden		New Value fo the HiddenEditor flag.
 	 */
 	virtual void SetHiddenEditor(UBOOL NewHidden);
-	virtual void SetShadowParent(UPrimitiveComponent* NewShadowParent);
-	virtual void SetLightEnvironment(ULightEnvironmentComponent* NewLightEnvironment);
 	virtual void SetCullDistance(FLOAT NewCullDistance);
 	virtual void SetLightingChannels(FLightingChannelContainer NewLightingChannels);
 	virtual void SetDepthPriorityGroup(ESceneDepthPriorityGroup NewDepthPriorityGroup);

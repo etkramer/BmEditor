@@ -84,7 +84,5 @@ defaultproperties
 	CastShadow=TRUE
 	bAcceptsLights=TRUE
 	bUseAsOccluder=TRUE
-	bCullModulatedShadowOnBackfaces=TRUE
-	bCullModulatedShadowOnEmissive=TRUE
 	bAllowMaterialSwap=TRUE
 }

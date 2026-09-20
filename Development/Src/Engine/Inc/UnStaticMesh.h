@@ -2525,7 +2525,7 @@ protected:
 			const FLightMap* LightMap = Component->LODData.LightMap;
 #if BATMAN
 			UShadowMap2D* ShadowMap = Component->LODData.ShadowMaps.ShadowMap;
-			if (LightMap && Component->bRecieveStaticModulatedShadows && ShadowMap && ShadowMap->IsValid() && !ShadowMap->IsShadowFactorTexture())
+			if (LightMap && ShadowMap && ShadowMap->IsValid() && !ShadowMap->IsShadowFactorTexture())
 			{
 				return LightMap->GetInteractionWithShadowmap(ShadowMap->GetTexture(), ShadowMap->GetCoordinateScale(), ShadowMap->GetCoordinateBias());
 			}

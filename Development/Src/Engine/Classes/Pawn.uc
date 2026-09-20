@@ -3013,7 +3013,6 @@ simulated event StopDriving(Vehicle V)
 	if ( Mesh != None )
 	{
 		Mesh.SetCullDistance(Default.Mesh.CachedMaxDrawDistance);
-		Mesh.SetShadowParent(None);
 	}
 	bForceNetUpdate = TRUE;
 	if (V != None  )

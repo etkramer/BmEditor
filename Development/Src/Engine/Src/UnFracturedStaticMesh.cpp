@@ -1972,13 +1972,6 @@ void UFracturedSkinnedMeshComponent::RemoveDependentComponent(UFracturedStaticMe
 			Owner->SetTickIsDisabled(TRUE);
 		}
 
-		//disable the light environment
-		//this will remove the lights from the scene and speed up the rendering thread, even though those lights aren't used by anything
-		if (LightEnvironment)
-		{
-			LightEnvironment->SetEnabled(FALSE);
-		}
-
 		SetStaticMesh(NULL);
 
 		//toss transforms now that we don't need them anymore
@@ -2050,30 +2043,7 @@ void UFracturedSkinnedMeshComponent::Attach()
 			}
 		}
 
-		//if the component had at least one fragment become visible since being reset, 
-		//reset the light environment now that the component is being attached
-		//this is necessary because the light environment has bDynamic=FALSE and is only setup correctly when this component is attached
-		if (bBecameVisible)
-		{
-			UDynamicLightEnvironmentComponent* DynamicLightEnv = CastChecked<UDynamicLightEnvironmentComponent>(LightEnvironment);
-
-			if (BaseComponent 
-				//BaseComponent->Bounds won't be up to date unless it is already attached
-				//@todo - need to handle the case where BaseComponent isn't attached yet
-				&& BaseComponent->IsAttached())
-			{
-				//override the light environment's bounds with the base component's bounds
-				DynamicLightEnv->BoundsMethod = DLEB_ManualOverride;
-				DynamicLightEnv->OverriddenBounds = BaseComponent->Bounds;
-				//setup the light environment to do visibility checks from the edges of the bounds
-				//this is necessary to avoid false shadowing due to the BaseComponent being embedded in some other level geometry
-				DynamicLightEnv->bTraceFromClosestBoundsPoint = TRUE;
-				//make sure the light environment re-captures its environment now that we have changed it
-				DynamicLightEnv->ResetEnvironment();
-			}
-
-			bBecameVisible = FALSE;
-		}
+		bBecameVisible = FALSE;
 
 		//setup our materials using the same materials that the base component uses for rendering
 		//@todo - what other properties of the base component should be copied over?
@@ -2288,7 +2258,7 @@ UBOOL AFracturedStaticMeshActor::SpawnDeferredParts()
 				FracPart->FracturedStaticMeshComponent->DisableRBCollisionWithSMC( FracturedStaticMeshComponent, TRUE );
 
 				// disallow collisions between all those parts.
-				FracPart->FracturedStaticMeshComponent->SetRBCollidesWithChannel( RBCC_FracturedMeshPart, FALSE );
+				FracPart->FracturedStaticMeshComponent->SetRBCollidesWithChannel( RBCC_FlyingVehicle, FALSE );
 
 				// NOTE: Unfortunately, parts that are spawned deferred like this don't have a chance to
 				//    have their collision again floating island pieces disabled
@@ -2409,7 +2379,7 @@ void AFracturedStaticMeshActor::BreakOffPartsInRadius(FVector Origin, FLOAT Radi
 						FracPart->FracturedStaticMeshComponent->DisableRBCollisionWithSMC(FracturedStaticMeshComponent, TRUE);
 
 						// disallow collisions between all those parts.
-						FracPart->FracturedStaticMeshComponent->SetRBCollidesWithChannel(RBCC_FracturedMeshPart, FALSE);
+						FracPart->FracturedStaticMeshComponent->SetRBCollidesWithChannel(RBCC_FlyingVehicle, FALSE);
 
 						NoCollParts.AddItem(FracPart);
 
@@ -2588,10 +2558,6 @@ AFracturedStaticMeshPart* AFracturedStaticMeshActor::SpawnPartMulti(const TArray
 	//need to be disabled when all the parts have been recycled, in UFracturedSkinnedMeshComponent::RemoveDependentComponent().
 	check(SkinnedComponent);
 	check(NewPart->FracturedStaticMeshComponent);
-	if (SkinnedComponent->LightEnvironment)
-	{
-		SkinnedComponent->LightEnvironment->SetEnabled(TRUE);
-	}
 	NewPart->SkinnedComponent = SkinnedComponent;
 	NewPart->FracturedStaticMeshComponent->SkinnedComponent = SkinnedComponent;
 	AFracturedStaticMeshPart* ThisPart = Cast<AFracturedStaticMeshPart>(this);

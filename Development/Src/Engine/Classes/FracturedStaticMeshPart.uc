@@ -119,7 +119,7 @@ defaultproperties
 		bSkipRBGeomCreation=TRUE // ModifyNxActorDesc fills in geometry
 		BlockNonZeroExtent=FALSE
 		BlockZeroExtent=FALSE
-		RBChannel=RBCC_FracturedMeshPart
+		RBChannel=RBCC_FlyingVehicle
 		RBCollideWithChannels=(Default=TRUE,GameplayPhysics=TRUE,EffectPhysics=TRUE,FracturedMeshPart=TRUE)
 		bUseVisibleVertsForBounds=TRUE
 		bUseDynamicIndexBuffer=FALSE

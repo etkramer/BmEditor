@@ -1686,57 +1686,6 @@ UBOOL UWorld::MoveActor
 		}
 	}
 
-	// Handle Touch notifications.
-	// if there are extra components that want touch events, do more linechecks for them
-	if(Actor->bCollideActors)
-	{		
-		for(UINT ComponentIndex = 0;ComponentIndex < (UINT)Actor->Components.Num();ComponentIndex++)
-		{
-			UPrimitiveComponent*	primComp = Cast<UPrimitiveComponent>(Actor->Components(ComponentIndex));
-
-			FCheckResult* CompFirstHit = NULL;
-			if(primComp && primComp->IsAttached() && primComp->CollideActors && primComp->AlwaysCheckCollision && Actor->CollisionComponent != primComp)
-			{
-					FVector Start,End;
-					// at this point the actor's already been moved so offset from our delta
-					Start = primComp->Bounds.Origin - FinalDelta;
-					End = primComp->Bounds.Origin;
-					TraceFlags = TRACE_Pawns | TRACE_Others | TRACE_Volumes;
-
-					if( Actor->bCollideComplex )
-					{
-						TraceFlags |= TRACE_ComplexCollision;
-					}
-
-					// give primitive component a chance to have a say in its trace flags
-					primComp->OverrideTraceFlagsForNonCollisionComponentChecks(TraceFlags);
-
-#if !FINAL_RELEASE && PERF_MOVEACTOR_STATS
-					MoveTimer.bDidLineCheck = TRUE;
-#endif // !FINAL_RELEASE && PERF_MOVEACTOR_STATS
-
-					CompFirstHit = MultiLineCheck
-					(
-						GMainThreadMemStack,
-						End,
-						Start,
-						primComp->Bounds.BoxExtent,
-						TraceFlags,
-						Actor
-					);
-
-					// trigger the new touch events
-					for(FCheckResult* LoopCurr=CompFirstHit;LoopCurr;LoopCurr=LoopCurr->GetNext())
-					{
-						if ( (!bIgnoreBases || !Actor->IsBasedOn(LoopCurr->Actor)) &&
-							(!Actor->IsBlockedBy(LoopCurr->Actor,LoopCurr->Component)) && Actor != LoopCurr->Actor)
-						{
-							Actor->BeginTouch(LoopCurr->Actor, LoopCurr->Component, LoopCurr->Location, LoopCurr->Normal, primComp);
-						}
-					}
-			}
-		}	
-	}
 	if( MaybeTouched || (!Actor->bBlockActors && !Actor->bCollideWorld && Actor->bCollideActors) )
 	{
 		for( FCheckResult* Test=FirstHit; Test && Test->Time<Hit.Time; Test=Test->GetNext() )

@@ -5130,7 +5130,7 @@ void UBrushComponent::InitComponentRBPhys(UBOOL bFixed)
 		NxGroupsMask GroupsMask = CreateGroupsMask(RBChannel, &RBCollideWithChannels);
 		if(bFluidDrain && !BlockRigidBody)
 		{
-			GroupsMask = CreateGroupsMask(RBCC_FluidDrain, &RBCollideWithChannels);
+			GroupsMask = CreateGroupsMask(RBCC_CapeOnlyCollision, &RBCollideWithChannels);
 		}
 
 		UBOOL bStatic = Owner && Owner->IsStatic();
@@ -6225,15 +6225,7 @@ IMPLEMENT_CLASS(AKActorFromStatic);
 void AKActorFromStatic::MakeStatic()
 {
 	// Lighting
-	if (StaticMeshComponent->LightEnvironment)
-	{
-		UDynamicLightEnvironmentComponent* DynamicLightEnvironment = CastChecked<UDynamicLightEnvironmentComponent>(StaticMeshComponent->LightEnvironment);
-		// Make the DLE static so it won't do any more lighting updates
-		DynamicLightEnvironment->bDynamic = FALSE;
-		// Attach it to the original static mesh since this KActor will be GC'ed
-		MyStaticMeshActor->AttachComponent(DynamicLightEnvironment);
-		LightEnvironment = NULL;
-	}
+	LightEnvironment = NULL;
 	StaticMeshComponent->LightingChannels.Dynamic = FALSE;
 
 	// Physics and collision
@@ -6325,34 +6317,7 @@ AKActorFromStatic* AKActorFromStatic::MakeDynamic(UStaticMeshComponent* MovableM
 	}
 
 	// Disable precomputed lighting so that the component will throw away its lightmaps on the next attach
-	UBOOL bAlreadyInitialized = FALSE;
-	if (MovableMesh->LightEnvironment)
-	{
-		// The movable mesh component already had a light environment, reuse it
-		UDynamicLightEnvironmentComponent* DynamicLightEnvironment = CastChecked<UDynamicLightEnvironmentComponent>(MovableMesh->LightEnvironment);
-		// Make sure the light environment is dynamic so it captures new lighting state
-		DynamicLightEnvironment->bDynamic = TRUE;
-		MyKActor->AttachComponent(DynamicLightEnvironment);
-		bAlreadyInitialized = TRUE;
-	}
-	else
-	{
-		// Create a new light environment to light the movable mesh component
-		// Use the mesh component's owner as the owner for this new DLE, since this AKActorFromStatic will be GC'ed once it stops moving
-		UDynamicLightEnvironmentComponent* DynamicLightEnvironment = ConstructObject<UDynamicLightEnvironmentComponent>( UDynamicLightEnvironmentComponent::StaticClass(), MovableMeshOwner );
-		// Won't be able to cast shadows once the component becomes static so no point in casting shadows while moving
-		DynamicLightEnvironment->bCastShadows = FALSE;
-		// Force line checks to dominant lights, which is necessary for correct shadowing since dynamic shadows are disabled
-		DynamicLightEnvironment->bForceCompositeAllLights = TRUE;
-		// Use active components for bounds calculations
-		// Need to use this method instead of the default since the default takes the owner's position into account
-		DynamicLightEnvironment->BoundsMethod = DLEB_ActiveComponents;
-		// The light environment is going to be moving so update lighting more often
-		DynamicLightEnvironment->MinTimeBetweenFullUpdates = .5f;
-		MovableMesh->SetLightEnvironment(DynamicLightEnvironment);
-		MyKActor->AttachComponent(DynamicLightEnvironment);
-		MyKActor->LightEnvironment = DynamicLightEnvironment;
-	}
+	const UBOOL bAlreadyInitialized = FALSE;
 
 	MovableMesh->LightingChannels.Dynamic = TRUE;
 

@@ -3694,121 +3694,9 @@ UBOOL AInterpActor::ShouldTrace(UPrimitiveComponent *Primitive,AActor *SourceAct
 }
 
 
-/** 
- * This will look over the set of all attached of components that are SetBased on this Actor
- * and then ShadowParent them to our StaticMeshComponent
- **/
+// BM: AK's PrimitiveComponent has neither ShadowParent nor LightEnvironment, so there is nothing to propagate.
 void AInterpActor::SetShadowParentOnAllAttachedComponents()
 {
-	if (!Base && StaticMeshComponent)
-	{
-		// Stack to handle nested attachments without recursion
-		TArray<AActor*, TInlineAllocator<5> > ProcessStack;
-		for (INT AttachedIndex = 0; AttachedIndex < Attached.Num(); AttachedIndex++)
-		{
-			AActor* AttachedActor = Attached(AttachedIndex);
-			// hack to not affect pawns on the derrick
-			const UBOOL bIsNonVehiclePawn = AttachedActor && AttachedActor->GetAPawn() && !AttachedActor->GetAVehicle();
-			if (AttachedActor && !bIsNonVehiclePawn)
-			{
-				ProcessStack.AddItem(AttachedActor);
-			}
-		}
-
-		while (ProcessStack.Num() > 0)
-		{
-			AActor* AttachedActor = ProcessStack.Pop();
-			checkSlow(AttachedActor);
-			// Push attached actors onto the stack of actors to process so that we handle nested attachments
-			for( INT AttachedIndex = 0; AttachedIndex < AttachedActor->Attached.Num(); AttachedIndex++ )
-			{
-				AActor* CurrentAttachedActor = AttachedActor->Attached(AttachedIndex);
-				// hack to not affect pawns on the derrick
-				const UBOOL bIsNonVehiclePawn = CurrentAttachedActor && CurrentAttachedActor->GetAPawn() && !CurrentAttachedActor->GetAVehicle();
-
-				if (CurrentAttachedActor && !bIsNonVehiclePawn)
-				{
-					// Cycles in the attachment chain are not allowed so we don't have to handle it
-					ProcessStack.AddItem(CurrentAttachedActor);
-				}
-			}
-			for( INT ComponentIndex = 0; ComponentIndex < AttachedActor->Components.Num(); ++ComponentIndex )
-			{
-				//array of all attached components for this actor
-				TArray <UMeshComponent*> AttachedMeshComponents;
-
-				//actor directly inside the actor
-				UMeshComponent* RootMeshComp = Cast<UMeshComponent>(AttachedActor->Components(ComponentIndex));
-				if (RootMeshComp)
-				{
-					//add the component that is attached to the actor to seed the recursion
-					AttachedMeshComponents.AddItem(RootMeshComp);
-
-					//append on all components attached to THAT component (nesting)
-					for( INT AttachmentCheckIndex = 0; AttachmentCheckIndex < AttachedMeshComponents.Num(); ++AttachmentCheckIndex )
-					{
-						//if this was a valid mesh component
-						UMeshComponent* NestedCheckMeshComponent = AttachedMeshComponents(AttachmentCheckIndex);
-						check(NestedCheckMeshComponent);
-						USkeletalMeshComponent* SkelMeshCheckComponent = Cast<USkeletalMeshComponent>(NestedCheckMeshComponent);
-						if (SkelMeshCheckComponent)
-						{
-							for( INT SkelMeshChildIndex = 0; SkelMeshChildIndex < SkelMeshCheckComponent->Attachments.Num(); ++SkelMeshChildIndex )
-							{
-								//if the attached component is a mesh component, then we can add it to the array (which will be processed subsequently)
-								UMeshComponent* ChildMeshComp = Cast<UMeshComponent>(SkelMeshCheckComponent->Attachments(SkelMeshChildIndex).Component);
-								if (ChildMeshComp)
-								{
-									AttachedMeshComponents.AddItem(ChildMeshComp);
-								}
-							}
-						}
-					}
-				}
-
-				for( INT ChildMeshComponentIndex = 0; ChildMeshComponentIndex < AttachedMeshComponents.Num(); ++ChildMeshComponentIndex )
-				{
-					UMeshComponent* MeshComp = AttachedMeshComponents(ChildMeshComponentIndex);
-					//
-					if (MeshComp != NULL 
-						&& MeshComp->LightingChannels == StaticMeshComponent->LightingChannels
-						&& MeshComp->bSelfShadowOnly == StaticMeshComponent->bSelfShadowOnly)
-					{
-						UBOOL bOverrodeShadowOrDLE = FALSE;
-						if (StaticMeshComponent->CastShadow 
-							&& StaticMeshComponent->bCastDynamicShadow
-							// Only shadow parent if both have the same visibility states
-							&& (!MeshComp->GetOwner() || MeshComp->GetOwner()->bHidden == bHidden)
-							&& StaticMeshComponent->HiddenGame == MeshComp->HiddenGame)
-						{
-							bOverrodeShadowOrDLE = TRUE;
-							MeshComp->SetShadowParent( StaticMeshComponent );
-						}
-
-						// Don't override DLE if the attached actor's component uses precomputed shadowing
-						if (LightEnvironment && LightEnvironment->IsEnabled() && !MeshComp->bUsePrecomputedShadows)
-						{
-							ULightEnvironmentComponent* AttacheeMeshLightEnvironment = MeshComp->LightEnvironment;
-							// Disable the Attachee's LightEnvironment
-							// Make sure we don't disable our own LightEnvironment since it may be shared by the Attachee
-							if (AttacheeMeshLightEnvironment != NULL && AttacheeMeshLightEnvironment != LightEnvironment)
-							{
-								AttacheeMeshLightEnvironment->SetEnabled(FALSE);
-							}
-
-							bOverrodeShadowOrDLE = TRUE;
-							MeshComp->SetLightEnvironment( LightEnvironment ); // set to parent's LE
-						}
-
-						if (bOverrodeShadowOrDLE)
-						{
-							MeshComp->SetLightingChannels( StaticMeshComponent->LightingChannels );
-						}
-					}
-				}
-			}
-		}
-	}
 }
 
 #if WITH_EDITOR
@@ -3823,20 +3711,6 @@ void AInterpActor::CheckForErrors()
 		}
 	}
 
-	if (StaticMeshComponent)
-	{
-		const UBOOL bPreShadowAllowed = StaticMeshComponent->LightEnvironment && StaticMeshComponent->LightEnvironment->IsEnabled() && !CastChecked<UDynamicLightEnvironmentComponent>(StaticMeshComponent->LightEnvironment)->bUseBooleanEnvironmentShadowing;
-		if(StaticMeshComponent->CastShadow 
-			&& StaticMeshComponent->bCastDynamicShadow 
-			&& StaticMeshComponent->IsAttached() 
-			&& StaticMeshComponent->Bounds.SphereRadius > 2000.0f
-			&& bPreShadowAllowed)
-		{
-			// Large shadow casting objects that create preshadows will cause a massive performance hit, since preshadows are meant for small shadow casters.
-			// Setting bUseBooleanEnvironmentShadowing=TRUE will prevent the preshadow from being created.
-			GWarn->MapCheck_Add(MCTYPE_PERFORMANCEWARNING, this, TEXT("Large actor casts a shadow and will cause an extreme performance hit unless bUseBooleanEnvironmentShadowing is set to TRUE."), MCACTION_NONE, TEXT("ActorLargeShadowCaster"));
-		}
-	}
 }
 #endif
 

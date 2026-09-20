@@ -775,53 +775,10 @@ void UPrimitiveComponent::Attach()
 		World->Hash->AddPrimitive(this);
 	}
 
-	// Notify the light environment that we are using it for rendering
-	if (LightEnvironment)
-	{
-		LightEnvironment->AddAffectedComponent(this);
-	}
-	
 	//add the fog volume component if one has been set
 	if (FogVolumeComponent)
 	{
 		Scene->AddFogVolume(FogVolumeComponent, this);
-	}
-
-	// Setup ShadowParent if appropriate
-	// Don't overwrite an explicit shadow parent 
-	if (!bHasExplicitShadowParent
-		&& Owner 
-		&& Owner->bShadowParented 
-		&& CastShadow 
-		&& bCastDynamicShadow)
-	{
-		if (Owner->BaseSkelComponent)
-		{
-			// Use BaseSkelComponent as the shadow parent for this actor if requested.
-			ShadowParent = Owner->BaseSkelComponent;
-		}
-		else if (Owner->Base)
-		{
-			AActor* ParentActor = Owner->Base;
-			while (ParentActor->Base)
-			{
-				// Walk up the attachment chain and find the parent
-				ParentActor = ParentActor->Base;
-			}
-
-			// Search for a shadow casting primitive component to use as the shadow parent
-			UPrimitiveComponent* ShadowCastingPrimComponent = NULL;
-			for (INT BaseComponentIndex = 0; BaseComponentIndex < ParentActor->Components.Num(); BaseComponentIndex++)
-			{
-				UPrimitiveComponent* CurrentComponent = Cast<UPrimitiveComponent>(ParentActor->Components(BaseComponentIndex));
-				if (CurrentComponent && CurrentComponent->CastShadow && CurrentComponent->bCastDynamicShadow)
-				{
-					ShadowCastingPrimComponent = CurrentComponent;
-					break;
-				}
-			}
-			ShadowParent = ShadowCastingPrimComponent;
-		}
 	}
 
 	// If the primitive isn't hidden and the detail mode setting allows it, add it to the scene.
@@ -862,12 +819,6 @@ void UPrimitiveComponent::UpdateTransform()
 
 void UPrimitiveComponent::Detach( UBOOL bWillReattach )
 {
-	// Clear the actor's shadow parent if it's the BaseSkelComponent.
-	if( Owner && Owner->bShadowParented && !bHasExplicitShadowParent )
-	{
-		ShadowParent = NULL;
-	}
-
 	// If there primitive collides(or it's the editor) and the scene is associated with a world, remove the primitive from the world's hash.
 	UWorld* World = Scene->GetWorld();
 	if(World)
@@ -889,19 +840,6 @@ void UPrimitiveComponent::Detach( UBOOL bWillReattach )
 	if(Owner)
 	{
 		Owner->DetachFence.BeginFence();
-	}
-
-	// If PreviousLightEnvironment is non-null then it is the light environment that was used while attached
-	if( PreviousLightEnvironment )
-	{
-		// Notify the light environment that we are no longer using it for rendering
-		PreviousLightEnvironment->RemoveAffectedComponent(this);
-		PreviousLightEnvironment = NULL;
-	}
-	else if( LightEnvironment )
-	{
-		// Notify the light environment that we are no longer using it for rendering
-		LightEnvironment->RemoveAffectedComponent(this);
 	}
 
 	Super::Detach( bWillReattach );
@@ -940,15 +878,6 @@ void UPrimitiveComponent::PostEditChangeProperty(FPropertyChangedEvent& Property
 		if(PropertyName == TEXT("bAcceptsLights") || PropertyName == TEXT("bUsePrecomputedShadows"))
 		{
 			InvalidateLightingCache();
-		}
-
-		if (PropertyName == TEXT("bUsePrecomputedShadows") 
-			&& bUsePrecomputedShadows
-			&& LightEnvironment 
-			&& LightEnvironment->IsEnabled())
-		{
-			// Disable an associated light environment when enabling precomputed shadows
-			LightEnvironment->SetEnabled(FALSE);
 		}
 
 		// We disregard cull distance volumes in this case as we have no way of handling cull 
@@ -1079,14 +1008,6 @@ void UPrimitiveComponent::PostLoad()
 {
 	Super::PostLoad();
 
-	if (bUsePrecomputedShadows
-		&& LightEnvironment 
-		&& LightEnvironment->IsEnabled())
-	{
-		// Disable an associated light environment when using precomputed shadows
-		LightEnvironment->SetEnabled(FALSE);
-	}
-
 	// Perform some postload fixups/ optimizations if we're running the game.
 	if( GIsGame && !IsTemplate(RF_ClassDefaultObject) )
 	{
@@ -1169,22 +1090,12 @@ void UPrimitiveComponent::execSetActorCollision(FFrame& Stack,RESULT_DECL)
 {
 	P_GET_UBOOL(NewCollideActors);
 	P_GET_UBOOL(NewBlockActors);
-	P_GET_UBOOL_OPTX(NewAlwaysCheckCollision,FALSE);
 	P_FINISH;
 
-	AlwaysCheckCollision = NewAlwaysCheckCollision;
 	if (NewCollideActors != CollideActors)
 	{
 		CollideActors = NewCollideActors;
 		BeginDeferredReattach();
-
-		if(CollideActors && AlwaysCheckCollision)
-		{
-			if(Owner != NULL)
-			{
-				Owner->FindTouchingActors();
-			}
-		}
 	}
 	BlockActors = NewBlockActors;
 	
@@ -1323,52 +1234,6 @@ void UPrimitiveComponent::SetHiddenEditor(UBOOL NewHidden)
 	{
 		HiddenEditor = NewHidden;
 		BeginDeferredReattach();
-	}
-}
-
-void UPrimitiveComponent::execSetShadowParent(FFrame& Stack,RESULT_DECL)
-{
-	P_GET_OBJECT(UPrimitiveComponent,NewShadowParent);
-	P_FINISH;
-	SetShadowParent(NewShadowParent);
-}
-
-void UPrimitiveComponent::SetShadowParent(UPrimitiveComponent* NewShadowParent)
-{
-	if (ShadowParent != NewShadowParent)
-	{
-		ShadowParent = NewShadowParent;
-		bHasExplicitShadowParent = NewShadowParent != NULL;
-		if (IsAttached())
-		{
-			BeginDeferredReattach();
-		}
-	}
-}
-
-void UPrimitiveComponent::execSetLightEnvironment(FFrame& Stack,RESULT_DECL)
-{
-	P_GET_OBJECT(ULightEnvironmentComponent,NewLightEnvironment);
-	P_FINISH;
-	SetLightEnvironment(NewLightEnvironment);
-}
-
-void UPrimitiveComponent::SetLightEnvironment(ULightEnvironmentComponent* NewLightEnvironment)
-{
-	if (NewLightEnvironment != LightEnvironment)
-	{
-		if (IsAttached())
-		{
-			// Maintain a reference to the previous light environment so that we can notify it when we stop using it (detach)
-			PreviousLightEnvironment = LightEnvironment;
-		}
-		LightEnvironment = NewLightEnvironment;
-
-		if (IsAttached())
-		{
-			// Enqueue a reattach so the new property will be propagated to the rendering thread.
-			BeginDeferredReattach();
-		}
 	}
 }
 

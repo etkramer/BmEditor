@@ -634,7 +634,6 @@ defaultproperties
 		BlockZeroExtent=TRUE
 		BlockNonZeroExtent=FALSE
 		BlockRigidBody=FALSE
-		LightEnvironment=MyLightEnvironment
 		RBChannel=RBCC_GameplayPhysics
 		RBCollideWithChannels=(Default=TRUE,BlockingVolume=TRUE,GameplayPhysics=TRUE,EffectPhysics=TRUE)
 	End Object

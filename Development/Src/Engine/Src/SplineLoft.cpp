@@ -98,13 +98,6 @@ void ASplineLoftActor::UpdateSplineComponents()
 				SplineMeshComp->SetMaterial(MatIdx, DeformMeshMaterials(MatIdx));
 			}
 
-			// Set component to use actor's light env (if present), and enable it
-			if(MeshLightEnvironment)
-			{
-				SplineMeshComp->LightEnvironment = MeshLightEnvironment;
-				MeshLightEnvironment->SetEnabled(TRUE);
-			}
-
 			SplineMeshComp->bUsePrecomputedShadows = !bMovable;
 			SplineMeshComp->bAcceptsLights = bAcceptsLights;
 			SplineMeshComp->LDMaxDrawDistance = MeshMaxDrawDistance;

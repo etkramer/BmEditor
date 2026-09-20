@@ -165,6 +165,6 @@ defaultproperties
                 SoftBody=True
                 )}
 
-    RBChannel=RBCC_Untitled1
+    RBChannel=RBCC_FloatingRaft
 
 }

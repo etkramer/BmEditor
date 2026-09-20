@@ -18,6 +18,265 @@
 #ifndef INCLUDED_CORE_ENUMS
 #define INCLUDED_CORE_ENUMS 1
 
+enum ECollisionFilter
+{
+    COF_NoCollision         =0,
+    COF_Level               =1,
+    COF_LevelGeometry       =2,
+    COF_LevelGeometry_BlockWeapons=3,
+    COF_LevelGeometry_BlockAllButWeapons=4,
+    COF_ReinforcedGlass     =5,
+    COF_Volume              =6,
+    COF_PlayerOnlyVolume    =7,
+    COF_StreamingVolume     =8,
+    COF_TriggerVolume       =9,
+    COF_WaterVolume         =10,
+    COF_PredSideRoom        =11,
+    COF_AudioVolume         =12,
+    COF_BlockingVolume      =13,
+    COF_BlockingVolume_Player=14,
+    COF_BlockingVolume_Enemies=15,
+    COF_BlockingVolume_AllCharacters=16,
+    COF_BlockingVolume_Gadgets=17,
+    COF_BlockingVolume_PlayerAndGadgets=18,
+    COF_BlockingVolume_EnemyWeaponsAndLos=19,
+    COF_BlockingVolume_Camera=20,
+    COF_BlockingBolume_Vehicles=21,
+    COF_BlockingBolume_BlockEject=22,
+    COF_BlockingVolume_Audio=23,
+    COF_Mover               =24,
+    COF_Mover_BlockWeapons  =25,
+    COF_Mover_BlockAllButWeapons=26,
+    COF_Actor               =27,
+    COF_PawnCharacter       =28,
+    COF_UnPossessedPlayer   =29,
+    COF_PawnPlayer          =30,
+    COF_PawnPlayerInGrateChute=31,
+    COF_PlayerBlockers      =32,
+    COF_Vehicle             =33,
+    COF_PlayerVehicle       =34,
+    COF_Gadget              =35,
+    COF_Projectile          =36,
+    COF_Camera              =37,
+    COF_VehicleCamera       =38,
+    COF_ActorDoesntBlockCamera=39,
+    COF_ActorDoesntBlockVehiceCamera=40,
+    COF_ActorDoesntBlockCameraNorProjectiles=41,
+    COF_FractureMesh        =42,
+    COF_FractureTakedown    =43,
+    COF_FractureFragileTakedown=44,
+    COF_FractureGlass       =45,
+    COF_FractureGlassCeiling=46,
+    COF_FractureFragileGlass=47,
+    COF_HidePoint           =48,
+    COF_HidePointWithBatmanOn=49,
+    COF_Wire                =50,
+    COF_FloorGrate          =51,
+    COF_WallGrate           =52,
+    COF_Smoke               =53,
+    COF_Trap                =54,
+    COF_DestructiblePropDynamic=55,
+    COF_AiScout             =56,
+    COF_CombatProxy         =57,
+    COF_ProjectileTarget    =58,
+    COF_ParticleTouch       =59,
+    COF_FootstepOnly        =60,
+    COF_ProjectileDetector  =61,
+    COF_ActorBlocksAudio    =62,
+    COF_BeamVantagePoint    =63,
+    COF_TraceAll            =64,
+    COF_TraceLevel          =65,
+    COF_TraceWorld          =66,
+    COF_TraceTerrain        =67,
+    COF_TraceActors         =68,
+    COF_TracePawns          =69,
+    COF_TraceOthers         =70,
+    COF_TraceVolumes        =71,
+    COF_TracePhysicsVolumes =72,
+    COF_TraceWorldActors    =73,
+    COF_TraceWorldOthers    =74,
+    COF_TraceWorldMoversOthers=75,
+    COF_TraceWorldMoversVehiclesOthers=76,
+    COF_TraceWorldMoversOthersVolumes=77,
+    COF_TraceShadow         =78,
+    COF_TraceClimbable      =79,
+    COF_TraceFractureMesh   =80,
+    COF_TraceLineOfSight    =81,
+    COF_TraceLineOfSightIncSmoke=82,
+    COF_TraceLineOfSightIncGrates=83,
+    COF_TraceLineOfSightIncSmokeAndGrates=84,
+    COF_TraceLineOfSightCanSeeThroughGlassCeilings=85,
+    COF_TraceLaser          =86,
+    COF_TraceSmoke          =87,
+    COF_TraceSnapToFloor    =88,
+    COF_TraceGrappleEnvironment=89,
+    COF_TraceGrapplePlacement=90,
+    COF_TraceRopeObstruction=91,
+    COF_TraceExplosiveGel   =92,
+    COF_TraceWaterFeeler    =93,
+    COF_TraceRain           =94,
+    COF_TracePhysicsGrabber =95,
+    COF_TraceRopeLength     =96,
+    COF_TraceSplashDamage   =97,
+    COF_TraceDiveThroughWindow=98,
+    COF_TraceExplosiveGelTarget=99,
+    COF_TraceGrappleTarget  =100,
+    COF_TraceGrappleSwingTarget=101,
+    COF_TraceParticles      =102,
+    COF_TraceParticlesWithPawn=103,
+    COF_TraceCameraHideObjects=104,
+    COF_TraceCameraHideObjectsBatmobile=105,
+    COF_TraceClimbableOthers=106,
+    COF_TraceFlamethrower   =107,
+    COF_TraceFootstep       =108,
+    COF_TraceCameraFocus    =109,
+    COF_TraceWorldVehicles  =110,
+    COF_TraceCameraTransition=111,
+    COF_TraceFootCorrection =112,
+    COF_TraceBatmobileEjectHeight=113,
+    COF_TraceBatmobileWheelSprings=114,
+    COF_TraceSpawnVehicleLOS=115,
+    COF_TraceWorldAudio     =116,
+    COF_TraceProjectileTargets=117,
+    COF_TraceBatmanLOSGadgets=118,
+    COF_TraceVehicles       =119,
+    COF_TraceTankTargetBeam =120,
+    COF_TraceAudioVolumes   =121,
+    COF_TraceVehicleSpawnClearArea=122,
+    COF_TraceSniperLaser    =123,
+    COF_TraceVehicleWheels  =124,
+    COF_TraceDisruptorSniper=125,
+    COF_TraceCanSeeRiddlerPickup=126,
+    COF_MAX                 =127,
+};
+#define FOREACH_ENUM_ECOLLISIONFILTER(op) \
+    op(COF_NoCollision) \
+    op(COF_Level) \
+    op(COF_LevelGeometry) \
+    op(COF_LevelGeometry_BlockWeapons) \
+    op(COF_LevelGeometry_BlockAllButWeapons) \
+    op(COF_ReinforcedGlass) \
+    op(COF_Volume) \
+    op(COF_PlayerOnlyVolume) \
+    op(COF_StreamingVolume) \
+    op(COF_TriggerVolume) \
+    op(COF_WaterVolume) \
+    op(COF_PredSideRoom) \
+    op(COF_AudioVolume) \
+    op(COF_BlockingVolume) \
+    op(COF_BlockingVolume_Player) \
+    op(COF_BlockingVolume_Enemies) \
+    op(COF_BlockingVolume_AllCharacters) \
+    op(COF_BlockingVolume_Gadgets) \
+    op(COF_BlockingVolume_PlayerAndGadgets) \
+    op(COF_BlockingVolume_EnemyWeaponsAndLos) \
+    op(COF_BlockingVolume_Camera) \
+    op(COF_BlockingBolume_Vehicles) \
+    op(COF_BlockingBolume_BlockEject) \
+    op(COF_BlockingVolume_Audio) \
+    op(COF_Mover) \
+    op(COF_Mover_BlockWeapons) \
+    op(COF_Mover_BlockAllButWeapons) \
+    op(COF_Actor) \
+    op(COF_PawnCharacter) \
+    op(COF_UnPossessedPlayer) \
+    op(COF_PawnPlayer) \
+    op(COF_PawnPlayerInGrateChute) \
+    op(COF_PlayerBlockers) \
+    op(COF_Vehicle) \
+    op(COF_PlayerVehicle) \
+    op(COF_Gadget) \
+    op(COF_Projectile) \
+    op(COF_Camera) \
+    op(COF_VehicleCamera) \
+    op(COF_ActorDoesntBlockCamera) \
+    op(COF_ActorDoesntBlockVehiceCamera) \
+    op(COF_ActorDoesntBlockCameraNorProjectiles) \
+    op(COF_FractureMesh) \
+    op(COF_FractureTakedown) \
+    op(COF_FractureFragileTakedown) \
+    op(COF_FractureGlass) \
+    op(COF_FractureGlassCeiling) \
+    op(COF_FractureFragileGlass) \
+    op(COF_HidePoint) \
+    op(COF_HidePointWithBatmanOn) \
+    op(COF_Wire) \
+    op(COF_FloorGrate) \
+    op(COF_WallGrate) \
+    op(COF_Smoke) \
+    op(COF_Trap) \
+    op(COF_DestructiblePropDynamic) \
+    op(COF_AiScout) \
+    op(COF_CombatProxy) \
+    op(COF_ProjectileTarget) \
+    op(COF_ParticleTouch) \
+    op(COF_FootstepOnly) \
+    op(COF_ProjectileDetector) \
+    op(COF_ActorBlocksAudio) \
+    op(COF_BeamVantagePoint) \
+    op(COF_TraceAll) \
+    op(COF_TraceLevel) \
+    op(COF_TraceWorld) \
+    op(COF_TraceTerrain) \
+    op(COF_TraceActors) \
+    op(COF_TracePawns) \
+    op(COF_TraceOthers) \
+    op(COF_TraceVolumes) \
+    op(COF_TracePhysicsVolumes) \
+    op(COF_TraceWorldActors) \
+    op(COF_TraceWorldOthers) \
+    op(COF_TraceWorldMoversOthers) \
+    op(COF_TraceWorldMoversVehiclesOthers) \
+    op(COF_TraceWorldMoversOthersVolumes) \
+    op(COF_TraceShadow) \
+    op(COF_TraceClimbable) \
+    op(COF_TraceFractureMesh) \
+    op(COF_TraceLineOfSight) \
+    op(COF_TraceLineOfSightIncSmoke) \
+    op(COF_TraceLineOfSightIncGrates) \
+    op(COF_TraceLineOfSightIncSmokeAndGrates) \
+    op(COF_TraceLineOfSightCanSeeThroughGlassCeilings) \
+    op(COF_TraceLaser) \
+    op(COF_TraceSmoke) \
+    op(COF_TraceSnapToFloor) \
+    op(COF_TraceGrappleEnvironment) \
+    op(COF_TraceGrapplePlacement) \
+    op(COF_TraceRopeObstruction) \
+    op(COF_TraceExplosiveGel) \
+    op(COF_TraceWaterFeeler) \
+    op(COF_TraceRain) \
+    op(COF_TracePhysicsGrabber) \
+    op(COF_TraceRopeLength) \
+    op(COF_TraceSplashDamage) \
+    op(COF_TraceDiveThroughWindow) \
+    op(COF_TraceExplosiveGelTarget) \
+    op(COF_TraceGrappleTarget) \
+    op(COF_TraceGrappleSwingTarget) \
+    op(COF_TraceParticles) \
+    op(COF_TraceParticlesWithPawn) \
+    op(COF_TraceCameraHideObjects) \
+    op(COF_TraceCameraHideObjectsBatmobile) \
+    op(COF_TraceClimbableOthers) \
+    op(COF_TraceFlamethrower) \
+    op(COF_TraceFootstep) \
+    op(COF_TraceCameraFocus) \
+    op(COF_TraceWorldVehicles) \
+    op(COF_TraceCameraTransition) \
+    op(COF_TraceFootCorrection) \
+    op(COF_TraceBatmobileEjectHeight) \
+    op(COF_TraceBatmobileWheelSprings) \
+    op(COF_TraceSpawnVehicleLOS) \
+    op(COF_TraceWorldAudio) \
+    op(COF_TraceProjectileTargets) \
+    op(COF_TraceBatmanLOSGadgets) \
+    op(COF_TraceVehicles) \
+    op(COF_TraceTankTargetBeam) \
+    op(COF_TraceAudioVolumes) \
+    op(COF_TraceVehicleSpawnClearArea) \
+    op(COF_TraceSniperLaser) \
+    op(COF_TraceVehicleWheels) \
+    op(COF_TraceDisruptorSniper) \
+    op(COF_TraceCanSeeRiddlerPickup) 
 enum EDistributionVectorMirrorFlags
 {
     EDVMF_Same              =0,

@@ -1636,63 +1636,12 @@ static INT AddConvexVolumes(UBrushComponent* BrushComp, TArray<FConvexVolume>& C
 
 static UBOOL CheckCollisionChannels(BYTE RBChannel, const FRBCollisionChannelContainer& CollideWithChannels)
 {
-
-	//TODO: Use bitops? (endian issue?)
-
-	switch(RBChannel)
+	// BM: AK fills all 32 channels, so the container bit for the channel is the answer.
+	if( RBChannel == RBCC_Nothing || RBChannel >= 32 )
 	{
-	case RBCC_Default:
-		return CollideWithChannels.Default;
-
-	case RBCC_Nothing:
 		return FALSE;
-
-	case RBCC_Pawn:
-		return CollideWithChannels.Pawn;
-
-	case RBCC_Vehicle:
-		return CollideWithChannels.Vehicle;
-
-	case RBCC_Water:
-		return CollideWithChannels.Water;
-
-	case RBCC_GameplayPhysics:
-		return CollideWithChannels.GameplayPhysics;
-
-	case RBCC_EffectPhysics:
-		return CollideWithChannels.EffectPhysics;
-
-	case RBCC_Untitled1:
-		return CollideWithChannels.Untitled1;
-
-	case RBCC_Untitled2:
-		return CollideWithChannels.Untitled2;
-
-	case RBCC_Untitled3:
-		return CollideWithChannels.Untitled3;
-	
-	case RBCC_Untitled4:
-		return CollideWithChannels.Untitled4;
-
-	case RBCC_Cloth:
-		return CollideWithChannels.Cloth;
-
-	case RBCC_FluidDrain:
-		return CollideWithChannels.FluidDrain;
-
-	case RBCC_SoftBody:
-		return CollideWithChannels.SoftBody;
-
-	case RBCC_FracturedMeshPart:
-		return CollideWithChannels.FracturedMeshPart;
-	case RBCC_Clothing:
-		return CollideWithChannels.Clothing;
-	case RBCC_ClothingCollision:
-		return CollideWithChannels.ClothingCollision;
-
-	default:
-		return TRUE;
 	}
+	return (CollideWithChannels.Bitfield >> RBChannel) & 1;
 }
 ///////////////// ARB_RADIALFORCEACTOR /////////////////
 /* Callback class used to compute a radial force field (explosion, black hole etc)  */

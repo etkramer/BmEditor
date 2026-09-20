@@ -243,7 +243,7 @@ public:
 				c.Bitfield = 0;
 				c.Default = 1;
 				c.GameplayPhysics = 1;
-				c.FluidDrain = 1;
+				c.CapeOnlyCollision = 1;
 				static NxGroupsMask mask = CreateGroupsMask(UNX_GROUP_DEFAULT,&c);
 				ret = &mask;
 			}

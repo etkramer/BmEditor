@@ -4065,91 +4065,12 @@ void UParticleSystemComponent::Attach()
 		Template = NULL;
 	}
 
-	UBOOL bAttachLightEnvToOwner = FALSE;
 	if (Template)
 	{
 		const UBOOL bLit = (LODLevel >= 0 && Template->LODSettings.Num() > 0 && LODLevel < Template->LODSettings.Num()) ? 
 			Template->LODSettings(LODLevel).bLit : FALSE;
 
 		bAcceptsLights = bLit;
-
-		if (Owner)
-		{
-			// If the particle system is lit, automatically setup a light environment for it
-			if (bLit)
-			{
-				// Try to find and reuse a particle light environment on the particle system component's Owner first
-				// Since there may be multiple lit particle system components on the same actor
-				if (!LightEnvironment || !LightEnvironment->IsA(UParticleLightEnvironmentComponent::StaticClass()))
-				{
-					const UBOOL bIsInEmitterPool = Owner->IsA(AEmitterPool::StaticClass());
-
-					for (INT ComponentIndex = 0; ComponentIndex < Owner->Components.Num(); ComponentIndex++)
-					{
-						UParticleLightEnvironmentComponent* PotentialDLE = Cast<UParticleLightEnvironmentComponent>(Owner->Components(ComponentIndex));
-
-						if (PotentialDLE 
-							&& PotentialDLE->bAllowDLESharing
-							// Reuse this particle DLE if we're not from the emitter pool,
-							&& (!bIsInEmitterPool 
-								// Or if we are from the emitter pool and from the same template
-								|| PotentialDLE->SharedParticleSystem == Template))
-						{
-							SetLightEnvironment(PotentialDLE);
-							// Add a reference to the shared particle light environment
-							PotentialDLE->AddRef();
-							break;
-						}
-					}
-				}
-
-				// If we weren't able to find and share a DLE, create a new one
-				if (!LightEnvironment || !LightEnvironment->IsA(UParticleLightEnvironmentComponent::StaticClass()))
-				{
-					INC_DWORD_STAT(STAT_NumParticleDLEs);
-					// Create a particle light environment using LightEnvironmentClass to allow base classes to easily override the type
-					UParticleLightEnvironmentComponent* DLE = ConstructObject<UParticleLightEnvironmentComponent>(LightEnvironmentClass, Owner);
-					DLE->SharedParticleSystem = Template;
-					SetLightEnvironment(DLE);
-					// Mark the light environment as needing attached
-					bAttachLightEnvToOwner = TRUE;
-					if (Owner->IsA(AEmitter::StaticClass()))
-					{
-						// If the owner is an AEmitter, set it's LightEnvironment reference so that artists can modify the DLE properties
-						Cast<AEmitter>(Owner)->LightEnvironment = DLE;
-					}
-				}
-				// If the LightEnvironment component is already in the owner's Components array, don't attach it here. The component will 
-				// likely get attached later. If attached here as well, there will be duplicate entries in the owner's Component's array. 
-				else if (!LightEnvironment->IsAttached() && !Owner->Components.ContainsItem(LightEnvironment))
-				{
-					// Mark the light environment as needing attached
-					bAttachLightEnvToOwner = TRUE;
-				}
-
-				INC_DWORD_STAT(STAT_NumLitParticleComponents);
-			}
-			else
-			{
-				// Remove the DLE if the particle system is not lit but a DLE is present,
-				// Which can happen if bLit was just changed on the UParticleSystem and it was reset in levels.
-				if (LightEnvironment && LightEnvironment->IsAttached())
-				{
-					UParticleLightEnvironmentComponent* DLE = CastChecked<UParticleLightEnvironmentComponent>(LightEnvironment);
-					DLE->RemoveRef();
-					checkSlow(DLE->bAllowDLESharing || DLE->GetRefCount() == 0);
-					if (DLE->GetRefCount() == 0)
-					{
-						DEC_DWORD_STAT(STAT_NumParticleDLEs);
-					}
-				}
-				SetLightEnvironment(NULL);
-				if (Owner->IsA(AEmitter::StaticClass()))
-				{
-					Cast<AEmitter>(Owner)->LightEnvironment = NULL;
-				}
-			}
-		}
 
 		if (Template->bHasPhysics)
 		{
@@ -4191,12 +4112,6 @@ void UParticleSystemComponent::Attach()
 
 	bJustAttached = TRUE;
 
-	if (bAttachLightEnvToOwner)
-	{
-		// Attach the light environment component to Owner
-		// Attaching a DLE may attach components using it, so we do this after the call to Super::Attach() above to avoid re-entry.
-		Owner->AttachComponent(LightEnvironment);
-	}
 }
 
 void UParticleSystemComponent::UpdateTransform()
@@ -4244,11 +4159,6 @@ void UParticleSystemComponent::Detach( UBOOL bWillReattach )
 	if (GIsGame == TRUE)
 	{
 		GParticleDataManager.RemoveParticleSystemComponent(this);
-	}
-
-	if (LightEnvironment)
-	{
-		DEC_DWORD_STAT(STAT_NumLitParticleComponents);
 	}
 
 	Super::Detach( bWillReattach );

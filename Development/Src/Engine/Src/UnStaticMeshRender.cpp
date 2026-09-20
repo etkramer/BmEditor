@@ -1369,10 +1369,7 @@ FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponen
 			|| (bHasVertexLighting && !ElementInfo.Material->CheckMaterialUsage(MATUSAGE_VertexLighting))
 			|| (bHasStaticLighting && !ElementInfo.Material->CheckMaterialUsage(MATUSAGE_StaticLighting))
 			|| (bHasStaticModulatedShadows && !ElementInfo.Material->CheckMaterialUsage(MATUSAGE_StaticModulatedShadows))
-			|| (Component->bPerVertexRockAtmosFog && !ElementInfo.Material->CheckMaterialUsage(MATUSAGE_PerVertexRockAtmosFog))
-			|| (Component->bRecieveDynamicDirectionalLights && !ElementInfo.Material->CheckMaterialUsage(MATUSAGE_DirectionalLights))
-			|| (Component->bRecieveDynamicSpotLights && !ElementInfo.Material->CheckMaterialUsage(MATUSAGE_SpotLights))
-			|| (Component->bRecieveDynamicPointLights && !ElementInfo.Material->CheckMaterialUsage(MATUSAGE_PointLights)))
+			|| (Component->bPerVertexRockAtmosFog && !ElementInfo.Material->CheckMaterialUsage(MATUSAGE_PerVertexRockAtmosFog)))
 		{
 			ElementInfo.Material = GEngine->DefaultMaterial;
 		}

@@ -150,14 +150,6 @@ FCascadePreviewViewportClient::FCascadePreviewViewportClient(WxCascade* InCascad
 	// Attach the DLE to the preview scene
 	PreviewScene.AddComponent(Cascade->ParticleLightEnv,FMatrix::Identity);
 
-	// Set the DLE on the preview component if the particle system is lit
-	//@todo - need to remove the DLE if bLit changes
-	if (Cascade->PartSysComp->EditorLODLevel < Cascade->PartSys->LODSettings.Num()
-		&& Cascade->PartSys->LODSettings(Cascade->PartSysComp->EditorLODLevel).bLit)
-	{
-		Cascade->PartSysComp->SetLightEnvironment(Cascade->ParticleLightEnv);
-	}
-
 	TimeScale = 1.f;
 
 	BackgroundColor = FColor(0, 0, 0);

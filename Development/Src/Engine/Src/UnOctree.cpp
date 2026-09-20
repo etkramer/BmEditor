@@ -2632,7 +2632,7 @@ FCheckResult* FPrimitiveOctree::ActorEncroachmentCheck(FMemStack& Mem,
 
 		if( primComp != NULL && 
 			primComp->IsAttached() &&
-			(primComp == Actor->CollisionComponent || primComp->AlwaysCheckCollision) &&
+			primComp == Actor->CollisionComponent &&
 			primComp->CollideActors &&
 			primComp->IsValidComponent()
 			)

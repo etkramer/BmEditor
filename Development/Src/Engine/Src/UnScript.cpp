@@ -2175,20 +2175,6 @@ void AEmitterPool::ReturnToPool(UParticleSystemComponent* PSC)
 		PSC->DetachFromAny();
 		OBJ_SET_DELEGATE(PSC, OnSystemFinished, NULL, NAME_None);
 
-		if (PSC->LightEnvironment)
-		{
-			UParticleLightEnvironmentComponent* ParticleDLE = CastChecked<UParticleLightEnvironmentComponent>(PSC->LightEnvironment);
-			// Remove the PSC's reference to the particle light environment before going into the pool and detach the DLE if the PSC had the last reference
-			ParticleDLE->RemoveRef();
-			checkSlow(ParticleDLE->bAllowDLESharing || ParticleDLE->GetRefCount() == 0);
-			if (ParticleDLE->GetRefCount() == 0)
-			{
-				DEC_DWORD_STAT(STAT_NumParticleDLEs);
-				ParticleDLE->DetachFromAny();
-			}
-			PSC->LightEnvironment = NULL;
-		}
-
 		PoolComponents.AddItem(PSC);
 	}
 }

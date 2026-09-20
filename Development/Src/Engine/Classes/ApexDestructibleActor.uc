@@ -174,7 +174,6 @@ defaultproperties
 		bCastDynamicShadow=FALSE
 		bForceDirectLightMap=TRUE
 		BlockRigidBody=TRUE
-		LightEnvironment=LightEnvironment0
 	End Object
 	CollisionComponent=DestructibleComponent0
 	StaticDestructibleComponent=DestructibleComponent0

@@ -4259,9 +4259,6 @@ void UCookPackagesCommandlet::CookStaticMeshActors( UPackage* Package )
 						MeshCollector = CreateComponentCollector<AStaticMeshCollectionActor>(Package, World);
 					}
 
-					// UPrimitiveComponent::Detach() will clear the ShadowParent but it will never be restored, so save the reference and restore it later
-					UPrimitiveComponent* ComponentShadowParent = Component->ShadowParent;
-
 					// remove it from the StaticMeshActor.
 					StaticMeshActor->DetachComponent(Component);
 
@@ -4300,7 +4297,6 @@ void UCookPackagesCommandlet::CookStaticMeshActors( UPackage* Package )
 					MeshCollector->AllComponents.AddItem(Component);
 
 					// copy any properties which are usually pulled from the Owner at runtime
-					Component->ShadowParent = ComponentShadowParent;
 					Component->CollideActors = StaticMeshActor->bCollideActors && Component->CollideActors;
 					Component->HiddenGame = Component->HiddenGame || (!Component->bCastHiddenShadow && StaticMeshActor->bHidden);
 					Component->HiddenEditor = Component->HiddenEditor || StaticMeshActor->bHiddenEd;

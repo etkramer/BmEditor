@@ -13,7 +13,6 @@ defaultproperties
 
 	Begin Object Name=FracturedStaticMeshComponent0
 		bForceDirectLightMap=FALSE
-		LightEnvironment=LightEnvironment0
 	End Object
 
 	bNoDelete=FALSE

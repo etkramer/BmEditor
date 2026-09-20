@@ -857,11 +857,7 @@ UBOOL FDynamicLightEnvironmentState::UpdateOwner()
 			UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(Owner->AllComponents(ComponentIndex));
 
 			// Only look at primitives which use this light environment.
-			if(Primitive && Primitive->LightEnvironment == Component
-#if BATMAN
-				&& Primitive->bContributesToLightEnvironmentBounds && !Primitive->HiddenGame
-#endif
-				)
+			if(Primitive && !Primitive->HiddenGame)
 			{
 				if (bFirstComponentFound)
 				{
@@ -908,11 +904,7 @@ UBOOL FDynamicLightEnvironmentState::UpdateOwner()
 			{
 				UPrimitiveComponent* Primitive = Component->AffectedComponents(ComponentIndex);
 				// Only valid components are added, but GC may have NULL'ed the reference.
-				if (Primitive
-#if BATMAN
-					&& Primitive->bContributesToLightEnvironmentBounds && !Primitive->HiddenGame
-#endif
-					)
+				if (Primitive && !Primitive->HiddenGame)
 				{
 					checkSlow(Primitive->IsAttached());
 					if (bFirstComponentFound)
