@@ -422,12 +422,33 @@ namespace UnSetup
 			}
 			else
 			{
-				// Create a string based on the year and month extracted from the version
-				System.Version Version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-				DateTime CompileTime = DateTime.Parse( "01/01/2000" ).AddDays( Version.Build + 7 ).AddSeconds( Version.Revision * 2 );
-				UnSetupTimeStamp = CompileTime.Year.ToString() + "-" + CompileTime.Month.ToString( "00" );
+				DateTime BuildTime = GetGameBuildTime();
+				if( BuildTime == DateTime.MinValue )
+				{
+					// Create a string based on the year and month extracted from the version
+					System.Version Version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+					BuildTime = DateTime.Parse( "01/01/2000" ).AddDays( Version.Build + 7 ).AddSeconds( Version.Revision * 2 );
+				}
+
+				UnSetupTimeStamp = BuildTime.Year.ToString() + "-" + BuildTime.Month.ToString( "00" );
 				UnSetupVersionString = " " + Manifest.RootName + "-" + UnSetupTimeStamp;
 			}
+		}
+
+		private DateTime GetGameBuildTime()
+		{
+#if DEBUG
+			string InstallFolder = Environment.CurrentDirectory + "\\Binaries\\";
+#else
+			string InstallFolder = Application.StartupPath;
+#endif
+			FileInfo AppInfo = new FileInfo( Path.Combine( InstallFolder, Manifest.AppToLaunch ) );
+			if( !AppInfo.Exists )
+			{
+				return ( DateTime.MinValue );
+			}
+
+			return ( AppInfo.LastWriteTime );
 		}
 
 		public void Destroy()
