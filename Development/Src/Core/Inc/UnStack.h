@@ -154,7 +154,9 @@ enum EExprToken
 	EX_False				= 0x28,	// Bool False.
 	EX_NativeParm           = 0x29, // Native function parameter offset.
 	EX_NoObject				= 0x2A,	// NoObject.
-
+#if BATMAN
+	EX_NameConstNoNumber	= 0x2B,	// Name constant carrying only the name index
+#endif
 	EX_IntConstByte			= 0x2C,	// Int constant that requires 1 byte.
 	EX_BoolVariable			= 0x2D,	// A bool variable which requires a bitmask.
 	EX_DynamicCast			= 0x2E,	// Safe dynamic class casting.
@@ -209,6 +211,8 @@ enum EExprToken
 	EX_DynArraySort			= 0x59,	// Sort a list in place
 #if BATMAN
 	EX_JumpIfNotEditorOnly	= 0x5A, // Jump past editor-only code block (always jumps in shipping builds)
+	// Takes a single dynamic array expression and no end token; every AK call site returns one element of the array
+	EX_DynArrayRandomItem	= 0x5B,
 #endif
 
 	// Natives.

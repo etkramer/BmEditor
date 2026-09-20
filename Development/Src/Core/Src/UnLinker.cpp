@@ -3785,6 +3785,38 @@ static FString BmRemapPackageName( const FString& InName )
 	}
 	return InName;
 }
+
+// BM: AK bytecode stores a name as a bare index, so map it through the linker's name table by hand.
+void SerializeScriptName( FArchive& Ar, NAME_INDEX& NameIndex )
+{
+	ULinker* Linker = Ar.IsPersistent() ? Ar.GetLinker() : NULL;
+	if( Linker != NULL && Ar.IsLoading() )
+	{
+		NAME_INDEX SourceIndex = 0;
+		Ar << SourceIndex;
+		if( Linker->NameMap.IsValidIndex(SourceIndex) )
+		{
+			NameIndex = Linker->NameMap(SourceIndex).GetIndex();
+		}
+		else
+		{
+			warnf( NAME_Warning, TEXT("Bad script name index %i/%i in %s"), SourceIndex, Linker->NameMap.Num(), *Linker->Filename );
+			NameIndex = FName(NAME_None).GetIndex();
+		}
+	}
+	else if( Linker != NULL && Ar.IsSaving() )
+	{
+		NAME_INDEX TargetIndex = CastChecked<ULinkerSave>(Linker)->NameIndices(NameIndex);
+		Ar << TargetIndex;
+	}
+	else
+	{
+		// Reference collectors and taggers still need to see the name itself.
+		FName Name((EName)NameIndex, NAME_NO_NUMBER);
+		Ar << Name;
+		NameIndex = Name.GetIndex();
+	}
+}
 #endif
 
 UObject* ULinkerLoad::CreateExport( INT Index )

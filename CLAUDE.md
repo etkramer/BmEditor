@@ -66,13 +66,25 @@ BM4 packages are all Ver=863, LicenseeVer=227. Reading the licensee as a stock U
 
 Beware that a clean package load is weak evidence about layouts. Only offset-only tags reach the offset-addressed path and `ReportLayoutMismatch`; named tags are matched by name and their offset is discarded.
 
+An offset-only tag whose offset hits no property of ours, or a property of a different type, is reported as `[LAYOUT]` and the value is read into a scratch buffer and dropped. That is deliberate: writing retail's value at retail's offset on a class whose layout has drifted corrupts the object. The warnings are the work list.
+
 ## Retail Script Packages
 
 Classes the editor lacks are NOT meant to be hand-ported out of the decompile. The retail script packages supply them: copy the game's `Engine.upk` and `BmGame.upk` to `_Engine.upk` and `_BmGame.upk`, load them as startup packages, and their contents merge into the real `Engine`/`BmGame` packages alongside the editor's own compiled `Engine.u`/`BmGame.u`.
 
 The plumbing already exists from the BM2 era. `BmRemapPackageName` (`Core/Src/UnLinker.cpp:3780`) strips a leading underscore, and it is applied at the forced-export, import and export creation sites (`UnLinker.cpp:2533`, `2538`, `3970`, `3982`, `4309`, `4332`). The startup package list lives in `BmGame/Config/DefaultEngine.ini` under `[Engine.StartupPackages]`, which already carries `+Package=_Engine` and `+Package=_BmGame`.
 
-Consequence for the port: getting this merge working for BM4 is a prerequisite for maps, and it is the correct fix for missing classes. Hand-porting a `.uc` class is only right for NATIVE classes, whose C++ layout we must match anyway. Note that AK's `Engine.upk` and `BmGame.upk` have their name/export tables far past `TotalHeaderSize` (NameOffset 72446905 and 356085334), so any header precache keyed on `TotalHeaderSize` has to cope.
+Consequence for the port: getting this merge working for BM4 is a prerequisite for maps, and it is the correct fix for missing classes. Hand-porting a `.uc` class is only right for NATIVE classes, whose C++ layout we must match anyway. Note that AK's `Engine.upk` and `BmGame.upk` have their name/export tables far past `TotalHeaderSize` (NameOffset 72446905 and 356085334); `FArchiveFileReaderWindows::InternalPrecache` clamps the resulting negative length to zero and falls back to on-demand reads, so no precache change is needed. Neither package is compressed, but `Core.upk` is (`PKG_StoreCompressed`).
+
+**The merge rule is "the editor's object wins".** `_Engine`/`_BmGame` carry `PKG_Cooked`, so `CreateExport` looks the export up with `StaticFindObjectFastInternal` in the unprefixed package first; anything already loaded from our own `.u` is reused and never re-serialized, and retail only supplies what we lack. Native classes therefore keep their C++-backed `UClass`, and in exchange every class we also define has to match AK's layout exactly or its retail CDO lands on the wrong members.
+
+**Script serialization, verified byte-for-byte** against every script export of retail `Engine.upk` and `BmGame.upk` (each export consumes exactly its `SerialSize`, each bytecode blob exactly its on-disk and in-memory size):
+
+- `UStruct` drops `ScriptText`, `CppText`, `Line` and `TextPos` outright - not gated on cooked-for-console, which is FALSE for these packages.
+- `UClass` adds an empty `TArray<INT>` after `AutoCollapseCategories`, then the BM INT, `ClassGroupNames` and `ClassHeaderFilename`. `UProperty` keeps `Category`/`ArraySizeEnum` and `UFunction` keeps `FriendlyName`.
+- `UState`'s `StateFlags` is a WORD (all 1488 class exports of `Engine.upk` parse exactly at WORD, none at DWORD).
+- A bytecode name reference is a bare 4-byte name index, in the archive and in the script buffer alike; `FLabelEntry` keeps the full `FName`.
+- `EX_NameConst` (0x21) keeps the full `FName`; the index-only form is `EX_NameConstNoNumber` (0x2B). `EX_DynArrayRandomItem` (0x5B) takes one dynamic-array expression and no end token.
 
 ## Build and Run
 

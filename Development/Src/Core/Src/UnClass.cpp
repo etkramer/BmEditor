@@ -651,11 +651,16 @@ static FName GetBmSimpleTypeID( INT TypeIndex )
 
 // BM: cooked tags carry retail's offset, so a property of the wrong type sitting there means our class
 // layout has drifted and the value is about to be written over an unrelated member. Warn once per site.
-static void ReportLayoutMismatch( const UStruct* Struct, const UProperty* Prop, const FPropertyTag& Tag, FArchive& Ar )
+static UBOOL IsBmOffsetTagCompatible( const UProperty* Prop, const FPropertyTag& Tag )
 {
 	const FName ExpectedID = GetBmSimpleTypeID( (INT)Tag.Type.GetIndex() );
 	const INT ElementOffset = (INT)Tag.PropertyOffset - Prop->Offset;
-	if( Prop->GetID() == ExpectedID && (ElementOffset % Prop->ElementSize) == 0 )
+	return Prop->GetID() == ExpectedID && (ElementOffset % Prop->ElementSize) == 0;
+}
+
+static void ReportLayoutMismatch( const UStruct* Struct, const UProperty* Prop, const FPropertyTag& Tag, FArchive& Ar )
+{
+	if( IsBmOffsetTagCompatible( Prop, Tag ) )
 	{
 		return;
 	}
@@ -721,6 +726,7 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 				// BM: FCookedPropertyTag format
 				if (Ar.LicenseeVer() >= VER_BATMAN2 && Ar.ContainsCookedData() && Tag.Type != NAME_None)
 				{
+					UBOOL bDiscardOffsetValue = FALSE;
 					const UClass* SerializedClass = ConstCast<UClass>(this);
 					if (SerializedClass == NULL || !SerializedClass->HasAnyClassFlags(CLASS_Intrinsic))
 					{
@@ -737,20 +743,29 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 						}
 						if (!OffsetProp)
 						{
-							warnf(TEXT("%s:"), *GetName());
-							for (UProperty* P = PropertyLink; P; P = P->PropertyLinkNext)
-							{
-								warnf(TEXT("  %s[%d]: %s"), *P->GetOuter()->GetName(), P->Offset, *P->GetName());
-							}
-
-							appErrorf(TEXT("BM: no property at offset %u (type %s) in %s (package %s)"),
-								(UINT)Tag.PropertyOffset, *Tag.Type.ToString(), *GetName(), *Ar.GetArchiveName());
+							// BM: retail classes carry properties ours lack - read the value and throw it away.
+							warnf(NAME_Warning, TEXT("[LAYOUT] %s: no property at offset %u (type %s) (package %s)"),
+								*GetName(), (UINT)Tag.PropertyOffset, *Tag.Type.ToString(), *Ar.GetArchiveName());
+							bDiscardOffsetValue = TRUE;
 						}
+						else
+						{
+							ReportLayoutMismatch(this, OffsetProp, Tag, Ar);
 
-						ReportLayoutMismatch(this, OffsetProp, Tag, Ar);
+							// BM: writing retail's value onto a member of another type would corrupt our object.
+							bDiscardOffsetValue = !IsBmOffsetTagCompatible(OffsetProp, Tag);
+						}
 					}
 
+					FString DiscardString;
+					BYTE DiscardValue[16];
+					appMemzero(DiscardValue, sizeof(DiscardValue));
+
 					BYTE* Dest = Data + Tag.PropertyOffset;
+					if (bDiscardOffsetValue)
+					{
+						Dest = Tag.Type == NAME_StrProperty ? (BYTE*)&DiscardString : DiscardValue;
+					}
 					switch ((INT)Tag.Type.GetIndex())
 					{
 					case NAME_IntProperty:
@@ -1337,8 +1352,8 @@ void UStruct::Serialize( FArchive& Ar )
 	// if reading data that's cooked for console, skip this data
 	UBOOL const bIsCookedForConsole = IsPackageCookedForConsole(Ar);
 #if BATMAN
-	// BM2 skips editor data on PLATFORM_Console (0x28C), which excludes PCConsole (sub_56C20).
-	UBOOL const bSkipEditorData = bIsCookedForConsole;
+	// BM: AK drops ScriptText, CppText and the compiler info from UStruct outright.
+	UBOOL const bSkipEditorData = bIsCookedForConsole || Ar.LicenseeVer() >= VER_BATMAN4;
 #else
 	UBOOL const bSkipEditorData = bIsCookedForConsole;
 #endif
@@ -2606,6 +2621,13 @@ void UClass::Serialize( FArchive& Ar )
 		if (Ar.Ver() > 670)
 		{
 			Ar << AutoCollapseCategories;
+		}
+
+		// BM: AK adds an INT array here; it is empty in every retail class.
+		if (Ar.LicenseeVer() >= VER_BATMAN4)
+		{
+			TArray<INT> UnusedCategoryData;
+			Ar << UnusedCategoryData;
 		}
 #else
 		Ar << HideCategories << AutoExpandCategories << AutoCollapseCategories;

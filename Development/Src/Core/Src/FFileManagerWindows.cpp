@@ -136,8 +136,10 @@ void FArchiveFileReaderWindows::Serialize( void* V, INT Length )
 			if( Copy<=0 )
 			{
 				ArIsError = 1;
-				Error->Logf( TEXT("ReadFile beyond EOF %i+%i/%i for file %s"), 
-					Pos, Length, Size, *Filename );
+				// BM: name the object being serialized, or an EOF read gives nothing to go on.
+				Error->Logf( TEXT("ReadFile beyond EOF %i+%i/%i for file %s while serializing %s"), 
+					Pos, Length, Size, *Filename,
+					GSerializedObject ? *GSerializedObject->GetFullName() : TEXT("NULL") );
 			}
 			if( ArIsError )
 			{

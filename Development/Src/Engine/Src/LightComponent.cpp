@@ -581,6 +581,15 @@ void ULightComponent::Serialize(FArchive& Ar)
 {
 	Super::Serialize( Ar );
 
+#if BATMAN
+	// BM: AK writes nothing past the tagged block - its light component templates are exactly
+	// terminator + TemplateOwnerClass + TemplateName (14 bytes in _Engine.upk).
+	if( Ar.LicenseeVer() >= VER_BATMAN4 )
+	{
+		return;
+	}
+#endif
+
 	// Serialize inclusion/ exclusion volumes.
 	Ar << InclusionConvexVolumes;
 	Ar << ExclusionConvexVolumes;

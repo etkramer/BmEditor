@@ -258,6 +258,21 @@ public:
 		Ar << W << Num;
 		return Ar;
 	}
+#if BATMAN
+	// BM: a bytecode name reference carries only the name index.
+	void WriteScriptName( FName N )
+	{
+		NAME_INDEX Index = N.GetIndex();
+		FArchive& Ar = *this;
+		Ar << Index;
+	}
+#else
+	void WriteScriptName( FName N )
+	{
+		FArchive& Ar = *this;
+		Ar << N;
+	}
+#endif
 	FArchive& operator<<( class UObject*& Res )
 	{
 #if 0

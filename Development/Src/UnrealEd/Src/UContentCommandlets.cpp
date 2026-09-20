@@ -7464,13 +7464,21 @@ EExprToken UByteCodeSerializer::SerializeExpr( INT& iCode, FArchive& Ar )
 	UFunction* NextFunction=NULL;
 
 	#define XFER(Type)				{ iCode += sizeof(Type); }
+#if BATMAN
+	#define XFER_FUNC_NAME			{ NextFunctionName = FName((EName)*(NAME_INDEX*)&Script(iCode)); XFER(NAME_INDEX) }
+#else
 	#define XFER_FUNC_NAME			{ NextFunctionName = *(FName*)&Script(iCode); XFER(FName) }
+#endif
 	#define XFER_FUNC_POINTER		{ ScriptPointerType TempCode = *(ScriptPointerType*)&Script(iCode); XFER(ScriptPointerType) NextFunction = (UFunction*)appSPtrToPointer(TempCode); }
 	#define XFER_PROP_POINTER		{ ScriptPointerType TempCode = *(ScriptPointerType*)&Script(iCode); XFER(ScriptPointerType) GProperty	 = (UProperty*)appSPtrToPointer(TempCode); SetCurrentContext(); }
 	#define XFER_OBJECT_POINTER(T)	{ ScriptPointerType TempCode = *(ScriptPointerType*)&Script(iCode); XFER(ScriptPointerType) GPropObject	 = (UObject*)appSPtrToPointer(TempCode); CurrentContext = Cast<UClass>(GPropObject); if ( CurrentContext == NULL ) { CurrentContext = GPropObject->GetClass(); } }
 
 	#define	XFERPTR(T) XFER(ScriptPointerType)
+#if BATMAN
+	#define XFERNAME() XFER(NAME_INDEX)
+#else
 	#define XFERNAME() XFER(FName)
+#endif
 
 	// include this file to define any remaining symbols
 	#include "ScriptSerialization.h"

@@ -38,7 +38,21 @@
 #endif
 
 #ifndef XFERNAME
-#if SUPPORTS_SCRIPTPATCH_CREATION
+#if BATMAN
+	// BM: AK reduces a bytecode name reference to a bare name index, in the archive and in the script buffer alike.
+	#define XFERNAME() \
+	{ \
+		if( Ar.LicenseeVer() >= VER_BATMAN4 ) \
+		{ \
+			SerializeScriptName( Ar, *(NAME_INDEX*)&Script(iCode) ); \
+			iCode += sizeof(NAME_INDEX); \
+		} \
+		else \
+		{ \
+			XFER(FName) \
+		} \
+	}
+#elif SUPPORTS_SCRIPTPATCH_CREATION
 	#define XFERNAME() \
 	{ \
 		if( !GIsScriptPatcherActive ) \
@@ -590,9 +604,21 @@
 		}
 		case EX_NameConst:
 		{
+#if BATMAN
+			// BM: this token keeps the full FName; the index-only form is EX_NameConstNoNumber.
+			XFER(FName);
+#else
+			XFERNAME();
+#endif
+			break;
+		}
+#if BATMAN
+		case EX_NameConstNoNumber:
+		{
 			XFERNAME();
 			break;
 		}
+#endif
 		case EX_RotationConst:
 		{
 			XFER(INT); XFER(INT); XFER(INT);
@@ -755,6 +781,12 @@
 		}
 
 #if BATMAN
+		case EX_DynArrayRandomItem:
+		{
+			SerializeExpr( iCode, Ar ); // Array expression.
+			break;
+		}
+
 		case EX_JumpIfNotEditorOnly:
 		{
 			XFER(CodeSkipSizeType); // Code offset to jump past editor-only code.

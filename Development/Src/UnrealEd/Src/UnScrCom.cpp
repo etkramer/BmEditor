@@ -997,7 +997,7 @@ void FScriptCompiler::EmitStackNodeLinkFunction( UFunction* Node, UBOOL ForceFin
 		Writer << bLocalProp;
 		Writer << DelegateProp;
 		FName N(Node->GetFName());
-		Writer << N;
+		Writer.WriteScriptName(N);
 	}
 	else if( IsFinal && Node->iNative && Node->iNative<256 )
 	{
@@ -1026,14 +1026,14 @@ void FScriptCompiler::EmitStackNodeLinkFunction( UFunction* Node, UBOOL ForceFin
 		// Non-state function.
 		Writer << EX_GlobalFunction;
 		FName N(Node->GetFName());
-		Writer << N;
+		Writer.WriteScriptName(N);
 	}
 	else
 	{
 		// Virtual function.
 		Writer << EX_VirtualFunction;
 		FName N(Node->GetFName());
-		Writer << N;
+		Writer.WriteScriptName(N);
 	}
 }
 
@@ -3627,7 +3627,7 @@ UBOOL FScriptCompiler::CompileFieldExpr
 			}
 
 			Writer << EX_DelegateProperty;
-			Writer << FieldFunction->FriendlyName;
+			Writer.WriteScriptName(FieldFunction->FriendlyName);
 
 			// if we're assigning a delegate to a delegate, write the source delegate's property as well, so that
 			// we properly handle both the case of the delegate property having a value (copy the property value) and the delegate
@@ -3903,7 +3903,7 @@ UBOOL FScriptCompiler::CompileFieldExpr
 			// this bytecode is necessary so that expressions like 'if ( MyDelegate == SomeObject.SomeFunction )' can work correctly.
 			// Otherwise, we have no way to determine which object to compare the delegate's object to
 			Writer << EX_InstanceDelegate;
-			Writer << FieldFunction->FriendlyName;
+			Writer.WriteScriptName(FieldFunction->FriendlyName);
 		}
 
 		// Returned value is an r-value.
@@ -4292,7 +4292,7 @@ UBOOL FScriptCompiler::CompileExpr
 		{
 			// Assigning None to delegate
 			Writer << EX_DelegateProperty;
-			Writer << Token.TokenName;
+			Writer.WriteScriptName(Token.TokenName);
 			UProperty* EmptyProp = NULL;
 			Writer << EmptyProp;
 			Token.Type = CPT_Delegate;

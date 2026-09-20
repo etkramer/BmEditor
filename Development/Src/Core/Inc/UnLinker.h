@@ -1658,6 +1658,11 @@ class ULinkerSave : public ULinker, public FArchive
  **/
 void LogLazyArrayPerfIssue();
 
+#if BATMAN
+// BM: serializes an AK bytecode name reference, which carries only the name index.
+void SerializeScriptName( FArchive& Ar, NAME_INDEX& NameIndex );
+#endif
+
 /**
  * Flags serialized with the lazy loader.
  */
