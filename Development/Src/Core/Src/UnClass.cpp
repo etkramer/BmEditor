@@ -643,7 +643,8 @@ static FName GetBmSimpleTypeID( INT TypeIndex )
 	switch( TypeIndex )
 	{
 	case NAME_VectorProperty:
-	case NAME_RotatorProperty:		return FName(NAME_StructProperty);
+	case NAME_RotatorProperty:
+	case NAME_GUIDProperty:			return FName(NAME_StructProperty);
 	case NAME_ObjectNCRProperty:	return FName(NAME_ObjectProperty);
 	default:						return FName((EName)TypeIndex);
 	}
@@ -739,6 +740,8 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 					{
 					case NAME_IntProperty:
 					case NAME_FloatProperty:
+					// BM: a bool tag carries the whole bitfield dword, not just its own bit.
+					case NAME_BoolProperty:
 						Ar.ByteOrderSerialize(Dest, 4);
 						break;
 					case NAME_NameProperty:
@@ -755,6 +758,9 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 						break;
 					case NAME_ObjectNCRProperty:
 						Ar << *(UObject**)Dest;
+						break;
+					case NAME_GUIDProperty:
+						Ar << *(FGuid*)Dest;
 						break;
 					default:
 						appErrorf(TEXT("BM: unexpected simple type %s at offset %u in %s"),
@@ -1256,6 +1262,18 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 							// return to the current location
 							Ar.Seek(DataOffset);
 						}
+#if BATMAN
+						// BM: one cooked tag covers every bool in the bitfield dword, so skip the rest of the run.
+						if (FPropertyTag::IsBmCookedTag(Ar) && Property->GetClass() == UBoolProperty::StaticClass())
+						{
+							while (Property->PropertyLinkNext != NULL
+								&& Property->PropertyLinkNext->GetClass() == UBoolProperty::StaticClass()
+								&& Property->PropertyLinkNext->Offset == Property->Offset)
+							{
+								Property = Property->PropertyLinkNext;
+							}
+						}
+#endif
 					}
 				}
 			}

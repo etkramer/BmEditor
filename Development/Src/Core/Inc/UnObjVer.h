@@ -742,6 +742,9 @@ enum ELicenseeVersion
 	// - Summary stores the file offset of the precached export
 	VER_SUMMARY_PRECACHE_OFFSET = 175,
 
+	// - NetIndex dropped from the object header
+	VER_REMOVED_NET_INDEX = 203,
+
 	// - BM4 release
 	VER_BATMAN4 = 227
 };

@@ -58,16 +58,22 @@ struct FPropertyTag
 	}
 
 #if BATMAN
-	// BM2 cooked tags omit Name/Size/ArrayIndex for these types, reading the value at obj+PropertyOffset (sub_5FC160).
+	// BM cooked tags omit Name/Size/ArrayIndex for these types, reading the value at obj+PropertyOffset (sub_F79B70).
 	static FORCEINLINE UBOOL IsBmSimpleType(INT TypeIndex)
 	{
 		return TypeIndex == NAME_IntProperty
 			|| TypeIndex == NAME_FloatProperty
+			|| TypeIndex == NAME_BoolProperty
 			|| TypeIndex == NAME_NameProperty
 			|| TypeIndex == NAME_VectorProperty
 			|| TypeIndex == NAME_RotatorProperty
 			|| TypeIndex == NAME_StrProperty
 			|| TypeIndex == NAME_ObjectNCRProperty;
+	}
+
+	static FORCEINLINE UBOOL IsBmCookedTag(const FArchive& Ar)
+	{
+		return Ar.LicenseeVer() >= VER_BATMAN2 && Ar.ContainsCookedData();
 	}
 #endif
 
@@ -75,8 +81,8 @@ struct FPropertyTag
 	friend FArchive& operator<<( FArchive& Ar, FPropertyTag& Tag )
 	{
 #if BATMAN
-		// BM2 cooked property tag (FCookedPropertyTag in the original game).
-		if (Ar.LicenseeVer() >= VER_BATMAN2 && Ar.ContainsCookedData())
+		// BM cooked property tag (FCookedPropertyTag in the original game).
+		if (IsBmCookedTag(Ar))
 		{
 			if (Ar.IsLoading())
 			{
@@ -114,11 +120,6 @@ struct FPropertyTag
 					Ar << Tag.Size << Tag.ArrayIndex;
 				}
 
-				if (TypeIndex == NAME_BoolProperty)
-				{
-					Ar << Tag.BoolVal;
-				}
-
 				// Recovered from property defs later when needed.
 				Tag.StructName = NAME_None;
 				Tag.EnumName = NAME_None;
@@ -147,11 +148,6 @@ struct FPropertyTag
 					Ar << Tag.Name;
 					Tag.SizeOffset = Ar.Tell();
 					Ar << Tag.Size << Tag.ArrayIndex;
-				}
-
-				if (TypeIndex == NAME_BoolProperty)
-				{
-					Ar << Tag.BoolVal;
 				}
 			}
 			return Ar;
@@ -211,6 +207,31 @@ struct FPropertyTag
 		{
 			UBoolProperty* Bool = (UBoolProperty*)Property;
 			check(Bool->BitMask!=0);
+#if BATMAN
+			// BM: a cooked bool tag carries the whole bitfield dword, minus the bits of bools that aren't serialized (sub_F79C60).
+			if (IsBmCookedTag(Ar))
+			{
+				BITFIELD Bits = *(BITFIELD*)Value;
+				if (Ar.IsSaving())
+				{
+					for (UProperty* Sibling = Property; Sibling != NULL && Sibling->Offset == Property->Offset
+						&& Sibling->GetClass() == UBoolProperty::StaticClass(); Sibling = Sibling->PropertyLinkNext)
+					{
+						const BITFIELD SiblingMask = ((UBoolProperty*)Sibling)->BitMask;
+						if (!Sibling->ShouldSerializeValue(Ar) && (Defaults == NULL || (SiblingMask & *(BITFIELD*)Defaults) == 0))
+						{
+							Bits &= ~SiblingMask;
+						}
+					}
+				}
+				Ar.ByteOrderSerialize(&Bits, sizeof(BITFIELD));
+				if (Ar.IsLoading())
+				{
+					*(BITFIELD*)Value = Bits;
+				}
+				return;
+			}
+#endif
 			if (Ar.IsLoading())
 			{
 				if (BoolVal)

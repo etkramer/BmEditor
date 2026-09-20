@@ -1657,6 +1657,14 @@ FArchive& operator<<(FArchive& Ar,FStateFrame::FPushedState& PushedState)
 /** serializes NetIndex from the passed in archive; in a separate function to share with default object serialization */
 void UObject::SerializeNetIndex(FArchive& Ar)
 {
+#if BATMAN
+	// BM: the object header carries no NetIndex (sub_F2D0B0)
+	if (Ar.LicenseeVer() >= VER_REMOVED_NET_INDEX)
+	{
+		return;
+	}
+#endif
+
 	// do not serialize NetIndex when duplicating objects via serialization
 	if (!(Ar.GetPortFlags() & PPF_Duplicate))
 	{
@@ -1779,11 +1787,10 @@ void UObject::Serialize( FArchive& Ar )
 	// Execution stack.
 	//!!how does the stack work in conjunction with transaction tracking?
 #if BATMAN
-	// BM: StateObject gets an extra RF_HasStack boolean before the state frame data.
+	// BM: StateObject gets an extra RF_HasStack boolean before the state frame data (sub_F39380).
 	if (!Ar.IsTransacting() && Ar.LicenseeVer() >= VER_BATMAN2)
 	{
-		static UClass* StateObjectClass = FindObject<UClass>(ANY_PACKAGE, TEXT("StateObject"));
-		if (StateObjectClass && IsA(StateObjectClass))
+		if (IsA(UStateObject::StaticClass()))
 		{
 			BYTE HasStackByte = HasAnyFlags(RF_HasStack) ? 1 : 0;
 			Ar.Serialize(&HasStackByte, 1);
