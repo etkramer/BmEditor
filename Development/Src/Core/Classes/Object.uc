@@ -254,6 +254,23 @@ struct TPOV
 	}
 };
 
+// BM
+/** Sort order for decals rendered on top of each other. */
+enum EDecalPriority
+{
+	DP_BeforeDefault5,
+	DP_BeforeDefault4,
+	DP_BeforeDefault3,
+	DP_BeforeDefault2,
+	DP_BeforeDefault1,
+	DP_Default,
+	DP_AfterDefault1,
+	DP_AfterDefault2,
+	DP_AfterDefault3,
+	DP_AfterDefault4,
+	DP_AfterDefault5,
+};
+
 /** Various ways to interpolate TAlphaBlend. */
 enum AlphaBlendType
 {

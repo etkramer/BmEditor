@@ -1288,6 +1288,14 @@ void UMaterialInstance::Serialize(FArchive& Ar)
 
 	Super::Serialize(Ar);
 
+#if BATMAN
+	// BM: AK's FMaterial payload is not decoded yet, so drop retail static permutations instead of desyncing on them.
+	if (Ar.IsLoading() && bHasStaticPermutationResource && Ar.LicenseeVer() >= VER_BATMAN2 && Ar.ContainsCookedData())
+	{
+		bHasStaticPermutationResource = FALSE;
+	}
+#endif
+
 	//only serialize the static permutation resource if one exists
 	if (bHasStaticPermutationResource)
 	{

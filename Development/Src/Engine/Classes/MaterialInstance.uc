@@ -9,9 +9,12 @@ class MaterialInstance extends MaterialInterface
 var() const MaterialInterface Parent;
 
 var(PhysicalMaterialMask)	Texture2D	PhysMaterialMask;
-var(PhysicalMaterialMask)	INT	PhysMaterialMaskUVChannel;
 var(PhysicalMaterialMask)	PhysicalMaterial BlackPhysicalMaterial;
 var(PhysicalMaterialMask)	PhysicalMaterial WhitePhysicalMaterial;
+var(PhysicalMaterialMask)	INT	PhysMaterialMaskUVChannel;
+
+// BM
+var(RockDecal) bool OverrideDecalPriority;
 
 var bool bHasStaticPermutationResource;
 
@@ -20,6 +23,9 @@ var native transient bool bStaticPermutationDirty;
 var private const native bool ReentrantFlag;
 
 var private const transient bool bNeedsMaterialFlattening;
+
+// BM
+var(RockDecal) EDecalPriority DecalPriority;
 
 var const native editconst pointer StaticParameters[2]{FStaticParameterSet};
 
@@ -32,6 +38,10 @@ var private editoronly const array<texture> ReferencedTextures;
 var private editoronly const array<guid> ReferencedTextureGuids;
 
 var private const Guid ParentLightingGuid;
+
+// BM
+var(Source) editoronly duplicatetransient string SourceTimestamp;
+var(Source) editoronly duplicatetransient string SourceAuthor;
 
 cpptext
 {
@@ -154,4 +164,5 @@ defaultproperties
 {
 	bHasStaticPermutationResource=False
 	PhysMaterialMaskUVChannel=-1
+	DecalPriority=DP_Default
 }

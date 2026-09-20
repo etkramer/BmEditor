@@ -115,6 +115,15 @@ struct native VectorParameterValueOverTime extends ParameterValueOverTime
 	var() InterpCurveVector ParameterValueCurve;
 };
 
+// BM
+struct native LinearColorParameterValueOverTime extends ParameterValueOverTime
+{
+	var() LinearColor	ParameterValue;
+
+	/** This will automatically be used if there are any values in this Curve **/
+	var() InterpCurveLinearColor ParameterValueCurve;
+};
+
 
 /** causes all parameters to start playing immediately **/
 var() bool bAutoActivateAll;
@@ -126,6 +135,8 @@ var() const array<FontParameterValueOverTime>		FontParameterValues;
 var() const array<ScalarParameterValueOverTime>		ScalarParameterValues;
 var() const array<TextureParameterValueOverTime>	TextureParameterValues;
 var() const array<VectorParameterValueOverTime>		VectorParameterValues;
+// BM
+var() const array<LinearColorParameterValueOverTime>	LinearColorParameterValues;
 
 
 cpptext
