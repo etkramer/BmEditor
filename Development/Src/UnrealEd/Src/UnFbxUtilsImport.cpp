@@ -40,7 +40,7 @@ using namespace UnFbx;
 //-------------------------------------------------------------------------
 //
 //-------------------------------------------------------------------------
-FVector CBasicDataConverter::ConvertPos(KFbxVector4 Vector)
+FVector CBasicDataConverter::ConvertPos(fbx::FbxVector4 Vector)
 {
 	FVector Out;
 	Out[0] = Vector[0];
@@ -54,7 +54,7 @@ FVector CBasicDataConverter::ConvertPos(KFbxVector4 Vector)
 //-------------------------------------------------------------------------
 //
 //-------------------------------------------------------------------------
-FVector CBasicDataConverter::ConvertDir(KFbxVector4 Vector)
+FVector CBasicDataConverter::ConvertDir(fbx::FbxVector4 Vector)
 {
 	FVector Out;
 	Out[0] = Vector[0];
@@ -66,7 +66,7 @@ FVector CBasicDataConverter::ConvertDir(KFbxVector4 Vector)
 //-------------------------------------------------------------------------
 //
 //-------------------------------------------------------------------------
-FVector CBasicDataConverter::ConvertScale(fbxDouble3 Vector)
+FVector CBasicDataConverter::ConvertScale(fbx::FbxDouble3 Vector)
 {
 	FVector Out;
 	Out[0] = Vector[0];
@@ -78,7 +78,7 @@ FVector CBasicDataConverter::ConvertScale(fbxDouble3 Vector)
 //-------------------------------------------------------------------------
 //
 //-------------------------------------------------------------------------
-FVector CBasicDataConverter::ConvertScale(KFbxVector4 Vector)
+FVector CBasicDataConverter::ConvertScale(fbx::FbxVector4 Vector)
 {
 	FVector Out;
 	Out[0] = Vector[0];
@@ -90,7 +90,7 @@ FVector CBasicDataConverter::ConvertScale(KFbxVector4 Vector)
 //-------------------------------------------------------------------------
 //
 //-------------------------------------------------------------------------
-FRotator CBasicDataConverter::ConvertRotation(KFbxQuaternion Quaternion)
+FRotator CBasicDataConverter::ConvertRotation(fbx::FbxQuaternion Quaternion)
 {
 	FRotator Out(ConvertRotToQuat(Quaternion));
 	return Out;
@@ -99,7 +99,7 @@ FRotator CBasicDataConverter::ConvertRotation(KFbxQuaternion Quaternion)
 //-------------------------------------------------------------------------
 //
 //-------------------------------------------------------------------------
-FVector CBasicDataConverter::ConvertRotationToFVect(KFbxQuaternion Quaternion, UBOOL bInvertOrient)
+FVector CBasicDataConverter::ConvertRotationToFVect(fbx::FbxQuaternion Quaternion, UBOOL bInvertOrient)
 {
 	FQuat UnrealQuaternion = ConvertRotToQuat(Quaternion);
 	FVector Euler;
@@ -115,7 +115,7 @@ FVector CBasicDataConverter::ConvertRotationToFVect(KFbxQuaternion Quaternion, U
 //-------------------------------------------------------------------------
 //
 //-------------------------------------------------------------------------
-FQuat CBasicDataConverter::ConvertRotToQuat(KFbxQuaternion Quaternion)
+FQuat CBasicDataConverter::ConvertRotToQuat(fbx::FbxQuaternion Quaternion)
 {
 	FQuat UnrealQuat;
 	UnrealQuat.X = Quaternion[0];
@@ -129,7 +129,7 @@ FQuat CBasicDataConverter::ConvertRotToQuat(KFbxQuaternion Quaternion)
 //-------------------------------------------------------------------------
 //
 //-------------------------------------------------------------------------
-FQuat CBasicDataConverter::ConvertRotToAnimQuat(KFbxQuaternion Quaternion, UBOOL bForAnimation)
+FQuat CBasicDataConverter::ConvertRotToAnimQuat(fbx::FbxQuaternion Quaternion, UBOOL bForAnimation)
 {
 	FQuat UnrealQuat;
 	UnrealQuat.X = Quaternion[0];
@@ -142,16 +142,16 @@ FQuat CBasicDataConverter::ConvertRotToAnimQuat(KFbxQuaternion Quaternion, UBOOL
 //-------------------------------------------------------------------------
 //
 //-------------------------------------------------------------------------
-FLOAT CBasicDataConverter::ConvertDist(fbxDouble1 Distance)
+FLOAT CBasicDataConverter::ConvertDist(fbx::FbxDouble Distance)
 {
 	FLOAT Out;
 	Out = (FLOAT)Distance;
 	return Out;
 }
 
-KFbxVector4 CBasicDataConverter::ConvertToFbxPos(FVector Vector)
+fbx::FbxVector4 CBasicDataConverter::ConvertToFbxPos(FVector Vector)
 {
-	KFbxVector4 Out;
+	fbx::FbxVector4 Out;
 	Out[0] = Vector[0];
 	Out[1] = -Vector[1];
 	Out[2] = Vector[2];
@@ -159,9 +159,9 @@ KFbxVector4 CBasicDataConverter::ConvertToFbxPos(FVector Vector)
 	return Out;
 }
 
-KFbxVector4 CBasicDataConverter::ConvertToFbxRot(FVector Vector)
+fbx::FbxVector4 CBasicDataConverter::ConvertToFbxRot(FVector Vector)
 {
-	KFbxVector4 Out;
+	fbx::FbxVector4 Out;
 	Out[0] = Vector[0];
 	Out[1] = -Vector[1];
 	Out[2] = -Vector[2];
@@ -169,9 +169,9 @@ KFbxVector4 CBasicDataConverter::ConvertToFbxRot(FVector Vector)
 	return Out;
 }
 
-KFbxVector4 CBasicDataConverter::ConvertToFbxScale(FVector Vector)
+fbx::FbxVector4 CBasicDataConverter::ConvertToFbxScale(FVector Vector)
 {
-	KFbxVector4 Out;
+	fbx::FbxVector4 Out;
 	Out[0] = Vector[0];
 	Out[1] = Vector[1];
 	Out[2] = Vector[2];
@@ -179,9 +179,9 @@ KFbxVector4 CBasicDataConverter::ConvertToFbxScale(FVector Vector)
 	return Out;
 }
 
-KFbxVector4 CBasicDataConverter::ConvertToFbxColor(FColor Color)
+fbx::FbxVector4 CBasicDataConverter::ConvertToFbxColor(FColor Color)
 {
-	KFbxVector4 Out;
+	fbx::FbxVector4 Out;
 	Out[0] = Color.R / 255.0f;
 	Out[1] = Color.G / 255.0f;
 	Out[2] = Color.B / 255.0f;

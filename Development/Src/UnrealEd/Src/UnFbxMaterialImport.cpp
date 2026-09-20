@@ -39,11 +39,18 @@
 
 using namespace UnFbx;
 
-UTexture* UnFbx::CFbxImporter::ImportTexture(KFbxTexture* FbxTexture, UBOOL bSetupAsNormalMap)
+UTexture* UnFbx::CFbxImporter::ImportTexture(fbx::FbxTexture* FbxTexture, UBOOL bSetupAsNormalMap)
 {
+	fbx::FbxFileTexture* FbxFileTexture = fbx::FbxCast<fbx::FbxFileTexture>(FbxTexture);
+	if (FbxFileTexture == NULL)
+	{
+		warnf(NAME_Warning,TEXT("Skipping non-file texture %s"),ANSI_TO_TCHAR(FbxTexture->GetName()));
+		return NULL;
+	}
+
 	// create an unreal texture asset
 	UTexture* UnrealTexture = NULL;
-	FFilename Filename1 = ANSI_TO_TCHAR(FbxTexture->GetFileName());
+	FFilename Filename1 = ANSI_TO_TCHAR(FbxFileTexture->GetFileName());
 	FString Extension = Filename1.GetExtension().ToLower();
 	// name the texture with file name
 	FString TextureName = Filename1.GetBaseFilename();
@@ -75,12 +82,12 @@ UTexture* UnFbx::CFbxImporter::ImportTexture(KFbxTexture* FbxTexture, UBOOL bSet
 	if ( ! appLoadFileToArray( DataBinary, *Filename ))
 	{
 		// try fbx file base path + relative path
-		FFilename Filename2 = FileBasePath + TEXT("\\") + ANSI_TO_TCHAR(FbxTexture->GetRelativeFileName());
+		FFilename Filename2 = FileBasePath + TEXT("\\") + ANSI_TO_TCHAR(FbxFileTexture->GetRelativeFileName());
 		Filename = Filename2;
 		if ( ! appLoadFileToArray( DataBinary, *Filename ))
 		{
 			// try fbx file base path + texture file name (no path)
-			FFilename Filename3 = ANSI_TO_TCHAR(FbxTexture->GetRelativeFileName());
+			FFilename Filename3 = ANSI_TO_TCHAR(FbxFileTexture->GetRelativeFileName());
 			FString FileOnly = Filename3.GetCleanFilename();
 			Filename3 = FileBasePath + TEXT("\\") + FileOnly;
 			Filename = Filename3;
@@ -131,44 +138,44 @@ UTexture* UnFbx::CFbxImporter::ImportTexture(KFbxTexture* FbxTexture, UBOOL bSet
 	return UnrealTexture;
 }
 
-void UnFbx::CFbxImporter::ImportTexturesFromNode(KFbxNode* Node)
+void UnFbx::CFbxImporter::ImportTexturesFromNode(fbx::FbxNode* Node)
 {
-	KFbxProperty Property;
+	fbx::FbxProperty Property;
 	INT NbMat = Node->GetMaterialCount();
 
 	// visit all materials
 	INT MaterialIndex;
 	for (MaterialIndex = 0; MaterialIndex < NbMat; MaterialIndex++)
 	{
-		KFbxSurfaceMaterial *Material = Node->GetMaterial(MaterialIndex);
+		fbx::FbxSurfaceMaterial *Material = Node->GetMaterial(MaterialIndex);
 
 		//go through all the possible textures
 		if(Material)
 		{
 			INT TextureIndex;
-			FOR_EACH_TEXTURE(TextureIndex)
+			for (TextureIndex = 0; TextureIndex < fbx::FbxLayerElement::sTypeTextureCount; TextureIndex++)
 			{
-				Property = Material->FindProperty(KFbxLayerElement::TEXTURE_CHANNEL_NAMES[TextureIndex]);
+				Property = Material->FindProperty(fbx::FbxLayerElement::sTextureChannelNames[TextureIndex]);
 
 				if( Property.IsValid() )
 				{
-					KFbxTexture * lTexture= NULL;
+					fbx::FbxTexture * lTexture= NULL;
 
 					//Here we have to check if it's layered textures, or just textures:
-					INT LayeredTextureCount = Property.GetSrcObjectCount(KFbxLayeredTexture::ClassId);
-					KString PropertyName = Property.GetName();
+					INT LayeredTextureCount = Property.GetSrcObjectCount<fbx::FbxLayeredTexture>();
+					fbx::FbxString PropertyName = Property.GetName();
 					if(LayeredTextureCount > 0)
 					{
 						for(INT LayerIndex=0; LayerIndex<LayeredTextureCount; ++LayerIndex)
 						{
-							KFbxLayeredTexture *lLayeredTexture = KFbxCast <KFbxLayeredTexture>(Property.GetSrcObject(KFbxLayeredTexture::ClassId, LayerIndex));
-							INT NbTextures = lLayeredTexture->GetSrcObjectCount(KFbxTexture::ClassId);
+							fbx::FbxLayeredTexture *lLayeredTexture = fbx::FbxCast <fbx::FbxLayeredTexture>(Property.GetSrcObject<fbx::FbxLayeredTexture>(LayerIndex));
+							INT NbTextures = lLayeredTexture->GetSrcObjectCount<fbx::FbxTexture>();
 							for(INT TexIndex =0; TexIndex<NbTextures; ++TexIndex)
 							{
-								KFbxTexture* Texture = KFbxCast <KFbxTexture> (lLayeredTexture->GetSrcObject(KFbxTexture::ClassId,TexIndex));
+								fbx::FbxTexture* Texture = fbx::FbxCast <fbx::FbxTexture> (lLayeredTexture->GetSrcObject<fbx::FbxTexture>(TexIndex));
 								if(Texture)
 								{
-									ImportTexture(Texture, PropertyName == KFbxSurfaceMaterial::sNormalMap || PropertyName == KFbxSurfaceMaterial::sBump);
+									ImportTexture(Texture, PropertyName == fbx::FbxSurfaceMaterial::sNormalMap || PropertyName == fbx::FbxSurfaceMaterial::sBump);
 								}
 							}
 						}
@@ -176,14 +183,14 @@ void UnFbx::CFbxImporter::ImportTexturesFromNode(KFbxNode* Node)
 					else
 					{
 						//no layered texture simply get on the property
-						INT NbTextures = Property.GetSrcObjectCount(KFbxTexture::ClassId);
+						INT NbTextures = Property.GetSrcObjectCount<fbx::FbxTexture>();
 						for(INT TexIndex =0; TexIndex<NbTextures; ++TexIndex)
 						{
 
-							KFbxTexture* Texture = KFbxCast <KFbxTexture> (Property.GetSrcObject(KFbxTexture::ClassId,TexIndex));
+							fbx::FbxTexture* Texture = fbx::FbxCast <fbx::FbxTexture> (Property.GetSrcObject<fbx::FbxTexture>(TexIndex));
 							if(Texture)
 							{
-								ImportTexture(Texture, PropertyName == KFbxSurfaceMaterial::sNormalMap || PropertyName == KFbxSurfaceMaterial::sBump);
+								ImportTexture(Texture, PropertyName == fbx::FbxSurfaceMaterial::sNormalMap || PropertyName == fbx::FbxSurfaceMaterial::sBump);
 							}
 						}
 					}
@@ -199,7 +206,7 @@ void UnFbx::CFbxImporter::ImportTexturesFromNode(KFbxNode* Node)
 //
 //-------------------------------------------------------------------------
 UBOOL UnFbx::CFbxImporter::CreateAndLinkExpressionForMaterialProperty(
-							KFbxSurfaceMaterial& FbxMaterial,
+							fbx::FbxSurfaceMaterial& FbxMaterial,
 							UMaterial* UnrealMaterial,
 							const char* MaterialProperty ,
 							FExpressionInput& MaterialInput, 
@@ -211,21 +218,21 @@ UBOOL UnFbx::CFbxImporter::CreateAndLinkExpressionForMaterialProperty(
 	// UDK Ultimate - MOD
 	UBOOL bTwoSided = 1;
 	
-	KFbxProperty FbxProperty = FbxMaterial.FindProperty( MaterialProperty );
+	fbx::FbxProperty FbxProperty = FbxMaterial.FindProperty( MaterialProperty );
 	if( FbxProperty.IsValid() )
 	{
-		INT LayeredTextureCount = FbxProperty.GetSrcObjectCount(KFbxLayeredTexture::ClassId);
+		INT LayeredTextureCount = FbxProperty.GetSrcObjectCount<fbx::FbxLayeredTexture>();
 		if (LayeredTextureCount>0)
 		{
 			warnf(NAME_Warning,TEXT("Layered textures are not supported (material %s)"),ANSI_TO_TCHAR(FbxMaterial.GetName()));
 		}
 			
-		INT TextureCount = FbxProperty.GetSrcObjectCount(KFbxTexture::ClassId);
+		INT TextureCount = FbxProperty.GetSrcObjectCount<fbx::FbxTexture>();
 		if (TextureCount>0)
 		{
 			for(INT TextureIndex =0; TextureIndex<TextureCount; ++TextureIndex)
 			{
-				KFbxTexture* FbxTexture = FbxProperty.GetSrcObject(FBX_TYPE(KFbxTexture), TextureIndex);
+				fbx::FbxTexture* FbxTexture = FbxProperty.GetSrcObject<fbx::FbxTexture>(TextureIndex);
 
 				// create an unreal texture asset
 				UTexture* UnrealTexture = ImportTexture(FbxTexture, bSetupAsNormalMap);
@@ -244,7 +251,7 @@ UBOOL UnFbx::CFbxImporter::CreateAndLinkExpressionForMaterialProperty(
 					//UDK Ultimate - MOD
 
 					// add/find UVSet and set it to the texture
-					KString UVSetName = FbxTexture->UVSet.Get();
+					fbx::FbxString UVSetName = FbxTexture->UVSet.Get();
 					FString LocalUVSetName = ANSI_TO_TCHAR(UVSetName.Buffer());
 					INT SetIndex = UVSet.FindItemIndex(LocalUVSetName);
 					UMaterialExpressionTextureCoordinate* MyCoordExpression = ConstructObject<UMaterialExpressionTextureCoordinate>( UMaterialExpressionTextureCoordinate::StaticClass(), UnrealMaterial );
@@ -303,7 +310,7 @@ void UnFbx::CFbxImporter::FixupMaterial(UMaterial* UnrealMaterial)
 //
 //-------------------------------------------------------------------------
 
-void UnFbx::CFbxImporter::CreateUnrealMaterial(KFbxSurfaceMaterial* FbxMaterial, TArray<UMaterialInterface*>& OutMaterials, TArray<FString>& UVSets)
+void UnFbx::CFbxImporter::CreateUnrealMaterial(fbx::FbxSurfaceMaterial* FbxMaterial, TArray<UMaterialInterface*>& OutMaterials, TArray<FString>& UVSets)
 {
 	FString MaterialFullName = ANSI_TO_TCHAR(MakeName(FbxMaterial->GetName()));
 
@@ -360,18 +367,18 @@ void UnFbx::CFbxImporter::CreateUnrealMaterial(KFbxSurfaceMaterial* FbxMaterial,
 	// TODO :  need this ? UnrealMaterial->bUsedWithStaticLighting = TRUE;
 
 	// textures and properties
-	CreateAndLinkExpressionForMaterialProperty( *FbxMaterial, UnrealMaterial, KFbxSurfaceMaterial::sDiffuse, UnrealMaterial->DiffuseColor, FALSE, UVSets);
-	CreateAndLinkExpressionForMaterialProperty( *FbxMaterial, UnrealMaterial, KFbxSurfaceMaterial::sDiffuseFactor, UnrealMaterial->DiffusePower, FALSE, UVSets);
-	CreateAndLinkExpressionForMaterialProperty( *FbxMaterial, UnrealMaterial, KFbxSurfaceMaterial::sEmissive, UnrealMaterial->EmissiveColor, FALSE, UVSets);
-	CreateAndLinkExpressionForMaterialProperty( *FbxMaterial, UnrealMaterial, KFbxSurfaceMaterial::sSpecular, UnrealMaterial->SpecularColor, FALSE, UVSets);
-	CreateAndLinkExpressionForMaterialProperty( *FbxMaterial, UnrealMaterial, KFbxSurfaceMaterial::sSpecularFactor, UnrealMaterial->SpecularColor, FALSE, UVSets); // SpecularFactor modulates the SpecularColor value if there's one
-	CreateAndLinkExpressionForMaterialProperty( *FbxMaterial, UnrealMaterial, KFbxSurfaceMaterial::sShininess, UnrealMaterial->SpecularPower, FALSE, UVSets);
-	if (!CreateAndLinkExpressionForMaterialProperty( *FbxMaterial, UnrealMaterial, KFbxSurfaceMaterial::sNormalMap, UnrealMaterial->Normal, TRUE, UVSets))
+	CreateAndLinkExpressionForMaterialProperty( *FbxMaterial, UnrealMaterial, fbx::FbxSurfaceMaterial::sDiffuse, UnrealMaterial->DiffuseColor, FALSE, UVSets);
+	CreateAndLinkExpressionForMaterialProperty( *FbxMaterial, UnrealMaterial, fbx::FbxSurfaceMaterial::sDiffuseFactor, UnrealMaterial->DiffusePower, FALSE, UVSets);
+	CreateAndLinkExpressionForMaterialProperty( *FbxMaterial, UnrealMaterial, fbx::FbxSurfaceMaterial::sEmissive, UnrealMaterial->EmissiveColor, FALSE, UVSets);
+	CreateAndLinkExpressionForMaterialProperty( *FbxMaterial, UnrealMaterial, fbx::FbxSurfaceMaterial::sSpecular, UnrealMaterial->SpecularColor, FALSE, UVSets);
+	CreateAndLinkExpressionForMaterialProperty( *FbxMaterial, UnrealMaterial, fbx::FbxSurfaceMaterial::sSpecularFactor, UnrealMaterial->SpecularColor, FALSE, UVSets); // SpecularFactor modulates the SpecularColor value if there's one
+	CreateAndLinkExpressionForMaterialProperty( *FbxMaterial, UnrealMaterial, fbx::FbxSurfaceMaterial::sShininess, UnrealMaterial->SpecularPower, FALSE, UVSets);
+	if (!CreateAndLinkExpressionForMaterialProperty( *FbxMaterial, UnrealMaterial, fbx::FbxSurfaceMaterial::sNormalMap, UnrealMaterial->Normal, TRUE, UVSets))
 	{
-		CreateAndLinkExpressionForMaterialProperty( *FbxMaterial, UnrealMaterial, KFbxSurfaceMaterial::sBump, UnrealMaterial->Normal, TRUE, UVSets); // no bump in unreal, use as normal map
+		CreateAndLinkExpressionForMaterialProperty( *FbxMaterial, UnrealMaterial, fbx::FbxSurfaceMaterial::sBump, UnrealMaterial->Normal, TRUE, UVSets); // no bump in unreal, use as normal map
 	}
-	//CreateAndLinkExpressionForMaterialProperty( *FbxMaterial, UnrealMaterial, KFbxSurfaceMaterial::sTransparentColor, UnrealMaterial->Opacity, FALSE, UVSets);
-	//CreateAndLinkExpressionForMaterialProperty( *FbxMaterial, UnrealMaterial, KFbxSurfaceMaterial::sTransparencyFactor, UnrealMaterial->OpacityMask, FALSE, UVSets);
+	//CreateAndLinkExpressionForMaterialProperty( *FbxMaterial, UnrealMaterial, fbx::FbxSurfaceMaterial::sTransparentColor, UnrealMaterial->Opacity, FALSE, UVSets);
+	//CreateAndLinkExpressionForMaterialProperty( *FbxMaterial, UnrealMaterial, fbx::FbxSurfaceMaterial::sTransparencyFactor, UnrealMaterial->OpacityMask, FALSE, UVSets);
 	FixupMaterial(UnrealMaterial); // add random diffuse if none exists
 
 	// compile shaders for PC (from UPrecompileShadersCommandlet::ProcessMaterial
@@ -392,12 +399,12 @@ void UnFbx::CFbxImporter::CreateUnrealMaterial(KFbxSurfaceMaterial* FbxMaterial,
 	OutMaterials.AddItem(UnrealMaterial);
 }
 
-INT UnFbx::CFbxImporter::CreateNodeMaterials(KFbxNode* FbxNode, TArray<UMaterialInterface*>& OutMaterials, TArray<FString>& UVSets)
+INT UnFbx::CFbxImporter::CreateNodeMaterials(fbx::FbxNode* FbxNode, TArray<UMaterialInterface*>& OutMaterials, TArray<FString>& UVSets)
 {
 	INT MaterialCount = FbxNode->GetMaterialCount();
 	for(INT MaterialIndex=0; MaterialIndex < MaterialCount; ++MaterialIndex)
 	{
-		KFbxSurfaceMaterial *FbxMaterial = FbxNode->GetMaterial(MaterialIndex);
+		fbx::FbxSurfaceMaterial *FbxMaterial = FbxNode->GetMaterial(MaterialIndex);
 
 		CreateUnrealMaterial(FbxMaterial, OutMaterials, UVSets);
 	}

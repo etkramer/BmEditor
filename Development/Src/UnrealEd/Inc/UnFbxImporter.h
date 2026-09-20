@@ -55,9 +55,13 @@
 //Robert G. : Packing was only set for the 64bits platform, but we also need it for 32bits.
 //This was found while trying to trace a loop that iterate through all character links.
 //The memory didn't match what the debugger displayed, obviously since the packing was not right.
+#define FBXSDK_NAMESPACE_USING 0
+
 #pragma pack(push,8)
 	#include <fbxsdk.h>
 #pragma pack(pop)
+
+namespace fbx = FBXSDK_NAMESPACE;
 
 
 #ifdef TMP_UNFBX_BACKUP_O_RDONLY
@@ -83,6 +87,7 @@ struct FBXImportOptions
 	UBOOL bInvertNormalMap;
 	UBOOL bImportTextures;
     UBOOL bOverrideTangents;
+	UBOOL bConvertSceneUnit;
 	// flag if import materials and textures to separate group "Materials" and "Textures"
 	UBOOL bToSeparateGroup;
 	UBOOL bImportLOD;
@@ -102,48 +107,6 @@ struct FBXImportOptions
 };
 
 /**
-* UnrealMemoryAllocator : a custom memory allocator 
-* to be used by the FBX SDK
-*/ 
-class UnrealFBXMemoryAllocator : public KFbxMemoryAllocator 
-{
-public:
-	UnrealFBXMemoryAllocator() 
-		: KFbxMemoryAllocator(MyMalloc, MyCalloc, MyRealloc, MyFree, MyMsize)
-	{
-	}
-
-	~UnrealFBXMemoryAllocator()  
-	{
-	}
-
-	static void* MyMalloc(size_t pSize)       
-	{
-		return malloc(pSize);
-	}
-
-	static void* MyCalloc(size_t pCount,size_t pSize)
-	{
-		return calloc(pCount, pSize);
-	}
-
-	static void* MyRealloc(void* pData, size_t pSize)
-	{
-		return realloc(pData, pSize);
-	}
-
-	static void  MyFree(void* pData)
-	{
-		free(pData);
-	}
-
-	static size_t MyMsize(void* pData)
-	{
-		return _msize(pData);
-	}
-};
-
-/**
 * FBX basic data conversion class.
 */
 class CBasicDataConverter
@@ -153,22 +116,87 @@ public:
 	CBasicDataConverter() 
 	{}
 
-	FVector ConvertPos(KFbxVector4 Vector);
-	FVector ConvertDir(KFbxVector4 Vector);
-	FVector ConvertScale(fbxDouble3 Vector);
-	FVector ConvertScale(KFbxVector4 Vector);
-	FRotator ConvertRotation(KFbxQuaternion Quaternion);
-	FVector ConvertRotationToFVect(KFbxQuaternion Quaternion, UBOOL bInvertRot);
-	FQuat ConvertRotToQuat(KFbxQuaternion Quaternion);
-	FQuat ConvertRotToAnimQuat(KFbxQuaternion Quaternion, UBOOL bForAnimation);
-	FLOAT ConvertDist(fbxDouble1 Distance);
-	UBOOL ConvertPropertyValue(KFbxProperty& FbxProperty, UProperty& UnrealProperty, UPropertyValue& OutUnrealPropertyValue);
+	FVector ConvertPos(fbx::FbxVector4 Vector);
+	FVector ConvertDir(fbx::FbxVector4 Vector);
+	FVector ConvertScale(fbx::FbxDouble3 Vector);
+	FVector ConvertScale(fbx::FbxVector4 Vector);
+	FRotator ConvertRotation(fbx::FbxQuaternion Quaternion);
+	FVector ConvertRotationToFVect(fbx::FbxQuaternion Quaternion, UBOOL bInvertRot);
+	FQuat ConvertRotToQuat(fbx::FbxQuaternion Quaternion);
+	FQuat ConvertRotToAnimQuat(fbx::FbxQuaternion Quaternion, UBOOL bForAnimation);
+	FLOAT ConvertDist(fbx::FbxDouble Distance);
+	UBOOL ConvertPropertyValue(fbx::FbxProperty& FbxProperty, UProperty& UnrealProperty, UPropertyValue& OutUnrealPropertyValue);
 	
-	KFbxVector4 ConvertToFbxPos(FVector Vector);
-	KFbxVector4 ConvertToFbxRot(FVector Vector);
-	KFbxVector4 ConvertToFbxScale(FVector Vector);
-	KFbxVector4 ConvertToFbxColor(FColor Color);
+	fbx::FbxVector4 ConvertToFbxPos(FVector Vector);
+	fbx::FbxVector4 ConvertToFbxRot(FVector Vector);
+	fbx::FbxVector4 ConvertToFbxScale(FVector Vector);
+	fbx::FbxVector4 ConvertToFbxColor(FColor Color);
 };
+
+inline UBOOL FindGeometryShape(fbx::FbxGeometry* Geometry, INT FlatIndex, INT& OutBlendShape, INT& OutChannel, INT& OutShape)
+{
+	const INT BlendShapeCount = Geometry->GetDeformerCount(fbx::FbxDeformer::eBlendShape);
+	for (INT BlendShapeIndex = 0; BlendShapeIndex < BlendShapeCount; BlendShapeIndex++)
+	{
+		fbx::FbxBlendShape* BlendShape = (fbx::FbxBlendShape*)Geometry->GetDeformer(BlendShapeIndex, fbx::FbxDeformer::eBlendShape);
+		const INT ChannelCount = BlendShape->GetBlendShapeChannelCount();
+		for (INT ChannelIndex = 0; ChannelIndex < ChannelCount; ChannelIndex++)
+		{
+			const INT ShapeCount = Geometry->GetShapeCount(BlendShapeIndex, ChannelIndex);
+			if (FlatIndex < ShapeCount)
+			{
+				OutBlendShape = BlendShapeIndex;
+				OutChannel = ChannelIndex;
+				OutShape = FlatIndex;
+				return TRUE;
+			}
+			FlatIndex -= ShapeCount;
+		}
+	}
+
+	return FALSE;
+}
+
+inline fbx::FbxShape* GetGeometryShape(fbx::FbxGeometry* Geometry, INT FlatIndex)
+{
+	INT BlendShapeIndex, ChannelIndex, ShapeIndex;
+	if (!FindGeometryShape(Geometry, FlatIndex, BlendShapeIndex, ChannelIndex, ShapeIndex))
+	{
+		return NULL;
+	}
+
+	return Geometry->GetShape(BlendShapeIndex, ChannelIndex, ShapeIndex);
+}
+
+inline const char* GetGeometryShapeName(fbx::FbxGeometry* Geometry, INT FlatIndex)
+{
+	INT BlendShapeIndex, ChannelIndex, ShapeIndex;
+	if (!FindGeometryShape(Geometry, FlatIndex, BlendShapeIndex, ChannelIndex, ShapeIndex))
+	{
+		return "";
+	}
+
+	fbx::FbxShape* Shape = Geometry->GetShape(BlendShapeIndex, ChannelIndex, ShapeIndex);
+	const char* Name = Shape ? Shape->GetName() : NULL;
+	if (Name == NULL || Name[0] == '\0')
+	{
+		fbx::FbxBlendShape* BlendShape = (fbx::FbxBlendShape*)Geometry->GetDeformer(BlendShapeIndex, fbx::FbxDeformer::eBlendShape);
+		Name = BlendShape->GetBlendShapeChannel(ChannelIndex)->GetName();
+	}
+
+	return Name;
+}
+
+inline fbx::FbxAnimCurve* GetGeometryShapeChannel(fbx::FbxGeometry* Geometry, INT FlatIndex, fbx::FbxAnimLayer* AnimLayer)
+{
+	INT BlendShapeIndex, ChannelIndex, ShapeIndex;
+	if (!FindGeometryShape(Geometry, FlatIndex, BlendShapeIndex, ChannelIndex, ShapeIndex))
+	{
+		return NULL;
+	}
+
+	return Geometry->GetShapeChannel(BlendShapeIndex, ChannelIndex, AnimLayer);
+}
 
 /**
  * Main FBX Importer class.
@@ -206,7 +234,7 @@ public:
 	 * @param Node FBX root node, we find or replace nodes recursively.
 	 * @param OutLinkNodes if not NULL, fill FBX nodes that are not skeletons but used as links into this array.
 	 */
-	//void ReplaceOrFindNullsUsedAsLinks(KFbxNode* Node, TArray<KFbxNode*> *OutLinkNodes = NULL);
+	//void ReplaceOrFindNullsUsedAsLinks(fbx::FbxNode* Node, TArray<fbx::FbxNode*> *OutLinkNodes = NULL);
 
 	/**
 	 * Initialize Fbx file for import.
@@ -249,9 +277,9 @@ public:
 	 *
 	 * @param ObjectName	Fbx object name
 	 * @param Root	Root node, retrieve from it
-	 * @return KFbxNode*	Fbx object node
+	 * @return fbx::FbxNode*	Fbx object node
 	 */
-	KFbxNode* RetrieveObjectFromName(const TCHAR* ObjectName, KFbxNode* Root = NULL);
+	fbx::FbxNode* RetrieveObjectFromName(const TCHAR* ObjectName, fbx::FbxNode* Root = NULL);
 
 	/**
 	 * Creates a static mesh with the given name and flags, imported from within the FBX scene.
@@ -264,7 +292,7 @@ public:
 	 *
 	 * @returns UObject*	the UStaticMesh object.
 	 */
-	UObject* ImportStaticMesh(UObject* InParent, KFbxNode* Node, const FName& Name, EObjectFlags Flags, UStaticMesh* InStaticMesh = NULL, int LODIndex = 0);
+	UObject* ImportStaticMesh(UObject* InParent, fbx::FbxNode* Node, const FName& Name, EObjectFlags Flags, UStaticMesh* InStaticMesh = NULL, int LODIndex = 0);
 
 	/**
 	* Creates a static mesh from all the meshes in FBX scene with the given name and flags.
@@ -278,7 +306,7 @@ public:
 	*
 	* @returns UObject*	the UStaticMesh object.
 	*/
-	UObject* ImportStaticMeshAsSingle(UObject* InParent, TArray<KFbxNode*>& MeshNodeArray, const FName& Name, EObjectFlags Flags, UStaticMesh* InStaticMesh, int LODIndex = 0);
+	UObject* ImportStaticMeshAsSingle(UObject* InParent, TArray<fbx::FbxNode*>& MeshNodeArray, const FName& Name, EObjectFlags Flags, UStaticMesh* InStaticMesh, int LODIndex = 0);
 
 	/**
 	 * re-import Unreal static mesh from updated Fbx file
@@ -316,7 +344,7 @@ public:
 	 *
 	 * @return The USkeletalMesh object created
 	 */
-	UObject* ImportSkeletalMesh(UObject* InParent, TArray<KFbxNode*>& NodeArray, const FName& Name, EObjectFlags Flags, FString Filename, TArray<KFbxShape*> *FbxShapeArray=NULL, FSkelMeshOptionalImportData *OptionalImportData=NULL, FSkeletalMeshBinaryImport* OutData=NULL, UBOOL bCreateRenderData = TRUE );
+	UObject* ImportSkeletalMesh(UObject* InParent, TArray<fbx::FbxNode*>& NodeArray, const FName& Name, EObjectFlags Flags, FString Filename, TArray<fbx::FbxShape*> *FbxShapeArray=NULL, FSkelMeshOptionalImportData *OptionalImportData=NULL, FSkeletalMeshBinaryImport* OutData=NULL, UBOOL bCreateRenderData = TRUE );
 
 	/**
 	 * import skeletal mesh alternate weights.
@@ -335,7 +363,7 @@ public:
 	 * @param NodeArray node array of FBX meshes
 	 * @param AnimSet	animset to import. If it is NULL, we will create an animset object
 	 */
-	void ImportAnimSet(USkeletalMesh* SkeletalMesh, TArray<KFbxNode*>& SortedLinks, FString Filename, TArray<KFbxNode*>& NodeArray, UAnimSet* AnimSet = NULL);
+	void ImportAnimSet(USkeletalMesh* SkeletalMesh, TArray<fbx::FbxNode*>& SortedLinks, FString Filename, TArray<fbx::FbxNode*>& NodeArray, UAnimSet* AnimSet = NULL);
 
 	/**
 	 * Import Fbx Morph object for the Skeletal Mesh.
@@ -346,7 +374,7 @@ public:
 	 * @param Filename - Fbx file name
 	 * @param LODIndex - LOD index
 	 */
-	void ImportFbxMorphTarget(TArray<KFbxNode*> &SkelMeshNodeArray, USkeletalMesh* BaseSkelMesh, const FFilename& Filename, INT LODIndex);
+	void ImportFbxMorphTarget(TArray<fbx::FbxNode*> &SkelMeshNodeArray, USkeletalMesh* BaseSkelMesh, const FFilename& Filename, INT LODIndex);
 
 	/**
 	 * Import LOD object for skeletal mesh
@@ -359,8 +387,8 @@ public:
 
 	/**
 	 * Empties the FBX scene, releasing its memory.
-	 * Currently, we can't release KFbxSdkManager because Fbx Sdk2010.2 has a bug that FBX can only has one global sdkmanager.
-	 * From Fbx Sdk2011, we can create multiple KFbxSdkManager, then we can release it.
+	 * Currently, we can't release fbx::FbxManager because Fbx Sdk2010.2 has a bug that FBX can only has one global sdkmanager.
+	 * From Fbx Sdk2011, we can create multiple fbx::FbxManager, then we can release it.
 	 */
 	void ReleaseScene();
 
@@ -370,7 +398,7 @@ public:
 	 * @param Node Fbx node
 	 * @return TRUE if the node is a collision model
 	 */
-	UBOOL FillCollisionModelList(KFbxNode* Node);
+	UBOOL FillCollisionModelList(fbx::FbxNode* Node);
 
 	/**
 	 * Import collision models for one static mesh if it has collision models
@@ -379,11 +407,11 @@ public:
 	 * @param NodeName - name of Fbx node that the static mesh constructed from
 	 * @return return TRUE if the static mesh has collision model and import successfully
 	 */
-	UBOOL ImportCollisionModels(UStaticMesh* StaticMesh, KString* NodeName);
+	UBOOL ImportCollisionModels(UStaticMesh* StaticMesh, fbx::FbxString* NodeName);
 
 	//help
 	char* MakeName(const char* name);
-	FName MakeNameForMesh(FString InName, KFbxObject* FbxObject);
+	FName MakeNameForMesh(FString InName, fbx::FbxObject* FbxObject);
 
 	// meshes
 	
@@ -393,7 +421,7 @@ public:
 	* @param Node Root node to find skeletal meshes
 	* @param outSkelMeshArray return Fbx meshes they are grouped by skeleton
 	*/
-	void FillFbxSkelMeshArrayInScene(KFbxNode* Node, TArray< TArray<KFbxNode*>* >& outSkelMeshArray, UBOOL ExpandLOD);
+	void FillFbxSkelMeshArrayInScene(fbx::FbxNode* Node, TArray< TArray<fbx::FbxNode*>* >& outSkelMeshArray, UBOOL ExpandLOD);
 	
 	/**
 	 * Find FBX meshes that match Unreal skeletal mesh according to the bone of mesh
@@ -404,7 +432,7 @@ public:
 	 * 
 	 * @return the root bone that bind to the FBX skeletal meshes
 	 */
-	KFbxNode* FindFBXMeshesByBone(USkeletalMesh* FillInMesh, UBOOL bExpandLOD, TArray<KFbxNode*>& OutFBXMeshNodeArray);
+	fbx::FbxNode* FindFBXMeshesByBone(USkeletalMesh* FillInMesh, UBOOL bExpandLOD, TArray<fbx::FbxNode*>& OutFBXMeshNodeArray);
 	
 	/**
 	* Get mesh count (including static mesh and skeletal mesh, except collision models) and find collision models
@@ -413,7 +441,7 @@ public:
 	* @param FbxImporter
 	* @return INT mesh count
 	*/
-	INT GetFbxMeshCount(KFbxNode* Node, UnFbx::CFbxImporter* FbxImporter);
+	INT GetFbxMeshCount(fbx::FbxNode* Node, UnFbx::CFbxImporter* FbxImporter);
 	
 	/**
 	* Get all Fbx mesh objects
@@ -421,7 +449,7 @@ public:
 	* @param Node Root node to find meshes
 	* @param outMeshArray return Fbx meshes
 	*/
-	void FillFbxMeshArray(KFbxNode* Node, TArray<KFbxNode*>& outMeshArray, UnFbx::CFbxImporter* FbxImporter);
+	void FillFbxMeshArray(fbx::FbxNode* Node, TArray<fbx::FbxNode*>& outMeshArray, UnFbx::CFbxImporter* FbxImporter);
 	
 	/**
 	* Fill FBX skeletons to OutSortedLinks recursively
@@ -429,7 +457,7 @@ public:
 	* @param Link Fbx node of skeleton root
 	* @param OutSortedLinks
 	*/
-	void RecursiveBuildSkeleton(KFbxNode* Link, TArray<KFbxNode*>& OutSortedLinks);
+	void RecursiveBuildSkeleton(fbx::FbxNode* Link, TArray<fbx::FbxNode*>& OutSortedLinks);
 
 	/**
 	 * Fill FBX skeletons to OutSortedLinks
@@ -437,7 +465,7 @@ public:
 	 * @param ClusterArray Fbx clusters of FBX skeletal meshes
 	 * @param OutSortedLinks
 	 */
-	void BuildSkeletonSystem(TArray<KFbxCluster*>& ClusterArray, TArray<KFbxNode*>& OutSortedLinks);
+	void BuildSkeletonSystem(TArray<fbx::FbxCluster*>& ClusterArray, TArray<fbx::FbxNode*>& OutSortedLinks);
 
 	/**
 	 * Get Unreal skeleton root from the FBX skeleton node.
@@ -445,7 +473,7 @@ public:
 	 *
 	 * @param Link one FBX skeleton node
 	 */
-	KFbxNode* GetRootSkeleton(KFbxNode* Link);
+	fbx::FbxNode* GetRootSkeleton(fbx::FbxNode* Link);
 	
 	/**
 	 * Get the object of import options
@@ -461,7 +489,7 @@ private:
 	 *
 	 * @param Node root skeleton node
 	 */
-	void RecursiveFixSkeleton(KFbxNode* Node);
+	void RecursiveFixSkeleton(fbx::FbxNode* Node);
 	
 	/**
 	* Get all Fbx skeletal mesh objects which are grouped by skeleton they bind to
@@ -471,7 +499,7 @@ private:
 	* @param SkeletonArray
 	* @param ExpandLOD flag of expanding LOD to get each mesh
 	*/
-	void RecursiveFindFbxSkelMesh(KFbxNode* Node, TArray< TArray<KFbxNode*>* >& outSkelMeshArray, TArray<KFbxNode*>& SkeletonArray, UBOOL ExpandLOD);
+	void RecursiveFindFbxSkelMesh(fbx::FbxNode* Node, TArray< TArray<fbx::FbxNode*>* >& outSkelMeshArray, TArray<fbx::FbxNode*>& SkeletonArray, UBOOL ExpandLOD);
 	
 	/**
 	* Get all Fbx rigid mesh objects which are grouped by skeleton hierarchy
@@ -481,7 +509,7 @@ private:
 	* @param SkeletonArray
 	* @param ExpandLOD flag of expanding LOD to get each mesh
 	*/
-	void RecursiveFindRigidMesh(KFbxNode* Node, TArray< TArray<KFbxNode*>* >& outSkelMeshArray, TArray<KFbxNode*>& SkeletonArray, UBOOL ExpandLOD);
+	void RecursiveFindRigidMesh(fbx::FbxNode* Node, TArray< TArray<fbx::FbxNode*>* >& outSkelMeshArray, TArray<fbx::FbxNode*>& SkeletonArray, UBOOL ExpandLOD);
 
 	/**
 	 * Import Fbx Morph object for the Skeletal Mesh.  Each morph target import processing occurs in a different thread 
@@ -492,11 +520,11 @@ private:
 	 * @param Filename - Fbx file name
 	 * @param LODIndex - LOD index of the skeletal mesh
 	 */
-	void ImportMorphTargetsInternal( TArray<KFbxNode*>& SkelMeshNodeArray, USkeletalMesh* BaseSkelMesh, UMorphTargetSet* MorphTargetSet, const FFilename& InFilename, INT LODIndex );
+	void ImportMorphTargetsInternal( TArray<fbx::FbxNode*>& SkelMeshNodeArray, USkeletalMesh* BaseSkelMesh, UMorphTargetSet* MorphTargetSet, const FFilename& InFilename, INT LODIndex );
 
 public:
 	// current Fbx scene we are importing. Make sure to release it after import
-	KFbxScene* FbxScene;
+	fbx::FbxScene* FbxScene;
 	FBXImportOptions* ImportOptions;
 
 private:
@@ -511,10 +539,10 @@ private:
 	
 	// scene management
 	CBasicDataConverter Converter;
-	KFbxGeometryConverter* FbxGeometryConverter;
-	KFbxSdkManager* FbxSdkManager;
-	KFbxImporter* Importer;
-	KFbxCamera* FbxCamera;
+	fbx::FbxGeometryConverter* FbxGeometryConverter;
+	fbx::FbxManager* FbxSdkManager;
+	fbx::FbxImporter* Importer;
+	fbx::FbxCamera* FbxCamera;
 	IMPORTPHASE CurPhase;
 	FString ErrorMessage;
 	// base path of fbx file
@@ -529,7 +557,7 @@ private:
 	 * Collision model list. The key is fbx node name
 	 * If there is an collision model with old name format, the key is empty string("").
 	 */
-	KMap<KString, KArrayTemplate<KFbxNode* >* > CollisionModels;
+	fbx::FbxMap<fbx::FbxString, fbx::FbxArray<fbx::FbxNode* >* > CollisionModels;
 	TMapBase<USkeletalMesh*, UMorphTargetSet*, FALSE> SkelMeshToMorphMap;
 
 	CFbxImporter();
@@ -543,7 +571,7 @@ private:
 	 * @param LODIndex	LOD level to set up for StaticMesh
 	 * @return UBOOL TRUE if set up successfully
 	 */
-	UBOOL BuildStaticMeshFromGeometry(KFbxMesh* FbxMesh, UStaticMesh* StaticMesh, int LODIndex = 0);
+	UBOOL BuildStaticMeshFromGeometry(fbx::FbxMesh* FbxMesh, UStaticMesh* StaticMesh, int LODIndex = 0);
 	
 	/**
 	 * Creates a Matinee group for a given actor within a given Matinee sequence.
@@ -557,15 +585,15 @@ private:
 	 */
 	void CleanUp();
 	
-	//UObject* CreateObjectFromNode(KFbxNode* Node);
-	//void PlaceActor(AActor* Actor, KFbxNode* Node, UBOOL bInvertOrientation = false);
+	//UObject* CreateObjectFromNode(fbx::FbxNode* Node);
+	//void PlaceActor(AActor* Actor, fbx::FbxNode* Node, UBOOL bInvertOrientation = false);
 	/**
 	* Compute the global matrix for Fbx Node
 	*
 	* @param Node	Fbx Node
-	* @return KFbxXMatrix*	The global transform matrix
+	* @return fbx::FbxAMatrix*	The global transform matrix
 	*/
-	KFbxXMatrix ComputeTotalMatrix(KFbxNode* Node);
+	fbx::FbxAMatrix ComputeTotalMatrix(fbx::FbxNode* Node);
 
 	// various actors, current the Fbx importer don't importe them
 	/**
@@ -574,7 +602,7 @@ private:
 	 * @param FbxLight fbx light object
 	 * @return ALight*
 	 */
-	ALight* CreateLight(KFbxLight* FbxLight);	
+	ALight* CreateLight(fbx::FbxLight* FbxLight);	
 	/**
 	* Import Light detail info
 	*
@@ -582,14 +610,14 @@ private:
 	* @param UnrealLight
 	* @return  UBOOL
 	*/
-	UBOOL FillLightComponent(KFbxLight* FbxLight, ULightComponent* UnrealLight);
+	UBOOL FillLightComponent(fbx::FbxLight* FbxLight, ULightComponent* UnrealLight);
 	/**
 	* Import Fbx Camera object
 	*
 	* @param FbxCamera Fbx camera object
 	* @return ACameraActor*
 	*/
-	ACameraActor* CreateCamera(KFbxCamera* FbxCamera);
+	ACameraActor* CreateCamera(fbx::FbxCamera* FbxCamera);
 
 	// meshes
 	/**
@@ -604,8 +632,8 @@ private:
 	*
 	* @returns UBOOL*	TRUE if import successfully.
 	*/
-    UBOOL FillSkelMeshImporterFromFbx(FSkeletalMeshBinaryImport& SkelMeshImporter, KFbxMesh* FbxMesh, KFbxSkin* FbxSkin, 
-										KFbxShape* FbxShape, TArray<KFbxNode*> &SortedLinks, TArray<const char *>& FbxMatList);
+    UBOOL FillSkelMeshImporterFromFbx(FSkeletalMeshBinaryImport& SkelMeshImporter, fbx::FbxMesh* FbxMesh, fbx::FbxSkin* FbxSkin, 
+										fbx::FbxShape* FbxShape, TArray<fbx::FbxNode*> &SortedLinks, TArray<const char *>& FbxMatList);
 
 	/**
 	* Fill material name list data from Fbx Nodes.
@@ -615,7 +643,7 @@ private:
 	* @param SkelMeshImporter object to store skeletal mesh data.
 	* @param FbxMatList  All material names of the skeletal mesh
 	*/
-	void ImportMaterialsForSkelMesh(TArray<KFbxNode*>& NodeArray, FSkeletalMeshBinaryImport &SkelMeshImporter, TArray<const char *>& OutFbxMatList);
+	void ImportMaterialsForSkelMesh(TArray<fbx::FbxNode*>& NodeArray, FSkeletalMeshBinaryImport &SkelMeshImporter, TArray<const char *>& OutFbxMatList);
 
 	/**
 	 * Import bones from skeletons that NodeArray bind to.
@@ -624,9 +652,9 @@ private:
 	 * @param SkelMeshImporter object to store skeletal mesh data
 	 * @param OutSortedLinks return all skeletons sorted by depth traversal
 	 */
-	UBOOL ImportBone(TArray<KFbxNode*>& NodeArray, FSkeletalMeshBinaryImport &SkelMeshImporter, TArray<KFbxNode*> &OutSortedLinks);
+	UBOOL ImportBone(TArray<fbx::FbxNode*>& NodeArray, FSkeletalMeshBinaryImport &SkelMeshImporter, TArray<fbx::FbxNode*> &OutSortedLinks);
 	
-	void SetRefPoseAsT0(FSkeletalMeshBinaryImport &SkelMeshImporter, KFbxMesh* FbxMesh);
+	void SetRefPoseAsT0(FSkeletalMeshBinaryImport &SkelMeshImporter, fbx::FbxMesh* FbxMesh);
 	
 	// anims
 	/**
@@ -635,7 +663,7 @@ private:
 	 * @param Node Fbx node
 	 * @return UBOOL TRUE if the Fbx node contains animation.
 	 */
-	//UBOOL IsAnimated(KFbxNode* Node);
+	//UBOOL IsAnimated(fbx::FbxNode* Node);
 
 	/**
 	* Fill each Trace for AnimSequence with Fbx skeleton animation by key
@@ -646,9 +674,9 @@ private:
 	* @param bIsRoot if the Fbx skeleton node is root skeleton
 	* @param Scale scale factor for this skeleton node
 	*/
-	UBOOL FillAnimSequenceByKey(KFbxNode* Node, UAnimSequence* AnimSequence, const char* TakeName, KTime& Start, KTime&End, UBOOL bIsRoot, KFbxVector4 Scale);
+	UBOOL FillAnimSequenceByKey(fbx::FbxNode* Node, UAnimSequence* AnimSequence, const char* TakeName, fbx::FbxTime& Start, fbx::FbxTime&End, UBOOL bIsRoot, fbx::FbxVector4 Scale);
 	/*UBOOL CreateMatineeSkeletalAnimation(ASkeletalMeshActor* Actor, UAnimSet* AnimSet);
-	bool CreateMatineeAnimation(KFbxNode* Node, AActor* Actor, UBOOL bInvertOrient, UBOOL bAddDirectorTrack);*/
+	bool CreateMatineeAnimation(fbx::FbxNode* Node, AActor* Actor, UBOOL bInvertOrient, UBOOL bAddDirectorTrack);*/
 
 
 	// material
@@ -663,7 +691,7 @@ private:
 	 * @param UVSet
 	 * @return UBOOL	
 	 */
-	UBOOL CreateAndLinkExpressionForMaterialProperty(	KFbxSurfaceMaterial& FbxMaterial,
+	UBOOL CreateAndLinkExpressionForMaterialProperty(	fbx::FbxSurfaceMaterial& FbxMaterial,
 														UMaterial* UnrealMaterial,
 														const char* MaterialProperty ,
 														FExpressionInput& MaterialInput, 
@@ -700,25 +728,25 @@ private:
 	 * @param UVSets UV set name list
 	 * @return INT material count that created from the Fbx node
 	 */
-	INT CreateNodeMaterials(KFbxNode* FbxNode, TArray<UMaterialInterface*>& outMaterials, TArray<FString>& UVSets);
+	INT CreateNodeMaterials(fbx::FbxNode* FbxNode, TArray<UMaterialInterface*>& outMaterials, TArray<FString>& UVSets);
 	
 	/**
 	* Create Unreal material from Fbx material.
 	* Only setup channels that connect to texture, and setup the UV coordinate of texture.
 	* If diffuse channel has no texture, one default node will be created with constant.
 	*
-	* @param KFbxSurfaceMaterial*  Fbx material
+	* @param fbx::FbxSurfaceMaterial*  Fbx material
 	* @param outMaterials Unreal Materials we created
 	* @param outUVSets
 	 */
-	void CreateUnrealMaterial(KFbxSurfaceMaterial* FbxMaterial, TArray<UMaterialInterface*>& OutMaterials, TArray<FString>& UVSets);
+	void CreateUnrealMaterial(fbx::FbxSurfaceMaterial* FbxMaterial, TArray<UMaterialInterface*>& OutMaterials, TArray<FString>& UVSets);
 	
 	/**
 	 * Visit all materials of one node, import textures from materials.
 	 *
 	 * @param Node FBX node.
 	 */
-	void ImportTexturesFromNode(KFbxNode* Node);
+	void ImportTexturesFromNode(fbx::FbxNode* Node);
 	
 	/**
 	 * Generate Unreal texture object from FBX texture.
@@ -727,7 +755,7 @@ private:
 	 * @param bSetupAsNormalMap Flag to import this texture as normal map.
 	 * @return UTexture* Unreal texture object generated.
 	 */
-	UTexture* ImportTexture(KFbxTexture* FbxTexture, UBOOL bSetupAsNormalMap);
+	UTexture* ImportTexture(fbx::FbxTexture* FbxTexture, UBOOL bSetupAsNormalMap);
 	
 	/**
 	 *
@@ -735,7 +763,7 @@ private:
 	 * @param
 	 * @return UMaterial*
 	 */
-	//UMaterial* GetImportedMaterial(KFbxSurfaceMaterial* pMaterial);
+	//UMaterial* GetImportedMaterial(fbx::FbxSurfaceMaterial* pMaterial);
 
 	/**
 	* Check if the meshes in FBX scene contain smoothing group info.
@@ -744,7 +772,7 @@ private:
 	*
 	* @param FbxMesh Fbx mesh to import
 	*/
-	void CheckSmoothingInfo(KFbxMesh* FbxMesh);
+	void CheckSmoothingInfo(fbx::FbxMesh* FbxMesh);
 
 	/**
 	 * check if two faces belongs to same smoothing group
@@ -770,7 +798,7 @@ private:
 	 * @param AnimStack     AnimStack which layers will be merged
 	 * @param ResampleRate  resample rate for the animation
 	 */
-	void MergeAllLayerAnimation(KFbxAnimStack* AnimStack, INT ResampleRate);
+	void MergeAllLayerAnimation(fbx::FbxAnimStack* AnimStack, INT ResampleRate);
 	
 	//
 	// for matinee export
@@ -804,42 +832,42 @@ private:
 	/**
 	 * Imports a FBX scene node into a Matinee actor group.
 	 */
-	FLOAT ImportMatineeActor(KFbxNode* FbxNode, UInterpGroupInst* MatineeGroup);
+	FLOAT ImportMatineeActor(fbx::FbxNode* FbxNode, UInterpGroupInst* MatineeGroup);
 
 	/**
 	 * Imports an FBX transform curve into a movement subtrack
 	 */
-	void ImportMoveSubTrack( KFbxAnimCurve* FbxCurve, INT FbxDimension, UInterpTrackMoveAxis* SubTrack, INT CurveIndex, UBOOL bNegative, KFbxAnimCurve* RealCurve, FLOAT DefaultVal );
+	void ImportMoveSubTrack( fbx::FbxAnimCurve* FbxCurve, INT FbxDimension, UInterpTrackMoveAxis* SubTrack, INT CurveIndex, UBOOL bNegative, fbx::FbxAnimCurve* RealCurve, FLOAT DefaultVal );
 
 	 /**
 	  * Applies pre and post rotations to a movement track
 	  */
-	void FixupMatineeMovementTrackRotations(UInterpTrackMove* MovementTrack, KFbxNode* FbxNode);
+	void FixupMatineeMovementTrackRotations(UInterpTrackMove* MovementTrack, fbx::FbxNode* FbxNode);
 	 /**
 	  * Applies pre and post rotations to movement subtracks
 	  */
-	void FixupMatineeMovementSubTrackRotations(TArray<UInterpTrackMoveAxis*>& SubTracks, KFbxNode* FbxNode);
+	void FixupMatineeMovementSubTrackRotations(TArray<UInterpTrackMoveAxis*>& SubTracks, fbx::FbxNode* FbxNode);
 
 	/**
 	 * Imports a FBX animated element into a Matinee track.
 	 */
-	void ImportMatineeAnimated(KFbxAnimCurve* FbxCurve, INT FbxDimension, FInterpCurveVector& Curve, INT CurveIndex, UBOOL bNegative, KFbxAnimCurve* RealCurve, FLOAT DefaultVal);
+	void ImportMatineeAnimated(fbx::FbxAnimCurve* FbxCurve, INT FbxDimension, FInterpCurveVector& Curve, INT CurveIndex, UBOOL bNegative, fbx::FbxAnimCurve* RealCurve, FLOAT DefaultVal);
 	/**
 	 * Imports a FBX camera into properties tracks of a Matinee group for a camera actor.
 	 */
-	void ImportCamera(ACameraActor* Actor, UInterpGroupInst* MatineeGroup, KFbxCamera* FbxCamera);
+	void ImportCamera(ACameraActor* Actor, UInterpGroupInst* MatineeGroup, fbx::FbxCamera* FbxCamera);
 	/**
 	 * Imports a FBX animated value into a property track of a Matinee group.
 	 */
-	void ImportAnimatedProperty(FLOAT* Value, const TCHAR* ValueName, UInterpGroupInst* MatineeGroup, const FLOAT FbxValue, KFbxProperty FbxProperty, UBOOL IsCameraFoV = FALSE);
+	void ImportAnimatedProperty(FLOAT* Value, const TCHAR* ValueName, UInterpGroupInst* MatineeGroup, const FLOAT FbxValue, fbx::FbxProperty FbxProperty, UBOOL IsCameraFoV = FALSE);
 	/**
 	 * Check if FBX node has transform animation (translation and rotation, not check scale animation)
 	 */
-	UBOOL IsNodeAnimated(KFbxNode* FbxNode, KFbxAnimLayer* AnimLayer = NULL);
+	UBOOL IsNodeAnimated(fbx::FbxNode* FbxNode, fbx::FbxAnimLayer* AnimLayer = NULL);
 	/**
 	 * Get Unreal Interpolation mode from FBX interpolation mode
 	 */
-	BYTE GetUnrealInterpMode(KFbxAnimCurveKey FbxKey);
+	BYTE GetUnrealInterpMode(fbx::FbxAnimCurveKey FbxKey);
 	
 };
 

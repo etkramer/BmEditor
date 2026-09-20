@@ -109,14 +109,14 @@ UBOOL UFbxFactory::DetectImportType(const FFilename& InFilename)
 UObject* UFbxFactory::ImportANode(void* VoidFbxImporter, void* VoidNode, UBOOL bDoCreateActors, UObject* InParent, FName InName, EObjectFlags Flags, INT& NodeIndex, INT Total, UObject* InMesh, int LODIndex)
 {
 	UnFbx::CFbxImporter* FbxImporter = (UnFbx::CFbxImporter*)VoidFbxImporter;
-	KFbxNode* Node = (KFbxNode*)VoidNode;
+	fbx::FbxNode* Node = (fbx::FbxNode*)VoidNode;
 
 	UObject* NewObject = NULL;
 	FName OutputName = FbxImporter->MakeNameForMesh(InName.ToString(), Node);
 	
 	{
 		// skip collision models
-		KString* NodeName = new KString(Node->GetName());
+		fbx::FbxString* NodeName = new fbx::FbxString(Node->GetName());
 		if ( NodeName->Find("UCX") == 0 || NodeName->Find("MCDCX") == 0 ||
 			 NodeName->Find("UBX") == 0 || NodeName->Find("USP") == 0 )
 		{
@@ -167,6 +167,7 @@ UObject* UFbxFactory::FactoryCreateBinary
 	ImportOptions->bInvertNormalMap = ImportUI->bInvertNormalMaps;
 	ImportOptions->bImportTextures = ImportUI->bImportTextures;
     ImportOptions->bOverrideTangents = ImportUI->bOverrideTangents;
+	ImportOptions->bConvertSceneUnit = ImportUI->bConvertSceneUnits;
 	ImportOptions->bUsedAsFullName = ImportUI->bOverrideFullName;
 	ImportOptions->bImportAnimSet = ImportUI->bImportAnimations;
 	ImportOptions->bResample = ImportUI->bResampleAnimations;
@@ -189,11 +190,11 @@ UObject* UFbxFactory::FactoryCreateBinary
 		// Log the import message and import the mesh.
 		Warn->Log( FbxImporter->GetErrorMessage() );
 
-		KFbxNode* RootNodeToImport = NULL;
+		fbx::FbxNode* RootNodeToImport = NULL;
 		RootNodeToImport = FbxImporter->FbxScene->GetRootNode();
 
 		INT InterestingNodeCount = 1;
-		TArray< TArray<KFbxNode*>* > SkelMeshArray;
+		TArray< TArray<fbx::FbxNode*>* > SkelMeshArray;
 
 		if (ImportUI->MeshTypeToImport == 1)
 		{
@@ -224,7 +225,7 @@ UObject* UFbxFactory::FactoryCreateBinary
 			{
 				if (ImportUI->bCombineMeshes)
 				{
-					TArray<KFbxNode*> FbxMeshArray;
+					TArray<fbx::FbxNode*> FbxMeshArray;
 					FbxImporter->FillFbxMeshArray(RootNodeToImport, FbxMeshArray, FbxImporter);
 					if (FbxMeshArray.Num() > 0)
 					{
@@ -240,14 +241,14 @@ UObject* UFbxFactory::FactoryCreateBinary
 			{
 				for (INT i = 0; i < SkelMeshArray.Num(); i++)
 				{
-					TArray<KFbxNode*> NodeArray = *SkelMeshArray(i);
+					TArray<fbx::FbxNode*> NodeArray = *SkelMeshArray(i);
 					
 					// check if there is LODGroup for this skeletal mesh
 					INT MaxLODLevel = 1;
 					for (INT j = 0; j < NodeArray.Num(); j++)
 					{
-						KFbxNode* Node = NodeArray(j);
-						if (Node->GetNodeAttribute() && Node->GetNodeAttribute()->GetAttributeType() == KFbxNodeAttribute::eLODGROUP)
+						fbx::FbxNode* Node = NodeArray(j);
+						if (Node->GetNodeAttribute() && Node->GetNodeAttribute()->GetAttributeType() == fbx::FbxNodeAttribute::eLODGroup)
 						{
 							// get max LODgroup level
 							if (MaxLODLevel < Node->GetChildCount())
@@ -265,11 +266,11 @@ UObject* UFbxFactory::FactoryCreateBinary
 							break;
 						}
 						
-						TArray<KFbxNode*> SkelMeshNodeArray;
+						TArray<fbx::FbxNode*> SkelMeshNodeArray;
 						for (INT j = 0; j < NodeArray.Num(); j++)
 						{
-							KFbxNode* Node = NodeArray(j);
-							if (Node->GetNodeAttribute() && Node->GetNodeAttribute()->GetAttributeType() == KFbxNodeAttribute::eLODGROUP)
+							fbx::FbxNode* Node = NodeArray(j);
+							if (Node->GetNodeAttribute() && Node->GetNodeAttribute()->GetAttributeType() == fbx::FbxNodeAttribute::eLODGroup)
 							{
 								if (Node->GetChildCount() > LODIndex)
 								{
@@ -300,7 +301,7 @@ UObject* UFbxFactory::FactoryCreateBinary
 							
 							// Set LOD Model's DisplayFactor
 							/*
-							fbxDistance Threshold;
+							fbx::FbxDistance Threshold;
 
 							if ( LodGroup->GetThreshold(i-1, Threshold) )
 							{
@@ -354,8 +355,8 @@ UObject* UFbxFactory::RecursiveImportNode(void* VoidFbxImporter, void* VoidNode,
 {
 	UObject* NewObject = NULL;
 
-	KFbxNode* Node = (KFbxNode*)VoidNode;
-	if (Node->GetNodeAttribute() && Node->GetNodeAttribute()->GetAttributeType() == KFbxNodeAttribute::eLODGROUP)
+	fbx::FbxNode* Node = (fbx::FbxNode*)VoidNode;
+	if (Node->GetNodeAttribute() && Node->GetNodeAttribute()->GetAttributeType() == fbx::FbxNodeAttribute::eLODGroup)
 	{
 		// import base mesh
 		NewObject = ImportANode(VoidFbxImporter, Node->GetChild(0), bDoCreateActors, InParent, InName, Flags, NodeIndex, Total);
@@ -364,7 +365,7 @@ UObject* UFbxFactory::RecursiveImportNode(void* VoidFbxImporter, void* VoidNode,
 			// import LOD meshes
 			for (INT LODIndex = 1; LODIndex < Node->GetChildCount(); LODIndex++)
 			{
-				KFbxNode* ChildNode = Node->GetChild(LODIndex);
+				fbx::FbxNode* ChildNode = Node->GetChild(LODIndex);
 				ImportANode(VoidFbxImporter, ChildNode, false, InParent, InName, Flags, NodeIndex, Total, NewObject, LODIndex);
 			}
 		}

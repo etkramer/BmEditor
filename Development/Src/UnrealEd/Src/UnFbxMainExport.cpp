@@ -41,16 +41,11 @@ namespace UnFbx
 
 FbxExporter::FbxExporter()
 {
-	UnrealFBXMemoryAllocator MyUnrealFBXMemoryAllocator;
-
-	// Specify a custom memory allocator to be used by the FBX SDK
-	KFbxSdkManager::SetMemoryAllocator(&MyUnrealFBXMemoryAllocator);
-
 	// Create the SdkManager
-	FbxSdkManager = KFbxSdkManager::Create();
+	FbxSdkManager = fbx::FbxManager::Create();
 
 	// create an IOSettings object
-	KFbxIOSettings * ios = KFbxIOSettings::Create(FbxSdkManager, IOSROOT );
+	fbx::FbxIOSettings * ios = fbx::FbxIOSettings::Create(FbxSdkManager, IOSROOT );
 	FbxSdkManager->SetIOSettings(ios);
 
 	FbxCamera = NULL;
@@ -78,32 +73,32 @@ FbxExporter* FbxExporter::GetInstance()
 
 void FbxExporter::CreateDocument()
 {
-	FbxScene = KFbxScene::Create(FbxSdkManager,"");
+	FbxScene = fbx::FbxScene::Create(FbxSdkManager,"");
 	
 	// create scene info
-	KFbxDocumentInfo* SceneInfo = KFbxDocumentInfo::Create(FbxSdkManager,"SceneInfo");
+	fbx::FbxDocumentInfo* SceneInfo = fbx::FbxDocumentInfo::Create(FbxSdkManager,"SceneInfo");
 	SceneInfo->mTitle = "Unreal Matinee Sequence";
 	SceneInfo->mSubject = "Export Unreal Matinee";
 	SceneInfo->mComment = "no particular comments required.";
 
 	FbxScene->SetSceneInfo(SceneInfo);
 	
-	//FbxScene->GetGlobalSettings().SetOriginalUpAxis(KFbxAxisSystem::Max);
-	KFbxAxisSystem::eFrontVector FrontVector = (KFbxAxisSystem::eFrontVector)-KFbxAxisSystem::ParityOdd;
-	const KFbxAxisSystem UnrealZUp(KFbxAxisSystem::ZAxis, FrontVector, KFbxAxisSystem::RightHanded);
+	//FbxScene->GetGlobalSettings().SetOriginalUpAxis(fbx::FbxAxisSystem::Max);
+	fbx::FbxAxisSystem::EFrontVector FrontVector = (fbx::FbxAxisSystem::EFrontVector)-fbx::FbxAxisSystem::eParityOdd;
+	const fbx::FbxAxisSystem UnrealZUp(fbx::FbxAxisSystem::eZAxis, FrontVector, fbx::FbxAxisSystem::eRightHanded);
 	FbxScene->GetGlobalSettings().SetAxisSystem(UnrealZUp);
 	FbxScene->GetGlobalSettings().SetOriginalUpAxis(UnrealZUp);
 	// Maya use cm by default
-	FbxScene->GetGlobalSettings().SetSystemUnit(KFbxSystemUnit::cm);
-	//FbxScene->GetGlobalSettings().SetOriginalSystemUnit( KFbxSystemUnit::m );
+	FbxScene->GetGlobalSettings().SetSystemUnit(fbx::FbxSystemUnit::cm);
+	//FbxScene->GetGlobalSettings().SetOriginalSystemUnit( fbx::FbxSystemUnit::m );
 	
 	// setup anim stack
-	AnimStack = KFbxAnimStack::Create(FbxScene, "Unreal Matinee Take");
-	//KFbxSet<KTime>(AnimStack->LocalStart, KTIME_ONE_SECOND);
-	KFbxSet<fbxString>(AnimStack->Description, "Animation Take for Unreal Matinee.");
+	AnimStack = fbx::FbxAnimStack::Create(FbxScene, "Unreal Matinee Take");
+	//fbx::FbxSet<fbx::FbxTime>(AnimStack->LocalStart, fbx::FbxTime(FBXSDK_TC_SECOND));
+	AnimStack->Description.Set("Animation Take for Unreal Matinee.");
 
 	// this take contains one base layer. In fact having at least one layer is mandatory.
-	KFbxAnimLayer* AnimLayer = KFbxAnimLayer::Create(FbxScene, "Base Layer");
+	fbx::FbxAnimLayer* AnimLayer = fbx::FbxAnimLayer::Create(FbxScene, "Base Layer");
 	AnimStack->AddMember(AnimLayer);
 }
 
@@ -121,7 +116,7 @@ void FbxExporter::WriteToFile(const TCHAR* Filename)
 	bool bEmbedMedia = false;
 
 	// Create an exporter.
-	KFbxExporter* FbxExporter = KFbxExporter::Create(FbxSdkManager, "");
+	fbx::FbxExporter* FbxExporter = fbx::FbxExporter::Create(FbxSdkManager, "");
 
 	// set file format
 	if( FileFormat < 0 || FileFormat >= FbxSdkManager->GetIOPluginRegistry()->GetWriterFormatCount() )
@@ -145,12 +140,12 @@ void FbxExporter::WriteToFile(const TCHAR* Filename)
 	// Initialize the exporter by providing a filename.
 	if( !FbxExporter->Initialize(TCHAR_TO_ANSI(Filename), FileFormat, FbxSdkManager->GetIOSettings()) )
 	{
-		warnf(NAME_Log, TEXT("Call to KFbxExporter::Initialize() failed.\n"));
-		warnf(NAME_Log, TEXT("Error returned: %s\n\n"), FbxExporter->GetLastErrorString());
+		warnf(NAME_Log, TEXT("Call to FbxExporter::Initialize() failed.\n"));
+		warnf(NAME_Log, TEXT("Error returned: %s\n\n"), ANSI_TO_TCHAR(FbxExporter->GetStatus().GetErrorString()));
 		return;
 	}
 
-	KFbxSdkManager::GetFileFormatVersion(Major, Minor, Revision);
+	fbx::FbxManager::GetFileFormatVersion(Major, Minor, Revision);
 	warnf(NAME_Log, TEXT("FBX version number for this version of the FBX SDK is %d.%d.%d\n\n"), Major, Minor, Revision);
 
 	// Export the scene.
@@ -180,13 +175,13 @@ void FbxExporter::CloseDocument()
 	}
 }
 
-void FbxExporter::CreateAnimatableUserProperty(KFbxNode* Node, FLOAT Value, const char* Name, const char* Label)
+void FbxExporter::CreateAnimatableUserProperty(fbx::FbxNode* Node, FLOAT Value, const char* Name, const char* Label)
 {
 	// Add one user property for recording the animation
-	KFbxProperty IntensityProp = KFbxProperty::Create(Node, DTFloat, Name, Label);
+	fbx::FbxProperty IntensityProp = fbx::FbxProperty::Create(Node, fbx::FbxFloatDT, Name, Label);
 	IntensityProp.Set(Value);
-	IntensityProp.ModifyFlag(KFbxProperty::eUSER, true);
-	IntensityProp.ModifyFlag(KFbxProperty::eANIMATABLE, true);
+	IntensityProp.ModifyFlag(fbx::FbxPropertyAttr::eUserDefined, true);
+	IntensityProp.ModifyFlag(fbx::FbxPropertyAttr::eAnimatable, true);
 }
 
 /**
@@ -200,12 +195,12 @@ void FbxExporter::ExportLevelMesh(ULevel* Level, USeqAct_Interp* MatineeSequence
 	// the vertex number of Model must be more than 2 (at least a triangle panel)
 	if (Level->Model != NULL && Level->Model->VertexBuffer.Vertices.Num() > 2 && Level->Model->MaterialIndexBuffers.Num() > 0)
 	{
-		// create a KFbxNode
-		KFbxNode* Node = KFbxNode::Create(FbxScene,"LevelMesh");
+		// create a fbx::FbxNode
+		fbx::FbxNode* Node = fbx::FbxNode::Create(FbxScene,"LevelMesh");
 
 		// set the shading mode to view texture
-		Node->SetShadingMode(KFbxNode::eTEXTURE_SHADING);
-		Node->LclScaling.Set(KFbxVector4(1.0, 1.0, 1.0));
+		Node->SetShadingMode(fbx::FbxNode::eTextureShading);
+		Node->LclScaling.Set(fbx::FbxVector4(1.0, 1.0, 1.0));
 		
 		FbxScene->GetRootNode()->AddChild(Node);
 
@@ -258,16 +253,16 @@ void FbxExporter::ExportLight( ALight* Actor, USeqAct_Interp* MatineeSequence )
 	if (FbxScene == NULL || Actor == NULL || Actor->LightComponent == NULL) return;
 
 	// Export the basic actor information.
-	KFbxNode* FbxActor = ExportActor( Actor, MatineeSequence ); // this is the pivot node
+	fbx::FbxNode* FbxActor = ExportActor( Actor, MatineeSequence ); // this is the pivot node
 	// The real fbx light node
-	KFbxNode* FbxLightNode = FbxActor->GetParent();
+	fbx::FbxNode* FbxLightNode = FbxActor->GetParent();
 
 	ULightComponent* BaseLight = Actor->LightComponent;
 
 	FString FbxNodeName = GetActorNodeName(Actor, MatineeSequence);
 
 	// Export the basic light information
-	KFbxLight* Light = KFbxLight::Create(FbxScene, TCHAR_TO_ANSI(*FbxNodeName));
+	fbx::FbxLight* Light = fbx::FbxLight::Create(FbxScene, TCHAR_TO_ANSI(*FbxNodeName));
 	Light->Intensity.Set(BaseLight->Brightness * 100);
 	Light->Color.Set(Converter.ConvertToFbxColor(BaseLight->LightColor));
 	
@@ -281,22 +276,22 @@ void FbxExporter::ExportLight( ALight* Actor, USeqAct_Interp* MatineeSequence )
 		if (BaseLight->IsA(USpotLightComponent::StaticClass()))
 		{
 			USpotLightComponent* SpotLight = (USpotLightComponent*) BaseLight;
-			Light->LightType.Set(KFbxLight::eSPOT);
+			Light->LightType.Set(fbx::FbxLight::eSpot);
 
 			// Export the spot light parameters.
 			if (!appIsNearlyZero(SpotLight->InnerConeAngle))
 			{
-				Light->HotSpot.Set(SpotLight->InnerConeAngle);
+				Light->InnerAngle.Set(SpotLight->InnerConeAngle);
 			}
 			else // Maya requires a non-zero inner cone angle
 			{
-				Light->HotSpot.Set(0.01f);
+				Light->InnerAngle.Set(0.01f);
 			}
-			Light->ConeAngle.Set(SpotLight->OuterConeAngle);
+			Light->OuterAngle.Set(SpotLight->OuterConeAngle);
 		}
 		else
 		{
-			Light->LightType.Set(KFbxLight::ePOINT);
+			Light->LightType.Set(fbx::FbxLight::ePoint);
 		}
 		
 		// Export the point light parameters.
@@ -311,7 +306,7 @@ void FbxExporter::ExportLight( ALight* Actor, USeqAct_Interp* MatineeSequence )
 	else if (BaseLight->IsA(UDirectionalLightComponent::StaticClass()))
 	{
 		// The directional light has no interesting properties.
-		Light->LightType.Set(KFbxLight::eDIRECTIONAL);
+		Light->LightType.Set(fbx::FbxLight::eDirectional);
 	}
 	
 	FbxActor->SetNodeAttribute(Light);
@@ -322,21 +317,21 @@ void FbxExporter::ExportCamera( ACameraActor* Actor, USeqAct_Interp* MatineeSequ
 	if (FbxScene == NULL || Actor == NULL) return;
 
 	// Export the basic actor information.
-	KFbxNode* FbxActor = ExportActor( Actor, MatineeSequence ); // this is the pivot node
+	fbx::FbxNode* FbxActor = ExportActor( Actor, MatineeSequence ); // this is the pivot node
 	// The real fbx camera node
-	KFbxNode* FbxCameraNode = FbxActor->GetParent();
+	fbx::FbxNode* FbxCameraNode = FbxActor->GetParent();
 
 	FString FbxNodeName = GetActorNodeName(Actor, NULL);
 
 	// Create a properly-named FBX camera structure and instantiate it in the FBX scene graph
-	KFbxCamera* Camera = KFbxCamera::Create(FbxScene, TCHAR_TO_ANSI(*FbxNodeName));
+	fbx::FbxCamera* Camera = fbx::FbxCamera::Create(FbxScene, TCHAR_TO_ANSI(*FbxNodeName));
 
 	// Export the view area information
-	Camera->ProjectionType.Set(KFbxCamera::ePERSPECTIVE);
-	Camera->SetAspect(KFbxCamera::eFIXED_RATIO, Actor->AspectRatio, 1.0f);
+	Camera->ProjectionType.Set(fbx::FbxCamera::ePerspective);
+	Camera->SetAspect(fbx::FbxCamera::eFixedRatio, Actor->AspectRatio, 1.0f);
 	Camera->FilmAspectRatio.Set(Actor->AspectRatio);
 	Camera->SetApertureWidth(Actor->AspectRatio * 0.612f); // 0.612f is a magic number from Maya that represents the ApertureHeight
-	Camera->SetApertureMode(KFbxCamera::eFOCAL_LENGTH);
+	Camera->SetApertureMode(fbx::FbxCamera::eFocalLength);
 	Camera->FocalLength.Set(Camera->ComputeFocalLength(Actor->FOVAngle));
 	
 	// Add one user property for recording the AspectRatio animation
@@ -357,12 +352,12 @@ void FbxExporter::ExportCamera( ACameraActor* Actor, USeqAct_Interp* MatineeSequ
 		// 'focal depth' <- 'focus distance'.
 		if (PostProcess->DOF_FocusType == FOCUS_Distance)
 		{
-			Camera->FocusSource.Set(KFbxCamera::eSPECIFIC_DISTANCE);
+			Camera->FocusSource.Set(fbx::FbxCamera::eFocusSpecificDistance);
 			Camera->FocusDistance.Set(PostProcess->DOF_FocusDistance);
 		}
 		else if (PostProcess->DOF_FocusType == FOCUS_Position)
 		{
-			Camera->FocusSource.Set(KFbxCamera::eSPECIFIC_DISTANCE);
+			Camera->FocusSource.Set(fbx::FbxCamera::eFocusSpecificDistance);
 			Camera->FocusDistance.Set((Actor->Location - PostProcess->DOF_FocusPosition).Size());
 		}
 		
@@ -403,7 +398,7 @@ void FbxExporter::ExportBrush(ABrush* Actor, UBOOL bConvertToStaticBesh)
 		if (Model == NULL || Model->VertexBuffer.Vertices.Num() < 3 || Model->MaterialIndexBuffers.Num() == 0) return;
 
 		// Create the FBX actor, the FBX geometry and instantiate it.
-		KFbxNode* FbxActor = ExportActor( Actor, NULL );
+		fbx::FbxNode* FbxActor = ExportActor( Actor, NULL );
 		FbxScene->GetRootNode()->AddChild(FbxActor);
 
 		// Export the mesh information
@@ -440,7 +435,7 @@ void FbxExporter::ExportBrush(ABrush* Actor, UBOOL bConvertToStaticBesh)
 	}
 }
 
-void FbxExporter::ExportModel(UModel* Model, KFbxNode* Node, const char* Name)
+void FbxExporter::ExportModel(UModel* Model, fbx::FbxNode* Node, const char* Name)
 {
 	//INT VertexCount = Model->VertexBuffer.Vertices.Num();
 	INT MaterialCount = Model->MaterialIndexBuffers.Num();
@@ -448,15 +443,15 @@ void FbxExporter::ExportModel(UModel* Model, KFbxNode* Node, const char* Name)
 	const FLOAT BiasedHalfWorldExtent = HALF_WORLD_MAX * 0.95f;
 
 	// Create the mesh and three data sources for the vertex positions, normals and texture coordinates.
-	KFbxMesh* Mesh = KFbxMesh::Create(FbxScene, Name);
+	fbx::FbxMesh* Mesh = fbx::FbxMesh::Create(FbxScene, Name);
 	
 	// Create control points.
 	UINT VertCount(Model->VertexBuffer.Vertices.Num());
 	Mesh->InitControlPoints(VertCount);
-	KFbxVector4* ControlPoints = Mesh->GetControlPoints();
+	fbx::FbxVector4* ControlPoints = Mesh->GetControlPoints();
 	
 	// Set the normals on Layer 0.
-	KFbxLayer* Layer = Mesh->GetLayer(0);
+	fbx::FbxLayer* Layer = Mesh->GetLayer(0);
 	if (Layer == NULL)
 	{
 		Mesh->CreateLayer();
@@ -464,19 +459,19 @@ void FbxExporter::ExportModel(UModel* Model, KFbxNode* Node, const char* Name)
 	}
 	
 	// We want to have one normal for each vertex (or control point),
-	// so we set the mapping mode to eBY_CONTROL_POINT.
-	KFbxLayerElementNormal* LayerElementNormal= KFbxLayerElementNormal::Create(Mesh, "");
+	// so we set the mapping mode to eByControlPoint.
+	fbx::FbxLayerElementNormal* LayerElementNormal= fbx::FbxLayerElementNormal::Create(Mesh, "");
 
-	LayerElementNormal->SetMappingMode(KFbxLayerElement::eBY_CONTROL_POINT);
+	LayerElementNormal->SetMappingMode(fbx::FbxLayerElement::eByControlPoint);
 
 	// Set the normal values for every control point.
-	LayerElementNormal->SetReferenceMode(KFbxLayerElement::eDIRECT);
+	LayerElementNormal->SetReferenceMode(fbx::FbxLayerElement::eDirect);
 	
 	// Create UV for Diffuse channel.
-	KFbxLayerElementUV* UVDiffuseLayer = KFbxLayerElementUV::Create(Mesh, "DiffuseUV");
-	UVDiffuseLayer->SetMappingMode(KFbxLayerElement::eBY_CONTROL_POINT);
-	UVDiffuseLayer->SetReferenceMode(KFbxLayerElement::eDIRECT);
-	Layer->SetUVs(UVDiffuseLayer, KFbxLayerElement::eDIFFUSE_TEXTURES);
+	fbx::FbxLayerElementUV* UVDiffuseLayer = fbx::FbxLayerElementUV::Create(Mesh, "DiffuseUV");
+	UVDiffuseLayer->SetMappingMode(fbx::FbxLayerElement::eByControlPoint);
+	UVDiffuseLayer->SetReferenceMode(fbx::FbxLayerElement::eDirect);
+	Layer->SetUVs(UVDiffuseLayer, fbx::FbxLayerElement::eTextureDiffuse);
 	
 	for (UINT VertexIdx = 0; VertexIdx < VertCount; ++VertexIdx)
 	{
@@ -494,28 +489,28 @@ void FbxExporter::ExportModel(UModel* Model, KFbxNode* Node, const char* Name)
 			FinalVertexPos = FVector( 0.0f, 0.0f, 0.0f );
 		}
 
-		ControlPoints[VertexIdx] = KFbxVector4(FinalVertexPos.X, -FinalVertexPos.Y, FinalVertexPos.Z);
-		KFbxVector4 FbxNormal = KFbxVector4(Normal.X, -Normal.Y, Normal.Z);
-		KFbxXMatrix NodeMatrix;
-		KFbxVector4 Trans = Node->LclTranslation.Get();
-		NodeMatrix.SetT(KFbxVector4(Trans[0], Trans[1], Trans[2]));
-		KFbxVector4 Rot = Node->LclRotation.Get();
-		NodeMatrix.SetR(KFbxVector4(Rot[0], Rot[1], Rot[2]));
+		ControlPoints[VertexIdx] = fbx::FbxVector4(FinalVertexPos.X, -FinalVertexPos.Y, FinalVertexPos.Z);
+		fbx::FbxVector4 FbxNormal = fbx::FbxVector4(Normal.X, -Normal.Y, Normal.Z);
+		fbx::FbxAMatrix NodeMatrix;
+		fbx::FbxVector4 Trans = Node->LclTranslation.Get();
+		NodeMatrix.SetT(fbx::FbxVector4(Trans[0], Trans[1], Trans[2]));
+		fbx::FbxVector4 Rot = Node->LclRotation.Get();
+		NodeMatrix.SetR(fbx::FbxVector4(Rot[0], Rot[1], Rot[2]));
 		NodeMatrix.SetS(Node->LclScaling.Get());
 		FbxNormal = NodeMatrix.MultT(FbxNormal);
 		FbxNormal.Normalize();
 		LayerElementNormal->GetDirectArray().Add(FbxNormal);
 		
 		// update the index array of the UVs that map the texture to the face
-		UVDiffuseLayer->GetDirectArray().Add(KFbxVector2(Vertex.TexCoord.X, -Vertex.TexCoord.Y));
+		UVDiffuseLayer->GetDirectArray().Add(fbx::FbxVector2(Vertex.TexCoord.X, -Vertex.TexCoord.Y));
 	}
 	
 	Layer->SetNormals(LayerElementNormal);
 	Layer->SetUVs(UVDiffuseLayer);
 	
-	KFbxLayerElementMaterial* MatLayer = KFbxLayerElementMaterial::Create(Mesh, "");
-	MatLayer->SetMappingMode(KFbxLayerElement::eBY_POLYGON);
-	MatLayer->SetReferenceMode(KFbxLayerElement::eINDEX_TO_DIRECT);
+	fbx::FbxLayerElementMaterial* MatLayer = fbx::FbxLayerElementMaterial::Create(Mesh, "");
+	MatLayer->SetMappingMode(fbx::FbxLayerElement::eByPolygon);
+	MatLayer->SetReferenceMode(fbx::FbxLayerElement::eIndexToDirect);
 	Layer->SetMaterials(MatLayer);
 	
 	// Create the materials and the per-material tesselation structures.
@@ -529,7 +524,7 @@ void FbxExporter::ExportModel(UModel* Model, KFbxNode* Node, const char* Name)
 		
 		// Are NULL materials okay?
 		INT MaterialIndex = -1;
-		KFbxSurfaceMaterial* FbxMaterial;
+		fbx::FbxSurfaceMaterial* FbxMaterial;
 		if (MaterialInterface != NULL && MaterialInterface->GetMaterial(MSP_BASE) != NULL)
 		{
 			FbxMaterial = ExportMaterial(MaterialInterface->GetMaterial(MSP_BASE));
@@ -604,7 +599,7 @@ void FbxExporter::ExportStaticMesh( AActor* Actor, UStaticMeshComponent* StaticM
 		ColorBuffer = StaticMeshComponent->LODData(LODIndex).OverrideVertexColors;
 	}
 
-	KFbxNode* FbxActor = ExportActor( Actor, MatineeSequence );
+	fbx::FbxNode* FbxActor = ExportActor( Actor, MatineeSequence );
 	ExportStaticMeshToFbx(RenderMesh, *FbxNodeName, FbxActor, -1, ColorBuffer);
 }
 
@@ -615,7 +610,7 @@ void FbxExporter::ExportStaticMesh( UStaticMesh* StaticMesh )
 	FString MeshName;
 	StaticMesh->GetName(MeshName);
 	FStaticMeshRenderData& RenderMesh = StaticMesh->LODModels(0);
-	KFbxNode* MeshNode = KFbxNode::Create(FbxScene, TCHAR_TO_ANSI(*MeshName));
+	fbx::FbxNode* MeshNode = fbx::FbxNode::Create(FbxScene, TCHAR_TO_ANSI(*MeshName));
 	FbxScene->GetRootNode()->AddChild(MeshNode);
 	ExportStaticMeshToFbx(RenderMesh, *MeshName, MeshNode);
 }
@@ -627,25 +622,25 @@ void FbxExporter::ExportStaticMeshLightMap( UStaticMesh* StaticMesh, INT LODInde
 	FString MeshName;
 	StaticMesh->GetName(MeshName);
 	FStaticMeshRenderData& RenderMesh = StaticMesh->LODModels(LODIndex);
-	KFbxNode* MeshNode = KFbxNode::Create(FbxScene, TCHAR_TO_ANSI(*MeshName));
+	fbx::FbxNode* MeshNode = fbx::FbxNode::Create(FbxScene, TCHAR_TO_ANSI(*MeshName));
 	FbxScene->GetRootNode()->AddChild(MeshNode);
 	ExportStaticMeshToFbx(RenderMesh, *MeshName, MeshNode, UVChannel);
 }
 
-KFbxSurfaceMaterial* FbxExporter::CreateDefaultMaterial()
+fbx::FbxSurfaceMaterial* FbxExporter::CreateDefaultMaterial()
 {
-	KFbxSurfaceMaterial* FbxMaterial = FbxScene->GetMaterial("Fbx Default Material");
+	fbx::FbxSurfaceMaterial* FbxMaterial = FbxScene->GetMaterial("Fbx Default Material");
 	
 	if (!FbxMaterial)
 	{
-		FbxMaterial = KFbxSurfaceLambert::Create(FbxScene, "Fbx Default Material");
-		((KFbxSurfaceLambert*)FbxMaterial)->GetDiffuseColor().Set(fbxDouble3(0.72, 0.72, 0.72));
+		FbxMaterial = fbx::FbxSurfaceLambert::Create(FbxScene, "Fbx Default Material");
+		((fbx::FbxSurfaceLambert*)FbxMaterial)->Diffuse.Set(fbx::FbxDouble3(0.72, 0.72, 0.72));
 	}
 	
 	return FbxMaterial;
 }
 
-fbxDouble3 SetMaterialComponent(FColorMaterialInput& MatInput)
+fbx::FbxDouble3 SetMaterialComponent(FColorMaterialInput& MatInput)
 {
 	FColor FinalColor;
 	
@@ -697,13 +692,13 @@ fbxDouble3 SetMaterialComponent(FColorMaterialInput& MatInput)
 		FinalColor.B = MatInput.Constant.B / 128.0;
 	}
 	
-	return fbxDouble3(FinalColor.R, FinalColor.G, FinalColor.B);
+	return fbx::FbxDouble3(FinalColor.R, FinalColor.G, FinalColor.B);
 }
 
 /**
 * Exports the profile_COMMON information for a UE3 material.
 */
-KFbxSurfaceMaterial* FbxExporter::ExportMaterial(UMaterial* Material)
+fbx::FbxSurfaceMaterial* FbxExporter::ExportMaterial(UMaterial* Material)
 {
 	if (FbxScene == NULL || Material == NULL) return NULL;
 	
@@ -714,27 +709,27 @@ KFbxSurfaceMaterial* FbxExporter::ExportMaterial(UMaterial* Material)
 	}
 
 	// Create the Fbx material
-	KFbxSurfaceMaterial* FbxMaterial = NULL;
+	fbx::FbxSurfaceMaterial* FbxMaterial = NULL;
 	
 	// Set the lighting model
 	if (Material->LightingModel == MLM_Phong || Material->LightingModel == MLM_Custom || Material->LightingModel == MLM_SHPRT)
 	{
-		FbxMaterial = KFbxSurfacePhong::Create(FbxScene, TCHAR_TO_ANSI(*Material->GetName()));
-		((KFbxSurfacePhong*)FbxMaterial)->GetSpecularColor().Set(SetMaterialComponent(Material->SpecularColor));
-		((KFbxSurfacePhong*)FbxMaterial)->GetShininess().Set(Material->SpecularPower.Constant);
+		FbxMaterial = fbx::FbxSurfacePhong::Create(FbxScene, TCHAR_TO_ANSI(*Material->GetName()));
+		((fbx::FbxSurfacePhong*)FbxMaterial)->Specular.Set(SetMaterialComponent(Material->SpecularColor));
+		((fbx::FbxSurfacePhong*)FbxMaterial)->Shininess.Set(Material->SpecularPower.Constant);
 	}
 	else if (Material->LightingModel == MLM_NonDirectional)
 	{
-		FbxMaterial = KFbxSurfaceLambert::Create(FbxScene, TCHAR_TO_ANSI(*Material->GetName()));
+		FbxMaterial = fbx::FbxSurfaceLambert::Create(FbxScene, TCHAR_TO_ANSI(*Material->GetName()));
 	}
 	else // if (Material->LightingModel == MLM_Unlit)
 	{
-		FbxMaterial = KFbxSurfaceLambert::Create(FbxScene, TCHAR_TO_ANSI(*Material->GetName()));
+		FbxMaterial = fbx::FbxSurfaceLambert::Create(FbxScene, TCHAR_TO_ANSI(*Material->GetName()));
 	}
 	
-	((KFbxSurfaceLambert*)FbxMaterial)->GetEmissiveColor().Set(SetMaterialComponent(Material->EmissiveColor));
-	((KFbxSurfaceLambert*)FbxMaterial)->GetDiffuseColor().Set(SetMaterialComponent(Material->DiffuseColor));
-	((KFbxSurfaceLambert*)FbxMaterial)->GetTransparencyFactor().Set(Material->Opacity.Constant);
+	((fbx::FbxSurfaceLambert*)FbxMaterial)->Emissive.Set(SetMaterialComponent(Material->EmissiveColor));
+	((fbx::FbxSurfaceLambert*)FbxMaterial)->Diffuse.Set(SetMaterialComponent(Material->DiffuseColor));
+	((fbx::FbxSurfaceLambert*)FbxMaterial)->TransparencyFactor.Set(Material->Opacity.Constant);
 
 	// Fill in the profile_COMMON effect with the UE3 material information.
 	// TODO: Look for textures/constants in the Material expressions...
@@ -773,7 +768,7 @@ void FbxExporter::ExportMatinee(USeqAct_Interp* MatineeSequence)
 			ExportCamera( (ACameraActor*) Actor, MatineeSequence );
 		}
 
-		KFbxNode* FbxActor = ExportActor( Actor, MatineeSequence );
+		fbx::FbxNode* FbxActor = ExportActor( Actor, MatineeSequence );
 
 		// Look for the tracks that we currently support
 		INT TrackCount = Min(Group->TrackInst.Num(), Group->Group->InterpTracks.Num());
@@ -809,11 +804,11 @@ void FbxExporter::ExportMatinee(USeqAct_Interp* MatineeSequence)
  * Exports a scene node with the placement indicated by a given UE3 actor.
  * This scene node will always have two transformations: one translation vector and one Euler rotation.
  */
-KFbxNode* FbxExporter::ExportActor(AActor* Actor, USeqAct_Interp* MatineeSequence )
+fbx::FbxNode* FbxExporter::ExportActor(AActor* Actor, USeqAct_Interp* MatineeSequence )
 {
 	// Verify that this actor isn't already exported, create a structure for it
 	// and buffer it.
-	KFbxNode* ActorNode = FindActor(Actor);
+	fbx::FbxNode* ActorNode = FindActor(Actor);
 	if (ActorNode == NULL)
 	{
 		FString FbxNodeName = GetActorNodeName(Actor, MatineeSequence);
@@ -832,7 +827,7 @@ KFbxNode* FbxExporter::ExportActor(AActor* Actor, USeqAct_Interp* MatineeSequenc
 			FbxNodeNameToIndexMap.Set( FbxNodeName, 1 );	
 		}
 
-		ActorNode = KFbxNode::Create(FbxScene, TCHAR_TO_ANSI(*FbxNodeName));
+		ActorNode = fbx::FbxNode::Create(FbxScene, TCHAR_TO_ANSI(*FbxNodeName));
 		FbxScene->GetRootNode()->AddChild(ActorNode);
 
 		FbxActors.Set(Actor, ActorNode);
@@ -853,16 +848,16 @@ KFbxNode* FbxExporter::ExportActor(AActor* Actor, USeqAct_Interp* MatineeSequenc
 				FbxPivotNodeName += ANSI_TO_TCHAR("_pivot");
 			}
 
-			KFbxNode* PivotNode = KFbxNode::Create(FbxScene, TCHAR_TO_ANSI(*FbxPivotNodeName));
-			PivotNode->LclRotation.Set(KFbxVector4(90, 0, -90));
+			fbx::FbxNode* PivotNode = fbx::FbxNode::Create(FbxScene, TCHAR_TO_ANSI(*FbxPivotNodeName));
+			PivotNode->LclRotation.Set(fbx::FbxVector4(90, 0, -90));
 
 			if (Actor->IsA(ACameraActor::StaticClass()))
 			{
-				PivotNode->SetPostRotation(KFbxNode::eSOURCE_SET, KFbxVector4(0, -90, 0));
+				PivotNode->SetPostRotation(fbx::FbxNode::eSourcePivot, fbx::FbxVector4(0, -90, 0));
 			}
 			else if (Actor->IsA(ALight::StaticClass()))
 			{
-				PivotNode->SetPostRotation(KFbxNode::eSOURCE_SET, KFbxVector4(-90, 0, 0));
+				PivotNode->SetPostRotation(fbx::FbxNode::eSourcePivot, fbx::FbxVector4(-90, 0, 0));
 			}
 			ActorNode->AddChild(PivotNode);
 
@@ -876,7 +871,7 @@ KFbxNode* FbxExporter::ExportActor(AActor* Actor, USeqAct_Interp* MatineeSequenc
 /**
  * Exports the Matinee movement track into the FBX animation library.
  */
-void FbxExporter::ExportMatineeTrackMove(KFbxNode* FbxActor, UInterpTrackInstMove* MoveTrackInst, UInterpTrackMove* MoveTrack, FLOAT InterpLength)
+void FbxExporter::ExportMatineeTrackMove(fbx::FbxNode* FbxActor, UInterpTrackInstMove* MoveTrackInst, UInterpTrackMove* MoveTrack, FLOAT InterpLength)
 {
 	if (FbxActor == NULL || MoveTrack == NULL) return;
 	
@@ -885,52 +880,52 @@ void FbxExporter::ExportMatineeTrackMove(KFbxNode* FbxActor, UInterpTrackInstMov
 
 	if (MoveTrack != NULL)
 	{
-		KFbxAnimLayer* BaseLayer = (KFbxAnimLayer*)AnimStack->GetMember(FBX_TYPE(KFbxAnimLayer), 0);
-		KFbxAnimCurve* Curve;
+		fbx::FbxAnimLayer* BaseLayer = (fbx::FbxAnimLayer*)AnimStack->GetMember<fbx::FbxAnimLayer>(0);
+		fbx::FbxAnimCurve* Curve;
 
 		UBOOL bPosCurve = TRUE;
 		if( MoveTrack->SubTracks.Num() == 0 )
 		{
 			// Translation;
 			FbxActor->LclTranslation.GetCurveNode(BaseLayer, true);
-			Curve = FbxActor->LclTranslation.GetCurve<KFbxAnimCurve>(BaseLayer, KFCURVENODE_T_X, true);
+			Curve = FbxActor->LclTranslation.GetCurve(BaseLayer, FBXSDK_CURVENODE_COMPONENT_X, true);
 			ExportAnimatedVector(Curve, "X", MoveTrack, MoveTrackInst, bPosCurve, 0, FALSE, InterpLength);
-			Curve = FbxActor->LclTranslation.GetCurve<KFbxAnimCurve>(BaseLayer, KFCURVENODE_T_Y, true);
+			Curve = FbxActor->LclTranslation.GetCurve(BaseLayer, FBXSDK_CURVENODE_COMPONENT_Y, true);
 			ExportAnimatedVector(Curve, "Y", MoveTrack, MoveTrackInst, bPosCurve, 1, TRUE, InterpLength);
-			Curve = FbxActor->LclTranslation.GetCurve<KFbxAnimCurve>(BaseLayer, KFCURVENODE_T_Z, true);
+			Curve = FbxActor->LclTranslation.GetCurve(BaseLayer, FBXSDK_CURVENODE_COMPONENT_Z, true);
 			ExportAnimatedVector(Curve, "Z", MoveTrack, MoveTrackInst, bPosCurve, 2, FALSE, InterpLength);
 
 			// Rotation
 			FbxActor->LclRotation.GetCurveNode(BaseLayer, true);
 			bPosCurve = FALSE;
 
-			Curve = FbxActor->LclRotation.GetCurve<KFbxAnimCurve>(BaseLayer, KFCURVENODE_R_X, true);
+			Curve = FbxActor->LclRotation.GetCurve(BaseLayer, FBXSDK_CURVENODE_COMPONENT_X, true);
 			ExportAnimatedVector(Curve, "X", MoveTrack, MoveTrackInst, bPosCurve, 0, FALSE, InterpLength);
-			Curve = FbxActor->LclRotation.GetCurve<KFbxAnimCurve>(BaseLayer, KFCURVENODE_R_Y, true);
+			Curve = FbxActor->LclRotation.GetCurve(BaseLayer, FBXSDK_CURVENODE_COMPONENT_Y, true);
 			ExportAnimatedVector(Curve, "Y", MoveTrack, MoveTrackInst, bPosCurve, 1, TRUE, InterpLength);
-			Curve = FbxActor->LclRotation.GetCurve<KFbxAnimCurve>(BaseLayer, KFCURVENODE_R_Z, true);
+			Curve = FbxActor->LclRotation.GetCurve(BaseLayer, FBXSDK_CURVENODE_COMPONENT_Z, true);
 			ExportAnimatedVector(Curve, "Z", MoveTrack, MoveTrackInst, bPosCurve, 2, TRUE, InterpLength);
 		}
 		else
 		{
 			// Translation;
 			FbxActor->LclTranslation.GetCurveNode(BaseLayer, true);
-			Curve = FbxActor->LclTranslation.GetCurve<KFbxAnimCurve>(BaseLayer, KFCURVENODE_T_X, true);
+			Curve = FbxActor->LclTranslation.GetCurve(BaseLayer, FBXSDK_CURVENODE_COMPONENT_X, true);
 			ExportMoveSubTrack(Curve, "X", CastChecked<UInterpTrackMoveAxis>(MoveTrack->SubTracks(0)), MoveTrackInst, bPosCurve, 0, FALSE, InterpLength);
-			Curve = FbxActor->LclTranslation.GetCurve<KFbxAnimCurve>(BaseLayer, KFCURVENODE_T_Y, true);
+			Curve = FbxActor->LclTranslation.GetCurve(BaseLayer, FBXSDK_CURVENODE_COMPONENT_Y, true);
 			ExportMoveSubTrack(Curve, "Y", CastChecked<UInterpTrackMoveAxis>(MoveTrack->SubTracks(1)), MoveTrackInst, bPosCurve, 1, TRUE, InterpLength);
-			Curve = FbxActor->LclTranslation.GetCurve<KFbxAnimCurve>(BaseLayer, KFCURVENODE_T_Z, true);
+			Curve = FbxActor->LclTranslation.GetCurve(BaseLayer, FBXSDK_CURVENODE_COMPONENT_Z, true);
 			ExportMoveSubTrack(Curve, "Z", CastChecked<UInterpTrackMoveAxis>(MoveTrack->SubTracks(2)), MoveTrackInst, bPosCurve, 2, FALSE, InterpLength);
 
 			// Rotation
 			FbxActor->LclRotation.GetCurveNode(BaseLayer, true);
 			bPosCurve = FALSE;
 
-			Curve = FbxActor->LclRotation.GetCurve<KFbxAnimCurve>(BaseLayer, KFCURVENODE_R_X, true);
+			Curve = FbxActor->LclRotation.GetCurve(BaseLayer, FBXSDK_CURVENODE_COMPONENT_X, true);
 			ExportMoveSubTrack(Curve, "X", CastChecked<UInterpTrackMoveAxis>(MoveTrack->SubTracks(3)), MoveTrackInst, bPosCurve, 0, FALSE, InterpLength);
-			Curve = FbxActor->LclRotation.GetCurve<KFbxAnimCurve>(BaseLayer, KFCURVENODE_R_Y, true);
+			Curve = FbxActor->LclRotation.GetCurve(BaseLayer, FBXSDK_CURVENODE_COMPONENT_Y, true);
 			ExportMoveSubTrack(Curve, "Y", CastChecked<UInterpTrackMoveAxis>(MoveTrack->SubTracks(4)), MoveTrackInst, bPosCurve, 1, TRUE, InterpLength);
-			Curve = FbxActor->LclRotation.GetCurve<KFbxAnimCurve>(BaseLayer, KFCURVENODE_R_Z, true);
+			Curve = FbxActor->LclRotation.GetCurve(BaseLayer, FBXSDK_CURVENODE_COMPONENT_Z, true);
 			ExportMoveSubTrack(Curve, "Z", CastChecked<UInterpTrackMoveAxis>(MoveTrack->SubTracks(5)), MoveTrackInst, bPosCurve, 2, TRUE, InterpLength);
 		}
 	}
@@ -939,20 +934,20 @@ void FbxExporter::ExportMatineeTrackMove(KFbxNode* FbxActor, UInterpTrackInstMov
 /**
  * Exports the Matinee float property track into the FBX animation library.
  */
-void FbxExporter::ExportMatineeTrackFloatProp(KFbxNode* FbxActor, UInterpTrackFloatProp* PropTrack)
+void FbxExporter::ExportMatineeTrackFloatProp(fbx::FbxNode* FbxActor, UInterpTrackFloatProp* PropTrack)
 {
 	if (FbxActor == NULL || PropTrack == NULL) return;
 	
-	KFbxNodeAttribute* FbxNodeAttr = NULL;
+	fbx::FbxNodeAttribute* FbxNodeAttr = NULL;
 	// camera and light is appended on the fbx pivot node
 	if( FbxActor->GetChild(0) )
 	{
-		FbxNodeAttr = ((KFbxNode*)FbxActor->GetChild(0))->GetNodeAttribute();
+		FbxNodeAttr = ((fbx::FbxNode*)FbxActor->GetChild(0))->GetNodeAttribute();
 
 		if (FbxNodeAttr == NULL) return;
 	}
 	
-	KFbxProperty FbxProperty;
+	fbx::FbxProperty FbxProperty;
 	FString PropertyName = PropTrack->PropertyName.GetNameString();
 	UBOOL IsFoV = FALSE;
 	// most properties are created as user property, only FOV of camera in FBX supports animation
@@ -970,7 +965,7 @@ void FbxExporter::ExportMatineeTrackFloatProp(KFbxNode* FbxActor, UInterpTrackFl
 	}
 	else if (PropertyName == "FOVAngle" && FbxNodeAttr )
 	{
-		FbxProperty = ((KFbxCamera*)FbxNodeAttr)->FocalLength;
+		FbxProperty = ((fbx::FbxCamera*)FbxNodeAttr)->FocalLength;
 		IsFoV = TRUE;
 	}
 	else if (PropertyName == "AspectRatio")
@@ -1000,37 +995,37 @@ void FbxExporter::ExportMatineeTrackFloatProp(KFbxNode* FbxActor, UInterpTrackFl
 	}
 }
 
-void ConvertInterpToFBX(BYTE UnrealInterpMode, KFbxAnimCurveDef::EInterpolationType& Interpolation, KFbxAnimCurveDef::ETangentMode& Tangent)
+void ConvertInterpToFBX(BYTE UnrealInterpMode, fbx::FbxAnimCurveDef::EInterpolationType& Interpolation, fbx::FbxAnimCurveDef::ETangentMode& Tangent)
 {
 	switch(UnrealInterpMode)
 	{
 	case CIM_Linear:
-		Interpolation = KFbxAnimCurveDef::eINTERPOLATION_LINEAR;
-		Tangent = KFbxAnimCurveDef::eTANGENT_USER;
+		Interpolation = fbx::FbxAnimCurveDef::eInterpolationLinear;
+		Tangent = fbx::FbxAnimCurveDef::eTangentUser;
 		break;
 	case CIM_CurveAuto:
-		Interpolation = KFbxAnimCurveDef::eINTERPOLATION_CUBIC;
-		Tangent = KFbxAnimCurveDef::eTANGENT_AUTO;
+		Interpolation = fbx::FbxAnimCurveDef::eInterpolationCubic;
+		Tangent = fbx::FbxAnimCurveDef::eTangentAuto;
 		break;
 	case CIM_Constant:
-		Interpolation = KFbxAnimCurveDef::eINTERPOLATION_CONSTANT;
-		Tangent = (KFbxAnimCurveDef::ETangentMode)KFbxAnimCurveDef::eCONSTANT_STANDARD;
+		Interpolation = fbx::FbxAnimCurveDef::eInterpolationConstant;
+		Tangent = (fbx::FbxAnimCurveDef::ETangentMode)fbx::FbxAnimCurveDef::eConstantStandard;
 		break;
 	case CIM_CurveUser:
-		Interpolation = KFbxAnimCurveDef::eINTERPOLATION_CUBIC;
-		Tangent = KFbxAnimCurveDef::eTANGENT_USER;
+		Interpolation = fbx::FbxAnimCurveDef::eInterpolationCubic;
+		Tangent = fbx::FbxAnimCurveDef::eTangentUser;
 		break;
 	case CIM_CurveBreak:
-		Interpolation = KFbxAnimCurveDef::eINTERPOLATION_CUBIC;
-		Tangent = (KFbxAnimCurveDef::ETangentMode) KFbxAnimCurveDef::eTANGENT_BREAK;
+		Interpolation = fbx::FbxAnimCurveDef::eInterpolationCubic;
+		Tangent = (fbx::FbxAnimCurveDef::ETangentMode) fbx::FbxAnimCurveDef::eTangentBreak;
 		break;
 	case CIM_CurveAutoClamped:
-		Interpolation = KFbxAnimCurveDef::eINTERPOLATION_CUBIC;
-		Tangent = (KFbxAnimCurveDef::ETangentMode) (KFbxAnimCurveDef::eTANGENT_AUTO | KFbxAnimCurveDef::eTANGENT_GENERIC_CLAMP);
+		Interpolation = fbx::FbxAnimCurveDef::eInterpolationCubic;
+		Tangent = (fbx::FbxAnimCurveDef::ETangentMode) (fbx::FbxAnimCurveDef::eTangentAuto | fbx::FbxAnimCurveDef::eTangentGenericClamp);
 		break;
 	case CIM_Unknown:  // ???
-		KFbxAnimCurveDef::EInterpolationType Interpolation = KFbxAnimCurveDef::eINTERPOLATION_CONSTANT;
-		KFbxAnimCurveDef::ETangentMode Tangent = KFbxAnimCurveDef::eTANGENT_AUTO;
+		fbx::FbxAnimCurveDef::EInterpolationType Interpolation = fbx::FbxAnimCurveDef::eInterpolationConstant;
+		fbx::FbxAnimCurveDef::ETangentMode Tangent = fbx::FbxAnimCurveDef::eTangentAuto;
 		break;
 	}
 }
@@ -1049,7 +1044,7 @@ const FLOAT FbxExporter::BakeTransformsFPS = 30;
 /**
  * Exports a given interpolation curve into the FBX animation curve.
  */
-void FbxExporter::ExportAnimatedVector(KFbxAnimCurve* FbxCurve, const char* ChannelName, UInterpTrackMove* MoveTrack, UInterpTrackInstMove* MoveTrackInst, UBOOL bPosCurve, INT CurveIndex, UBOOL bNegative, FLOAT InterpLength)
+void FbxExporter::ExportAnimatedVector(fbx::FbxAnimCurve* FbxCurve, const char* ChannelName, UInterpTrackMove* MoveTrack, UInterpTrackInstMove* MoveTrackInst, UBOOL bPosCurve, INT CurveIndex, UBOOL bNegative, FLOAT InterpLength)
 {
 	if (FbxScene == NULL) return;
 	
@@ -1125,21 +1120,21 @@ void FbxExporter::ExportAnimatedVector(KFbxAnimCurve* FbxCurve, const char* Chan
 		FLOAT FbxKeyValue = bNegative ? -OutValue : OutValue;
 		
 		// Add a new key to the FBX curve
-		KTime Time;
-		KFbxAnimCurveKey FbxKey;
+		fbx::FbxTime Time;
+		fbx::FbxAnimCurveKey FbxKey;
 		Time.SetSecondDouble((float)KeyTime);
 		int FbxKeyIndex = FbxCurve->KeyAdd(Time);
 		
 
-		KFbxAnimCurveDef::EInterpolationType Interpolation = KFbxAnimCurveDef::eINTERPOLATION_CONSTANT;
-		KFbxAnimCurveDef::ETangentMode Tangent = KFbxAnimCurveDef::eTANGENT_AUTO;
+		fbx::FbxAnimCurveDef::EInterpolationType Interpolation = fbx::FbxAnimCurveDef::eInterpolationConstant;
+		fbx::FbxAnimCurveDef::ETangentMode Tangent = fbx::FbxAnimCurveDef::eTangentAuto;
 		
 		if( !bBakeKeys )
 		{
 			ConvertInterpToFBX(Curve->Points(KeyIndex).InterpMode, Interpolation, Tangent);
 		}
 
-		if (bBakeKeys || Interpolation != KFbxAnimCurveDef::eINTERPOLATION_CUBIC)
+		if (bBakeKeys || Interpolation != fbx::FbxAnimCurveDef::eInterpolationCubic)
 		{
 			FbxCurve->KeySet(FbxKeyIndex, Time, (float)FbxKeyValue, Interpolation, Tangent);
 		}
@@ -1149,7 +1144,7 @@ void FbxExporter::ExportAnimatedVector(KFbxAnimCurve* FbxCurve, const char* Chan
 
 			// Setup tangents for bezier curves. Avoid this for keys created from baking 
 			// transforms since there is no tangent info created for these types of keys. 
-			if( (Interpolation == KFbxAnimCurveDef::eINTERPOLATION_CUBIC) )
+			if( (Interpolation == fbx::FbxAnimCurveDef::eInterpolationCubic) )
 			{
 				FLOAT OutTangentValue = (CurveIndex == 0) ? Key.LeaveTangent.X : (CurveIndex == 1) ? Key.LeaveTangent.Y : Key.LeaveTangent.Z;
 				FLOAT OutTangentX = (KeyIndex < KeyCount - 1) ? (KeyTimes(KeyIndex + 1) - KeyTime) / 3.0f : 0.333f;
@@ -1179,7 +1174,7 @@ void FbxExporter::ExportAnimatedVector(KFbxAnimCurve* FbxCurve, const char* Chan
 	FbxCurve->KeyModifyEnd();
 }
 
-void FbxExporter::ExportMoveSubTrack(KFbxAnimCurve* FbxCurve, const ANSICHAR* ChannelName, UInterpTrackMoveAxis* SubTrack, UInterpTrackInstMove* MoveTrackInst, UBOOL bPosCurve, INT CurveIndex, UBOOL bNegative, FLOAT InterpLength)
+void FbxExporter::ExportMoveSubTrack(fbx::FbxAnimCurve* FbxCurve, const ANSICHAR* ChannelName, UInterpTrackMoveAxis* SubTrack, UInterpTrackInstMove* MoveTrackInst, UBOOL bPosCurve, INT CurveIndex, UBOOL bNegative, FLOAT InterpLength)
 {
 	if (FbxScene == NULL || FbxCurve == NULL) return;
 
@@ -1248,16 +1243,16 @@ void FbxExporter::ExportMoveSubTrack(KFbxAnimCurve* FbxCurve, const ANSICHAR* Ch
 		FInterpCurvePoint<FLOAT>& Key = Curve->Points(KeyIndex);
 
 		// Add a new key to the FBX curve
-		KTime Time;
-		KFbxAnimCurveKey FbxKey;
+		fbx::FbxTime Time;
+		fbx::FbxAnimCurveKey FbxKey;
 		Time.SetSecondDouble((float)KeyTime);
 		int FbxKeyIndex = FbxCurve->KeyAdd(Time);
 
-		KFbxAnimCurveDef::EInterpolationType Interpolation = KFbxAnimCurveDef::eINTERPOLATION_CONSTANT;
-		KFbxAnimCurveDef::ETangentMode Tangent = KFbxAnimCurveDef::eTANGENT_AUTO;
+		fbx::FbxAnimCurveDef::EInterpolationType Interpolation = fbx::FbxAnimCurveDef::eInterpolationConstant;
+		fbx::FbxAnimCurveDef::ETangentMode Tangent = fbx::FbxAnimCurveDef::eTangentAuto;
 		ConvertInterpToFBX(Key.InterpMode, Interpolation, Tangent);
 
-		if (bBakeKeys || Interpolation != KFbxAnimCurveDef::eINTERPOLATION_CUBIC)
+		if (bBakeKeys || Interpolation != fbx::FbxAnimCurveDef::eInterpolationCubic)
 		{
 			FbxCurve->KeySet(FbxKeyIndex, Time, (float)FbxKeyValue, Interpolation, Tangent);
 		}
@@ -1265,7 +1260,7 @@ void FbxExporter::ExportMoveSubTrack(KFbxAnimCurve* FbxCurve, const ANSICHAR* Ch
 		{
 			// Setup tangents for bezier curves. Avoid this for keys created from baking 
 			// transforms since there is no tangent info created for these types of keys. 
-			if( (Interpolation == KFbxAnimCurveDef::eINTERPOLATION_CUBIC) )
+			if( (Interpolation == fbx::FbxAnimCurveDef::eInterpolationCubic) )
 			{
 				FLOAT OutTangentValue = Key.LeaveTangent;
 				FLOAT OutTangentX = (KeyIndex < KeyCount - 1) ? (KeyTimes(KeyIndex + 1) - KeyTime) / 3.0f : 0.333f;
@@ -1295,15 +1290,15 @@ void FbxExporter::ExportMoveSubTrack(KFbxAnimCurve* FbxCurve, const ANSICHAR* Ch
 	FbxCurve->KeyModifyEnd();
 }
 
-void FbxExporter::ExportAnimatedFloat(KFbxProperty* FbxProperty, FInterpCurveFloat* Curve, UBOOL IsCameraFoV)
+void FbxExporter::ExportAnimatedFloat(fbx::FbxProperty* FbxProperty, FInterpCurveFloat* Curve, UBOOL IsCameraFoV)
 {
 	if (FbxProperty == NULL || Curve == NULL) return;
 
 	// do not export an empty anim curve
 	if (Curve->Points.Num() == 0) return;
 
-	KFbxAnimCurveKFCurve* FbxCurve = KFbxAnimCurveKFCurve::Create(FbxScene, "");
-	KFbxAnimCurveNode* CurveNode = FbxProperty->GetCurveNode(true);
+	fbx::FbxAnimCurve* FbxCurve = fbx::FbxAnimCurve::Create(FbxScene, "");
+	fbx::FbxAnimCurveNode* CurveNode = FbxProperty->GetCurveNode(true);
 	if (!CurveNode)
 	{
 		return;
@@ -1336,17 +1331,17 @@ void FbxExporter::ExportAnimatedFloat(KFbxProperty* FbxProperty, FInterpCurveFlo
 		FLOAT KeyTime = KeyTimes(KeyIndex);
 		
 		// Add a new key to the FBX curve
-		KTime Time;
-		KFbxAnimCurveKey FbxKey;
+		fbx::FbxTime Time;
+		fbx::FbxAnimCurveKey FbxKey;
 		Time.SetSecondDouble((float)KeyTime);
 		int FbxKeyIndex = FbxCurve->KeyAdd(Time);
 		float OutVal = (IsCameraFoV && FbxCamera)? FbxCamera->ComputeFocalLength(Key.OutVal): (float)Key.OutVal;
 
-		KFbxAnimCurveDef::EInterpolationType Interpolation = KFbxAnimCurveDef::eINTERPOLATION_CONSTANT;
-		KFbxAnimCurveDef::ETangentMode Tangent = KFbxAnimCurveDef::eTANGENT_AUTO;
+		fbx::FbxAnimCurveDef::EInterpolationType Interpolation = fbx::FbxAnimCurveDef::eInterpolationConstant;
+		fbx::FbxAnimCurveDef::ETangentMode Tangent = fbx::FbxAnimCurveDef::eTangentAuto;
 		ConvertInterpToFBX(Key.InterpMode, Interpolation, Tangent);
 		
-		if (Interpolation != KFbxAnimCurveDef::eINTERPOLATION_CUBIC)
+		if (Interpolation != fbx::FbxAnimCurveDef::eInterpolationCubic)
 		{
 			FbxCurve->KeySet(FbxKeyIndex, Time, OutVal, Interpolation, Tangent);
 		}
@@ -1378,7 +1373,7 @@ void FbxExporter::ExportAnimatedFloat(KFbxProperty* FbxProperty, FInterpCurveFlo
 /**
  * Finds the given UE3 actor in the already-exported list of structures
  */
-KFbxNode* FbxExporter::FindActor(AActor* Actor)
+fbx::FbxNode* FbxExporter::FindActor(AActor* Actor)
 {
 	if (FbxActors.Find(Actor))
 	{
@@ -1393,28 +1388,28 @@ KFbxNode* FbxExporter::FindActor(AActor* Actor)
 /*
  * Exports the given static rendering mesh into a FBX geometry.
  */
-KFbxNode* FbxExporter::ExportStaticMeshToFbx(FStaticMeshRenderData& RenderMesh, const TCHAR* MeshName, KFbxNode* FbxActor, INT LightmapUVChannel, FColorVertexBuffer* ColorBuffer)
+fbx::FbxNode* FbxExporter::ExportStaticMeshToFbx(FStaticMeshRenderData& RenderMesh, const TCHAR* MeshName, fbx::FbxNode* FbxActor, INT LightmapUVChannel, FColorVertexBuffer* ColorBuffer)
 {
 	// Verify the integrity of the static mesh.
 	if (RenderMesh.VertexBuffer.GetNumVertices() == 0) return NULL;
 	if (RenderMesh.Elements.Num() == 0) return NULL;
 
-	KFbxMesh* Mesh = KFbxMesh::Create(FbxScene, TCHAR_TO_ANSI(MeshName));
+	fbx::FbxMesh* Mesh = fbx::FbxMesh::Create(FbxScene, TCHAR_TO_ANSI(MeshName));
 
 	// Create and fill in the vertex position data source.
 	// The position vertices are duplicated, for some reason, retrieve only the first half vertices.
 	const INT VertexCount = RenderMesh.VertexBuffer.GetNumVertices();
 	
 	Mesh->InitControlPoints(VertexCount); //TmpControlPoints.Num());
-	KFbxVector4* ControlPoints = Mesh->GetControlPoints();
+	fbx::FbxVector4* ControlPoints = Mesh->GetControlPoints();
 	for (INT PosIndex = 0; PosIndex < VertexCount; ++PosIndex)
 	{
 		FVector Position = RenderMesh.PositionVertexBuffer.VertexPosition(PosIndex); //TmpControlPoints(PosIndex);
-		ControlPoints[PosIndex] = KFbxVector4(Position.X, -Position.Y, Position.Z);
+		ControlPoints[PosIndex] = fbx::FbxVector4(Position.X, -Position.Y, Position.Z);
 	}
 	
 	// Set the normals on Layer 0.
-	KFbxLayer* Layer = Mesh->GetLayer(0);
+	fbx::FbxLayer* Layer = Mesh->GetLayer(0);
 	if (Layer == NULL)
 	{
 		Mesh->CreateLayer();
@@ -1423,20 +1418,20 @@ KFbxNode* FbxExporter::ExportStaticMeshToFbx(FStaticMeshRenderData& RenderMesh, 
 
 	// Create and fill in the per-face-vertex normal data source.
 	// We extract the Z-tangent and drop the X/Y-tangents which are also stored in the render mesh.
-	KFbxLayerElementNormal* LayerElementNormal= KFbxLayerElementNormal::Create(Mesh, "");
+	fbx::FbxLayerElementNormal* LayerElementNormal= fbx::FbxLayerElementNormal::Create(Mesh, "");
 
-	LayerElementNormal->SetMappingMode(KFbxLayerElement::eBY_CONTROL_POINT);
+	LayerElementNormal->SetMappingMode(fbx::FbxLayerElement::eByControlPoint);
 	// Set the normal values for every control point.
-	LayerElementNormal->SetReferenceMode(KFbxLayerElement::eDIRECT);
+	LayerElementNormal->SetReferenceMode(fbx::FbxLayerElement::eDirect);
 	for (INT NormalIndex = 0; NormalIndex < VertexCount; ++NormalIndex)
 	{
 		FVector Normal = (FVector) (RenderMesh.VertexBuffer.VertexTangentZ(NormalIndex));
-		KFbxVector4 FbxNormal = KFbxVector4(Normal.X, -Normal.Y, Normal.Z);
-		KFbxXMatrix NodeMatrix;
-		KFbxVector4 Trans = FbxActor->LclTranslation.Get();
-		NodeMatrix.SetT(KFbxVector4(Trans[0], Trans[1], Trans[2]));
-		KFbxVector4 Rot = FbxActor->LclRotation.Get();
-		NodeMatrix.SetR(KFbxVector4(Rot[0], Rot[1], Rot[2]));
+		fbx::FbxVector4 FbxNormal = fbx::FbxVector4(Normal.X, -Normal.Y, Normal.Z);
+		fbx::FbxAMatrix NodeMatrix;
+		fbx::FbxVector4 Trans = FbxActor->LclTranslation.Get();
+		NodeMatrix.SetT(fbx::FbxVector4(Trans[0], Trans[1], Trans[2]));
+		fbx::FbxVector4 Rot = FbxActor->LclRotation.Get();
+		NodeMatrix.SetR(fbx::FbxVector4(Rot[0], Rot[1], Rot[2]));
 		NodeMatrix.SetS(FbxActor->LclScaling.Get());
 		FbxNormal = NodeMatrix.MultT(FbxNormal);
 		FbxNormal.Normalize();
@@ -1451,7 +1446,7 @@ KFbxNode* FbxExporter::ExportStaticMeshToFbx(FStaticMeshRenderData& RenderMesh, 
 	TCHAR UVChannelName[32];
 	for (; TexCoordSourceIndex < TexCoordSourceCount; ++TexCoordSourceIndex)
 	{
-		KFbxLayer* Layer = (LightmapUVChannel == -1)? Mesh->GetLayer(TexCoordSourceIndex): Mesh->GetLayer(0);
+		fbx::FbxLayer* Layer = (LightmapUVChannel == -1)? Mesh->GetLayer(TexCoordSourceIndex): Mesh->GetLayer(0);
 		if (Layer == NULL)
 		{
 			Mesh->CreateLayer();
@@ -1467,23 +1462,23 @@ KFbxNode* FbxExporter::ExportStaticMeshToFbx(FStaticMeshRenderData& RenderMesh, 
 			appSprintf(UVChannelName, TEXT("DiffuseUV"));
 		}			
 		
-		KFbxLayerElementUV* UVDiffuseLayer = KFbxLayerElementUV::Create(Mesh, TCHAR_TO_ANSI(UVChannelName));
-		UVDiffuseLayer->SetMappingMode(KFbxLayerElement::eBY_CONTROL_POINT);
-		UVDiffuseLayer->SetReferenceMode(KFbxLayerElement::eDIRECT);
+		fbx::FbxLayerElementUV* UVDiffuseLayer = fbx::FbxLayerElementUV::Create(Mesh, TCHAR_TO_ANSI(UVChannelName));
+		UVDiffuseLayer->SetMappingMode(fbx::FbxLayerElement::eByControlPoint);
+		UVDiffuseLayer->SetReferenceMode(fbx::FbxLayerElement::eDirect);
 		
 		// Create the texture coordinate data source.
 		for (INT TexCoordIndex = 0; TexCoordIndex < VertexCount; ++TexCoordIndex)
 		{
 			const FVector2D& TexCoord = RenderMesh.VertexBuffer.GetVertexUV(TexCoordIndex, TexCoordSourceIndex);
-			UVDiffuseLayer->GetDirectArray().Add(KFbxVector2(TexCoord.X, -TexCoord.Y + 1.0));
+			UVDiffuseLayer->GetDirectArray().Add(fbx::FbxVector2(TexCoord.X, -TexCoord.Y + 1.0));
 		}
 		
-		Layer->SetUVs(UVDiffuseLayer, KFbxLayerElement::eDIFFUSE_TEXTURES);
+		Layer->SetUVs(UVDiffuseLayer, fbx::FbxLayerElement::eTextureDiffuse);
 	}
 	
-	KFbxLayerElementMaterial* MatLayer = KFbxLayerElementMaterial::Create(Mesh, "");
-	MatLayer->SetMappingMode(KFbxLayerElement::eBY_POLYGON);
-	MatLayer->SetReferenceMode(KFbxLayerElement::eINDEX_TO_DIRECT);
+	fbx::FbxLayerElementMaterial* MatLayer = fbx::FbxLayerElementMaterial::Create(Mesh, "");
+	MatLayer->SetMappingMode(fbx::FbxLayerElement::eByPolygon);
+	MatLayer->SetReferenceMode(fbx::FbxLayerElement::eIndexToDirect);
 	Layer->SetMaterials(MatLayer);
 	
 	// Create the per-material polygons sets.
@@ -1492,7 +1487,7 @@ KFbxNode* FbxExporter::ExportStaticMeshToFbx(FStaticMeshRenderData& RenderMesh, 
 	{
 		FStaticMeshElement& Polygons = RenderMesh.Elements(PolygonsIndex);
 
-		KFbxSurfaceMaterial* FbxMaterial = Polygons.Material ? ExportMaterial(Polygons.Material->GetMaterial(MSP_BASE)) : NULL;
+		fbx::FbxSurfaceMaterial* FbxMaterial = Polygons.Material ? ExportMaterial(Polygons.Material->GetMaterial(MSP_BASE)) : NULL;
 		if (!FbxMaterial)
 		{
 			FbxMaterial = CreateDefaultMaterial();
@@ -1517,10 +1512,10 @@ KFbxNode* FbxExporter::ExportStaticMeshToFbx(FStaticMeshRenderData& RenderMesh, 
 	}
 
 	// Create and fill in the smoothing data source.
-	KFbxLayerElementSmoothing* SmoothingInfo = KFbxLayerElementSmoothing::Create(Mesh, "");
-	SmoothingInfo->SetMappingMode(KFbxLayerElement::eBY_POLYGON);
-	SmoothingInfo->SetReferenceMode(KFbxLayerElement::eDIRECT);
-	KFbxLayerElementArrayTemplate<int>& SmoothingArray = SmoothingInfo->GetDirectArray();
+	fbx::FbxLayerElementSmoothing* SmoothingInfo = fbx::FbxLayerElementSmoothing::Create(Mesh, "");
+	SmoothingInfo->SetMappingMode(fbx::FbxLayerElement::eByPolygon);
+	SmoothingInfo->SetReferenceMode(fbx::FbxLayerElement::eDirect);
+	fbx::FbxLayerElementArrayTemplate<int>& SmoothingArray = SmoothingInfo->GetDirectArray();
 	Layer->SetSmoothing(SmoothingInfo);
 
 	INT TriangleCount = RenderMesh.RawTriangles.GetElementCount();
@@ -1540,10 +1535,10 @@ KFbxNode* FbxExporter::ExportStaticMeshToFbx(FStaticMeshRenderData& RenderMesh, 
 	// Only export vertex colors if they exist
 	if (ColorVertexCount > 0)
 	{
-		KFbxLayerElementVertexColor* VertexColor = KFbxLayerElementVertexColor::Create(Mesh, "");
-		VertexColor->SetMappingMode(KFbxLayerElement::eBY_CONTROL_POINT);
-		VertexColor->SetReferenceMode(KFbxLayerElement::eDIRECT);
-		KFbxLayerElementArrayTemplate<KFbxColor>& VertexColorArray = VertexColor->GetDirectArray();
+		fbx::FbxLayerElementVertexColor* VertexColor = fbx::FbxLayerElementVertexColor::Create(Mesh, "");
+		VertexColor->SetMappingMode(fbx::FbxLayerElement::eByControlPoint);
+		VertexColor->SetReferenceMode(fbx::FbxLayerElement::eDirect);
+		fbx::FbxLayerElementArrayTemplate<fbx::FbxColor>& VertexColorArray = VertexColor->GetDirectArray();
 		Layer->SetVertexColors(VertexColor);
 
 		for (INT VertIndex = 0; VertIndex < VertexCount; ++VertIndex)
@@ -1555,7 +1550,7 @@ KFbxNode* FbxExporter::ExportStaticMeshToFbx(FStaticMeshRenderData& RenderMesh, 
 				VertColor = ColorBufferToUse->VertexColor(VertIndex).ReinterpretAsLinear();
 			}
 
-			VertexColorArray.Add( KFbxColor(VertColor.R, VertColor.G, VertColor.B, VertColor.A ));
+			VertexColorArray.Add( fbx::FbxColor(VertColor.R, VertColor.G, VertColor.B, VertColor.A ));
 		}
 	}
 

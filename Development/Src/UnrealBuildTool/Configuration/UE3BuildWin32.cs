@@ -220,32 +220,13 @@ namespace UnrealBuildTool
                 // Compile and link with FBX.
                 GlobalCPPEnvironment.Definitions.Add("WITH_FBX=1");
 
-                GlobalCPPEnvironment.SystemIncludePaths.Add("../External/FBX/2011.3.1/include");
-                GlobalCPPEnvironment.SystemIncludePaths.Add("../External/FBX/2011.3.1/include/fbxfilesdk");
+                GlobalCPPEnvironment.SystemIncludePaths.Add("../External/FBX/2014.2.1/include");
 
-                FinalLinkEnvironment.LibraryPaths.Add("../External/FBX/2011.3.1/lib");
-                if (Platform == UnrealTargetPlatform.Win64)
-                {
-                    if (Configuration == UnrealTargetConfiguration.Debug)
-                    {
-                        FinalLinkEnvironment.AdditionalLibraries.Add("fbxsdk_md2008_amd64d.lib");
-                    }
-                    else
-                    {
-                        FinalLinkEnvironment.AdditionalLibraries.Add("fbxsdk_md2008_amd64.lib");
-                    }
-                }
-                else
-                {
-                    if (Configuration == UnrealTargetConfiguration.Debug)
-                    {
-                        FinalLinkEnvironment.AdditionalLibraries.Add("fbxsdk_md2008d.lib");
-                    }
-                    else
-                    {
-                        FinalLinkEnvironment.AdditionalLibraries.Add("fbxsdk_md2008.lib");
-                    }
-                }
+                string FBXArch = (Platform == UnrealTargetPlatform.Win64) ? "x64" : "x86";
+                string FBXConfig = (Configuration == UnrealTargetConfiguration.Debug) ? "debug" : "release";
+
+                FinalLinkEnvironment.LibraryPaths.Add("../External/FBX/2014.2.1/lib/vs2008/" + FBXArch + "/" + FBXConfig);
+                FinalLinkEnvironment.AdditionalLibraries.Add("libfbxsdk-md.lib");
             }
             else
             {

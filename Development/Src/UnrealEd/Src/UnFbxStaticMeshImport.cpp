@@ -55,9 +55,9 @@ extern void RestoreExistingMeshData(struct ExistingStaticMeshData* ExistingMeshD
 //-------------------------------------------------------------------------
 //
 //-------------------------------------------------------------------------
-UObject* UnFbx::CFbxImporter::ImportStaticMesh(UObject* InParent, KFbxNode* Node, const FName& Name, EObjectFlags Flags, UStaticMesh* InStaticMesh, int LODIndex)
+UObject* UnFbx::CFbxImporter::ImportStaticMesh(UObject* InParent, fbx::FbxNode* Node, const FName& Name, EObjectFlags Flags, UStaticMesh* InStaticMesh, int LODIndex)
 {
-	TArray<KFbxNode*> MeshNodeArray;
+	TArray<fbx::FbxNode*> MeshNodeArray;
 	
 	if ( !Node->GetMesh())
 	{
@@ -68,15 +68,15 @@ UObject* UnFbx::CFbxImporter::ImportStaticMesh(UObject* InParent, KFbxNode* Node
 	return ImportStaticMeshAsSingle(InParent, MeshNodeArray, Name, Flags, InStaticMesh, LODIndex);
 }
 
-UBOOL UnFbx::CFbxImporter::BuildStaticMeshFromGeometry(KFbxMesh* FbxMesh, UStaticMesh* StaticMesh, int LODIndex)
+UBOOL UnFbx::CFbxImporter::BuildStaticMeshFromGeometry(fbx::FbxMesh* FbxMesh, UStaticMesh* StaticMesh, int LODIndex)
 {
-	KFbxNode* Node = FbxMesh->GetNode();
+	fbx::FbxNode* Node = FbxMesh->GetNode();
 
     //remove the bad polygons before getting any data from mesh
     FbxMesh->RemoveBadPolygons();
 
     //Get the base layer of the mesh
-    KFbxLayer* BaseLayer = FbxMesh->GetLayer(0);
+    fbx::FbxLayer* BaseLayer = FbxMesh->GetLayer(0);
     if (BaseLayer == NULL)
     {
         warnf(NAME_Error,TEXT("There is no geometry information in mesh"),ANSI_TO_TCHAR(FbxMesh->GetName()));
@@ -96,14 +96,14 @@ UBOOL UnFbx::CFbxImporter::BuildStaticMeshFromGeometry(KFbxMesh* FbxMesh, UStati
 		INT UVLayerIndex;
 		for (UVLayerIndex = 0; UVLayerIndex<LayerCount; UVLayerIndex++)
 		{
-			KFbxLayer* lLayer = FbxMesh->GetLayer(UVLayerIndex);
+			fbx::FbxLayer* lLayer = FbxMesh->GetLayer(UVLayerIndex);
 			int UVSetCount = lLayer->GetUVSetCount();
 			if(UVSetCount)
 			{
-				KArrayTemplate<KFbxLayerElementUV const*> EleUVs = lLayer->GetUVSets();
+				fbx::FbxArray<fbx::FbxLayerElementUV const*> EleUVs = lLayer->GetUVSets();
 				for (int UVIndex = 0; UVIndex<UVSetCount; UVIndex++)
 				{
-					KFbxLayerElementUV const* ElementUV = EleUVs[UVIndex];
+					fbx::FbxLayerElementUV const* ElementUV = EleUVs[UVIndex];
 					if (ElementUV)
 					{
 						const char* UVSetName = ElementUV->GetName();
@@ -145,7 +145,7 @@ UBOOL UnFbx::CFbxImporter::BuildStaticMeshFromGeometry(KFbxMesh* FbxMesh, UStati
 	INT NewMaterialIndex = StaticMesh->LODModels(LODIndex).Elements.Num();
 	for (MaterialIndex=0; MaterialIndex<MaterialCount; MaterialIndex++,NewMaterialIndex++)
 	{
-		KFbxSurfaceMaterial *FbxMaterial = Node->GetMaterial(MaterialIndex);
+		fbx::FbxSurfaceMaterial *FbxMaterial = Node->GetMaterial(MaterialIndex);
 		FString MaterialFullName = ANSI_TO_TCHAR(MakeName(FbxMaterial->GetName()));
 		
 		if ( !ImportOptions->bImportMaterials )
@@ -192,26 +192,22 @@ UBOOL UnFbx::CFbxImporter::BuildStaticMeshFromGeometry(KFbxMesh* FbxMesh, UStati
 	// Convert data format to unreal-compatible
 	//
 
-	// Must do this before triangulating the mesh due to an FBX bug in TriangulateMeshAdvance
-	INT LayerSmoothingCount = FbxMesh->GetLayerCount(KFbxLayerElement::eSMOOTHING);
+	INT LayerSmoothingCount = FbxMesh->GetLayerCount(fbx::FbxLayerElement::eSmoothing);
 	for(INT i = 0; i < LayerSmoothingCount; i++)
 	{
 		FbxGeometryConverter->ComputePolygonSmoothingFromEdgeSmoothing (FbxMesh, i);
 	}
 
-	UBOOL bDestroyMesh = FALSE;
 	if (!FbxMesh->IsTriangleMesh())
 	{
 		warnf(NAME_Log,TEXT("Triangulating static mesh %s"), ANSI_TO_TCHAR(Node->GetName()));
-		bool bSuccess;
-		FbxMesh = FbxGeometryConverter->TriangulateMeshAdvance(FbxMesh, bSuccess); // not in place ! the old mesh is still there
-		if (FbxMesh == NULL)
+		fbx::FbxNodeAttribute* Triangulated = FbxGeometryConverter->Triangulate(FbxMesh, true);
+		if (Triangulated == NULL || Triangulated->GetAttributeType() != fbx::FbxNodeAttribute::eMesh)
 		{
 			warnf(NAME_Error,TEXT("Unable to triangulate mesh"));
-			return FALSE; // not clean, missing some dealloc
+			return FALSE;
 		}
-		// this gets deleted at the end of the import
-		bDestroyMesh = TRUE;
+		FbxMesh = (fbx::FbxMesh*)Triangulated;
 	}
 	
 	// renew the base layer
@@ -220,22 +216,22 @@ UBOOL UnFbx::CFbxImporter::BuildStaticMeshFromGeometry(KFbxMesh* FbxMesh, UStati
 	//
 	//	get the "material index" layer.  Do this AFTER the triangulation step as that may reorder material indices
 	//
-	KFbxLayerElementMaterial* LayerElementMaterial = BaseLayer->GetMaterials();
-	KFbxLayerElement::EMappingMode MaterialMappingMode = LayerElementMaterial ? 
-		LayerElementMaterial->GetMappingMode() : KFbxLayerElement::eBY_POLYGON;
+	fbx::FbxLayerElementMaterial* LayerElementMaterial = BaseLayer->GetMaterials();
+	fbx::FbxLayerElement::EMappingMode MaterialMappingMode = LayerElementMaterial ? 
+		LayerElementMaterial->GetMappingMode() : fbx::FbxLayerElement::eByPolygon;
 
 	//
 	//	store the UVs in arrays for fast access in the later looping of triangles 
 	//
 	INT UniqueUVCount = UVSets.Num();
-	KFbxLayerElementUV** LayerElementUV = NULL;
-	KFbxLayerElement::EReferenceMode* UVReferenceMode = NULL;
-	KFbxLayerElement::EMappingMode* UVMappingMode = NULL;
+	fbx::FbxLayerElementUV** LayerElementUV = NULL;
+	fbx::FbxLayerElement::EReferenceMode* UVReferenceMode = NULL;
+	fbx::FbxLayerElement::EMappingMode* UVMappingMode = NULL;
 	if (UniqueUVCount > 0)
 	{
-		LayerElementUV = new KFbxLayerElementUV*[UniqueUVCount];
-		UVReferenceMode = new KFbxLayerElement::EReferenceMode[UniqueUVCount];
-		UVMappingMode = new KFbxLayerElement::EMappingMode[UniqueUVCount];
+		LayerElementUV = new fbx::FbxLayerElementUV*[UniqueUVCount];
+		UVReferenceMode = new fbx::FbxLayerElement::EReferenceMode[UniqueUVCount];
+		UVMappingMode = new fbx::FbxLayerElement::EMappingMode[UniqueUVCount];
 	}
 	LayerCount = FbxMesh->GetLayerCount();
 	for (INT UVIndex = 0; UVIndex < UniqueUVCount; UVIndex++)
@@ -243,21 +239,21 @@ UBOOL UnFbx::CFbxImporter::BuildStaticMeshFromGeometry(KFbxMesh* FbxMesh, UStati
 		UBOOL bFoundUV = FALSE;
 		for (INT UVLayerIndex = 0; !bFoundUV && UVLayerIndex<LayerCount; UVLayerIndex++)
 		{
-			KFbxLayer* lLayer = FbxMesh->GetLayer(UVLayerIndex);
+			fbx::FbxLayer* lLayer = FbxMesh->GetLayer(UVLayerIndex);
 			int UVSetCount = lLayer->GetUVSetCount();
 			if(UVSetCount)
 			{
-				KArrayTemplate<KFbxLayerElementUV const*> EleUVs = lLayer->GetUVSets();
+				fbx::FbxArray<fbx::FbxLayerElementUV const*> EleUVs = lLayer->GetUVSets();
 				for (int FbxUVIndex = 0; FbxUVIndex<UVSetCount; FbxUVIndex++)
 				{
-					KFbxLayerElementUV const* ElementUV = EleUVs[FbxUVIndex];
+					fbx::FbxLayerElementUV const* ElementUV = EleUVs[FbxUVIndex];
 					if (ElementUV)
 					{
 						const char* UVSetName = ElementUV->GetName();
 						FString LocalUVSetName = ANSI_TO_TCHAR(UVSetName);
 						if (LocalUVSetName == UVSets(UVIndex))
 						{
-							LayerElementUV[UVIndex] = const_cast<KFbxLayerElementUV*>(ElementUV);
+							LayerElementUV[UVIndex] = const_cast<fbx::FbxLayerElementUV*>(ElementUV);
 							UVReferenceMode[UVIndex] = LayerElementUV[FbxUVIndex]->GetReferenceMode();
 							UVMappingMode[UVIndex] = LayerElementUV[FbxUVIndex]->GetMappingMode();
 							break;
@@ -274,12 +270,21 @@ UBOOL UnFbx::CFbxImporter::BuildStaticMeshFromGeometry(KFbxMesh* FbxMesh, UStati
     //
     UBOOL bSmoothingAvailable = FALSE;
 
-    KFbxLayerElementSmoothing const* SmoothingInfo = BaseLayer->GetSmoothing();
-    KFbxLayerElement::EReferenceMode SmoothingReferenceMode(KFbxLayerElement::eDIRECT);
-    KFbxLayerElement::EMappingMode SmoothingMappingMode(KFbxLayerElement::eBY_EDGE);
+    fbx::FbxLayerElementSmoothing const* SmoothingInfo = BaseLayer->GetSmoothing();
+    fbx::FbxLayerElement::EReferenceMode SmoothingReferenceMode(fbx::FbxLayerElement::eDirect);
+    fbx::FbxLayerElement::EMappingMode SmoothingMappingMode(fbx::FbxLayerElement::eByEdge);
+
+    if (!SmoothingInfo && BaseLayer->GetNormals())
+    {
+        if (FbxGeometryConverter->ComputeEdgeSmoothingFromNormals(FbxMesh))
+        {
+            SmoothingInfo = BaseLayer->GetSmoothing();
+        }
+    }
+
     if (SmoothingInfo)
     {
-        if( SmoothingInfo->GetMappingMode() == KFbxLayerElement::eBY_EDGE )
+        if( SmoothingInfo->GetMappingMode() == fbx::FbxLayerElement::eByEdge )
         {
             if (!FbxGeometryConverter->ComputePolygonSmoothingFromEdgeSmoothing(FbxMesh))
             {
@@ -288,7 +293,7 @@ UBOOL UnFbx::CFbxImporter::BuildStaticMeshFromGeometry(KFbxMesh* FbxMesh, UStati
             }
         }
 
-		if( SmoothingInfo->GetMappingMode() == KFbxLayerElement::eBY_POLYGON )
+		if( SmoothingInfo->GetMappingMode() == fbx::FbxLayerElement::eByPolygon )
 		{
 			bSmoothingAvailable = TRUE;
 		}
@@ -307,9 +312,9 @@ UBOOL UnFbx::CFbxImporter::BuildStaticMeshFromGeometry(KFbxMesh* FbxMesh, UStati
 	//
 	// get the first vertex color layer
 	//
-	KFbxLayerElementVertexColor* LayerElementVertexColor = BaseLayer->GetVertexColors();
-	KFbxLayerElement::EReferenceMode VertexColorReferenceMode(KFbxLayerElement::eDIRECT);
-	KFbxLayerElement::EMappingMode VertexColorMappingMode(KFbxLayerElement::eBY_CONTROL_POINT);
+	fbx::FbxLayerElementVertexColor* LayerElementVertexColor = BaseLayer->GetVertexColors();
+	fbx::FbxLayerElement::EReferenceMode VertexColorReferenceMode(fbx::FbxLayerElement::eDirect);
+	fbx::FbxLayerElement::EMappingMode VertexColorMappingMode(fbx::FbxLayerElement::eByControlPoint);
 	if (LayerElementVertexColor)
 	{
 		VertexColorReferenceMode = LayerElementVertexColor->GetReferenceMode();
@@ -319,23 +324,23 @@ UBOOL UnFbx::CFbxImporter::BuildStaticMeshFromGeometry(KFbxMesh* FbxMesh, UStati
 	//
 	// get the first normal layer
 	//
-	KFbxLayerElementNormal* LayerElementNormal = BaseLayer->GetNormals();
-    KFbxLayerElementTangent* LayerElementTangent = BaseLayer->GetTangents();
-    KFbxLayerElementBinormal* LayerElementBinormal = BaseLayer->GetBinormals();
+	fbx::FbxLayerElementNormal* LayerElementNormal = BaseLayer->GetNormals();
+    fbx::FbxLayerElementTangent* LayerElementTangent = BaseLayer->GetTangents();
+    fbx::FbxLayerElementBinormal* LayerElementBinormal = BaseLayer->GetBinormals();
 
     //whether there is normal, tangent and binormal data in this mesh
     UBOOL bHasNTBInformation = LayerElementNormal && LayerElementTangent && LayerElementBinormal;
 
-	KFbxLayerElement::EReferenceMode NormalReferenceMode(KFbxLayerElement::eDIRECT);
-    KFbxLayerElement::EMappingMode NormalMappingMode(KFbxLayerElement::eBY_CONTROL_POINT);
+	fbx::FbxLayerElement::EReferenceMode NormalReferenceMode(fbx::FbxLayerElement::eDirect);
+    fbx::FbxLayerElement::EMappingMode NormalMappingMode(fbx::FbxLayerElement::eByControlPoint);
     if (LayerElementNormal)
     {
         NormalReferenceMode = LayerElementNormal->GetReferenceMode();
         NormalMappingMode = LayerElementNormal->GetMappingMode();
     }
 
-    KFbxLayerElement::EReferenceMode TangentReferenceMode(KFbxLayerElement::eDIRECT);
-    KFbxLayerElement::EMappingMode TangentMappingMode(KFbxLayerElement::eBY_CONTROL_POINT);
+    fbx::FbxLayerElement::EReferenceMode TangentReferenceMode(fbx::FbxLayerElement::eDirect);
+    fbx::FbxLayerElement::EMappingMode TangentMappingMode(fbx::FbxLayerElement::eByControlPoint);
     if (LayerElementTangent)
     {
         TangentReferenceMode = LayerElementTangent->GetReferenceMode();
@@ -345,7 +350,7 @@ UBOOL UnFbx::CFbxImporter::BuildStaticMeshFromGeometry(KFbxMesh* FbxMesh, UStati
 	//
 	// build collision
 	//
-	if (ImportCollisionModels(StaticMesh, new KString(Node->GetName())))
+	if (ImportCollisionModels(StaticMesh, new fbx::FbxString(Node->GetName())))
 	{
 		INT LODModelIndex;
 		for(LODModelIndex=0; LODModelIndex<StaticMesh->LODModels(LODIndex).Elements.Num(); LODModelIndex++)
@@ -359,15 +364,15 @@ UBOOL UnFbx::CFbxImporter::BuildStaticMeshFromGeometry(KFbxMesh* FbxMesh, UStati
 	//
 
     // Construct the matrices for the conversion from right handed to left handed system
-    KFbxXMatrix TotalMatrix;
-    KFbxXMatrix TotalMatrixForNormal;
+    fbx::FbxAMatrix TotalMatrix;
+    fbx::FbxAMatrix TotalMatrixForNormal;
     TotalMatrix = ComputeTotalMatrix(Node);
     TotalMatrixForNormal = TotalMatrix.Inverse();
     TotalMatrixForNormal = TotalMatrixForNormal.Transpose();
 
-    KFbxXMatrix LeftToRightMatrix;
-    KFbxXMatrix LeftToRightMatrixForNormal;
-    LeftToRightMatrix.SetS(KFbxVector4(1.0, -1.0, 1.0));
+    fbx::FbxAMatrix LeftToRightMatrix;
+    fbx::FbxAMatrix LeftToRightMatrixForNormal;
+    LeftToRightMatrix.SetS(fbx::FbxVector4(1.0, -1.0, 1.0));
     LeftToRightMatrixForNormal = LeftToRightMatrix.Inverse();
     LeftToRightMatrixForNormal = LeftToRightMatrixForNormal.Transpose();
 
@@ -397,8 +402,8 @@ UBOOL UnFbx::CFbxImporter::BuildStaticMeshFromGeometry(KFbxMesh* FbxMesh, UStati
 		for ( VertexIndex=0; VertexIndex<3; VertexIndex++)
 		{
             int ControlPointIndex = FbxMesh->GetPolygonVertex(TriangleIndex, VertexIndex);
-			KFbxVector4 FbxPosition = FbxMesh->GetControlPoints()[ControlPointIndex];
-			KFbxVector4 FinalPosition = TotalMatrix.MultT(FbxPosition);
+			fbx::FbxVector4 FbxPosition = FbxMesh->GetControlPoints()[ControlPointIndex];
+			fbx::FbxVector4 FinalPosition = TotalMatrix.MultT(FbxPosition);
             Triangle->Vertices[VertexIndex] = Converter.ConvertPos(FinalPosition);
 
             //
@@ -408,9 +413,9 @@ UBOOL UnFbx::CFbxImporter::BuildStaticMeshFromGeometry(KFbxMesh* FbxMesh, UStati
             {
                 int TmpIndex = TriangleIndex*3 + VertexIndex;
                 //normals may have different reference and mapping mode than tangents and binormals
-                int NormalMapIndex = (NormalMappingMode == KFbxLayerElement::eBY_CONTROL_POINT) ? 
+                int NormalMapIndex = (NormalMappingMode == fbx::FbxLayerElement::eByControlPoint) ? 
 ControlPointIndex : TmpIndex;
-                int NormalValueIndex = (NormalReferenceMode == KFbxLayerElement::eDIRECT) ? 
+                int NormalValueIndex = (NormalReferenceMode == fbx::FbxLayerElement::eDirect) ? 
                     NormalMapIndex : LayerElementNormal->GetIndexArray().GetAt(NormalMapIndex);
 
 				if( Triangle->bOverrideTangentBasis )
@@ -418,7 +423,7 @@ ControlPointIndex : TmpIndex;
 					//tangents and binormals share the same reference, mapping mode and index array
                 	INT TangentMapIndex = TmpIndex;
 
-               		KFbxVector4 TempValue = LayerElementTangent->GetDirectArray().GetAt(TangentMapIndex);
+               		fbx::FbxVector4 TempValue = LayerElementTangent->GetDirectArray().GetAt(TangentMapIndex);
                 	TempValue = TotalMatrixForNormal.MultT(TempValue);
                		TempValue = LeftToRightMatrixForNormal.MultT(TempValue);
                 	Triangle->TangentX[ VertexIndex ] = Converter.ConvertDir(TempValue);
@@ -436,7 +441,7 @@ ControlPointIndex : TmpIndex;
                     Triangle->TangentY[ VertexIndex ] = FVector( 0.0f, 0.0f, 0.0f );
 				}
 
-				KFbxVector4 TempValue = LayerElementNormal->GetDirectArray().GetAt(NormalValueIndex);
+				fbx::FbxVector4 TempValue = LayerElementNormal->GetDirectArray().GetAt(NormalValueIndex);
                	TempValue = TotalMatrixForNormal.MultT(TempValue);
                	TempValue = LeftToRightMatrixForNormal.MultT(TempValue);
                 Triangle->TangentZ[ VertexIndex ] = Converter.ConvertDir(TempValue);
@@ -458,13 +463,13 @@ ControlPointIndex : TmpIndex;
             if (LayerElementVertexColor)
             {
 
-                INT VertexColorMappingIndex = (VertexColorMappingMode == KFbxLayerElement::eBY_CONTROL_POINT) ? 
+                INT VertexColorMappingIndex = (VertexColorMappingMode == fbx::FbxLayerElement::eByControlPoint) ? 
                     FbxMesh->GetPolygonVertex(TriangleIndex,VertexIndex) : (TriangleIndex*3+VertexIndex);
 
-                INT VectorColorIndex = (VertexColorReferenceMode == KFbxLayerElement::eDIRECT) ? 
+                INT VectorColorIndex = (VertexColorReferenceMode == fbx::FbxLayerElement::eDirect) ? 
                     VertexColorMappingIndex : LayerElementVertexColor->GetIndexArray().GetAt(VertexColorMappingIndex);
 
-                KFbxColor VertexColor = LayerElementVertexColor->GetDirectArray().GetAt(VectorColorIndex);
+                fbx::FbxColor VertexColor = LayerElementVertexColor->GetDirectArray().GetAt(VectorColorIndex);
 
                 Triangle->Colors[VertexIndex] = FColor(	BYTE(255.f*VertexColor.mRed),
                                                         BYTE(255.f*VertexColor.mGreen),
@@ -487,9 +492,9 @@ ControlPointIndex : TmpIndex;
 			Triangle->SmoothingMask = 0; // default
 			if (SmoothingInfo)
 			{
-				if (SmoothingMappingMode == KFbxLayerElement::eBY_POLYGON)
+				if (SmoothingMappingMode == fbx::FbxLayerElement::eByPolygon)
 				{
-                    int lSmoothingIndex = (SmoothingReferenceMode == KFbxLayerElement::eDIRECT) ? TriangleIndex : SmoothingInfo->GetIndexArray().GetAt(TriangleIndex);
+                    int lSmoothingIndex = (SmoothingReferenceMode == fbx::FbxLayerElement::eDirect) ? TriangleIndex : SmoothingInfo->GetIndexArray().GetAt(TriangleIndex);
 					Triangle->SmoothingMask = SmoothingInfo->GetDirectArray().GetAt(lSmoothingIndex);
 				}
 				else
@@ -514,11 +519,11 @@ ControlPointIndex : TmpIndex;
 				for (VertexIndex=0;VertexIndex<3;VertexIndex++)
 				{
                     int lControlPointIndex = FbxMesh->GetPolygonVertex(TriangleIndex, VertexIndex);
-                    int UVMapIndex = (UVMappingMode[UVLayerIndex] == KFbxLayerElement::eBY_CONTROL_POINT) ? 
+                    int UVMapIndex = (UVMappingMode[UVLayerIndex] == fbx::FbxLayerElement::eByControlPoint) ? 
 lControlPointIndex : TriangleIndex*3+VertexIndex;
-                    INT UVIndex = (UVReferenceMode[UVLayerIndex] == KFbxLayerElement::eDIRECT) ? 
+                    INT UVIndex = (UVReferenceMode[UVLayerIndex] == fbx::FbxLayerElement::eDirect) ? 
                         UVMapIndex : LayerElementUV[UVLayerIndex]->GetIndexArray().GetAt(UVMapIndex);
-					KFbxVector2	UVVector = LayerElementUV[UVLayerIndex]->GetDirectArray().GetAt(UVIndex);
+					fbx::FbxVector2	UVVector = LayerElementUV[UVLayerIndex]->GetDirectArray().GetAt(UVIndex);
 
 					Triangle->UVs[VertexIndex][UVLayerIndex].X = static_cast<float>(UVVector[0]);
 					Triangle->UVs[VertexIndex][UVLayerIndex].Y = 1.f-static_cast<float>(UVVector[1]);   //flip the Y of UVs for DirectX
@@ -551,12 +556,12 @@ lControlPointIndex : TriangleIndex*3+VertexIndex;
 				switch(MaterialMappingMode)
 				{
 					// material index is stored in the IndexArray, not the DirectArray (which is irrelevant with 2009.1)
-				case KFbxLayerElement::eALL_SAME:
+				case fbx::FbxLayerElement::eAllSame:
 					{	
 						Triangle->MaterialIndex = LayerElementMaterial->GetIndexArray().GetAt(0) + MaterialIndexOffset;
 					}
 					break;
-				case KFbxLayerElement::eBY_POLYGON:
+				case fbx::FbxLayerElement::eByPolygon:
 					{	
 						Triangle->MaterialIndex = LayerElementMaterial->GetIndexArray().GetAt(TriangleIndex) + MaterialIndexOffset;
 					}
@@ -592,11 +597,6 @@ lControlPointIndex : TriangleIndex*3+VertexIndex;
 		delete[] UVMappingMode;
 	}
 
-	if (bDestroyMesh)
-	{
-		FbxMesh->Destroy(true);
-	}
-
 	return TRUE;
 }
 
@@ -604,8 +604,8 @@ UObject* UnFbx::CFbxImporter::ReimportStaticMesh(UStaticMesh* Mesh)
 {
 	char MeshName[1024];
 	appStrcpy(MeshName,1024,TCHAR_TO_ANSI(*Mesh->GetName()));
-	TArray<KFbxNode*> FbxMeshArray;
-	KFbxNode* FbxNode = NULL;
+	TArray<fbx::FbxNode*> FbxMeshArray;
+	fbx::FbxNode* FbxNode = NULL;
 	UObject* NewMesh = NULL;
 	
 	// get meshes in Fbx file
@@ -661,13 +661,13 @@ UObject* UnFbx::CFbxImporter::ReimportStaticMesh(UStaticMesh* Mesh)
 	
 	if (FbxNode)
 	{
-		KFbxNode* Parent = FbxNode->GetParent();
+		fbx::FbxNode* Parent = FbxNode->GetParent();
 		// set import options, how about others?
 		ImportOptions->bImportMaterials = FALSE;
 		ImportOptions->bImportTextures = FALSE;
 		
 		// if the Fbx mesh is a part of LODGroup, update LOD
-		if (Parent && Parent->GetNodeAttribute() && Parent->GetNodeAttribute()->GetAttributeType() == KFbxNodeAttribute::eLODGROUP)
+		if (Parent && Parent->GetNodeAttribute() && Parent->GetNodeAttribute()->GetAttributeType() == fbx::FbxNodeAttribute::eLODGroup)
 		{
 			NewMesh = ImportStaticMesh(Mesh->GetOuter(), Parent->GetChild(0), *Mesh->GetName(), RF_Public|RF_Standalone, Mesh, 0);
 			if (NewMesh)
@@ -700,7 +700,7 @@ UObject* UnFbx::CFbxImporter::ReimportStaticMesh(UStaticMesh* Mesh)
 	return NewMesh;
 }
 
-UObject* UnFbx::CFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TArray<KFbxNode*>& MeshNodeArray, const FName& Name, EObjectFlags Flags, UStaticMesh* InStaticMesh, int LODIndex)
+UObject* UnFbx::CFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TArray<fbx::FbxNode*>& MeshNodeArray, const FName& Name, EObjectFlags Flags, UStaticMesh* InStaticMesh, int LODIndex)
 {
 	UBOOL bBuildStatus = TRUE;
 	struct ExistingStaticMeshData* ExistMeshDataPtr = NULL;
@@ -801,7 +801,7 @@ UObject* UnFbx::CFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TArray
 	INT MeshIndex;
 	for (MeshIndex = 0; MeshIndex < MeshNodeArray.Num(); MeshIndex++ )
 	{
-		KFbxNode* Node = MeshNodeArray(MeshIndex);
+		fbx::FbxNode* Node = MeshNodeArray(MeshIndex);
 
 		if (Node->GetMesh())
 		{
@@ -984,9 +984,9 @@ void UnFbx::CFbxImporter::SetMaterialSkinXXOrder(UStaticMesh* StaticMesh)
 }
 
 
-UBOOL UnFbx::CFbxImporter::FillCollisionModelList(KFbxNode* Node)
+UBOOL UnFbx::CFbxImporter::FillCollisionModelList(fbx::FbxNode* Node)
 {
-	KString* NodeName = new KString(Node->GetName());
+	fbx::FbxString* NodeName = new fbx::FbxString(Node->GetName());
 	if ( NodeName->Find("UCX") == 0 || NodeName->Find("MCDCX") == 0 ||
 		 NodeName->Find("UBX") == 0 || NodeName->Find("USP") == 0 )
 	{
@@ -1001,7 +1001,7 @@ UBOOL UnFbx::CFbxImporter::FillCollisionModelList(KFbxNode* Node)
 			TmpEndIndex = NodeName->Find('_', EndIndex+1);
 		}
 		
-		KString MeshName;
+		fbx::FbxString MeshName;
 		if ( EndIndex >= 0 )
 		{
 			// all characters between the first '_' and the last '_' are the FBX mesh name
@@ -1009,11 +1009,11 @@ UBOOL UnFbx::CFbxImporter::FillCollisionModelList(KFbxNode* Node)
 			MeshName = NodeName->Mid(StartIndex, EndIndex - StartIndex).Upper();
 		}
 
-		KMap<KString, KArrayTemplate<KFbxNode* >* >::RecordType const *Models = CollisionModels.Find(MeshName);
-		KArrayTemplate<KFbxNode* >* Record;
+		fbx::FbxMap<fbx::FbxString, fbx::FbxArray<fbx::FbxNode* >* >::RecordType const *Models = CollisionModels.Find(MeshName);
+		fbx::FbxArray<fbx::FbxNode* >* Record;
 		if ( !Models )
 		{
-			Record = new KArrayTemplate<KFbxNode*>();
+			Record = new fbx::FbxArray<fbx::FbxNode*>();
 			CollisionModels.Insert(MeshName, Record);
 		}
 		else
@@ -1032,14 +1032,14 @@ extern void AddConvexGeomFromVertices( const TArray<FVector>& Verts, FKAggregate
 extern void AddSphereGeomFromVerts( const TArray<FVector>& Verts, FKAggregateGeom* AggGeom, const TCHAR* ObjName );
 extern void AddBoxGeomFromTris( const TArray<FPoly>& Tris, FKAggregateGeom* AggGeom, const TCHAR* ObjName );
 
-UBOOL UnFbx::CFbxImporter::ImportCollisionModels(UStaticMesh* StaticMesh, KString* NodeName)
+UBOOL UnFbx::CFbxImporter::ImportCollisionModels(UStaticMesh* StaticMesh, fbx::FbxString* NodeName)
 {
 	// find collision models
 	UBOOL bRemoveEmptyKey = FALSE;
-	KString EmptyKey;
+	fbx::FbxString EmptyKey;
 
 	// convert the name to upper because we are case insensitive
-	KMap<KString, KArrayTemplate<KFbxNode* >* >::RecordType const *Record = CollisionModels.Find(NodeName->Upper());
+	fbx::FbxMap<fbx::FbxString, fbx::FbxArray<fbx::FbxNode* >* >::RecordType const *Record = CollisionModels.Find(NodeName->Upper());
 	if ( !Record )
 	{
 		// compatible with old collision name format
@@ -1058,7 +1058,7 @@ UBOOL UnFbx::CFbxImporter::ImportCollisionModels(UStaticMesh* StaticMesh, KStrin
 		}
 	}
 
-	KArrayTemplate<KFbxNode*>* Models = Record->GetValue();
+	fbx::FbxArray<fbx::FbxNode*>* Models = Record->GetValue();
 	if( !StaticMesh->BodySetup )
 	{
 		StaticMesh->BodySetup = ConstructObject<URB_BodySetup>(URB_BodySetup::StaticClass(), StaticMesh);
@@ -1070,14 +1070,11 @@ UBOOL UnFbx::CFbxImporter::ImportCollisionModels(UStaticMesh* StaticMesh, KStrin
 	// construct collision model
 	for (INT i=0; i<Models->GetCount(); i++)
 	{
-		KFbxNode* Node = Models->GetAt(i);
-		KFbxMesh* FbxMesh = Node->GetMesh();
+		fbx::FbxNode* Node = Models->GetAt(i);
+		fbx::FbxMesh* FbxMesh = Node->GetMesh();
 
 		FbxMesh->RemoveBadPolygons();
-		UBOOL bDestroyMesh = FALSE;
-
-		// Must do this before triangulating the mesh due to an FBX bug in TriangulateMeshAdvance
-		INT LayerSmoothingCount = FbxMesh->GetLayerCount(KFbxLayerElement::eSMOOTHING);
+		INT LayerSmoothingCount = FbxMesh->GetLayerCount(fbx::FbxLayerElement::eSmoothing);
 		for(INT i = 0; i < LayerSmoothingCount; i++)
 		{
 			FbxGeometryConverter->ComputePolygonSmoothingFromEdgeSmoothing (FbxMesh, i);
@@ -1087,21 +1084,19 @@ UBOOL UnFbx::CFbxImporter::ImportCollisionModels(UStaticMesh* StaticMesh, KStrin
 		{
 			FString NodeName = ANSI_TO_TCHAR(MakeName(Node->GetName()));
 			warnf(NAME_Log,TEXT("Triangulating mesh %s for collision model"), *NodeName);
-			bool bSuccess;
-			FbxMesh = FbxGeometryConverter->TriangulateMeshAdvance(FbxMesh, bSuccess); // not in place ! the old mesh is still there
-			if (FbxMesh == NULL)
+			fbx::FbxNodeAttribute* Triangulated = FbxGeometryConverter->Triangulate(FbxMesh, true);
+			if (Triangulated == NULL || Triangulated->GetAttributeType() != fbx::FbxNodeAttribute::eMesh)
 			{
 				warnf(NAME_Error,TEXT("Unable to triangulate mesh"));
-				return FALSE; // not clean, missing some dealloc
+				return FALSE;
 			}
-			// this gets deleted at the end of the import
-			bDestroyMesh = TRUE;
+			FbxMesh = (fbx::FbxMesh*)Triangulated;
 		}
 
 		INT ControlPointsIndex;
 		INT ControlPointsCount = FbxMesh->GetControlPointsCount();
-		KFbxVector4* ControlPoints = FbxMesh->GetControlPoints();
-		KFbxXMatrix Matrix = ComputeTotalMatrix(Node);
+		fbx::FbxVector4* ControlPoints = FbxMesh->GetControlPoints();
+		fbx::FbxAMatrix Matrix = ComputeTotalMatrix(Node);
 
 		for ( ControlPointsIndex = 0; ControlPointsIndex < ControlPointsCount; ControlPointsIndex++ )
 		{
@@ -1144,7 +1139,7 @@ UBOOL UnFbx::CFbxImporter::ImportCollisionModels(UStaticMesh* StaticMesh, KStrin
 		}
 
 		// Construct geometry object
-		KString *ModelName = new KString(Node->GetName());
+		fbx::FbxString *ModelName = new fbx::FbxString(Node->GetName());
 		if ( ModelName->Find("UCX") == 0 || ModelName->Find("MCDCX") == 0 )
 		{
 			AddConvexGeomFromVertices( CollisionVertices, &StaticMesh->BodySetup->AggGeom, (const TCHAR*)Node->GetName() );
@@ -1160,11 +1155,6 @@ UBOOL UnFbx::CFbxImporter::ImportCollisionModels(UStaticMesh* StaticMesh, KStrin
 
 		// Clear any cached rigid-body collision shapes for this body setup.
 		StaticMesh->BodySetup->ClearShapeCache();
-
-		if (bDestroyMesh)
-		{
-			FbxMesh->Destroy();
-		}
 
 		// Remove the empty key because we only use the model once for the first mesh
 		if (bRemoveEmptyKey)

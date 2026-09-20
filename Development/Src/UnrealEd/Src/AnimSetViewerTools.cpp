@@ -1415,7 +1415,7 @@ void WxAnimSetViewer::ImportMeshLOD()
 				else
 				{
 					INT MaxLODLevel = 0;
-					TArray< TArray<KFbxNode*>* > MeshArray;
+					TArray< TArray<fbx::FbxNode*>* > MeshArray;
 					TArray< TArray<FString>* > LODStrings;
 
 					FbxImporter->FillFbxSkelMeshArrayInScene(FbxImporter->FbxScene->GetRootNode(), MeshArray, FALSE);
@@ -1424,14 +1424,14 @@ void WxAnimSetViewer::ImportMeshLOD()
 					for (INT i = 0; i < MeshArray.Num(); i++)
 					{
 						INT MaxLODGroupLevel = 0;
-						TArray<KFbxNode*> NodeArray = *MeshArray(i);
+						TArray<fbx::FbxNode*> NodeArray = *MeshArray(i);
 						TArray<FString>* LODGroupStrings = new TArray<FString>;
 
 						// check if there is LODGroup for this skeletal mesh
 						for (INT j = 0; j < NodeArray.Num(); j++)
 						{
-							KFbxNode* Node = NodeArray(j);
-							if (Node->GetNodeAttribute() && Node->GetNodeAttribute()->GetAttributeType() == KFbxNodeAttribute::eLODGROUP)
+							fbx::FbxNode* Node = NodeArray(j);
+							if (Node->GetNodeAttribute() && Node->GetNodeAttribute()->GetAttributeType() == fbx::FbxNodeAttribute::eLODGroup)
 							{
 								// get max LODgroup level
 								if (MaxLODGroupLevel < (Node->GetChildCount() - 1))
@@ -1511,12 +1511,12 @@ void WxAnimSetViewer::ImportMeshLOD()
 								}
 								
 								// Find the LOD node to import
-								TArray<KFbxNode*> NodeArray = *MeshArray(MeshArrayIdx);
-								TArray<KFbxNode*> SkelMeshNodeArray;
+								TArray<fbx::FbxNode*> NodeArray = *MeshArray(MeshArrayIdx);
+								TArray<fbx::FbxNode*> SkelMeshNodeArray;
 								for (INT j = 0; j < NodeArray.Num(); j++)
 								{
-									KFbxNode* Node = NodeArray(j);
-									if (Node->GetNodeAttribute() && Node->GetNodeAttribute()->GetAttributeType() == KFbxNodeAttribute::eLODGROUP)
+									fbx::FbxNode* Node = NodeArray(j);
+									if (Node->GetNodeAttribute() && Node->GetNodeAttribute()->GetAttributeType() == fbx::FbxNodeAttribute::eLODGroup)
 									{
 										if (Node->GetChildCount() > LODLevel)
 										{
@@ -1628,7 +1628,7 @@ void WxAnimSetViewer::ImportMeshLOD()
 }
 
 #if WITH_FBX
-extern KFbxNode* GetFirstFbxMesh(KFbxNode* Node, UBOOL bIsSkelMesh);
+extern fbx::FbxNode* GetFirstFbxMesh(fbx::FbxNode* Node, UBOOL bIsSkelMesh);
 #endif
 
 /**
@@ -1765,7 +1765,7 @@ void WxAnimSetViewer::ImportMeshWeights()
 						{
 							// Log the import message and import the mesh.
 							//Warn->Log( FbxImporter->GetErrorMessage() );
-							TArray< TArray<KFbxNode*>* > MeshArray;
+							TArray< TArray<fbx::FbxNode*>* > MeshArray;
 							FbxImporter->FillFbxSkelMeshArrayInScene(FbxImporter->FbxScene->GetRootNode(), MeshArray, TRUE);
 
 							TempSkelMesh = (USkeletalMesh*)FbxImporter->ImportSkeletalMesh(UObject::GetTransientPackage(), 
@@ -1863,7 +1863,7 @@ void WxAnimSetViewer::UpdateFloorComponent(void)
 
 
 #if WITH_FBX
-extern void FillFbxSkelMeshArray(KFbxNode* Node, TArray<KFbxNode*>& outSkelMeshArray);
+extern void FillFbxSkelMeshArray(fbx::FbxNode* Node, TArray<fbx::FbxNode*>& outSkelMeshArray);
 
 void WxAnimSetViewer::ImportFbxMorphTarget(UBOOL bImportToLOD, UBOOL bUseImportName, FFilename Filename, EMorphImportError &ImportError)
 {
@@ -1881,7 +1881,7 @@ void WxAnimSetViewer::ImportFbxMorphTarget(UBOOL bImportToLOD, UBOOL bUseImportN
 		//Warn->Log( FbxImporter->GetErrorMessage() );
 
 		// get FBX mesh nodes that match the Unreal skeletal mesh
-		TArray<KFbxNode*> MorphMeshArray;
+		TArray<fbx::FbxNode*> MorphMeshArray;
 		FbxImporter->FindFBXMeshesByBone(SelectedMorphSet->BaseSkelMesh, FALSE, MorphMeshArray);
 		
 		if ( MorphMeshArray.Num() == 0 ) // no FBX mesh found
@@ -1891,7 +1891,7 @@ void WxAnimSetViewer::ImportFbxMorphTarget(UBOOL bImportToLOD, UBOOL bUseImportN
 		else if ( bImportToLOD && 
 				  SelectedMorphSet->Targets.Num() > 0  )
 		{
-			TArray<KFbxNode*> FbxNodes;
+			TArray<fbx::FbxNode*> FbxNodes;
 			INT MorphCount = 0;
 			INT LODLevels = 1;
 			INT NodeIndex;
@@ -1899,12 +1899,12 @@ void WxAnimSetViewer::ImportFbxMorphTarget(UBOOL bImportToLOD, UBOOL bUseImportN
 			// get max FBX LOD level
 			for (NodeIndex = 0; NodeIndex < MorphMeshArray.Num(); NodeIndex++)
 			{
-				KFbxNode* FbxNode = MorphMeshArray(NodeIndex);
-				KFbxNodeAttribute* Attr = FbxNode->GetNodeAttribute();
+				fbx::FbxNode* FbxNode = MorphMeshArray(NodeIndex);
+				fbx::FbxNodeAttribute* Attr = FbxNode->GetNodeAttribute();
 				if (Attr)
 				{
-					KFbxMesh* FbxMesh = NULL;
-					if (Attr->GetAttributeType() == KFbxNodeAttribute::eLODGROUP)
+					fbx::FbxMesh* FbxMesh = NULL;
+					if (Attr->GetAttributeType() == fbx::FbxNodeAttribute::eLODGroup)
 					{
 						FbxMesh = FbxNode->GetChild(0)->GetMesh();
 						if (FbxNode->GetChildCount() > LODLevels)
@@ -1942,12 +1942,12 @@ void WxAnimSetViewer::ImportFbxMorphTarget(UBOOL bImportToLOD, UBOOL bUseImportN
 			// loop each FBX LOD level, import morph target for each LOD
 			for (INT LODIndex = 1; LODIndex <= LODLevels && LODIndex <= MaxLODIdx; LODIndex++)
 			{
-				TArray<KFbxNode*> FbxNodes;
+				TArray<fbx::FbxNode*> FbxNodes;
 				// construct FBX mesh nodes that compose the whole skeletal mesh
 				for (INT j = 0; j < MorphMeshArray.Num(); j++)
 				{
-					KFbxNode* Node = MorphMeshArray(j);
-					if (Node->GetNodeAttribute() && Node->GetNodeAttribute()->GetAttributeType() == KFbxNodeAttribute::eLODGROUP)
+					fbx::FbxNode* Node = MorphMeshArray(j);
+					if (Node->GetNodeAttribute() && Node->GetNodeAttribute()->GetAttributeType() == fbx::FbxNodeAttribute::eLODGroup)
 					{
 						if (Node->GetChildCount() > LODIndex)
 						{
@@ -1965,7 +1965,7 @@ void WxAnimSetViewer::ImportFbxMorphTarget(UBOOL bImportToLOD, UBOOL bUseImportN
 				}
 
 				FName ShapeName;
-				TArray<KFbxShape*> FbxShapeArray;
+				TArray<fbx::FbxShape*> FbxShapeArray;
 				FbxShapeArray.Add(FbxNodes.Num());
 				// Initialize the shape array.
 				// In the shape array, only one geometry has shape at a time. Other geometries has no shape
@@ -1983,7 +1983,7 @@ void WxAnimSetViewer::ImportFbxMorphTarget(UBOOL bImportToLOD, UBOOL bUseImportN
 					{
 						FbxShapeArray(NodeIndex-1) = NULL;
 					}
-					KFbxMesh* Mesh = FbxNodes(NodeIndex)->GetMesh();
+					fbx::FbxMesh* Mesh = FbxNodes(NodeIndex)->GetMesh();
 					if (Mesh)
 					{
 						LONG ShapeCount = Mesh->GetShapeCount();
@@ -1991,11 +1991,11 @@ void WxAnimSetViewer::ImportFbxMorphTarget(UBOOL bImportToLOD, UBOOL bUseImportN
 						{
 							for (INT ShapeIndex = 0; ShapeIndex < ShapeCount; ShapeIndex++)
 							{
-								FbxShapeArray(NodeIndex) = Mesh->GetShape(ShapeIndex);
-								ShapeName = ANSI_TO_TCHAR(Mesh->GetShapeName(ShapeIndex));
+								FbxShapeArray(NodeIndex) = UnFbx::GetGeometryShape(Mesh, ShapeIndex);
+								ShapeName = ANSI_TO_TCHAR(UnFbx::GetGeometryShapeName(Mesh, ShapeIndex));
 
 								// Show dialog to select morph target that import the LOD morph target to
-								WxDlgMorphLODFbxImport Dlg = WxDlgMorphLODFbxImport( this, Mesh->GetShapeName(ShapeIndex), MorphList, LODIndex );
+								WxDlgMorphLODFbxImport Dlg = WxDlgMorphLODFbxImport( this, UnFbx::GetGeometryShapeName(Mesh, ShapeIndex), MorphList, LODIndex );
 
 								if (Dlg.ShowModal() == wxID_OK )
 								{
@@ -2027,19 +2027,19 @@ void WxAnimSetViewer::ImportFbxMorphTarget(UBOOL bImportToLOD, UBOOL bUseImportN
 		}
 		else  // import morph target for LOD 0
 		{
-			TArray<KFbxNode*> FbxNodes;
+			TArray<fbx::FbxNode*> FbxNodes;
 			INT MorphCount = 0;
 			INT NodeIndex;
 			// get morph count in this geometry
 			// get FBX mesh nodes in LOD 0 by expanding LOD group
 			for (NodeIndex = 0; NodeIndex < MorphMeshArray.Num(); NodeIndex++)
 			{
-				KFbxNode* FbxNode = MorphMeshArray(NodeIndex);
-				KFbxNodeAttribute* Attr = FbxNode->GetNodeAttribute();
+				fbx::FbxNode* FbxNode = MorphMeshArray(NodeIndex);
+				fbx::FbxNodeAttribute* Attr = FbxNode->GetNodeAttribute();
 				if (Attr)
 				{
-					KFbxMesh* FbxMesh = NULL;
-					if (Attr->GetAttributeType() == KFbxNodeAttribute::eLODGROUP)
+					fbx::FbxMesh* FbxMesh = NULL;
+					if (Attr->GetAttributeType() == fbx::FbxNodeAttribute::eLODGroup)
 					{
 						 FbxMesh = FbxNode->GetChild(0)->GetMesh();
 						 FbxNodes.AddItem(FbxNode->GetChild(0));
@@ -2060,7 +2060,7 @@ void WxAnimSetViewer::ImportFbxMorphTarget(UBOOL bImportToLOD, UBOOL bUseImportN
 			if (FbxNodes.Num() > 0 && MorphCount > 0)
 			{
 				FName ShapeName;
-				TArray<KFbxShape*> FbxShapeArray;
+				TArray<fbx::FbxShape*> FbxShapeArray;
 				FbxShapeArray.Add(FbxNodes.Num());
 				// Initialize the shape array.
 				// In the shape array, only one geometry has shape at a time. Other geometries has no shape
@@ -2078,7 +2078,7 @@ void WxAnimSetViewer::ImportFbxMorphTarget(UBOOL bImportToLOD, UBOOL bUseImportN
 					{
 						FbxShapeArray(NodeIndex-1) = NULL;
 					}
-					KFbxMesh* Mesh = FbxNodes(NodeIndex)->GetMesh();
+					fbx::FbxMesh* Mesh = FbxNodes(NodeIndex)->GetMesh();
 					if (Mesh)
 					{
 						LONG ShapeCount = Mesh->GetShapeCount();
@@ -2086,7 +2086,7 @@ void WxAnimSetViewer::ImportFbxMorphTarget(UBOOL bImportToLOD, UBOOL bUseImportN
 						{
 							for (INT ShapeIndex = 0; ShapeIndex < ShapeCount; ShapeIndex++)
 							{
-								FbxShapeArray(NodeIndex) = Mesh->GetShape(ShapeIndex);
+								FbxShapeArray(NodeIndex) = UnFbx::GetGeometryShape(Mesh, ShapeIndex);
 
 								if (MorphCount == 1 && bUseImportName)
 								{
@@ -2094,7 +2094,7 @@ void WxAnimSetViewer::ImportFbxMorphTarget(UBOOL bImportToLOD, UBOOL bUseImportN
 								}
 								else
 								{
-									ShapeName = ANSI_TO_TCHAR(FbxImporter->MakeName(Mesh->GetShapeName(ShapeIndex) ) );
+									ShapeName = ANSI_TO_TCHAR(FbxImporter->MakeName(UnFbx::GetGeometryShapeName(Mesh, ShapeIndex) ) );
 								}
 
 								UMorphTarget* ExistingTarget = SelectedMorphSet->FindMorphTarget(ShapeName);

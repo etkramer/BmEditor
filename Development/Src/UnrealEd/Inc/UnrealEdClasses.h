@@ -705,6 +705,7 @@ public:
     BITFIELD bOverrideFullName:1;
     BITFIELD bImportMeshLODs:1;
     BITFIELD bOverrideTangents:1;
+    BITFIELD bConvertSceneUnits:1;
     BITFIELD bImportMorphTargets:1;
     BITFIELD bImportAnimations:1;
     BITFIELD bImportRigidAnimation:1;

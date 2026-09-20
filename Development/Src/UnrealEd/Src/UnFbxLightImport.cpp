@@ -17,7 +17,7 @@ using namespace UnFbx;
 //-------------------------------------------------------------------------
 //
 //-------------------------------------------------------------------------
-ALight* CFbxImporter::CreateLight(KFbxLight* FbxLight)
+ALight* CFbxImporter::CreateLight(fbx::FbxLight* FbxLight)
 {
 	ALight* UnrealLight = NULL;
 	FString ActorName = ANSI_TO_TCHAR(MakeName(FbxLight->GetName()));
@@ -25,13 +25,13 @@ ALight* CFbxImporter::CreateLight(KFbxLight* FbxLight)
 	// create the light actor
 	switch (FbxLight->LightType.Get())
 	{
-	case KFbxLight::ePOINT:
+	case fbx::FbxLight::ePoint:
 		UnrealLight = Cast<ALight>(GWorld->SpawnActor(APointLight::StaticClass(),*ActorName));
 		break;
-	case KFbxLight::eDIRECTIONAL:
+	case fbx::FbxLight::eDirectional:
 		UnrealLight = Cast<ALight>(GWorld->SpawnActor(ADirectionalLight::StaticClass(),*ActorName));
 		break;
-	case KFbxLight::eSPOT:
+	case fbx::FbxLight::eSpot:
 		UnrealLight = Cast<ALight>(GWorld->SpawnActor(ASpotLight::StaticClass(),*ActorName));
 		break;
 	}
@@ -44,13 +44,13 @@ ALight* CFbxImporter::CreateLight(KFbxLight* FbxLight)
 	return UnrealLight;
 }
 
-UBOOL CFbxImporter::FillLightComponent(KFbxLight* FbxLight, ULightComponent* UnrealLightComponent)
+UBOOL CFbxImporter::FillLightComponent(fbx::FbxLight* FbxLight, ULightComponent* UnrealLightComponent)
 {
-	fbxDouble3 Color = FbxLight->Color.Get();
+	fbx::FbxDouble3 Color = FbxLight->Color.Get();
 	FColor UnrealColor( BYTE(255.0*Color[0]), BYTE(255.0*Color[1]), BYTE(255.0*Color[2]) );
 	UnrealLightComponent->LightColor = UnrealColor;
 
-	fbxDouble1 Intensity = FbxLight->Intensity.Get();
+	fbx::FbxDouble Intensity = FbxLight->Intensity.Get();
 	UnrealLightComponent->Brightness = (FLOAT)Intensity/100.f;
 
 	UnrealLightComponent->CastShadows = FbxLight->CastShadows.Get();
@@ -58,18 +58,18 @@ UBOOL CFbxImporter::FillLightComponent(KFbxLight* FbxLight, ULightComponent* Unr
 	switch (FbxLight->LightType.Get())
 	{
 	// point light properties
-	case KFbxLight::ePOINT:
+	case fbx::FbxLight::ePoint:
 		{
 			UPointLightComponent* PointLightComponent = Cast<UPointLightComponent>(UnrealLightComponent);
 			if (PointLightComponent)
 			{
-				fbxDouble1 DecayStart = FbxLight->DecayStart.Get();
+				fbx::FbxDouble DecayStart = FbxLight->DecayStart.Get();
 				PointLightComponent->Radius = Converter.ConvertDist(DecayStart);
 
-				KFbxLight::EDecayType Decay = FbxLight->DecayType.Get();
-				if (Decay == KFbxLight::eNONE)
+				fbx::FbxLight::EDecayType Decay = FbxLight->DecayType.Get();
+				if (Decay == fbx::FbxLight::eNone)
 				{
-					PointLightComponent->Radius = K_FLOAT_MAX;
+					PointLightComponent->Radius = FBXSDK_FLOAT_MAX;
 				}
 			}
 			else
@@ -79,20 +79,20 @@ UBOOL CFbxImporter::FillLightComponent(KFbxLight* FbxLight, ULightComponent* Unr
 		}
 		break;
 	// spot light properties
-	case KFbxLight::eSPOT:
+	case fbx::FbxLight::eSpot:
 		{
 			USpotLightComponent* SpotLightComponent = Cast<USpotLightComponent>(UnrealLightComponent);
 			if (SpotLightComponent)
 			{
-				fbxDouble1 DecayStart = FbxLight->DecayStart.Get();
+				fbx::FbxDouble DecayStart = FbxLight->DecayStart.Get();
 				SpotLightComponent->Radius = Converter.ConvertDist(DecayStart);
-				KFbxLight::EDecayType Decay = FbxLight->DecayType.Get();
-				if (Decay == KFbxLight::eNONE)
+				fbx::FbxLight::EDecayType Decay = FbxLight->DecayType.Get();
+				if (Decay == fbx::FbxLight::eNone)
 				{
-					SpotLightComponent->Radius = K_FLOAT_MAX;
+					SpotLightComponent->Radius = FBXSDK_FLOAT_MAX;
 				}
-				SpotLightComponent->InnerConeAngle = FbxLight->HotSpot.Get();
-				SpotLightComponent->OuterConeAngle = FbxLight->ConeAngle.Get();
+				SpotLightComponent->InnerConeAngle = FbxLight->InnerAngle.Get();
+				SpotLightComponent->OuterConeAngle = FbxLight->OuterAngle.Get();
 			}
 			else
 			{
@@ -101,7 +101,7 @@ UBOOL CFbxImporter::FillLightComponent(KFbxLight* FbxLight, ULightComponent* Unr
 		}
 		break;
 	// directional light properties 
-	case KFbxLight::eDIRECTIONAL:
+	case fbx::FbxLight::eDirectional:
 		{
 			// nothing specific
 		}
@@ -114,7 +114,7 @@ UBOOL CFbxImporter::FillLightComponent(KFbxLight* FbxLight, ULightComponent* Unr
 //-------------------------------------------------------------------------
 //
 //-------------------------------------------------------------------------
-ACameraActor* CFbxImporter::CreateCamera(KFbxCamera* FbxCamera)
+ACameraActor* CFbxImporter::CreateCamera(fbx::FbxCamera* FbxCamera)
 {
 	ACameraActor* UnrealCamera = NULL;
 	FString ActorName = ANSI_TO_TCHAR(MakeName(FbxCamera->GetName()));

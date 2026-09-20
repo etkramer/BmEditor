@@ -58,14 +58,14 @@ extern void RestoreExistingSkelMeshData(ExistingSkelMeshData* MeshData, USkeleta
 
 // Get the geometry deformation local to a node. It is never inherited by the
 // children.
-KFbxXMatrix GetGeometry(KFbxNode* pNode) 
+fbx::FbxAMatrix GetGeometry(fbx::FbxNode* pNode) 
 {
-	KFbxVector4 lT, lR, lS;
-	KFbxXMatrix lGeometry;
+	fbx::FbxVector4 lT, lR, lS;
+	fbx::FbxAMatrix lGeometry;
 
-	lT = pNode->GetGeometricTranslation(KFbxNode::eSOURCE_SET);
-	lR = pNode->GetGeometricRotation(KFbxNode::eSOURCE_SET);
-	lS = pNode->GetGeometricScaling(KFbxNode::eSOURCE_SET);
+	lT = pNode->GetGeometricTranslation(fbx::FbxNode::eSourcePivot);
+	lR = pNode->GetGeometricRotation(fbx::FbxNode::eSourcePivot);
+	lS = pNode->GetGeometricScaling(fbx::FbxNode::eSourcePivot);
 
 	lGeometry.SetT(lT);
 	lGeometry.SetR(lR);
@@ -75,7 +75,7 @@ KFbxXMatrix GetGeometry(KFbxNode* pNode)
 }
 
 // Scale all the elements of a matrix.
-void MatrixScale(KFbxXMatrix& pMatrix, double pValue)
+void MatrixScale(fbx::FbxAMatrix& pMatrix, double pValue)
 {
 	int i,j;
 
@@ -89,7 +89,7 @@ void MatrixScale(KFbxXMatrix& pMatrix, double pValue)
 }
 
 // Add a value to all the elements in the diagonal of the matrix.
-void MatrixAddToDiagonal(KFbxXMatrix& pMatrix, double pValue)
+void MatrixAddToDiagonal(fbx::FbxAMatrix& pMatrix, double pValue)
 {
 	pMatrix[0][0] += pValue;
 	pMatrix[1][1] += pValue;
@@ -99,7 +99,7 @@ void MatrixAddToDiagonal(KFbxXMatrix& pMatrix, double pValue)
 
 
 // Sum two matrices element by element.
-void MatrixAdd(KFbxXMatrix& pDstMatrix, KFbxXMatrix& pSrcMatrix)
+void MatrixAdd(fbx::FbxAMatrix& pDstMatrix, fbx::FbxAMatrix& pSrcMatrix)
 {
 	int i,j;
 
@@ -112,39 +112,39 @@ void MatrixAdd(KFbxXMatrix& pDstMatrix, KFbxXMatrix& pSrcMatrix)
 	}
 }
 
-void CFbxImporter::SetRefPoseAsT0(FSkeletalMeshBinaryImport &SkelMeshImporter, KFbxMesh* FbxMesh)
+void CFbxImporter::SetRefPoseAsT0(FSkeletalMeshBinaryImport &SkelMeshImporter, fbx::FbxMesh* FbxMesh)
 {
 	INT VertexCount = FbxMesh->GetControlPointsCount();
 
 	// Create a copy of the vertex array to receive vertex deformations.
-	KFbxVector4* VertexArray = new KFbxVector4[VertexCount];
-	memcpy(VertexArray, FbxMesh->GetControlPoints(), VertexCount * sizeof(KFbxVector4));
+	fbx::FbxVector4* VertexArray = new fbx::FbxVector4[VertexCount];
+	memcpy(VertexArray, FbxMesh->GetControlPoints(), VertexCount * sizeof(fbx::FbxVector4));
 
 	INT ClusterCount = 0;
-	INT SkinCount = FbxMesh->GetDeformerCount(KFbxDeformer::eSKIN);
+	INT SkinCount = FbxMesh->GetDeformerCount(fbx::FbxDeformer::eSkin);
 	for( INT i=0; i< SkinCount; i++)
 	{
-		ClusterCount += ((KFbxSkin *)(FbxMesh->GetDeformer(i, KFbxDeformer::eSKIN)))->GetClusterCount();
+		ClusterCount += ((fbx::FbxSkin *)(FbxMesh->GetDeformer(i, fbx::FbxDeformer::eSkin)))->GetClusterCount();
 	}
 	
 	// Deform the vertex array with the links contained in the mesh.
 	if (ClusterCount)
 	{
-		KFbxXMatrix MeshMatrix = ComputeTotalMatrix(FbxMesh->GetNode());
+		fbx::FbxAMatrix MeshMatrix = ComputeTotalMatrix(FbxMesh->GetNode());
 		// All the links must have the same link mode.
-		KFbxCluster::ELinkMode lClusterMode = ((KFbxSkin*)FbxMesh->GetDeformer(0, KFbxDeformer::eSKIN))->GetCluster(0)->GetLinkMode();
+		fbx::FbxCluster::ELinkMode lClusterMode = ((fbx::FbxSkin*)FbxMesh->GetDeformer(0, fbx::FbxDeformer::eSkin))->GetCluster(0)->GetLinkMode();
 
 		int i, j;
 		int lClusterCount=0;
 
-		int lSkinCount = FbxMesh->GetDeformerCount(KFbxDeformer::eSKIN);
+		int lSkinCount = FbxMesh->GetDeformerCount(fbx::FbxDeformer::eSkin);
 
-		KFbxXMatrix* lClusterDeformation = new KFbxXMatrix[VertexCount];
-		memset(lClusterDeformation, 0, VertexCount * sizeof(KFbxXMatrix));
+		fbx::FbxAMatrix* lClusterDeformation = new fbx::FbxAMatrix[VertexCount];
+		memset(lClusterDeformation, 0, VertexCount * sizeof(fbx::FbxAMatrix));
 		double* lClusterWeight = new double[VertexCount];
 		memset(lClusterWeight, 0, VertexCount * sizeof(double));
 
-		if (lClusterMode == KFbxCluster::eADDITIVE)
+		if (lClusterMode == fbx::FbxCluster::eAdditive)
 		{
 			for (i = 0; i < VertexCount; i++)
 			{
@@ -154,30 +154,30 @@ void CFbxImporter::SetRefPoseAsT0(FSkeletalMeshBinaryImport &SkelMeshImporter, K
 
 		for ( i=0; i<lSkinCount; ++i)
 		{
-			lClusterCount =( (KFbxSkin *)FbxMesh->GetDeformer(i, KFbxDeformer::eSKIN))->GetClusterCount();
+			lClusterCount =( (fbx::FbxSkin *)FbxMesh->GetDeformer(i, fbx::FbxDeformer::eSkin))->GetClusterCount();
 			for (j=0; j<lClusterCount; ++j)
 			{
-				KFbxCluster* Cluster =((KFbxSkin *) FbxMesh->GetDeformer(i, KFbxDeformer::eSKIN))->GetCluster(j);
+				fbx::FbxCluster* Cluster =((fbx::FbxSkin *) FbxMesh->GetDeformer(i, fbx::FbxDeformer::eSkin))->GetCluster(j);
 				if (!Cluster->GetLink())
 					continue;
 					
-				KFbxNode* Link = Cluster->GetLink();
+				fbx::FbxNode* Link = Cluster->GetLink();
 				
-				KFbxXMatrix lReferenceGlobalInitPosition;
-				KFbxXMatrix lReferenceGlobalCurrentPosition;
-				KFbxXMatrix lClusterGlobalInitPosition;
-				KFbxXMatrix lClusterGlobalCurrentPosition;
-				KFbxXMatrix lReferenceGeometry;
-				KFbxXMatrix lClusterGeometry;
+				fbx::FbxAMatrix lReferenceGlobalInitPosition;
+				fbx::FbxAMatrix lReferenceGlobalCurrentPosition;
+				fbx::FbxAMatrix lClusterGlobalInitPosition;
+				fbx::FbxAMatrix lClusterGlobalCurrentPosition;
+				fbx::FbxAMatrix lReferenceGeometry;
+				fbx::FbxAMatrix lClusterGeometry;
 
-				KFbxXMatrix lClusterRelativeInitPosition;
-				KFbxXMatrix lClusterRelativeCurrentPositionInverse;
-				KFbxXMatrix lVertexTransformMatrix;
+				fbx::FbxAMatrix lClusterRelativeInitPosition;
+				fbx::FbxAMatrix lClusterRelativeCurrentPositionInverse;
+				fbx::FbxAMatrix lVertexTransformMatrix;
 
-				if (lClusterMode == KFbxLink::eADDITIVE && Cluster->GetAssociateModel())
+				if (lClusterMode == fbx::FbxCluster::eAdditive && Cluster->GetAssociateModel())
 				{
 					Cluster->GetTransformAssociateModelMatrix(lReferenceGlobalInitPosition);
-					lReferenceGlobalCurrentPosition = Cluster->GetAssociateModel()->GetScene()->GetEvaluator()->GetNodeGlobalTransform(Cluster->GetAssociateModel(), 0);
+					lReferenceGlobalCurrentPosition = Cluster->GetAssociateModel()->GetScene()->GetAnimationEvaluator()->GetNodeGlobalTransform(Cluster->GetAssociateModel(), 0);
 					// Geometric transform of the model
 					lReferenceGeometry = GetGeometry(Cluster->GetAssociateModel());
 					lReferenceGlobalCurrentPosition *= lReferenceGeometry;
@@ -192,7 +192,7 @@ void CFbxImporter::SetRefPoseAsT0(FSkeletalMeshBinaryImport &SkelMeshImporter, K
 				}
 				// Get the link initial global position and the link current global position.
 				Cluster->GetTransformLinkMatrix(lClusterGlobalInitPosition);
-				lClusterGlobalCurrentPosition = Link->GetScene()->GetEvaluator()->GetNodeGlobalTransform(Link, 0);
+				lClusterGlobalCurrentPosition = Link->GetScene()->GetAnimationEvaluator()->GetNodeGlobalTransform(Link, 0);
 
 				// Compute the initial position of the link relative to the reference.
 				lClusterRelativeInitPosition = lClusterGlobalInitPosition.Inverse() * lReferenceGlobalInitPosition;
@@ -223,10 +223,10 @@ void CFbxImporter::SetRefPoseAsT0(FSkeletalMeshBinaryImport &SkelMeshImporter, K
 					}
 
 					// Compute the influence of the link on the vertex.
-					KFbxXMatrix lInfluence = lVertexTransformMatrix;
+					fbx::FbxAMatrix lInfluence = lVertexTransformMatrix;
 					MatrixScale(lInfluence, lWeight);
 
-					if (lClusterMode == KFbxCluster::eADDITIVE)
+					if (lClusterMode == fbx::FbxCluster::eAdditive)
 					{
 						// Multiply with to the product of the deformations on the vertex.
 						MatrixAddToDiagonal(lInfluence, 1.0 - lWeight);
@@ -235,7 +235,7 @@ void CFbxImporter::SetRefPoseAsT0(FSkeletalMeshBinaryImport &SkelMeshImporter, K
 						// Set the link to 1.0 just to know this vertex is influenced by a link.
 						lClusterWeight[lIndex] = 1.0;
 					}
-					else // lLinkMode == KFbxLink::eNORMALIZE || lLinkMode == KFbxLink::eTOTAL1
+					else // lLinkMode == fbx::FbxCluster::eNormalize || lLinkMode == fbx::FbxCluster::eTotalOne
 					{
 						// Add to the sum of the deformations on the vertex.
 						MatrixAdd(lClusterDeformation[lIndex], lInfluence);
@@ -250,8 +250,8 @@ void CFbxImporter::SetRefPoseAsT0(FSkeletalMeshBinaryImport &SkelMeshImporter, K
 		
 		for (i = 0; i < VertexCount; i++) 
 		{
-			KFbxVector4 lSrcVertex = VertexArray[i];
-			KFbxVector4& lDstVertex = VertexArray[i];
+			fbx::FbxVector4 lSrcVertex = VertexArray[i];
+			fbx::FbxVector4& lDstVertex = VertexArray[i];
 			double lWeight = lClusterWeight[i];
 
 			// Deform the vertex if there was at least a link with an influence on the vertex,
@@ -259,12 +259,12 @@ void CFbxImporter::SetRefPoseAsT0(FSkeletalMeshBinaryImport &SkelMeshImporter, K
 			{
 				lDstVertex = lClusterDeformation[i].MultT(lSrcVertex);
 
-				if (lClusterMode == KFbxCluster::eNORMALIZE)
+				if (lClusterMode == fbx::FbxCluster::eNormalize)
 				{
 					// In the normalized link mode, a vertex is always totally influenced by the links. 
 					lDstVertex /= lWeight;
 				}
-				else if (lClusterMode == KFbxCluster::eTOTAL1)
+				else if (lClusterMode == fbx::FbxCluster::eTotalOne)
 				{
 					// In the total 1 link mode, a vertex can be partially influenced by the links. 
 					lSrcVertex *= (1.0 - lWeight);
@@ -561,15 +561,15 @@ INT	UnFbx::CFbxImporter::DoUnSmoothVerts(FSkeletalMeshBinaryImport &SkelMeshImpo
 	return DuplicatedVertCount; 
 }
 
-UBOOL IsUnrealBone(KFbxNode* Link)
+UBOOL IsUnrealBone(fbx::FbxNode* Link)
 {
-	KFbxNodeAttribute* Attr = Link->GetNodeAttribute();
+	fbx::FbxNodeAttribute* Attr = Link->GetNodeAttribute();
 	if (Attr)
 	{
-		KFbxNodeAttribute::EAttributeType AttrType = Attr->GetAttributeType();
-		if ( AttrType == KFbxNodeAttribute::eSKELETON ||
-			AttrType == KFbxNodeAttribute::eMESH	 ||
-			AttrType == KFbxNodeAttribute::eNULL )
+		fbx::FbxNodeAttribute::EType AttrType = Attr->GetAttributeType();
+		if ( AttrType == fbx::FbxNodeAttribute::eSkeleton ||
+			AttrType == fbx::FbxNodeAttribute::eMesh	 ||
+			AttrType == fbx::FbxNodeAttribute::eNull )
 		{
 			return TRUE;
 		}
@@ -579,7 +579,7 @@ UBOOL IsUnrealBone(KFbxNode* Link)
 }
 
 
-void UnFbx::CFbxImporter::RecursiveBuildSkeleton(KFbxNode* Link, TArray<KFbxNode*>& OutSortedLinks)
+void UnFbx::CFbxImporter::RecursiveBuildSkeleton(fbx::FbxNode* Link, TArray<fbx::FbxNode*>& OutSortedLinks)
 {
 	if (IsUnrealBone(Link))
 	{
@@ -592,10 +592,10 @@ void UnFbx::CFbxImporter::RecursiveBuildSkeleton(KFbxNode* Link, TArray<KFbxNode
 	}
 }
 
-void UnFbx::CFbxImporter::BuildSkeletonSystem(TArray<KFbxCluster*>& ClusterArray, TArray<KFbxNode*>& OutSortedLinks)
+void UnFbx::CFbxImporter::BuildSkeletonSystem(TArray<fbx::FbxCluster*>& ClusterArray, TArray<fbx::FbxNode*>& OutSortedLinks)
 {
-	KFbxNode* Link;
-	TArray<KFbxNode*> RootLinks;
+	fbx::FbxNode* Link;
+	TArray<fbx::FbxNode*> RootLinks;
 	INT ClusterIndex;
 	for (ClusterIndex = 0; ClusterIndex < ClusterArray.Num(); ClusterIndex++)
 	{
@@ -623,15 +623,15 @@ void UnFbx::CFbxImporter::BuildSkeletonSystem(TArray<KFbxCluster*>& ClusterArray
 	}
 }
 
-UBOOL UnFbx::CFbxImporter::ImportBone(TArray<KFbxNode*>& NodeArray, FSkeletalMeshBinaryImport &SkelMeshImporter, TArray<KFbxNode*> &SortedLinks)
+UBOOL UnFbx::CFbxImporter::ImportBone(TArray<fbx::FbxNode*>& NodeArray, FSkeletalMeshBinaryImport &SkelMeshImporter, TArray<fbx::FbxNode*> &SortedLinks)
 {
 	UBOOL bDiffPose = FALSE;
 	INT SkelType = 0; // 0 for skeletal mesh, 1 for rigid mesh
-	KFbxNode* Link = NULL;
-	KArrayTemplate<KFbxPose*> PoseArray;
-	TArray<KFbxCluster*> ClusterArray;
+	fbx::FbxNode* Link = NULL;
+	fbx::FbxArray<fbx::FbxPose*> PoseArray;
+	TArray<fbx::FbxCluster*> ClusterArray;
 	
-	if (NodeArray(0)->GetMesh()->GetDeformerCount(KFbxDeformer::eSKIN) == 0)
+	if (NodeArray(0)->GetMesh()->GetDeformerCount(fbx::FbxDeformer::eSkin) == 0)
 	{
 		SkelType = 1;
 		Link = NodeArray(0);
@@ -661,10 +661,10 @@ UBOOL UnFbx::CFbxImporter::ImportBone(TArray<KFbxNode*>& NodeArray, FSkeletalMes
 
 		for ( INT i = 0; i < NodeArray.Num(); i++)
 		{
-			KFbxMesh* FbxMesh = NodeArray(i)->GetMesh();
-			for (INT DeformerIndex=0; DeformerIndex < FbxMesh->GetDeformerCount(KFbxDeformer::eSKIN); DeformerIndex++)
+			fbx::FbxMesh* FbxMesh = NodeArray(i)->GetMesh();
+			for (INT DeformerIndex=0; DeformerIndex < FbxMesh->GetDeformerCount(fbx::FbxDeformer::eSkin); DeformerIndex++)
 			{
-				KFbxSkin* FbxSkin = (KFbxSkin*)FbxMesh->GetDeformer(DeformerIndex);
+				fbx::FbxSkin* FbxSkin = (fbx::FbxSkin*)FbxMesh->GetDeformer(DeformerIndex);
 				for ( INT ClusterIndex = 0; ClusterIndex < FbxSkin->GetClusterCount(); ClusterIndex++)
 				{
 					ClusterArray.AddItem(FbxSkin->GetCluster(ClusterIndex));
@@ -699,13 +699,13 @@ UBOOL UnFbx::CFbxImporter::ImportBone(TArray<KFbxNode*>& NodeArray, FSkeletalMes
 	}
 
 	INT LinkIndex;
-	KArrayTemplate<KFbxXMatrix> GlobalsPerLink;
-	GlobalsPerLink.AddMultiple(SortedLinks.Num());
+	fbx::FbxArray<fbx::FbxAMatrix> GlobalsPerLink;
+	GlobalsPerLink.Grow(SortedLinks.Num());
 	GlobalsPerLink[0].SetIdentity();
 	
 	UBOOL GlobalLinkFoundFlag;
-	KFbxVector4 LocalLinkT;
-	KFbxQuaternion LocalLinkQ;
+	fbx::FbxVector4 LocalLinkT;
+	fbx::FbxQuaternion LocalLinkQ;
 
 	UBOOL NonIdentityScaleFound = FALSE;
 	
@@ -717,12 +717,12 @@ UBOOL UnFbx::CFbxImporter::ImportBone(TArray<KFbxNode*>& NodeArray, FSkeletalMes
 
 		// get the link parent and children
 		INT ParentIndex = 0; // base value for root if no parent found
-		KFbxNode* Parent = Link->GetParent();
+		fbx::FbxNode* Parent = Link->GetParent();
 		if (LinkIndex)
 		{
 			for (INT ll=0; ll<LinkIndex; ++ll) // <LinkIndex because parent is guaranteed to be before child in sortedLink
 			{
-				KFbxNode* Otherlink	= SortedLinks(ll);
+				fbx::FbxNode* Otherlink	= SortedLinks(ll);
 				if (Otherlink == Parent)
 				{
 					ParentIndex = ll;
@@ -743,8 +743,8 @@ UBOOL UnFbx::CFbxImporter::ImportBone(TArray<KFbxNode*>& NodeArray, FSkeletalMes
 					INT PoseLinkIndex = PoseArray[PoseIndex]->Find(Link);
 					if (PoseLinkIndex>=0)
 					{
-						KFbxMatrix NoneAffineMatrix = PoseArray[PoseIndex]->GetMatrix(PoseLinkIndex);
-						KFbxXMatrix Matrix = *(KFbxXMatrix*)(double*)&NoneAffineMatrix;
+						fbx::FbxMatrix NoneAffineMatrix = PoseArray[PoseIndex]->GetMatrix(PoseLinkIndex);
+						fbx::FbxAMatrix Matrix = *(fbx::FbxAMatrix*)(double*)&NoneAffineMatrix;
 						GlobalsPerLink[LinkIndex] = Matrix;
 						GlobalLinkFoundFlag = TRUE;
 						break;
@@ -756,7 +756,7 @@ UBOOL UnFbx::CFbxImporter::ImportBone(TArray<KFbxNode*>& NodeArray, FSkeletalMes
 			{
 				for (INT ClusterIndex=0; ClusterIndex<ClusterArray.Num(); ClusterIndex++)
 				{
-					KFbxCluster* Cluster = ClusterArray(ClusterIndex);
+					fbx::FbxCluster* Cluster = ClusterArray(ClusterIndex);
 					if (Link == Cluster->GetLink())
 					{
 						Cluster->GetTransformLinkMatrix(GlobalsPerLink[LinkIndex]);
@@ -770,13 +770,13 @@ UBOOL UnFbx::CFbxImporter::ImportBone(TArray<KFbxNode*>& NodeArray, FSkeletalMes
 		if (!GlobalLinkFoundFlag)
 		{
 			// if root bone is not in bindpose and cluster, it is correct to use the local matrix as global matrix
-			fbxDouble3 R = Link->LclRotation.Get();
-			KFbxXMatrix LocalMatrix;
+			fbx::FbxDouble3 R = Link->LclRotation.Get();
+			fbx::FbxAMatrix LocalMatrix;
 			LocalMatrix.SetR(R);
-			KFbxXMatrix PostRotationMatrix, PreRotationMatrix;
-			KFbxVector4 PostRotation, PreRotation;
-			PreRotation = Link->GetPreRotation(KFbxNode::eSOURCE_SET);
-			PostRotation = Link->GetPostRotation(KFbxNode::eSOURCE_SET);
+			fbx::FbxAMatrix PostRotationMatrix, PreRotationMatrix;
+			fbx::FbxVector4 PostRotation, PreRotation;
+			PreRotation = Link->GetPreRotation(fbx::FbxNode::eSourcePivot);
+			PostRotation = Link->GetPostRotation(fbx::FbxNode::eSourcePivot);
 			PreRotationMatrix.SetR(PreRotation);
 			PostRotationMatrix.SetR(PostRotation);
 
@@ -784,7 +784,7 @@ UBOOL UnFbx::CFbxImporter::ImportBone(TArray<KFbxNode*>& NodeArray, FSkeletalMes
 
 			LocalLinkT = Link->LclTranslation.Get();
 			// bake the rotate pivot to translation
-			KFbxVector4 RotatePivot = Link->GetRotationPivot(KFbxNode::eSOURCE_SET);
+			fbx::FbxVector4 RotatePivot = Link->GetRotationPivot(fbx::FbxNode::eSourcePivot);
 			LocalLinkT[0] += RotatePivot[0];
 			LocalLinkT[1] += RotatePivot[1];
 			LocalLinkT[2] += RotatePivot[2];
@@ -798,7 +798,7 @@ UBOOL UnFbx::CFbxImporter::ImportBone(TArray<KFbxNode*>& NodeArray, FSkeletalMes
 		
 		if (ImportOptions->bUseT0AsRefPose)
 		{
-			KFbxXMatrix& T0Matrix = FbxScene->GetEvaluator()->GetNodeGlobalTransform(Link, 0);
+			fbx::FbxAMatrix& T0Matrix = FbxScene->GetAnimationEvaluator()->GetNodeGlobalTransform(Link, 0);
 			if (GlobalsPerLink[LinkIndex] != T0Matrix)
 			{
 				bDiffPose = TRUE;
@@ -810,7 +810,7 @@ UBOOL UnFbx::CFbxImporter::ImportBone(TArray<KFbxNode*>& NodeArray, FSkeletalMes
 
 		if (LinkIndex)
 		{
-			KFbxXMatrix	Matrix;
+			fbx::FbxAMatrix	Matrix;
 			Matrix = GlobalsPerLink[ParentIndex].Inverse() * GlobalsPerLink[LinkIndex];
 			LocalLinkT = Matrix.GetT();
 			LocalLinkQ = Matrix.GetQ();
@@ -823,10 +823,10 @@ UBOOL UnFbx::CFbxImporter::ImportBone(TArray<KFbxNode*>& NodeArray, FSkeletalMes
 		}
 		
 		
-		KFbxVector4 GlobalLinkS = GlobalsPerLink[LinkIndex].GetS();
-		if ( (GlobalLinkS[0] > 1.0 + SCALE_TOLERANCE || GlobalLinkS[1] < 1.0 - SCALE_TOLERANCE) || 
-				(GlobalLinkS[0] > 1.0 + SCALE_TOLERANCE || GlobalLinkS[1] < 1.0 - SCALE_TOLERANCE) || 
-				(GlobalLinkS[0] > 1.0 + SCALE_TOLERANCE || GlobalLinkS[1] < 1.0 - SCALE_TOLERANCE) )
+		fbx::FbxVector4 GlobalLinkS = GlobalsPerLink[LinkIndex].GetS();
+		if ( (GlobalLinkS[0] > 1.0 + SCALE_TOLERANCE || GlobalLinkS[0] < 1.0 - SCALE_TOLERANCE) ||
+				(GlobalLinkS[1] > 1.0 + SCALE_TOLERANCE || GlobalLinkS[1] < 1.0 - SCALE_TOLERANCE) ||
+				(GlobalLinkS[2] > 1.0 + SCALE_TOLERANCE || GlobalLinkS[2] < 1.0 - SCALE_TOLERANCE) )
 		{
 			NonIdentityScaleFound = TRUE;
 		}
@@ -838,7 +838,7 @@ UBOOL UnFbx::CFbxImporter::ImportBone(TArray<KFbxNode*>& NodeArray, FSkeletalMes
 		strcpy_s(Bone.Name, 64, TCHAR_TO_ANSI(*SkelMeshImporter.FixupBoneName(BoneName)));
 
 		VJointPos& JointMatrix = Bone.BonePos;
-		KFbxSkeleton* Skeleton = Link->GetSkeleton();
+		fbx::FbxSkeleton* Skeleton = Link->GetSkeleton();
 		if (Skeleton)
 		{
 			JointMatrix.Length = Converter.ConvertDist(Skeleton->LimbLength.Get());
@@ -859,7 +859,7 @@ UBOOL UnFbx::CFbxImporter::ImportBone(TArray<KFbxNode*>& NodeArray, FSkeletalMes
 		Bone.NumChildren = 0;
 		for (INT ChildIndex=0; ChildIndex<Link->GetChildCount(); ChildIndex++)
 		{
-			KFbxNode* Child = Link->GetChild(ChildIndex);
+			fbx::FbxNode* Child = Link->GetChild(ChildIndex);
 			if (IsUnrealBone(Child))
 			{
 				Bone.NumChildren++;
@@ -879,9 +879,9 @@ UBOOL UnFbx::CFbxImporter::ImportBone(TArray<KFbxNode*>& NodeArray, FSkeletalMes
 	return bDiffPose;
 }
 
-void UnFbx::CFbxImporter::ImportMaterialsForSkelMesh(TArray<KFbxNode*>& NodeArray, FSkeletalMeshBinaryImport &SkelMeshImporter, TArray<const char *>& OutFbxMatList)
+void UnFbx::CFbxImporter::ImportMaterialsForSkelMesh(TArray<fbx::FbxNode*>& NodeArray, FSkeletalMeshBinaryImport &SkelMeshImporter, TArray<const char *>& OutFbxMatList)
 {
-	KFbxNode* Node;
+	fbx::FbxNode* Node;
 	INT MaterialCount;
 	
 	// visit all FBX node to get all materials
@@ -894,7 +894,7 @@ void UnFbx::CFbxImporter::ImportMaterialsForSkelMesh(TArray<KFbxNode*>& NodeArra
 
 		for(INT MaterialIndex=0; MaterialIndex < MaterialCount; ++MaterialIndex)
 		{
-			KFbxSurfaceMaterial *FbxMaterial = Node->GetMaterial(MaterialIndex);
+			fbx::FbxSurfaceMaterial *FbxMaterial = Node->GetMaterial(MaterialIndex);
 
 			INT ExistMatIndex;
 			// check if the material has been recorded to the OurFbxMatList
@@ -960,7 +960,7 @@ void UnFbx::CFbxImporter::ImportMaterialsForSkelMesh(TArray<KFbxNode*>& NodeArra
 	}
 }
 
-UObject* UnFbx::CFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray<KFbxNode*>& NodeArray, const FName& Name, EObjectFlags Flags, FString Filename, TArray<KFbxShape*> *FbxShapeArray, FSkelMeshOptionalImportData *OptionalImportData, FSkeletalMeshBinaryImport* OutData, UBOOL bCreateRenderData )
+UObject* UnFbx::CFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray<fbx::FbxNode*>& NodeArray, const FName& Name, EObjectFlags Flags, FString Filename, TArray<fbx::FbxShape*> *FbxShapeArray, FSkelMeshOptionalImportData *OptionalImportData, FSkeletalMeshBinaryImport* OutData, UBOOL bCreateRenderData )
 {
 	if (NodeArray.Num() == 0)
 	{
@@ -969,16 +969,16 @@ UObject* UnFbx::CFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray<KFbxN
 
 	INT SkelType = 0; // 0 for skeletal mesh, 1 for rigid mesh
 	
-	KFbxNode* Node = NodeArray(0);
+	fbx::FbxNode* Node = NodeArray(0);
 	// find the mesh by its name
-	KFbxMesh* FbxMesh = Node->GetMesh();
+	fbx::FbxMesh* FbxMesh = Node->GetMesh();
 
 #if BATMAN
 	// BM2 skeletal LODs use a 16-bit index buffer, so the whole mesh must fit in MAXWORD verts
 	INT TotalControlPoints = 0;
 	for( INT i = 0; i < NodeArray.Num(); i++ )
 	{
-		KFbxMesh* NodeMesh = NodeArray(i)->GetMesh();
+		fbx::FbxMesh* NodeMesh = NodeArray(i)->GetMesh();
 		if( NodeMesh )
 		{
 			TotalControlPoints += NodeMesh->GetControlPointsCount();
@@ -997,7 +997,7 @@ UObject* UnFbx::CFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray<KFbxN
 		warnf(TEXT("Fbx node: '%s' is not a valid skeletal mesh"), ANSI_TO_TCHAR(Node->GetName()));
 		return NULL;
 	}
-	if (FbxMesh->GetDeformerCount(KFbxDeformer::eSKIN) == 0)
+	if (FbxMesh->GetDeformerCount(fbx::FbxDeformer::eSkin) == 0)
 	{
 		SkelType = 1;
 	}
@@ -1043,7 +1043,7 @@ UObject* UnFbx::CFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray<KFbxN
 		SkelMeshImporterPtr = OutData;
 	}
 
-	TArray<KFbxNode*> SortedLinkArray;
+	TArray<fbx::FbxNode*> SortedLinkArray;
 	
 	// Get all FBX material names here, 
 	// then we can set material index mapping correctly in FillSkelMeshImporterFromFbx() even if we do not import FBX materials
@@ -1056,8 +1056,8 @@ UObject* UnFbx::CFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray<KFbxN
 	{
 		Node = NodeArray(i);
 		FbxMesh = Node->GetMesh();
-		KFbxSkin* FbxSkin = (KFbxSkin*)FbxMesh->GetDeformer(0);
-		KFbxShape* FbxShape = NULL;
+		fbx::FbxSkin* FbxSkin = (fbx::FbxSkin*)FbxMesh->GetDeformer(0);
+		fbx::FbxShape* FbxShape = NULL;
 		if (FbxShapeArray)
 		{
 			FbxShape = (*FbxShapeArray)(i);
@@ -1168,13 +1168,16 @@ UObject* UnFbx::CFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray<KFbxN
 	FStaticLODModel& LODModel = SkeletalMesh->LODModels(0);
 	
 	// Pass the number of texture coordinate sets to the LODModel
-	LODModel.NumTexCoords = SkelMeshImporterPtr->NumTexCoords;
-	Clamp<UINT>(LODModel.NumTexCoords, 1, MAX_TEXCOORDS);
+	LODModel.NumTexCoords = Clamp<UINT>(SkelMeshImporterPtr->NumTexCoords, 1, MAX_TEXCOORDS);
 
 	if( bCreateRenderData )
 	{
 		// Create actual rendering data.
-		SkeletalMesh->CreateSkinningStreams(LODInfluences,LODWedges,LODFaces,LODPoints,ExtraInfluenceDataPtr);
+		if( !SkeletalMesh->CreateSkinningStreams(LODInfluences,LODWedges,LODFaces,LODPoints,ExtraInfluenceDataPtr) )
+		{
+			SkeletalMesh->MarkPendingKill();
+			return NULL;
+		}
 		SkeletalMesh->CalculateRequiredBones(0);
 
 		// Presize the per-section shadow casting array with the number of sections in the imported LOD.
@@ -1240,7 +1243,7 @@ UObject* UnFbx::CFbxImporter::ReimportSkeletalMesh(USkeletalMesh* Mesh)
 {
 	char MeshName[1024];
 	appStrcpy(MeshName,1024,TCHAR_TO_ANSI(*Mesh->GetName()));
-	TArray<KFbxNode*>* FbxNodes = NULL;
+	TArray<fbx::FbxNode*>* FbxNodes = NULL;
 	UObject* NewMesh = NULL;
 
 	// support to update rigid animation mesh
@@ -1248,7 +1251,7 @@ UObject* UnFbx::CFbxImporter::ReimportSkeletalMesh(USkeletalMesh* Mesh)
 
 	// get meshes in Fbx file
 	//the function also fill the collision models, so we can update collision models correctly
-	TArray< TArray<KFbxNode*>* > FbxSkelMeshArray;
+	TArray< TArray<fbx::FbxNode*>* > FbxSkelMeshArray;
 	FillFbxSkelMeshArrayInScene(FbxScene->GetRootNode(), FbxSkelMeshArray, FALSE);
 
 	// if there is only one mesh, use it without name checking 
@@ -1320,8 +1323,8 @@ UObject* UnFbx::CFbxImporter::ReimportSkeletalMesh(USkeletalMesh* Mesh)
 		INT MaxLODLevel = 1;
 		for (INT j = 0; j < (*FbxNodes).Num(); j++)
 		{
-			KFbxNode* Node = (*FbxNodes)(j);
-			if (Node->GetNodeAttribute() && Node->GetNodeAttribute()->GetAttributeType() == KFbxNodeAttribute::eLODGROUP)
+			fbx::FbxNode* Node = (*FbxNodes)(j);
+			if (Node->GetNodeAttribute() && Node->GetNodeAttribute()->GetAttributeType() == fbx::FbxNodeAttribute::eLODGroup)
 			{
 				// get max LODgroup level
 				if (MaxLODLevel < Node->GetChildCount())
@@ -1334,11 +1337,11 @@ UObject* UnFbx::CFbxImporter::ReimportSkeletalMesh(USkeletalMesh* Mesh)
 		INT LODIndex;
 		for (LODIndex = 0; LODIndex < MaxLODLevel; LODIndex++)
 		{
-			TArray<KFbxNode*> SkelMeshNodeArray;
+			TArray<fbx::FbxNode*> SkelMeshNodeArray;
 			for (INT j = 0; j < (*FbxNodes).Num(); j++)
 			{
-				KFbxNode* Node = (*FbxNodes)(j);
-				if (Node->GetNodeAttribute() && Node->GetNodeAttribute()->GetAttributeType() == KFbxNodeAttribute::eLODGROUP)
+				fbx::FbxNode* Node = (*FbxNodes)(j);
+				if (Node->GetNodeAttribute() && Node->GetNodeAttribute()->GetAttributeType() == fbx::FbxNodeAttribute::eLODGroup)
 				{
 					if (Node->GetChildCount() > LODIndex)
 					{
@@ -1389,8 +1392,8 @@ UObject* UnFbx::CFbxImporter::ReimportSkeletalMesh(USkeletalMesh* Mesh)
 
 void UnFbx::CFbxImporter::ImportAlterWeightSkelMesh(FSkeletalMeshBinaryImport& OutRawMeshInfluencesData)
 {
-	TArray< TArray<KFbxNode*>* > SkelMeshArray;
-	TArray<KFbxNode*> Nodes;
+	TArray< TArray<fbx::FbxNode*>* > SkelMeshArray;
+	TArray<fbx::FbxNode*> Nodes;
 
 	FillFbxSkelMeshArrayInScene(FbxScene->GetRootNode(), SkelMeshArray, TRUE);
 	
@@ -1405,16 +1408,16 @@ void UnFbx::CFbxImporter::ImportAlterWeightSkelMesh(FSkeletalMeshBinaryImport& O
 			appMsgf( AMT_OK, *LocalizeUnrealEd("Prompt_FirstOneFbxMeshUsed") );
 		}
 		
-		KFbxNode* Node;
-		KFbxMesh* FbxMesh;
-		KFbxSkin* FbxSkin;
+		fbx::FbxNode* Node;
+		fbx::FbxMesh* FbxMesh;
+		fbx::FbxSkin* FbxSkin;
 		
 		Nodes = *SkelMeshArray(0);
 		
 		TArray<const char*> FbxMatList;
 		ImportMaterialsForSkelMesh(Nodes, OutRawMeshInfluencesData, FbxMatList);
 
-		TArray<KFbxNode*> SortedLinkArray;
+		TArray<fbx::FbxNode*> SortedLinkArray;
 
 		ImportBone(Nodes, OutRawMeshInfluencesData, SortedLinkArray);
 	
@@ -1422,7 +1425,7 @@ void UnFbx::CFbxImporter::ImportAlterWeightSkelMesh(FSkeletalMeshBinaryImport& O
 		{
 			Node = Nodes(i);
 			FbxMesh = Node->GetMesh();
-			FbxSkin = (KFbxSkin*)FbxMesh->GetDeformer(0);
+			FbxSkin = (fbx::FbxSkin*)FbxMesh->GetDeformer(0);
 			FillSkelMeshImporterFromFbx(OutRawMeshInfluencesData,FbxMesh, FbxSkin, NULL, SortedLinkArray, FbxMatList);
 		}
 		
@@ -1535,16 +1538,16 @@ void UnFbx::CFbxImporter::SetMaterialSkinXXOrder(FSkeletalMeshBinaryImport& Skel
 	}
 }
 
-UBOOL UnFbx::CFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshBinaryImport& SkelMeshImporter, KFbxMesh* FbxMesh, KFbxSkin* FbxSkin, KFbxShape* FbxShape, TArray<KFbxNode*> &SortedLinks,  TArray<const char *>& FbxMatList)
+UBOOL UnFbx::CFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshBinaryImport& SkelMeshImporter, fbx::FbxMesh* FbxMesh, fbx::FbxSkin* FbxSkin, fbx::FbxShape* FbxShape, TArray<fbx::FbxNode*> &SortedLinks,  TArray<const char *>& FbxMatList)
 {
 
-	KFbxNode* Node = FbxMesh->GetNode();
+	fbx::FbxNode* Node = FbxMesh->GetNode();
 
 	//remove the bad polygons before getting any data from mesh
 	FbxMesh->RemoveBadPolygons();
 
 	//Get the base layer of the mesh
-	KFbxLayer* BaseLayer = FbxMesh->GetLayer(0);
+	fbx::FbxLayer* BaseLayer = FbxMesh->GetLayer(0);
 	if (BaseLayer == NULL)
 	{
 		warnf(NAME_Error,TEXT("There is no geometry information in mesh"),ANSI_TO_TCHAR(FbxMesh->GetName()));
@@ -1565,14 +1568,14 @@ UBOOL UnFbx::CFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshBinaryImpor
 		INT UVLayerIndex;
 		for (UVLayerIndex = 0; UVLayerIndex<LayerCount; UVLayerIndex++)
 		{
-			KFbxLayer* lLayer = FbxMesh->GetLayer(UVLayerIndex);
+			fbx::FbxLayer* lLayer = FbxMesh->GetLayer(UVLayerIndex);
 			int UVSetCount = lLayer->GetUVSetCount();
 			if(UVSetCount)
 			{
-				KArrayTemplate<KFbxLayerElementUV const*> EleUVs = lLayer->GetUVSets();
+				fbx::FbxArray<fbx::FbxLayerElementUV const*> EleUVs = lLayer->GetUVSets();
 				for (int UVIndex = 0; UVIndex<UVSetCount; UVIndex++)
 				{
-					KFbxLayerElementUV const* ElementUV = EleUVs[UVIndex];
+					fbx::FbxLayerElementUV const* ElementUV = EleUVs[UVIndex];
 					if (ElementUV)
 					{
 						const char* UVSetName = ElementUV->GetName();
@@ -1597,7 +1600,7 @@ UBOOL UnFbx::CFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshBinaryImpor
 
 	for (INT MaterialIndex=0; MaterialIndex < MaterialCount; ++MaterialIndex)
 	{
-		KFbxSurfaceMaterial *FbxMaterial = Node->GetMaterial(MaterialIndex);
+		fbx::FbxSurfaceMaterial *FbxMaterial = Node->GetMaterial(MaterialIndex);
 
 		// create unreal materials here because we get UVset data now
 		if (ImportOptions->bImportMaterials)
@@ -1619,8 +1622,7 @@ UBOOL UnFbx::CFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshBinaryImpor
 		}
 	}
 
-	// Must do this before triangulating the mesh due to an FBX bug in TriangulateMeshAdvance
-	INT LayerSmoothingCount = FbxMesh->GetLayerCount(KFbxLayerElement::eSMOOTHING);
+	INT LayerSmoothingCount = FbxMesh->GetLayerCount(fbx::FbxLayerElement::eSmoothing);
 	for(INT i = 0; i < LayerSmoothingCount; i++)
 	{
 		FbxGeometryConverter->ComputePolygonSmoothingFromEdgeSmoothing (FbxMesh, i);
@@ -1629,37 +1631,34 @@ UBOOL UnFbx::CFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshBinaryImpor
 	//
 	// Convert data format to unreal-compatible
 	//
-	UBOOL bDestroyMesh = FALSE;
 	if (!FbxMesh->IsTriangleMesh())
 	{
 		warnf(NAME_Log,TEXT("Triangulating skeletal mesh %s"), ANSI_TO_TCHAR(Node->GetName()));
-		bool bSuccess;
-		FbxMesh = FbxGeometryConverter->TriangulateMeshAdvance(FbxMesh, bSuccess); // not in place ! the old mesh is still there
-		if (FbxMesh == NULL)
+		fbx::FbxNodeAttribute* Triangulated = FbxGeometryConverter->Triangulate(FbxMesh, true);
+		if (Triangulated == NULL || Triangulated->GetAttributeType() != fbx::FbxNodeAttribute::eMesh)
 		{
 			warnf(NAME_Error,TEXT("Unable to triangulate mesh"));
 			return FALSE;
 		}
-		// this gets deleted at the end of the import
-		bDestroyMesh = TRUE;
+		FbxMesh = (fbx::FbxMesh*)Triangulated;
 	}
 	
 	// renew the base layer
 	BaseLayer = FbxMesh->GetLayer(0);
-	FbxSkin = (KFbxSkin*)FbxMesh->GetDeformer(0);
+	FbxSkin = (fbx::FbxSkin*)FbxMesh->GetDeformer(0);
 
 	//
 	//	store the UVs in arrays for fast access in the later looping of triangles 
 	//
 	UINT UniqueUVCount = UVSets.Num();
-	KFbxLayerElementUV** LayerElementUV = NULL;
-	KFbxLayerElement::EReferenceMode* UVReferenceMode = NULL;
-	KFbxLayerElement::EMappingMode* UVMappingMode = NULL;
+	fbx::FbxLayerElementUV** LayerElementUV = NULL;
+	fbx::FbxLayerElement::EReferenceMode* UVReferenceMode = NULL;
+	fbx::FbxLayerElement::EMappingMode* UVMappingMode = NULL;
 	if (UniqueUVCount > 0)
 	{
-		LayerElementUV = new KFbxLayerElementUV*[UniqueUVCount];
-		UVReferenceMode = new KFbxLayerElement::EReferenceMode[UniqueUVCount];
-		UVMappingMode = new KFbxLayerElement::EMappingMode[UniqueUVCount];
+		LayerElementUV = new fbx::FbxLayerElementUV*[UniqueUVCount];
+		UVReferenceMode = new fbx::FbxLayerElement::EReferenceMode[UniqueUVCount];
+		UVMappingMode = new fbx::FbxLayerElement::EMappingMode[UniqueUVCount];
 	}
 	else
 	{
@@ -1673,21 +1672,21 @@ UBOOL UnFbx::CFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshBinaryImpor
 		LayerElementUV[UVIndex] = NULL;
 		for (INT UVLayerIndex = 0; !bFoundUV && UVLayerIndex<LayerCount; UVLayerIndex++)
 		{
-			KFbxLayer* lLayer = FbxMesh->GetLayer(UVLayerIndex);
+			fbx::FbxLayer* lLayer = FbxMesh->GetLayer(UVLayerIndex);
 			int UVSetCount = lLayer->GetUVSetCount();
 			if(UVSetCount)
 			{
-				KArrayTemplate<KFbxLayerElementUV const*> EleUVs = lLayer->GetUVSets();
+				fbx::FbxArray<fbx::FbxLayerElementUV const*> EleUVs = lLayer->GetUVSets();
 				for (int FbxUVIndex = 0; FbxUVIndex<UVSetCount; FbxUVIndex++)
 				{
-					KFbxLayerElementUV const* ElementUV = EleUVs[FbxUVIndex];
+					fbx::FbxLayerElementUV const* ElementUV = EleUVs[FbxUVIndex];
 					if (ElementUV)
 					{
 						const char* UVSetName = ElementUV->GetName();
 						FString LocalUVSetName = ANSI_TO_TCHAR(UVSetName);
 						if (LocalUVSetName == UVSets(UVIndex))
 						{
-							LayerElementUV[UVIndex] = const_cast<KFbxLayerElementUV*>(ElementUV);
+							LayerElementUV[UVIndex] = const_cast<fbx::FbxLayerElementUV*>(ElementUV);
 							UVReferenceMode[UVIndex] = LayerElementUV[FbxUVIndex]->GetReferenceMode();
 							UVMappingMode[UVIndex] = LayerElementUV[FbxUVIndex]->GetMappingMode();
 							break;
@@ -1703,12 +1702,21 @@ UBOOL UnFbx::CFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshBinaryImpor
 	//
 	UBOOL bSmoothingAvailable = FALSE;
 
-	KFbxLayerElementSmoothing const* SmoothingInfo = BaseLayer->GetSmoothing();
-	KFbxLayerElement::EReferenceMode SmoothingReferenceMode(KFbxLayerElement::eDIRECT);
-	KFbxLayerElement::EMappingMode SmoothingMappingMode(KFbxLayerElement::eBY_EDGE);
+	fbx::FbxLayerElementSmoothing const* SmoothingInfo = BaseLayer->GetSmoothing();
+	fbx::FbxLayerElement::EReferenceMode SmoothingReferenceMode(fbx::FbxLayerElement::eDirect);
+	fbx::FbxLayerElement::EMappingMode SmoothingMappingMode(fbx::FbxLayerElement::eByEdge);
+
+	if (!SmoothingInfo && BaseLayer->GetNormals())
+	{
+		if (FbxGeometryConverter->ComputeEdgeSmoothingFromNormals(FbxMesh))
+		{
+			SmoothingInfo = BaseLayer->GetSmoothing();
+		}
+	}
+
 	if (SmoothingInfo)
 	{
- 		if( SmoothingInfo->GetMappingMode() == KFbxLayerElement::eBY_EDGE )
+ 		if( SmoothingInfo->GetMappingMode() == fbx::FbxLayerElement::eByEdge )
 		{
 			if (!FbxGeometryConverter->ComputePolygonSmoothingFromEdgeSmoothing(FbxMesh))
 			{
@@ -1717,7 +1725,7 @@ UBOOL UnFbx::CFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshBinaryImpor
 			}
 		}
 
-		if( SmoothingInfo->GetMappingMode() == KFbxLayerElement::eBY_POLYGON )
+		if( SmoothingInfo->GetMappingMode() == fbx::FbxLayerElement::eByPolygon )
 		{
 			bSmoothingAvailable = TRUE;
 		}
@@ -1731,9 +1739,9 @@ UBOOL UnFbx::CFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshBinaryImpor
 	//
 	//	get the "material index" layer
 	//
-	KFbxLayerElementMaterial* LayerElementMaterial = BaseLayer->GetMaterials();
-	KFbxLayerElement::EMappingMode MaterialMappingMode = LayerElementMaterial ? 
-		LayerElementMaterial->GetMappingMode() : KFbxLayerElement::eBY_POLYGON;
+	fbx::FbxLayerElementMaterial* LayerElementMaterial = BaseLayer->GetMaterials();
+	fbx::FbxLayerElement::EMappingMode MaterialMappingMode = LayerElementMaterial ? 
+		LayerElementMaterial->GetMappingMode() : fbx::FbxLayerElement::eByPolygon;
 
 	UniqueUVCount = Min<UINT>( UniqueUVCount, MAX_TEXCOORDS );
 
@@ -1746,9 +1754,9 @@ UBOOL UnFbx::CFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshBinaryImpor
 	//
 	// get the first vertex color layer
 	//
-	KFbxLayerElementVertexColor* LayerElementVertexColor = BaseLayer->GetVertexColors();
-	KFbxLayerElement::EReferenceMode VertexColorReferenceMode(KFbxLayerElement::eDIRECT);
-	KFbxLayerElement::EMappingMode VertexColorMappingMode(KFbxLayerElement::eBY_CONTROL_POINT);
+	fbx::FbxLayerElementVertexColor* LayerElementVertexColor = BaseLayer->GetVertexColors();
+	fbx::FbxLayerElement::EReferenceMode VertexColorReferenceMode(fbx::FbxLayerElement::eDirect);
+	fbx::FbxLayerElement::EMappingMode VertexColorMappingMode(fbx::FbxLayerElement::eByControlPoint);
 	if (LayerElementVertexColor)
 	{
 		VertexColorReferenceMode = LayerElementVertexColor->GetReferenceMode();
@@ -1759,23 +1767,23 @@ UBOOL UnFbx::CFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshBinaryImpor
 	//
 	// get the first normal layer
 	//
-	KFbxLayerElementNormal* LayerElementNormal = BaseLayer->GetNormals();
-	KFbxLayerElementTangent* LayerElementTangent = BaseLayer->GetTangents();
-	KFbxLayerElementBinormal* LayerElementBinormal = BaseLayer->GetBinormals();
+	fbx::FbxLayerElementNormal* LayerElementNormal = BaseLayer->GetNormals();
+	fbx::FbxLayerElementTangent* LayerElementTangent = BaseLayer->GetTangents();
+	fbx::FbxLayerElementBinormal* LayerElementBinormal = BaseLayer->GetBinormals();
 
 	//whether there is normal, tangent and binormal data in this mesh
 	UBOOL bHasNTBInformation = LayerElementNormal && LayerElementTangent && LayerElementBinormal;
 
-	KFbxLayerElement::EReferenceMode NormalReferenceMode(KFbxLayerElement::eDIRECT);
-	KFbxLayerElement::EMappingMode NormalMappingMode(KFbxLayerElement::eBY_CONTROL_POINT);
+	fbx::FbxLayerElement::EReferenceMode NormalReferenceMode(fbx::FbxLayerElement::eDirect);
+	fbx::FbxLayerElement::EMappingMode NormalMappingMode(fbx::FbxLayerElement::eByControlPoint);
 	if (LayerElementNormal)
 	{
 		NormalReferenceMode = LayerElementNormal->GetReferenceMode();
 		NormalMappingMode = LayerElementNormal->GetMappingMode();
 	}
 
-	KFbxLayerElement::EReferenceMode TangentReferenceMode(KFbxLayerElement::eDIRECT);
-	KFbxLayerElement::EMappingMode TangentMappingMode(KFbxLayerElement::eBY_CONTROL_POINT);
+	fbx::FbxLayerElement::EReferenceMode TangentReferenceMode(fbx::FbxLayerElement::eDirect);
+	fbx::FbxLayerElement::EMappingMode TangentMappingMode(fbx::FbxLayerElement::eByControlPoint);
 	if (LayerElementTangent)
 	{
 		TangentReferenceMode = LayerElementTangent->GetReferenceMode();
@@ -1790,22 +1798,22 @@ UBOOL UnFbx::CFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshBinaryImpor
 	SkelMeshImporter.Points.Add(ControlPointsCount);
 
 	// Construct the matrices for the conversion from right handed to left handed system
-	KFbxXMatrix TotalMatrix;
-	KFbxXMatrix TotalMatrixForNormal;
+	fbx::FbxAMatrix TotalMatrix;
+	fbx::FbxAMatrix TotalMatrixForNormal;
 	TotalMatrix = ComputeTotalMatrix(Node);
 	TotalMatrixForNormal = TotalMatrix.Inverse();
 	TotalMatrixForNormal = TotalMatrixForNormal.Transpose();
 
-	KFbxXMatrix LeftToRightMatrix;
-	KFbxXMatrix LeftToRightMatrixForNormal;
-	LeftToRightMatrix.SetS(KFbxVector4(1.0, -1.0, 1.0));
+	fbx::FbxAMatrix LeftToRightMatrix;
+	fbx::FbxAMatrix LeftToRightMatrixForNormal;
+	LeftToRightMatrix.SetS(fbx::FbxVector4(1.0, -1.0, 1.0));
 	LeftToRightMatrixForNormal = LeftToRightMatrix.Inverse();
 	LeftToRightMatrixForNormal = LeftToRightMatrixForNormal.Transpose();
 
 	INT ControlPointsIndex;
 	for( ControlPointsIndex = 0 ; ControlPointsIndex < ControlPointsCount ;ControlPointsIndex++ )
 	{
-		KFbxVector4 FbxPosition;
+		fbx::FbxVector4 FbxPosition;
 		if (FbxShape)
 		{
 			FbxPosition = FbxShape->GetControlPoints()[ControlPointsIndex];
@@ -1814,7 +1822,7 @@ UBOOL UnFbx::CFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshBinaryImpor
 		{
 			FbxPosition = FbxMesh->GetControlPoints()[ControlPointsIndex];
 		}																	 
-		KFbxVector4 FinalPosition;
+		fbx::FbxVector4 FinalPosition;
 		FinalPosition = TotalMatrix.MultT(FbxPosition);
 		SkelMeshImporter.Points(ControlPointsIndex+ExistPointNum) = Converter.ConvertPos(FinalPosition);
 	}
@@ -1845,9 +1853,9 @@ UBOOL UnFbx::CFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshBinaryImpor
 		{
 			if (SmoothingInfo)
 			{
-				if (SmoothingMappingMode == KFbxLayerElement::eBY_POLYGON)
+				if (SmoothingMappingMode == fbx::FbxLayerElement::eByPolygon)
 				{
-					int lSmoothingIndex = (SmoothingReferenceMode == KFbxLayerElement::eDIRECT) ? LocalIndex : SmoothingInfo->GetIndexArray().GetAt(LocalIndex);
+					int lSmoothingIndex = (SmoothingReferenceMode == fbx::FbxLayerElement::eDirect) ? LocalIndex : SmoothingInfo->GetIndexArray().GetAt(LocalIndex);
 					Triangle.SmoothingGroups = SmoothingInfo->GetDirectArray().GetAt(lSmoothingIndex);
 				}
 				else
@@ -1867,15 +1875,15 @@ UBOOL UnFbx::CFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshBinaryImpor
 			{
 				int TmpIndex = LocalIndex*3 + VertexIndex;
 				//normals may have different reference and mapping mode than tangents and binormals
-				int NormalMapIndex = (NormalMappingMode == KFbxLayerElement::eBY_CONTROL_POINT) ? 
+				int NormalMapIndex = (NormalMappingMode == fbx::FbxLayerElement::eByControlPoint) ? 
 										ControlPointIndex : TmpIndex;
-				int NormalValueIndex = (NormalReferenceMode == KFbxLayerElement::eDIRECT) ? 
+				int NormalValueIndex = (NormalReferenceMode == fbx::FbxLayerElement::eDirect) ? 
 										NormalMapIndex : LayerElementNormal->GetIndexArray().GetAt(NormalMapIndex);
 
 				//tangents and binormals share the same reference, mapping mode and index array
 				int TangentMapIndex = TmpIndex;
 
-				KFbxVector4 TempValue = LayerElementTangent->GetDirectArray().GetAt(TangentMapIndex);
+				fbx::FbxVector4 TempValue = LayerElementTangent->GetDirectArray().GetAt(TangentMapIndex);
 				TempValue = TotalMatrixForNormal.MultT(TempValue);
 				TempValue = LeftToRightMatrixForNormal.MultT(TempValue);
 				Triangle.TangentX[ VertexIndex ] = Converter.ConvertDir(TempValue);
@@ -1913,12 +1921,12 @@ UBOOL UnFbx::CFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshBinaryImpor
 				switch(MaterialMappingMode)
 				{
 				// material index is stored in the IndexArray, not the DirectArray (which is irrelevant with 2009.1)
-				case KFbxLayerElement::eALL_SAME:
+				case fbx::FbxLayerElement::eAllSame:
 					{	
 						Triangle.MatIndex = MaterialMapping(LayerElementMaterial->GetIndexArray().GetAt(0));
 					}
 					break;
-				case KFbxLayerElement::eBY_POLYGON:
+				case fbx::FbxLayerElement::eByPolygon:
 					{	
 						Triangle.MatIndex = MaterialMapping(LayerElementMaterial->GetIndexArray().GetAt(LocalIndex));
 					}
@@ -1956,11 +1964,11 @@ UBOOL UnFbx::CFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshBinaryImpor
 				for (VertexIndex=0;VertexIndex<3;VertexIndex++)
 				{
 					int lControlPointIndex = FbxMesh->GetPolygonVertex(LocalIndex, VertexIndex);
-					int UVMapIndex = (UVMappingMode[UVLayerIndex] == KFbxLayerElement::eBY_CONTROL_POINT) ? 
+					int UVMapIndex = (UVMappingMode[UVLayerIndex] == fbx::FbxLayerElement::eByControlPoint) ? 
 							lControlPointIndex : LocalIndex*3+VertexIndex;
-					INT UVIndex = (UVReferenceMode[UVLayerIndex] == KFbxLayerElement::eDIRECT) ? 
+					INT UVIndex = (UVReferenceMode[UVLayerIndex] == fbx::FbxLayerElement::eDirect) ? 
 							UVMapIndex : LayerElementUV[UVLayerIndex]->GetIndexArray().GetAt(UVMapIndex);
-					KFbxVector2	UVVector = LayerElementUV[UVLayerIndex]->GetDirectArray().GetAt(UVIndex);
+					fbx::FbxVector2	UVVector = LayerElementUV[UVLayerIndex]->GetDirectArray().GetAt(UVIndex);
 
 					TmpWedges[VertexIndex].UVs[ UVLayerIndex ].X = static_cast<float>(UVVector[0]);
 					TmpWedges[VertexIndex].UVs[ UVLayerIndex ].Y = 1.f - static_cast<float>(UVVector[1]);
@@ -1980,12 +1988,12 @@ UBOOL UnFbx::CFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshBinaryImpor
 		{
 			switch(VertexColorMappingMode)
 			{
-			case KFbxLayerElement::eBY_CONTROL_POINT:
+			case fbx::FbxLayerElement::eByControlPoint:
 				{
 					INT VertexIndex;
 					for (VertexIndex=0;VertexIndex<3;VertexIndex++)
 					{
-						KFbxColor VertexColor = (VertexColorReferenceMode == KFbxLayerElement::eDIRECT)
+						fbx::FbxColor VertexColor = (VertexColorReferenceMode == fbx::FbxLayerElement::eDirect)
 							?	LayerElementVertexColor->GetDirectArray().GetAt(FbxMesh->GetPolygonVertex(LocalIndex,VertexIndex))
 							:	LayerElementVertexColor->GetDirectArray().GetAt(LayerElementVertexColor->GetIndexArray().GetAt(FbxMesh->GetPolygonVertex(LocalIndex,VertexIndex)));
 
@@ -1996,12 +2004,12 @@ UBOOL UnFbx::CFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshBinaryImpor
 					}
 				}
 				break;
-			case KFbxLayerElement::eBY_POLYGON_VERTEX:
+			case fbx::FbxLayerElement::eByPolygonVertex:
 				{	
 					INT VertexIndex;
 					for (VertexIndex=0;VertexIndex<3;VertexIndex++)
 					{
-						KFbxColor VertexColor = (VertexColorReferenceMode == KFbxLayerElement::eDIRECT)
+						fbx::FbxColor VertexColor = (VertexColorReferenceMode == fbx::FbxLayerElement::eDirect)
 							?	LayerElementVertexColor->GetDirectArray().GetAt(LocalIndex*3+VertexIndex)
 							:	LayerElementVertexColor->GetDirectArray().GetAt(LayerElementVertexColor->GetIndexArray().GetAt(LocalIndex*3+VertexIndex));
 
@@ -2051,16 +2059,16 @@ UBOOL UnFbx::CFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshBinaryImpor
 		INT ClusterIndex;
 		for (ClusterIndex=0; ClusterIndex<FbxSkin->GetClusterCount(); ClusterIndex++)
 		{
-			KFbxCluster* Cluster = FbxSkin->GetCluster(ClusterIndex);
+			fbx::FbxCluster* Cluster = FbxSkin->GetCluster(ClusterIndex);
 			// When Maya plug-in exports rigid binding, it will generate "CompensationCluster" for each ancestor links.
 			// FBX writes these "CompensationCluster" out. The CompensationCluster also has weight 1 for vertices.
 			// Unreal importer should skip these clusters.
-			if(Cluster && Cluster->GetUserDataID () == "Maya_ClusterHint" && Cluster->GetUserData() == "CompensationCluster")
+			if(Cluster && appStrcmpANSI(Cluster->GetUserDataID(), "Maya_ClusterHint") == 0 && appStrcmpANSI(Cluster->GetUserData(), "CompensationCluster") == 0)
 			{
 				continue;
 			}
 			
-			KFbxNode* Link = Cluster->GetLink();
+			fbx::FbxNode* Link = Cluster->GetLink();
 			// find the bone index
 			INT BoneIndex = -1;
 			for (INT LinkIndex = 0; LinkIndex < SortedLinks.Num(); LinkIndex++)
@@ -2122,10 +2130,6 @@ UBOOL UnFbx::CFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshBinaryImpor
 	}
 	
 	
-	if (bDestroyMesh)
-	{
-		FbxMesh->Destroy(true);
-	}
 	
 	return TRUE;
 }
@@ -2361,14 +2365,14 @@ void UnFbx::CFbxImporter::ImportSkeletalMeshLOD(USkeletalMesh* InSkeletalMesh, U
 	for(TakeIndex = 0; TakeIndex < Takes.GetCount(); TakeIndex++)
 	{
 		// It's useless to parse the default animation because it is always empty.
-		if(Takes.GetAt(t)->Compare(KFBXTAKENODE_DEFAULT_NAME) == 0)
+		if(Takes.GetAt(t)->Compare(FBXSDK_TAKENODE_DEFAULT_NAME) == 0)
 		{
 			continue;
 		}
 
 		FbxScene->SetCurrentTake(m_takes.GetAt(t)->Buffer());
-		KTime StartTime(KTIME_INFINITE);
-		KTime EndTime(KTIME_MINUS_INFINITE);
+		fbx::FbxTime StartTime(fbx::FbxTime(FBXSDK_TC_INFINITY));
+		fbx::FbxTime EndTime(fbx::FbxTime(FBXSDK_TC_MINFINITY));
 		if (FbxScene->GetRootNode()->GetAnimationInterval(StartTime,EndTime))
 		{
 			USequence* KismetSequence = GetKismetSequence(GWorld->PersistentLevel);
@@ -2482,10 +2486,10 @@ private:
 
 };
 
-void UnFbx::CFbxImporter::ImportMorphTargetsInternal( TArray<KFbxNode*>& SkelMeshNodeArray, USkeletalMesh* BaseSkelMesh, UMorphTargetSet* MorphTargetSet, const FFilename& InFilename, INT LODIndex )
+void UnFbx::CFbxImporter::ImportMorphTargetsInternal( TArray<fbx::FbxNode*>& SkelMeshNodeArray, USkeletalMesh* BaseSkelMesh, UMorphTargetSet* MorphTargetSet, const FFilename& InFilename, INT LODIndex )
 {
-	KString ShapeNodeName;
-	TArray<KFbxShape*> FbxShapeArray;
+	fbx::FbxString ShapeNodeName;
+	TArray<fbx::FbxShape*> FbxShapeArray;
 	FbxShapeArray.Add(SkelMeshNodeArray.Num());
 
 	// Initialize the shape array.
@@ -2517,7 +2521,7 @@ void UnFbx::CFbxImporter::ImportMorphTargetsInternal( TArray<KFbxNode*>& SkelMes
 		{
 			FbxShapeArray(NodeIndex-1) = NULL;
 		}
-		KFbxGeometry* Geometry = (KFbxGeometry*)SkelMeshNodeArray(NodeIndex)->GetNodeAttribute();
+		fbx::FbxGeometry* Geometry = (fbx::FbxGeometry*)SkelMeshNodeArray(NodeIndex)->GetNodeAttribute();
 		if (Geometry)
 		{
 			LONG ShapeCount = Geometry->GetShapeCount();
@@ -2525,8 +2529,8 @@ void UnFbx::CFbxImporter::ImportMorphTargetsInternal( TArray<KFbxNode*>& SkelMes
 			{
 				for (INT ShapeIndex = 0; ShapeIndex < ShapeCount ; ShapeIndex++)
 				{
-					FbxShapeArray(NodeIndex) = Geometry->GetShape(ShapeIndex);
-					ShapeNodeName = Geometry->GetShapeName(ShapeIndex);
+					FbxShapeArray(NodeIndex) = GetGeometryShape(Geometry, ShapeIndex);
+					ShapeNodeName = GetGeometryShapeName(Geometry, ShapeIndex);
 
 					FString ShapeName = ANSI_TO_TCHAR(MakeName(ShapeNodeName.Buffer()));
 
@@ -2606,14 +2610,14 @@ void UnFbx::CFbxImporter::ImportMorphTargetsInternal( TArray<KFbxNode*>& SkelMes
 }	
 
 // Import Morph target
-void UnFbx::CFbxImporter::ImportFbxMorphTarget(TArray<KFbxNode*> &SkelMeshNodeArray, USkeletalMesh* BaseSkelMesh, const FFilename& Filename, INT LODIndex)
+void UnFbx::CFbxImporter::ImportFbxMorphTarget(TArray<fbx::FbxNode*> &SkelMeshNodeArray, USkeletalMesh* BaseSkelMesh, const FFilename& Filename, INT LODIndex)
 {
 	UBOOL bHasMorph = FALSE;
 	INT NodeIndex;
 	// check if there are morph in this geometry
 	for (NodeIndex = 0; NodeIndex < SkelMeshNodeArray.Num(); NodeIndex++)
 	{
-		KFbxGeometry* Geometry = (KFbxGeometry*)SkelMeshNodeArray(NodeIndex)->GetNodeAttribute();
+		fbx::FbxGeometry* Geometry = (fbx::FbxGeometry*)SkelMeshNodeArray(NodeIndex)->GetNodeAttribute();
 		if (Geometry)
 		{
 			bHasMorph = Geometry->GetShapeCount() > 0;

@@ -2685,9 +2685,9 @@ void WxStaticMeshEditor::OnGenerateUVs( wxCommandEvent& In )
 
 #if WITH_FBX
 /** Helper function used for retrieving data required for importing static mesh LODs */
-void PopulateFBXStaticMeshLODInfo(UnFbx::CFbxImporter* FbxImporter, KFbxNode* Node, TArray<KFbxNode*>& LODNodeList, INT& MaxLODCount, TArray<FString>& LODGroupNames, TArray<TArray<FString>*>& LODGroupStrings)
+void PopulateFBXStaticMeshLODInfo(UnFbx::CFbxImporter* FbxImporter, fbx::FbxNode* Node, TArray<fbx::FbxNode*>& LODNodeList, INT& MaxLODCount, TArray<FString>& LODGroupNames, TArray<TArray<FString>*>& LODGroupStrings)
 {
-	if (Node->GetNodeAttribute() && Node->GetNodeAttribute()->GetAttributeType() == KFbxNodeAttribute::eLODGROUP)
+	if (Node->GetNodeAttribute() && Node->GetNodeAttribute()->GetAttributeType() == fbx::FbxNodeAttribute::eLODGroup)
 	{
 		LODNodeList.AddItem(Node);
 
@@ -2783,7 +2783,7 @@ void WxStaticMeshEditor::OnImportMeshLOD( wxCommandEvent& In )
 					//Warn->Log( FbxImporter->GetErrorMessage() );
 
 					INT MaxLODLevel = 0;
-					TArray<KFbxNode*> LODNodeList;
+					TArray<fbx::FbxNode*> LODNodeList;
 					TArray<FString> LODGroupNames;
 					TArray<TArray<FString>*> LODGroupStrings;					
 					PopulateFBXStaticMeshLODInfo(FbxImporter, FbxImporter->FbxScene->GetRootNode(), LODNodeList, MaxLODLevel, LODGroupNames, LODGroupStrings);

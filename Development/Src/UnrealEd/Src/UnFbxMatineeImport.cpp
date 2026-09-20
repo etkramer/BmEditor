@@ -45,10 +45,10 @@ namespace UnFbx {
 /**
  * Retrieves whether there are any unknown camera instances within the FBX document that the camera is not in Unreal scene.
  */
-inline UBOOL _HasUnknownCameras( USeqAct_Interp* MatineeSequence, KFbxNode* FbxNode, const TCHAR* Name )
+inline UBOOL _HasUnknownCameras( USeqAct_Interp* MatineeSequence, fbx::FbxNode* FbxNode, const TCHAR* Name )
 {
-	KFbxNodeAttribute* Attr = FbxNode->GetNodeAttribute();
-	if (Attr && Attr->GetAttributeType() == KFbxNodeAttribute::eCAMERA)
+	fbx::FbxNodeAttribute* Attr = FbxNode->GetNodeAttribute();
+	if (Attr && Attr->GetAttributeType() == fbx::FbxNodeAttribute::eCamera)
 	{
 		// If we have a Matinee, try to name-match the node with a Matinee group name
 		if( MatineeSequence != NULL && MatineeSequence->InterpData != NULL )
@@ -92,11 +92,11 @@ UBOOL CFbxImporter::HasUnknownCameras( USeqAct_Interp* MatineeSequence ) const
 	}
 
 	// check recursively
-	KFbxNode* RootNode = FbxScene->GetRootNode();
+	fbx::FbxNode* RootNode = FbxScene->GetRootNode();
 	INT NodeCount = RootNode->GetChildCount();
 	for ( INT NodeIndex = 0; NodeIndex < NodeCount; ++NodeIndex )
 	{
-		KFbxNode* FbxNode = RootNode->GetChild(NodeIndex);
+		fbx::FbxNode* FbxNode = RootNode->GetChild(NodeIndex);
 		if ( _HasUnknownCameras( MatineeSequence, FbxNode, ANSI_TO_TCHAR(FbxNode->GetName()) ) )
 		{
 			return TRUE;
@@ -106,7 +106,7 @@ UBOOL CFbxImporter::HasUnknownCameras( USeqAct_Interp* MatineeSequence ) const
 		INT ChildNodeCount = FbxNode->GetChildCount();
 		for( INT ChildIndex = 0; ChildIndex < ChildNodeCount; ++ChildIndex )
 		{
-			KFbxNode* ChildNode = FbxNode->GetChild(ChildIndex);
+			fbx::FbxNode* ChildNode = FbxNode->GetChild(ChildIndex);
 			if( _HasUnknownCameras( MatineeSequence, ChildNode, ANSI_TO_TCHAR(ChildNode->GetName() ) ) )
 			{
 				return TRUE;
@@ -117,40 +117,40 @@ UBOOL CFbxImporter::HasUnknownCameras( USeqAct_Interp* MatineeSequence ) const
 	return FALSE;
 }
 
-UBOOL CFbxImporter::IsNodeAnimated(KFbxNode* FbxNode, KFbxAnimLayer* AnimLayer)
+UBOOL CFbxImporter::IsNodeAnimated(fbx::FbxNode* FbxNode, fbx::FbxAnimLayer* AnimLayer)
 {
 	if (!AnimLayer)
 	{
-		KFbxAnimStack* AnimStack = FbxScene->GetMember(FBX_TYPE(KFbxAnimStack), 0);
+		fbx::FbxAnimStack* AnimStack = FbxScene->GetMember<fbx::FbxAnimStack>(0);
 		if (!AnimStack) return FALSE;
 
-		AnimLayer = AnimStack->GetMember(FBX_TYPE(KFbxAnimLayer), 0);
+		AnimLayer = AnimStack->GetMember<fbx::FbxAnimLayer>(0);
 		if (AnimLayer == NULL) return FALSE;
 	}
 	
 	// verify that the node is animated.
 	UBOOL bIsAnimated = FALSE;
-	KTime Start, Stop;
+	fbx::FbxTimeSpan AnimInterval;
 
 	// translation animation
-	KFbxProperty TransProp = FbxNode->LclTranslation;
-	for (INT i = 0; i < TransProp.GetSrcObjectCount(FBX_TYPE(KFbxAnimCurveNode)); i++)
+	fbx::FbxProperty TransProp = FbxNode->LclTranslation;
+	for (INT i = 0; i < TransProp.GetSrcObjectCount<fbx::FbxAnimCurveNode>(); i++)
 	{
-		KFbxAnimCurveNode* CurveNode = KFbxCast<KFbxAnimCurveNode>(TransProp.GetSrcObject(KFbxAnimCurveNode::ClassId, i));
+		fbx::FbxAnimCurveNode* CurveNode = fbx::FbxCast<fbx::FbxAnimCurveNode>(TransProp.GetSrcObject<fbx::FbxAnimCurveNode>(i));
 		if (CurveNode && AnimLayer->IsConnectedSrcObject(CurveNode))
 		{
-			bIsAnimated |= (UBOOL)CurveNode->GetAnimationInterval(Start, Stop);
+			bIsAnimated |= (UBOOL)CurveNode->GetAnimationInterval(AnimInterval);
 			break;
 		}
 	}
 	// rotation animation
-	KFbxProperty RotProp = FbxNode->LclRotation;
-	for (INT i = 0; IsAnimated == FALSE && i < RotProp.GetSrcObjectCount(FBX_TYPE(KFbxAnimCurveNode)); i++)
+	fbx::FbxProperty RotProp = FbxNode->LclRotation;
+	for (INT i = 0; bIsAnimated == FALSE && i < RotProp.GetSrcObjectCount<fbx::FbxAnimCurveNode>(); i++)
 	{
-		KFbxAnimCurveNode* CurveNode = KFbxCast<KFbxAnimCurveNode>(RotProp.GetSrcObject(KFbxAnimCurveNode::ClassId, i));
+		fbx::FbxAnimCurveNode* CurveNode = fbx::FbxCast<fbx::FbxAnimCurveNode>(RotProp.GetSrcObject<fbx::FbxAnimCurveNode>(i));
 		if (CurveNode && AnimLayer->IsConnectedSrcObject(CurveNode))
 		{
-			bIsAnimated |= (UBOOL)CurveNode->GetAnimationInterval(Start, Stop);
+			bIsAnimated |= (UBOOL)CurveNode->GetAnimationInterval(AnimInterval);
 		}
 	}
 	
@@ -161,15 +161,15 @@ UBOOL CFbxImporter::IsNodeAnimated(KFbxNode* FbxNode, KFbxAnimLayer* AnimLayer)
  * Finds a camera in the passed in node or any child nodes 
  * @return NULL if the camera is not found, a valid pointer if it is
  */
-static KFbxCamera* FindCamera( KFbxNode* Parent )
+static fbx::FbxCamera* FindCamera( fbx::FbxNode* Parent )
 {
-	KFbxCamera* Camera = Parent->GetCamera();
+	fbx::FbxCamera* Camera = Parent->GetCamera();
 	if( !Camera )
 	{
 		INT NodeCount = Parent->GetChildCount();
 		for ( INT NodeIndex = 0; NodeIndex < NodeCount && !Camera; ++NodeIndex )
 		{
-			KFbxNode* Child = Parent->GetChild( NodeIndex );
+			fbx::FbxNode* Child = Parent->GetChild( NodeIndex );
 			Camera = Child->GetCamera();
 		}
 	}
@@ -182,12 +182,12 @@ void CFbxImporter::ImportMatineeSequence(USeqAct_Interp* MatineeSequence)
 	if (FbxScene == NULL || MatineeSequence == NULL) return;
 	
 	// merge animation layer at first
-	KFbxAnimStack* AnimStack = FbxScene->GetMember(FBX_TYPE(KFbxAnimStack), 0);
+	fbx::FbxAnimStack* AnimStack = FbxScene->GetMember<fbx::FbxAnimStack>(0);
 	if (!AnimStack) return;
 		
-	MergeAllLayerAnimation(AnimStack, KTime::GetFrameRate(FbxScene->GetGlobalSettings().GetTimeMode()));
+	MergeAllLayerAnimation(AnimStack, fbx::FbxTime::GetFrameRate(FbxScene->GetGlobalSettings().GetTimeMode()));
 
-	KFbxAnimLayer* AnimLayer = AnimStack->GetMember(FBX_TYPE(KFbxAnimLayer), 0);
+	fbx::FbxAnimLayer* AnimLayer = AnimStack->GetMember<fbx::FbxAnimLayer>(0);
 	if (AnimLayer == NULL) return;
 
 	// If the Matinee editor is not open, we need to initialize the sequence.
@@ -202,11 +202,11 @@ void CFbxImporter::ImportMatineeSequence(USeqAct_Interp* MatineeSequence)
 	UInterpData* MatineeData = MatineeSequence->InterpData;
 	FLOAT InterpLength = -1.0f;
 
-	KFbxNode* RootNode = FbxScene->GetRootNode();
+	fbx::FbxNode* RootNode = FbxScene->GetRootNode();
 	INT NodeCount = RootNode->GetChildCount();
 	for (INT NodeIndex = 0; NodeIndex < NodeCount; ++NodeIndex)
 	{
-		KFbxNode* FbxNode = RootNode->GetChild(NodeIndex);
+		fbx::FbxNode* FbxNode = RootNode->GetChild(NodeIndex);
 
 		AActor* Actor = NULL;
 
@@ -229,7 +229,7 @@ void CFbxImporter::ImportMatineeSequence(USeqAct_Interp* MatineeSequence)
 
 		if ( Actor == NULL || Actor->bDeleteMe )
 		{
-			KFbxCamera* CameraNode = FindCamera(FbxNode);
+			fbx::FbxCamera* CameraNode = FindCamera(FbxNode);
 			if ( bCreateUnknownCameras && CameraNode != NULL )
 			{
 				Actor = GWorld->SpawnActor( ACameraActor::StaticClass(), ANSI_TO_TCHAR(CameraNode->GetName()) );
@@ -260,10 +260,10 @@ void CFbxImporter::ImportMatineeSequence(USeqAct_Interp* MatineeSequence)
 		if (Actor->IsA(ACameraActor::StaticClass()))
 		{
 			// there is a pivot node between the FbxNode and node attribute
-			KFbxCamera* FbxCamera = NULL;
-			if ((KFbxNode*)FbxNode->GetChild(0))
+			fbx::FbxCamera* FbxCamera = NULL;
+			if ((fbx::FbxNode*)FbxNode->GetChild(0))
 			{
-				FbxCamera= ((KFbxNode*)FbxNode->GetChild(0))->GetCamera();
+				FbxCamera= ((fbx::FbxNode*)FbxNode->GetChild(0))->GetCamera();
 			}
 
 			if (FbxCamera)
@@ -292,11 +292,11 @@ void CFbxImporter::ImportMatineeSequence(USeqAct_Interp* MatineeSequence)
 	}
 }
 
-void CFbxImporter::ImportCamera(ACameraActor* Actor, UInterpGroupInst* MatineeGroup, KFbxCamera* FbxCamera)
+void CFbxImporter::ImportCamera(ACameraActor* Actor, UInterpGroupInst* MatineeGroup, fbx::FbxCamera* FbxCamera)
 {
 	// Get the real camera node that stores customed camera attributes
 	// Note: there is a pivot node between the Fbx camera Node and node attribute
-	KFbxNode* FbxCameraNode = FbxCamera->GetNode()->GetParent();
+	fbx::FbxNode* FbxCameraNode = FbxCamera->GetNode()->GetParent();
 	// Import the aspect ratio
 	Actor->AspectRatio = FbxCamera->FilmAspectRatio.Get(); // Assumes the FBX comes from Unreal or Maya
 	ImportAnimatedProperty(&Actor->AspectRatio, TEXT("AspectRatio"), MatineeGroup, 
@@ -322,23 +322,23 @@ void CFbxImporter::ImportCamera(ACameraActor* Actor, UInterpGroupInst* MatineeGr
 	}
 }
 
-void CFbxImporter::ImportAnimatedProperty(FLOAT* Value, const TCHAR* ValueName, UInterpGroupInst* MatineeGroup, const FLOAT FbxValue, KFbxProperty FbxProperty, UBOOL IsCameraFoV/*=FALSE*/)
+void CFbxImporter::ImportAnimatedProperty(FLOAT* Value, const TCHAR* ValueName, UInterpGroupInst* MatineeGroup, const FLOAT FbxValue, fbx::FbxProperty FbxProperty, UBOOL IsCameraFoV/*=FALSE*/)
 {
 	if (FbxScene == NULL || FbxProperty == NULL || Value == NULL || MatineeGroup == NULL) return;
 
 	// Retrieve the FBX animated element for this value and verify that it contains an animation curve.
-	if (!FbxProperty.IsValid() || !FbxProperty.GetFlag(KFbxProperty::eANIMATABLE))
+	if (!FbxProperty.IsValid() || !FbxProperty.GetFlag(fbx::FbxPropertyAttr::eAnimatable))
 	{
 		return;
 	}
 	
 	// verify the animation curve and it has valid key
-	KFbxAnimCurveNode* CurveNode = FbxProperty.GetCurveNode();
+	fbx::FbxAnimCurveNode* CurveNode = FbxProperty.GetCurveNode();
 	if (!CurveNode)
 	{
 		return;
 	}
-	KFbxAnimCurve* FbxCurve = CurveNode->GetCurve(0U);
+	fbx::FbxAnimCurve* FbxCurve = CurveNode->GetCurve(0U);
 	if (!FbxCurve || FbxCurve->KeyGetCount() <= 1)
 	{
 		return;
@@ -379,7 +379,7 @@ void CFbxImporter::ImportAnimatedProperty(FLOAT* Value, const TCHAR* ValueName, 
 	// for animation curve for all property in one track, they share time and interpolation mode in animation keys
 	for (INT KeyIndex = Curve.Points.Num(); KeyIndex < KeyCount; ++KeyIndex)
 	{
-		KFbxAnimCurveKey CurKey = FbxCurve->KeyGet(KeyIndex);
+		fbx::FbxAnimCurveKey CurKey = FbxCurve->KeyGet(KeyIndex);
 
 		// Create the curve keys
 		FInterpCurvePoint<FLOAT> Key;
@@ -394,7 +394,7 @@ void CFbxImporter::ImportAnimatedProperty(FLOAT* Value, const TCHAR* ValueName, 
 	// Fill in the curve keys with the correct data for this dimension.
 	for (INT KeyIndex = 0; KeyIndex < KeyCount; ++KeyIndex)
 	{
-		KFbxAnimCurveKey CurKey = FbxCurve->KeyGet(KeyIndex);
+		fbx::FbxAnimCurveKey CurKey = FbxCurve->KeyGet(KeyIndex);
 		FInterpCurvePoint<FLOAT>& UnrealKey = Curve.Points( KeyIndex );
 		
 		// Prepare the FBX values to import into the track key.
@@ -404,7 +404,7 @@ void CFbxImporter::ImportAnimatedProperty(FLOAT* Value, const TCHAR* ValueName, 
 		FLOAT LeaveTangent = 0.0f;
 
 		// Convert the Bezier control points, if available, into Hermite tangents
-		if( CurKey.GetInterpolation() == KFbxAnimCurveDef::eINTERPOLATION_CUBIC )
+		if( CurKey.GetInterpolation() == fbx::FbxAnimCurveDef::eInterpolationCubic )
 		{
 			FLOAT LeftTangent = FbxCurve->KeyGetLeftDerivative(KeyIndex);
 			FLOAT RightTangent = FbxCurve->KeyGetRightDerivative(KeyIndex);
@@ -483,7 +483,7 @@ UInterpGroupInst* CFbxImporter::CreateMatineeGroup(USeqAct_Interp* MatineeSequen
 /**
  * Imports a FBX scene node into a Matinee actor group.
  */
-FLOAT CFbxImporter::ImportMatineeActor(KFbxNode* FbxNode, UInterpGroupInst* MatineeGroup)
+FLOAT CFbxImporter::ImportMatineeActor(fbx::FbxNode* FbxNode, UInterpGroupInst* MatineeGroup)
 {
 	FName DefaultName(NAME_None);
 
@@ -506,12 +506,12 @@ FLOAT CFbxImporter::ImportMatineeActor(KFbxNode* FbxNode, UInterpGroupInst* Mati
 	// Bucket the transforms at the same time.
 	// The Matinee Movement track can take in a Translation vector
 	// and three animated Euler rotation angles.
-	KFbxAnimStack* AnimStack = FbxScene->GetMember(FBX_TYPE(KFbxAnimStack), 0);
+	fbx::FbxAnimStack* AnimStack = FbxScene->GetMember<fbx::FbxAnimStack>(0);
 	if (!AnimStack) return -1.0f;
 
-	MergeAllLayerAnimation(AnimStack, KTime::GetFrameRate(FbxScene->GetGlobalSettings().GetTimeMode()));
+	MergeAllLayerAnimation(AnimStack, fbx::FbxTime::GetFrameRate(FbxScene->GetGlobalSettings().GetTimeMode()));
 
-	KFbxAnimLayer* AnimLayer = AnimStack->GetMember(FBX_TYPE(KFbxAnimLayer), 0);
+	fbx::FbxAnimLayer* AnimLayer = AnimStack->GetMember<fbx::FbxAnimLayer>(0);
 	if (AnimLayer == NULL) return -1.0f;
 	
 	UBOOL bNodeAnimated = IsNodeAnimated(FbxNode, AnimLayer);
@@ -556,15 +556,15 @@ FLOAT CFbxImporter::ImportMatineeActor(KFbxNode* FbxNode, UInterpGroupInst* Mati
 	{
 		// Check: The position and rotation tracks must have the same number of keys, the same key timings and
 		// the same segment interpolation types.
-		KFbxAnimCurve *TransCurves[6], *RealCurves[6];
+		fbx::FbxAnimCurve *TransCurves[6], *RealCurves[6];
 		
-		TransCurves[0] = FbxNode->LclTranslation.GetCurve<KFbxAnimCurve>(AnimLayer, KFCURVENODE_T_X, true);
-		TransCurves[1] = FbxNode->LclTranslation.GetCurve<KFbxAnimCurve>(AnimLayer, KFCURVENODE_T_Y, true);
-		TransCurves[2] = FbxNode->LclTranslation.GetCurve<KFbxAnimCurve>(AnimLayer, KFCURVENODE_T_Z, true);
+		TransCurves[0] = FbxNode->LclTranslation.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_X, true);
+		TransCurves[1] = FbxNode->LclTranslation.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_Y, true);
+		TransCurves[2] = FbxNode->LclTranslation.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_Z, true);
 
-		TransCurves[3] = FbxNode->LclRotation.GetCurve<KFbxAnimCurve>(AnimLayer, KFCURVENODE_R_X, true);
-		TransCurves[4] = FbxNode->LclRotation.GetCurve<KFbxAnimCurve>(AnimLayer, KFCURVENODE_R_Y, true);
-		TransCurves[5] = FbxNode->LclRotation.GetCurve<KFbxAnimCurve>(AnimLayer, KFCURVENODE_R_Z, true);
+		TransCurves[3] = FbxNode->LclRotation.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_X, true);
+		TransCurves[4] = FbxNode->LclRotation.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_Y, true);
+		TransCurves[5] = FbxNode->LclRotation.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_Z, true);
 		// remove empty curves
 		INT CurveIndex;
 		INT RealCurveNum = 0;
@@ -592,9 +592,9 @@ FLOAT CFbxImporter::ImportMatineeActor(KFbxNode* FbxNode, UInterpGroupInst* Mati
 			// check key time for each key
 			for (INT KeyIndex = 0; !bResample && KeyIndex < KeyCount; KeyIndex++)
 			{
-				KTime KeyTime = RealCurves[0]->KeyGetTime(KeyIndex);
-				KFbxAnimCurveDef::EInterpolationType Interpolation = RealCurves[0]->KeyGetInterpolation(KeyIndex);
-				//KFbxAnimCurveDef::ETangentMode Tangent = RealCurves[0]->KeyGetTangentMode(KeyIndex);
+				fbx::FbxTime KeyTime = RealCurves[0]->KeyGetTime(KeyIndex);
+				fbx::FbxAnimCurveDef::EInterpolationType Interpolation = RealCurves[0]->KeyGetInterpolation(KeyIndex);
+				//fbx::FbxAnimCurveDef::ETangentMode Tangent = RealCurves[0]->KeyGetTangentMode(KeyIndex);
 				
 				for (CurveIndex = 1; CurveIndex < RealCurveNum; CurveIndex++)
 				{
@@ -611,7 +611,7 @@ FLOAT CFbxImporter::ImportMatineeActor(KFbxNode* FbxNode, UInterpGroupInst* Mati
 			if (bResample)
 			{
 				// Get the re-sample time span
-				KTime Start, Stop;
+				fbx::FbxTime Start, Stop;
 				Start = RealCurves[0]->KeyGetTime(0);
 				Stop = RealCurves[0]->KeyGetTime(RealCurves[0]->KeyGetCount() - 1);
 				for (CurveIndex = 1; CurveIndex < RealCurveNum; CurveIndex++)
@@ -628,8 +628,8 @@ FLOAT CFbxImporter::ImportMatineeActor(KFbxNode* FbxNode, UInterpGroupInst* Mati
 				}
 				
 				DOUBLE ResampleRate;
-				ResampleRate = KTime::GetFrameRate(FbxScene->GetGlobalSettings().GetTimeMode());
-				KTime FramePeriod;
+				ResampleRate = fbx::FbxTime::GetFrameRate(FbxScene->GetGlobalSettings().GetTimeMode());
+				fbx::FbxTime FramePeriod;
 				FramePeriod.SetSecondDouble(1.0 / ResampleRate);
 				
 				for (CurveIndex = 0; CurveIndex < 6; CurveIndex++)
@@ -644,7 +644,12 @@ FLOAT CFbxImporter::ImportMatineeActor(KFbxNode* FbxNode, UInterpGroupInst* Mati
 					}
 
 					// only re-sample from Start to Stop
-					KFCurveUtils::Resample(*TransCurves[CurveIndex]->GetKFCurve(), FramePeriod, Start, Stop, true);
+					fbx::FbxAnimCurveFilterResample ResampleFilter;
+					ResampleFilter.SetStartTime(Start);
+					ResampleFilter.SetStopTime(Stop);
+					ResampleFilter.SetPeriodTime(FramePeriod);
+					ResampleFilter.SetKeysOnFrame(true);
+					ResampleFilter.Apply(*TransCurves[CurveIndex]);
 
 					// remove the key that is not in the resample time range
 					// the constant key always at the time 0, so it is OK to remove the first key
@@ -659,21 +664,21 @@ FLOAT CFbxImporter::ImportMatineeActor(KFbxNode* FbxNode, UInterpGroupInst* Mati
 		}
 		
 		// Reset the actor position.
-		KFbxXMatrix Matrix = ComputeTotalMatrix(FbxNode);
-		KFbxVector4 DefaultPos = FbxNode->LclTranslation.Get();
-		KFbxVector4 DefaultRot = FbxNode->LclRotation.Get();
-		KFbxVector4 PreRotation = FbxNode->GetPreRotation(KFbxNode::eSOURCE_SET);
-		KFbxVector4 PostRotation = FbxNode->GetPostRotation(KFbxNode::eSOURCE_SET);
-		fbxDouble3 Rotation(DefaultRot[0], -DefaultRot[1], -DefaultRot[2]);
+		fbx::FbxAMatrix Matrix = ComputeTotalMatrix(FbxNode);
+		fbx::FbxVector4 DefaultPos = FbxNode->LclTranslation.Get();
+		fbx::FbxVector4 DefaultRot = FbxNode->LclRotation.Get();
+		fbx::FbxVector4 PreRotation = FbxNode->GetPreRotation(fbx::FbxNode::eSourcePivot);
+		fbx::FbxVector4 PostRotation = FbxNode->GetPostRotation(fbx::FbxNode::eSourcePivot);
+		fbx::FbxDouble3 Rotation(DefaultRot[0], -DefaultRot[1], -DefaultRot[2]);
 
 		Actor->SetLocation( FVector( DefaultPos[0], -DefaultPos[1], DefaultPos[2] ) );
 
 		// Only process the rotation if there's a pre/post rotation
 		if ((PreRotation.Length() > SMALL_NUMBER) || (PostRotation.Length() > SMALL_NUMBER))
 		{
-			KFbxXMatrix PreRotationMatrix;
-			KFbxXMatrix PostRotationMatrix;
-			KFbxXMatrix LocalMatrix;
+			fbx::FbxAMatrix PreRotationMatrix;
+			fbx::FbxAMatrix PostRotationMatrix;
+			fbx::FbxAMatrix LocalMatrix;
 			PreRotationMatrix.SetR(PreRotation);
 			PostRotationMatrix.SetR(PostRotation);
 			LocalMatrix.SetR(Rotation);
@@ -753,16 +758,16 @@ FLOAT CFbxImporter::ImportMatineeActor(KFbxNode* FbxNode, UInterpGroupInst* Mati
 	return TimeLength;
 }
 
-void CFbxImporter::FixupMatineeMovementTrackRotations(UInterpTrackMove* MovementTrack, KFbxNode* FbxNode)
+void CFbxImporter::FixupMatineeMovementTrackRotations(UInterpTrackMove* MovementTrack, fbx::FbxNode* FbxNode)
 {
-	KFbxVector4 PreRotation = FbxNode->GetPreRotation(KFbxNode::eSOURCE_SET);
-	KFbxVector4 PostRotation = FbxNode->GetPostRotation(KFbxNode::eSOURCE_SET);
+	fbx::FbxVector4 PreRotation = FbxNode->GetPreRotation(fbx::FbxNode::eSourcePivot);
+	fbx::FbxVector4 PostRotation = FbxNode->GetPostRotation(fbx::FbxNode::eSourcePivot);
 
 	// Only process the keys if there's a pre/post rotation or the camera was directly animated
 	if ((PreRotation.Length() > SMALL_NUMBER) || (PostRotation.Length() > SMALL_NUMBER) || FbxNode->GetCamera())
 	{
-		KFbxXMatrix PreRotationMatrix;
-		KFbxXMatrix PostRotationMatrix;
+		fbx::FbxAMatrix PreRotationMatrix;
+		fbx::FbxAMatrix PostRotationMatrix;
 		PreRotationMatrix.SetR(PreRotation);
 		PostRotationMatrix.SetR(PostRotation);
 
@@ -770,11 +775,11 @@ void CFbxImporter::FixupMatineeMovementTrackRotations(UInterpTrackMove* Movement
 		{
 			FInterpCurvePoint<FVector>& Key = MovementTrack->EulerTrack.Points(RotKeyIdx);
 
-			fbxDouble3 Rotation(Key.OutVal.X, Key.OutVal.Y, Key.OutVal.Z);
+			fbx::FbxDouble3 Rotation(Key.OutVal.X, Key.OutVal.Y, Key.OutVal.Z);
 			
 			if ((PreRotation.Length() > SMALL_NUMBER) || (PostRotation.Length() > SMALL_NUMBER))
 			{
-				KFbxXMatrix LocalMatrix;
+				fbx::FbxAMatrix LocalMatrix;
 				LocalMatrix.SetR(Rotation);
 				
 				// Calculate the final rotation
@@ -838,18 +843,18 @@ void CFbxImporter::FixupMatineeMovementTrackRotations(UInterpTrackMove* Movement
 	}
 }
 
-void CFbxImporter::FixupMatineeMovementSubTrackRotations(TArray<UInterpTrackMoveAxis*>& SubTracks, KFbxNode* FbxNode)
+void CFbxImporter::FixupMatineeMovementSubTrackRotations(TArray<UInterpTrackMoveAxis*>& SubTracks, fbx::FbxNode* FbxNode)
 {
 	check(SubTracks.Num() == 6);
 
-	KFbxVector4 PreRotation = FbxNode->GetPreRotation(KFbxNode::eSOURCE_SET);
-	KFbxVector4 PostRotation = FbxNode->GetPostRotation(KFbxNode::eSOURCE_SET);
+	fbx::FbxVector4 PreRotation = FbxNode->GetPreRotation(fbx::FbxNode::eSourcePivot);
+	fbx::FbxVector4 PostRotation = FbxNode->GetPostRotation(fbx::FbxNode::eSourcePivot);
 
 	// Only process the keys if there's a pre/post rotation or the camera was directly animated
 	if ((PreRotation.Length() > SMALL_NUMBER) || (PostRotation.Length() > SMALL_NUMBER) || FbxNode->GetCamera())
 	{
-		KFbxXMatrix PreRotationMatrix;
-		KFbxXMatrix PostRotationMatrix;
+		fbx::FbxAMatrix PreRotationMatrix;
+		fbx::FbxAMatrix PostRotationMatrix;
 		PreRotationMatrix.SetR(PreRotation);
 		PostRotationMatrix.SetR(PostRotation);
 
@@ -886,7 +891,7 @@ void CFbxImporter::FixupMatineeMovementSubTrackRotations(TArray<UInterpTrackMove
 				}
 			}
 
-			fbxDouble3 Rotation;
+			fbx::FbxDouble3 Rotation;
 			// Build the Euler rotation vector
 			for (RotationAxis = 0; RotationAxis < 3; ++RotationAxis)
 			{
@@ -902,7 +907,7 @@ void CFbxImporter::FixupMatineeMovementSubTrackRotations(TArray<UInterpTrackMove
 
 			if ((PreRotation.Length() > SMALL_NUMBER) || (PostRotation.Length() > SMALL_NUMBER))
 			{
-				KFbxXMatrix LocalMatrix;
+				fbx::FbxAMatrix LocalMatrix;
 				LocalMatrix.SetR(Rotation);
 		
 				// Calculate the final rotation
@@ -987,20 +992,20 @@ void CFbxImporter::FixupMatineeMovementSubTrackRotations(TArray<UInterpTrackMove
 	}
 }
 
-BYTE CFbxImporter::GetUnrealInterpMode(KFbxAnimCurveKey FbxKey)
+BYTE CFbxImporter::GetUnrealInterpMode(fbx::FbxAnimCurveKey FbxKey)
 {
 	BYTE Mode = CIM_CurveUser;
 	// Convert the interpolation type from FBX to Unreal.
 	switch( FbxKey.GetInterpolation() )
 	{
-		case KFbxAnimCurveDef::eINTERPOLATION_CUBIC:
+		case fbx::FbxAnimCurveDef::eInterpolationCubic:
 		{
 			switch (FbxKey.GetTangentMode())
 			{
 				// Auto tangents will now be imported as user tangents to allow the
 				// user to modify them without inadvertently resetting other tangents
-// 				case KFbxAnimCurveDef::eTANGENT_AUTO:
-// 					if ((KFbxAnimCurveDef::eTANGENT_GENERIC_CLAMP & FbxKey.GetTangentMode(true)))
+// 				case fbx::FbxAnimCurveDef::eTangentAuto:
+// 					if ((fbx::FbxAnimCurveDef::eTangentGenericClamp & FbxKey.GetTangentMode(true)))
 // 					{
 // 						Mode = CIM_CurveAutoClamped;
 // 					}
@@ -1009,12 +1014,12 @@ BYTE CFbxImporter::GetUnrealInterpMode(KFbxAnimCurveKey FbxKey)
 // 						Mode = CIM_CurveAuto;
 // 					}
 // 					break;
-				case KFbxAnimCurveDef::eTANGENT_BREAK:
+				case fbx::FbxAnimCurveDef::eTangentBreak:
 					Mode = CIM_CurveBreak;
 					break;
-				case KFbxAnimCurveDef::eTANGENT_AUTO:
-				case KFbxAnimCurveDef::eTANGENT_USER:
-				case KFbxAnimCurveDef::eTANGENT_TCB:
+				case fbx::FbxAnimCurveDef::eTangentAuto:
+				case fbx::FbxAnimCurveDef::eTangentUser:
+				case fbx::FbxAnimCurveDef::eTangentTCB:
 					Mode = CIM_CurveUser;
 					break;
 				default:
@@ -1023,8 +1028,8 @@ BYTE CFbxImporter::GetUnrealInterpMode(KFbxAnimCurveKey FbxKey)
 			break;
 		}
 
-		case KFbxAnimCurveDef::eINTERPOLATION_CONSTANT:
-			if (FbxKey.GetTangentMode() != (KFbxAnimCurveDef::ETangentMode)KFbxAnimCurveDef::eCONSTANT_STANDARD)
+		case fbx::FbxAnimCurveDef::eInterpolationConstant:
+			if (FbxKey.GetTangentMode() != (fbx::FbxAnimCurveDef::ETangentMode)fbx::FbxAnimCurveDef::eConstantStandard)
 			{
 				// warning not support
 				;
@@ -1032,14 +1037,14 @@ BYTE CFbxImporter::GetUnrealInterpMode(KFbxAnimCurveKey FbxKey)
 			Mode = CIM_Constant;
 			break;
 
-		case KFbxAnimCurveDef::eINTERPOLATION_LINEAR:
+		case fbx::FbxAnimCurveDef::eInterpolationLinear:
 			Mode = CIM_Linear;
 			break;
 	}
 	return Mode;
 }
 
-void CFbxImporter::ImportMoveSubTrack( KFbxAnimCurve* FbxCurve, INT FbxDimension, UInterpTrackMoveAxis* SubTrack, INT CurveIndex, UBOOL bNegative, KFbxAnimCurve* RealCurve, FLOAT DefaultVal )
+void CFbxImporter::ImportMoveSubTrack( fbx::FbxAnimCurve* FbxCurve, INT FbxDimension, UInterpTrackMoveAxis* SubTrack, INT CurveIndex, UBOOL bNegative, fbx::FbxAnimCurve* RealCurve, FLOAT DefaultVal )
 {
 	if (CurveIndex >= 3) return;
 
@@ -1073,7 +1078,7 @@ void CFbxImporter::ImportMoveSubTrack( KFbxAnimCurve* FbxCurve, INT FbxDimension
 
 		for (INT KeyIndex = Curve.Points.Num(); KeyIndex < KeyCount; ++KeyIndex)
 		{
-			KFbxAnimCurveKey CurKey = FbxCurve->KeyGet( KeyIndex );
+			fbx::FbxAnimCurveKey CurKey = FbxCurve->KeyGet( KeyIndex );
 
 			// Create the curve keys
 			FInterpCurvePoint<FLOAT> Key;
@@ -1088,7 +1093,7 @@ void CFbxImporter::ImportMoveSubTrack( KFbxAnimCurve* FbxCurve, INT FbxDimension
 		// Fill in the curve keys with the correct data for this dimension.
 		for (INT KeyIndex = 0; KeyIndex < KeyCount; ++KeyIndex)
 		{
-			KFbxAnimCurveKey CurKey = FbxCurve->KeyGet( KeyIndex );
+			fbx::FbxAnimCurveKey CurKey = FbxCurve->KeyGet( KeyIndex );
 			FInterpCurvePoint<FLOAT>& UnrealKey = Curve.Points( KeyIndex );
 
 			// Prepare the FBX values to import into the track key.
@@ -1098,7 +1103,7 @@ void CFbxImporter::ImportMoveSubTrack( KFbxAnimCurve* FbxCurve, INT FbxDimension
 			FLOAT ArriveTangent = 0.0f;
 			FLOAT LeaveTangent = 0.0f;
 
-			if( CurKey.GetInterpolation() == KFbxAnimCurveDef::eINTERPOLATION_CUBIC )
+			if( CurKey.GetInterpolation() == fbx::FbxAnimCurveDef::eInterpolationCubic )
 			{
 				ArriveTangent = bNegative? -FbxCurve->KeyGetLeftDerivative(KeyIndex): FbxCurve->KeyGetLeftDerivative(KeyIndex);
 				LeaveTangent = bNegative? -FbxCurve->KeyGetRightDerivative(KeyIndex): FbxCurve->KeyGetRightDerivative(KeyIndex);
@@ -1112,7 +1117,7 @@ void CFbxImporter::ImportMoveSubTrack( KFbxAnimCurve* FbxCurve, INT FbxDimension
 	}
 }
 
-void CFbxImporter::ImportMatineeAnimated(KFbxAnimCurve* FbxCurve, INT FbxDimension, FInterpCurveVector& Curve, INT CurveIndex, UBOOL bNegative, KFbxAnimCurve* RealCurve, FLOAT DefaultVal)
+void CFbxImporter::ImportMatineeAnimated(fbx::FbxAnimCurve* FbxCurve, INT FbxDimension, FInterpCurveVector& Curve, INT CurveIndex, UBOOL bNegative, fbx::FbxAnimCurve* RealCurve, FLOAT DefaultVal)
 {
 	if (CurveIndex >= 3) return;
 	
@@ -1161,7 +1166,7 @@ void CFbxImporter::ImportMatineeAnimated(KFbxAnimCurve* FbxCurve, INT FbxDimensi
 		
 		for (INT KeyIndex = Curve.Points.Num(); KeyIndex < KeyCount; ++KeyIndex)
 		{
-			KFbxAnimCurveKey CurKey = FbxCurve->KeyGet( KeyIndex );
+			fbx::FbxAnimCurveKey CurKey = FbxCurve->KeyGet( KeyIndex );
 
 			// Create the curve keys
 			FInterpCurvePoint<FVector> Key;
@@ -1176,7 +1181,7 @@ void CFbxImporter::ImportMatineeAnimated(KFbxAnimCurve* FbxCurve, INT FbxDimensi
 		// Fill in the curve keys with the correct data for this dimension.
 		for (INT KeyIndex = 0; KeyIndex < KeyCount; ++KeyIndex)
 		{
-			KFbxAnimCurveKey CurKey = FbxCurve->KeyGet( KeyIndex );
+			fbx::FbxAnimCurveKey CurKey = FbxCurve->KeyGet( KeyIndex );
 			FInterpCurvePoint<FVector>& UnrealKey = Curve.Points( KeyIndex );
 			
 			// Prepare the FBX values to import into the track key.
@@ -1186,7 +1191,7 @@ void CFbxImporter::ImportMatineeAnimated(KFbxAnimCurve* FbxCurve, INT FbxDimensi
 			FLOAT ArriveTangent = 0.0f;
 			FLOAT LeaveTangent = 0.0f;
 			
-			if( CurKey.GetInterpolation() == KFbxAnimCurveDef::eINTERPOLATION_CUBIC )
+			if( CurKey.GetInterpolation() == fbx::FbxAnimCurveDef::eInterpolationCubic )
 			{
 				ArriveTangent = bNegative? -FbxCurve->KeyGetLeftDerivative(KeyIndex): FbxCurve->KeyGetLeftDerivative(KeyIndex);
 				LeaveTangent = bNegative? -FbxCurve->KeyGetRightDerivative(KeyIndex): FbxCurve->KeyGetRightDerivative(KeyIndex);

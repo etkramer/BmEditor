@@ -34,6 +34,9 @@ var(General) config bool bImportMeshLODs;
 /** Override the normals/tangents data if the mesh has any. */
 var(General) config bool bOverrideTangents<DisplayName=Override Tangents>;
 
+/** Converts the scene from the units it was authored in to Unreal units (centimeters). Leave this on unless the source file is already in centimeters. */
+var(General) config bool bConvertSceneUnits<DisplayName=Convert Scene Units>;
+
 /** True to import morph target meshes from the FBX file */
 var(SkeletalMesh) config bool bImportMorphTargets;
 
@@ -76,4 +79,5 @@ var(Materials) config bool bAutoCreateGroups<DisplayName=Create Groups Automatic
 defaultproperties
 {
 	bRemoveDegenerates=True;
+	bConvertSceneUnits=True;
 }

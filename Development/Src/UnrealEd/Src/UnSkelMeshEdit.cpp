@@ -622,7 +622,7 @@ void UEditorEngine::ImportCOLLADAANIMIntoAnimSet(UAnimSet* AnimSet, const TCHAR*
 
 #if WITH_FBX
 
-static UBOOL RecursiveCheckTrackNameMap(KFbxNode* SkeletonNode, UAnimSet* AnimSet, INT &TrackIndex, UnFbx::CFbxImporter* FbxImporter)
+static UBOOL RecursiveCheckTrackNameMap(fbx::FbxNode* SkeletonNode, UAnimSet* AnimSet, INT &TrackIndex, UnFbx::CFbxImporter* FbxImporter)
 {
 	FString BoneName = FSkeletalMeshBinaryImport::FixupBoneName( (char*)FbxImporter->MakeName(SkeletonNode->GetName()) );
 
@@ -671,8 +671,8 @@ void UEditorEngine::ImportFbxANIMIntoAnimSet( UAnimSet* AnimSet, const TCHAR* In
 		const FFilename Filename( InFilename );
 
 		// Get Mesh nodes array that bind to the skeleton system, then morph animation is imported.
-		TArray<KFbxNode*> FBXMeshNodeArray;
-		KFbxNode* SkeletonRoot = FbxImporter->FindFBXMeshesByBone(FillInMesh, TRUE, FBXMeshNodeArray);
+		TArray<fbx::FbxNode*> FBXMeshNodeArray;
+		fbx::FbxNode* SkeletonRoot = FbxImporter->FindFBXMeshesByBone(FillInMesh, TRUE, FBXMeshNodeArray);
 
 		if (!SkeletonRoot)
 		{
@@ -682,7 +682,7 @@ void UEditorEngine::ImportFbxANIMIntoAnimSet( UAnimSet* AnimSet, const TCHAR* In
 			return;
 		}
 
-		TArray<KFbxNode*> SortedLinks;
+		TArray<fbx::FbxNode*> SortedLinks;
 		FbxImporter->RecursiveBuildSkeleton(SkeletonRoot, SortedLinks);
 
 		FbxImporter->ImportAnimSet( FillInMesh, SortedLinks, Filename.GetBaseFilename(), FBXMeshNodeArray, AnimSet );
@@ -696,17 +696,17 @@ void UEditorEngine::ImportFbxANIMIntoAnimSet( UAnimSet* AnimSet, const TCHAR* In
 
 // The Unroll filter expects only rotation curves, we need to walk the scene and extract the
 // rotation curves from the nodes property. This can become time consuming but we have no choice.
-static void ApplyUnroll(KFbxNode *pNode, KFbxAnimLayer* pLayer, KFbxKFCurveFilterUnroll* pUnrollFilter)
+static void ApplyUnroll(fbx::FbxNode *pNode, fbx::FbxAnimLayer* pLayer, fbx::FbxAnimCurveFilterUnroll* pUnrollFilter)
 {
 	if (!pNode || !pLayer || !pUnrollFilter)
 	{
 		return;
 	}
 
-	KFbxAnimCurveNode* lCN = pNode->LclRotation.GetCurveNode(pLayer);
+	fbx::FbxAnimCurveNode* lCN = pNode->LclRotation.GetCurveNode(pLayer);
 	if (lCN)
 	{
-		KFbxAnimCurve* lRCurve[3];
+		fbx::FbxAnimCurve* lRCurve[3];
 		lRCurve[0] = lCN->GetCurve(0);
 		lRCurve[1] = lCN->GetCurve(1);
 		lRCurve[2] = lCN->GetCurve(2);
@@ -720,22 +720,18 @@ static void ApplyUnroll(KFbxNode *pNode, KFbxAnimLayer* pLayer, KFbxKFCurveFilte
 	}
 }
 
-void UnFbx::CFbxImporter::MergeAllLayerAnimation(KFbxAnimStack* AnimStack, INT ResampleRate)
+void UnFbx::CFbxImporter::MergeAllLayerAnimation(fbx::FbxAnimStack* AnimStack, INT ResampleRate)
 {
-	KTime lFramePeriod;
+	fbx::FbxTime lFramePeriod;
 	lFramePeriod.SetSecondDouble(1.0 / ResampleRate);
 
-	KTimeSpan lTimeSpan = AnimStack->GetLocalTimeSpan();
-	if (AnimStack->BakeLayers(FbxScene->GetEvaluator(), lTimeSpan.GetStart(), lTimeSpan.GetStop(), lFramePeriod))
+	fbx::FbxTimeSpan lTimeSpan = AnimStack->GetLocalTimeSpan();
+	if (AnimStack->BakeLayers(FbxScene->GetAnimationEvaluator(), lTimeSpan.GetStart(), lTimeSpan.GetStop(), lFramePeriod))
 	{
-		KFbxKFCurveFilterUnroll* UnrollFilter = KFbxKFCurveFilterUnroll::Create(FbxSdkManager,"");
-		if (UnrollFilter)
-		{
-			KFbxAnimLayer* lLayer = dynamic_cast<KFbxAnimLayer*>(AnimStack->GetMember(FBX_TYPE(KFbxAnimLayer),0));
-			UnrollFilter->Reset();
-			ApplyUnroll(FbxScene->GetRootNode(), lLayer, UnrollFilter);
-			UnrollFilter->Destroy();
-		}
+		fbx::FbxAnimCurveFilterUnroll UnrollFilter;
+		fbx::FbxAnimLayer* lLayer = AnimStack->GetMember<fbx::FbxAnimLayer>(0);
+		UnrollFilter.Reset();
+		ApplyUnroll(FbxScene->GetRootNode(), lLayer, &UnrollFilter);
 	}
 }
 
@@ -746,22 +742,21 @@ void UnFbx::CFbxImporter::MergeAllLayerAnimation(KFbxAnimStack* AnimStack, INT R
 /**
 * Add to the animation set, the animations contained within the FBX document, for the given skeletal mesh
 */
-void UnFbx::CFbxImporter::ImportAnimSet(USkeletalMesh* SkeletalMesh, TArray<KFbxNode*>& SortedLinks, FString Filename, TArray<KFbxNode*>& NodeArray, UAnimSet* AnimSet /*=NULL*/ )
+void UnFbx::CFbxImporter::ImportAnimSet(USkeletalMesh* SkeletalMesh, TArray<fbx::FbxNode*>& SortedLinks, FString Filename, TArray<fbx::FbxNode*>& NodeArray, UAnimSet* AnimSet /*=NULL*/ )
 {
 	INT ValidTakeCount = 0;
 	
 	INT AnimStackIndex;
-	for (AnimStackIndex = 0; AnimStackIndex < FbxScene->GetSrcObjectCount(KFbxAnimStack::ClassId); AnimStackIndex++ )
+	for (AnimStackIndex = 0; AnimStackIndex < FbxScene->GetSrcObjectCount<fbx::FbxAnimStack>(); AnimStackIndex++ )
 	{
-		KFbxAnimStack* CurAnimStack = KFbxCast<KFbxAnimStack>(FbxScene->GetSrcObject(KFbxAnimStack::ClassId, 0));
+		fbx::FbxAnimStack* CurAnimStack = fbx::FbxCast<fbx::FbxAnimStack>(FbxScene->GetSrcObject<fbx::FbxAnimStack>(0));
 		// set current anim stack
-		FbxScene->GetEvaluator()->SetContext(CurAnimStack);
+		FbxScene->SetCurrentAnimationStack(CurAnimStack);
 		
 		// check empty anim stack
-		KTime Start(KTIME_INFINITE);
-		KTime End(KTIME_MINUS_INFINITE);
+		fbx::FbxTimeSpan AnimInterval(fbx::FbxTime(FBXSDK_TC_INFINITY), fbx::FbxTime(FBXSDK_TC_MINFINITY));
 
-		if (SortedLinks(0)->GetAnimationInterval(Start, End)) // check bone animation at first
+		if (SortedLinks(0)->GetAnimationInterval(AnimInterval)) // check bone animation at first
 		{
 			ValidTakeCount++;
 		}
@@ -771,7 +766,7 @@ void UnFbx::CFbxImporter::ImportAnimSet(USkeletalMesh* SkeletalMesh, TArray<KFbx
 			for ( INT NodeIndex = 0; !bBlendCurveFound && NodeIndex < NodeArray.Num(); NodeIndex++ )
 			{
 				// consider blendshape animation curve
-				KFbxGeometry* Geometry = (KFbxGeometry*)NodeArray(NodeIndex)->GetNodeAttribute();
+				fbx::FbxGeometry* Geometry = (fbx::FbxGeometry*)NodeArray(NodeIndex)->GetNodeAttribute();
 				if (Geometry)
 				{
 					INT ShapeCount = Geometry->GetShapeCount();
@@ -780,7 +775,7 @@ void UnFbx::CFbxImporter::ImportAnimSet(USkeletalMesh* SkeletalMesh, TArray<KFbx
 						INT ShapeIndex;
 						for (ShapeIndex=0; ShapeIndex < ShapeCount; ShapeIndex++)
 						{
-							KFbxAnimCurve* FCurve = Geometry->GetShapeChannel(ShapeIndex, (KFbxAnimLayer*)CurAnimStack->GetMember(0));
+							fbx::FbxAnimCurve* FCurve = UnFbx::GetGeometryShapeChannel(Geometry, ShapeIndex, (fbx::FbxAnimLayer*)CurAnimStack->GetMember(0));
 							if (FCurve && FCurve->KeyGetCount() > 0)
 							{
 								ValidTakeCount++;
@@ -845,18 +840,18 @@ void UnFbx::CFbxImporter::ImportAnimSet(USkeletalMesh* SkeletalMesh, TArray<KFbx
 	INT ResampleRate;
 	if ( !ImportOptions->bResample )
 	{
-		ResampleRate = KTime::GetFrameRate(FbxScene->GetGlobalSettings().GetTimeMode());
+		ResampleRate = fbx::FbxTime::GetFrameRate(FbxScene->GetGlobalSettings().GetTimeMode());
 	}
 	else
 	{
 		ResampleRate = 30;
 	}
 
-	for( AnimStackIndex = 0; AnimStackIndex < FbxScene->GetSrcObjectCount(KFbxAnimStack::ClassId); AnimStackIndex++ )
+	for( AnimStackIndex = 0; AnimStackIndex < FbxScene->GetSrcObjectCount<fbx::FbxAnimStack>(); AnimStackIndex++ )
 	{
-		KFbxAnimStack* CurAnimStack = KFbxCast<KFbxAnimStack>(FbxScene->GetSrcObject(KFbxAnimStack::ClassId, 0));
+		fbx::FbxAnimStack* CurAnimStack = fbx::FbxCast<fbx::FbxAnimStack>(FbxScene->GetSrcObject<fbx::FbxAnimStack>(0));
 		// set current anim stack
-		FbxScene->GetEvaluator()->SetContext(CurAnimStack);
+		FbxScene->SetCurrentAnimationStack(CurAnimStack);
 		
 		warnf(NAME_Log,TEXT("Parsing AnimStack %s"),ANSI_TO_TCHAR(CurAnimStack->GetName()));
 
@@ -865,21 +860,23 @@ void UnFbx::CFbxImporter::ImportAnimSet(USkeletalMesh* SkeletalMesh, TArray<KFbx
 		
 		UBOOL bValidAnimStack = FALSE;
 				
-		KTime Start(KTIME_INFINITE);
-		KTime End(KTIME_MINUS_INFINITE);
+		fbx::FbxTimeSpan AnimInterval(fbx::FbxTime(FBXSDK_TC_INFINITY), fbx::FbxTime(FBXSDK_TC_MINFINITY));
 
 		// skip empty anim stack.
-		if (SortedLinks(0)->GetAnimationInterval(Start, End))
+		if (SortedLinks(0)->GetAnimationInterval(AnimInterval))
 		{
 			bValidAnimStack = TRUE;
 		}
+
+		fbx::FbxTime Start = AnimInterval.GetStart();
+		fbx::FbxTime End = AnimInterval.GetStop();
 
 		if (ImportOptions->bImportMorph)
 		{
 			for ( INT NodeIndex = 0; NodeIndex < NodeArray.Num(); NodeIndex++ )
 			{
 				// consider blendshape animation curve
-				KFbxGeometry* Geometry = (KFbxGeometry*)NodeArray(NodeIndex)->GetNodeAttribute();
+				fbx::FbxGeometry* Geometry = (fbx::FbxGeometry*)NodeArray(NodeIndex)->GetNodeAttribute();
 				if (Geometry)
 				{
 					INT ShapeCount = Geometry->GetShapeCount();
@@ -888,14 +885,15 @@ void UnFbx::CFbxImporter::ImportAnimSet(USkeletalMesh* SkeletalMesh, TArray<KFbx
 						INT ShapeIndex;
 						for (ShapeIndex=0; ShapeIndex < ShapeCount; ShapeIndex++)
 						{
-							KFbxAnimCurve* FCurve = Geometry->GetShapeChannel(ShapeIndex, (KFbxAnimLayer*)CurAnimStack->GetMember(0));
+							fbx::FbxAnimCurve* FCurve = UnFbx::GetGeometryShapeChannel(Geometry, ShapeIndex, (fbx::FbxAnimLayer*)CurAnimStack->GetMember(0));
 							if (FCurve && FCurve->KeyGetCount() > 0)
 							{
-								KTime TmpStart(KTIME_INFINITE);
-								KTime TmpEnd(KTIME_MINUS_INFINITE);
+								fbx::FbxTimeSpan CurveInterval(fbx::FbxTime(FBXSDK_TC_INFINITY), fbx::FbxTime(FBXSDK_TC_MINFINITY));
 								
-								if (FCurve->GetTimeInterval(TmpStart, TmpEnd))
+								if (FCurve->GetTimeInterval(CurveInterval))
 								{
+									const fbx::FbxTime TmpStart = CurveInterval.GetStart();
+									const fbx::FbxTime TmpEnd = CurveInterval.GetStop();
 									bValidAnimStack = TRUE;
 									// update animation interval
 									if (Start > TmpStart)
@@ -959,13 +957,15 @@ void UnFbx::CFbxImporter::ImportAnimSet(USkeletalMesh* SkeletalMesh, TArray<KFbx
 		}
 
 		DestSeq->SequenceName = *SequenceName;
-		KTime SequenceLenghth = End - Start;
+		fbx::FbxTime SequenceLenghth = End - Start;
 
 		// Get extra fields (parts of a frame) at the end of a sequence.  The sequence length needs this added on at the end
-		UINT NumFields = SequenceLenghth.GetField(false);
+		int Hours, Minutes, Seconds, Frames, Fields, Residual;
+		SequenceLenghth.GetTime(Hours, Minutes, Seconds, Frames, Fields, Residual);
+		UINT NumFields = Fields;
 
 		// Calculate extra time for each field.  Should only ever be one ideally
-		KTime ExtraTime;
+		fbx::FbxTime ExtraTime;
 		ExtraTime.SetSecondDouble( (1.0f/ResampleRate) * NumFields );
 		
 		// Increase the sequence length by the extra time needed for the extra part of the frame.
@@ -990,7 +990,7 @@ void UnFbx::CFbxImporter::ImportAnimSet(USkeletalMesh* SkeletalMesh, TArray<KFbx
 			{
 				INT ShapeCount = 0;
 
-				KFbxGeometry* Geometry = (KFbxGeometry*)NodeArray(NodeIndex)->GetNodeAttribute();
+				fbx::FbxGeometry* Geometry = (fbx::FbxGeometry*)NodeArray(NodeIndex)->GetNodeAttribute();
 				if (Geometry)
 				{
 					// get the max shape count
@@ -1000,7 +1000,7 @@ void UnFbx::CFbxImporter::ImportAnimSet(USkeletalMesh* SkeletalMesh, TArray<KFbx
 				INT ShapeIndex;
 				for (ShapeIndex=0; ShapeIndex < ShapeCount; ShapeIndex++)
 				{
-					KFbxAnimCurve* FCurve = Geometry->GetShapeChannel(ShapeIndex, (KFbxAnimLayer*)CurAnimStack->GetMember(0));
+					fbx::FbxAnimCurve* FCurve = UnFbx::GetGeometryShapeChannel(Geometry, ShapeIndex, (fbx::FbxAnimLayer*)CurAnimStack->GetMember(0));
 					if (FCurve && FCurve->KeyGetCount() > 0)
 					{
 						FCurveTrack CurveTrack;
@@ -1009,10 +1009,10 @@ void UnFbx::CFbxImporter::ImportAnimSet(USkeletalMesh* SkeletalMesh, TArray<KFbx
 						// $1 is the number of blendshape in FBX scene
 						// $2 is the morph target name
 						// Maybe we need to set the curve name as the morph target name as ActorX plug-in
-						CurveTrack.CurveName = FName(ANSI_TO_TCHAR(MakeName(Geometry->GetShapeName(ShapeIndex))));
+						CurveTrack.CurveName = FName(ANSI_TO_TCHAR(MakeName(UnFbx::GetGeometryShapeName(Geometry, ShapeIndex))));
 						// get key values of weight
 						TArray<FLOAT> Weights;
-						for (KTime CurTime = Start; CurTime <= (End+ExtraTime); CurTime += K_LONGLONG(46186158000) / ResampleRate)
+						for (fbx::FbxTime CurTime = Start; CurTime <= (End+ExtraTime); CurTime += FBXSDK_LONGLONG(46186158000) / ResampleRate)
 						{
 							FLOAT KeyValue = FCurve->Evaluate(CurTime);
 							Weights.AddItem(KeyValue / 100.0);
@@ -1039,11 +1039,11 @@ void UnFbx::CFbxImporter::ImportAnimSet(USkeletalMesh* SkeletalMesh, TArray<KFbx
 		// Import each track.
 		check( AnimSet->TrackBoneNames.Num() == DestSeq->RawAnimationData.Num() );
 		
-		TArray<KFbxXMatrix*> GlobalsPerLink;
+		TArray<fbx::FbxAMatrix*> GlobalsPerLink;
 		GlobalsPerLink.Add(AnimSet->TrackBoneNames.Num());
 		for (INT TrackIdx = 0; TrackIdx < AnimSet->TrackBoneNames.Num(); TrackIdx++)
 		{
-			GlobalsPerLink(TrackIdx) = new KFbxXMatrix[DestSeq->NumFrames];
+			GlobalsPerLink(TrackIdx) = new fbx::FbxAMatrix[DestSeq->NumFrames];
 		}
 		
 		for(INT TrackIdx = 0; TrackIdx < AnimSet->TrackBoneNames.Num(); TrackIdx++)
@@ -1083,21 +1083,21 @@ void UnFbx::CFbxImporter::ImportAnimSet(USkeletalMesh* SkeletalMesh, TArray<KFbx
 
 				// FBXTODO - must take into account the scaling for rigid animation.
 
-				KFbxNode* Link = SortedLinks(SourceTrackIdx);
-				KFbxXMatrix* GlobalMatrixs = GlobalsPerLink(TrackIdx);
+				fbx::FbxNode* Link = SortedLinks(SourceTrackIdx);
+				fbx::FbxAMatrix* GlobalMatrixs = GlobalsPerLink(TrackIdx);
 				INT index = 0;
-				for (KTime CurTime = Start; CurTime <= (End+ExtraTime); CurTime += K_LONGLONG(46186158000) / ResampleRate, index++)
+				for (fbx::FbxTime CurTime = Start; CurTime <= (End+ExtraTime); CurTime += FBXSDK_LONGLONG(46186158000) / ResampleRate, index++)
 				{
-					KFbxXMatrix LocalMatrix;
+					fbx::FbxAMatrix LocalMatrix;
 
 					// Get node local transform returns "ParentGlobal.Inverse * Global"
-					KFbxXMatrix& GlobalMatrix = FbxScene->GetEvaluator()->GetNodeLocalTransform(Link, CurTime);
+					fbx::FbxAMatrix& GlobalMatrix = FbxScene->GetAnimationEvaluator()->GetNodeLocalTransform(Link, CurTime);
 					GlobalMatrixs[index] = GlobalMatrix;
 					
 					RawTrack.PosKeys.AddItem(Converter.ConvertPos(GlobalMatrix.GetT()));
 					RawTrack.RotKeys.AddItem(Converter.ConvertRotToAnimQuat(GlobalMatrix.GetQ(),SourceTrackIdx));
 					
-					KFbxVector4 LocalLinkS = GlobalMatrix.GetS();
+					fbx::FbxVector4 LocalLinkS = GlobalMatrix.GetS();
 					if ( (LocalLinkS[0] > 1.0 + SCALE_TOLERANCE || LocalLinkS[1] < 1.0 - SCALE_TOLERANCE) || 
 						(LocalLinkS[0] > 1.0 + SCALE_TOLERANCE || LocalLinkS[1] < 1.0 - SCALE_TOLERANCE) || 
 						(LocalLinkS[0] > 1.0 + SCALE_TOLERANCE || LocalLinkS[1] < 1.0 - SCALE_TOLERANCE) )

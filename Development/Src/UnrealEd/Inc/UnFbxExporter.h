@@ -145,65 +145,65 @@ private:
 	FbxExporter();
 	~FbxExporter();
 	
-	KFbxSdkManager* FbxSdkManager;
-	KFbxScene* FbxScene;
-	KFbxAnimStack* AnimStack;
-	KFbxCamera* FbxCamera;
+	fbx::FbxManager* FbxSdkManager;
+	fbx::FbxScene* FbxScene;
+	fbx::FbxAnimStack* AnimStack;
+	fbx::FbxCamera* FbxCamera;
 	
 	CBasicDataConverter Converter;
 	
 	TMap<FString,INT> FbxNodeNameToIndexMap;
-	TMap<AActor*, KFbxNode*> FbxActors;
-	TMap<UMaterial*, KFbxSurfaceMaterial*> FbxMaterials;
+	TMap<AActor*, fbx::FbxNode*> FbxActors;
+	TMap<UMaterial*, fbx::FbxSurfaceMaterial*> FbxMaterials;
 	
 	/** The frames-per-second (FPS) used when baking transforms */
 	static const FLOAT BakeTransformsFPS;
 	
 	
-	void ExportModel(UModel* Model, KFbxNode* Node, const char* Name);
+	void ExportModel(UModel* Model, fbx::FbxNode* Node, const char* Name);
 	
 	/**
 	 * Exports the basic information about a UE3 actor and buffers it.
 	 * This function creates one FBX node for the actor with its placement.
 	 */
-	KFbxNode* ExportActor(AActor* Actor, USeqAct_Interp* MatineeSequence );
+	fbx::FbxNode* ExportActor(AActor* Actor, USeqAct_Interp* MatineeSequence );
 	
-	KFbxNode* ExportStaticMeshToFbx(FStaticMeshRenderData& RenderMesh, const TCHAR* MeshName, KFbxNode* FbxActor, INT LightmapUVChannel = -1, FColorVertexBuffer* ColorBuffer = NULL );
+	fbx::FbxNode* ExportStaticMeshToFbx(FStaticMeshRenderData& RenderMesh, const TCHAR* MeshName, fbx::FbxNode* FbxActor, INT LightmapUVChannel = -1, FColorVertexBuffer* ColorBuffer = NULL );
 
 	/**
 	 * Exports the Matinee movement track into the FBX animation stack.
 	 */
-	void ExportMatineeTrackMove(KFbxNode* FbxActor, UInterpTrackInstMove* MoveTrackInst, UInterpTrackMove* MoveTrack, FLOAT InterpLength);
+	void ExportMatineeTrackMove(fbx::FbxNode* FbxActor, UInterpTrackInstMove* MoveTrackInst, UInterpTrackMove* MoveTrack, FLOAT InterpLength);
 
 	/**
 	 * Exports the Matinee float property track into the FBX animation stack.
 	 */
-	void ExportMatineeTrackFloatProp(KFbxNode* FbxActor, UInterpTrackFloatProp* PropTrack);
+	void ExportMatineeTrackFloatProp(fbx::FbxNode* FbxActor, UInterpTrackFloatProp* PropTrack);
 
 	/**
 	 * Exports a given interpolation curve into the FBX animation curve.
 	 */
-	void ExportAnimatedVector(KFbxAnimCurve* FbxCurve, const ANSICHAR* ChannelName, UInterpTrackMove* MoveTrack, UInterpTrackInstMove* MoveTrackInst, UBOOL bPosCurve, INT CurveIndex, UBOOL bNegative, FLOAT InterpLength);
+	void ExportAnimatedVector(fbx::FbxAnimCurve* FbxCurve, const ANSICHAR* ChannelName, UInterpTrackMove* MoveTrack, UInterpTrackInstMove* MoveTrackInst, UBOOL bPosCurve, INT CurveIndex, UBOOL bNegative, FLOAT InterpLength);
 	
 	/**
 	 * Exports a movement subtrack to an FBX curve
 	 */
-	void ExportMoveSubTrack(KFbxAnimCurve* FbxCurve, const ANSICHAR* ChannelName, UInterpTrackMoveAxis* SubTrack, UInterpTrackInstMove* MoveTrackInst, UBOOL bPosCurve, INT CurveIndex, UBOOL bNegative, FLOAT InterpLength);
+	void ExportMoveSubTrack(fbx::FbxAnimCurve* FbxCurve, const ANSICHAR* ChannelName, UInterpTrackMoveAxis* SubTrack, UInterpTrackInstMove* MoveTrackInst, UBOOL bPosCurve, INT CurveIndex, UBOOL bNegative, FLOAT InterpLength);
 	
-	void ExportAnimatedFloat(KFbxProperty* FbxProperty, FInterpCurveFloat* Curve, UBOOL IsCameraFoV);
+	void ExportAnimatedFloat(fbx::FbxProperty* FbxProperty, FInterpCurveFloat* Curve, UBOOL IsCameraFoV);
 
 	/**
 	 * Finds the given UE3 actor in the already-exported list of structures
-	 * @return KFbxNode* the FBX node created from the UE3 actor
+	 * @return fbx::FbxNode* the FBX node created from the UE3 actor
 	 */
-	KFbxNode* FindActor(AActor* Actor);
+	fbx::FbxNode* FindActor(AActor* Actor);
 	
 	/**
 	 * Exports the profile_COMMON information for a UE3 material.
 	 */
-	KFbxSurfaceMaterial* ExportMaterial(UMaterial* Material);
+	fbx::FbxSurfaceMaterial* ExportMaterial(UMaterial* Material);
 	
-	KFbxSurfaceMaterial* CreateDefaultMaterial();
+	fbx::FbxSurfaceMaterial* CreateDefaultMaterial();
 	
 	/**
 	 * Create user property in Fbx Node.
@@ -214,7 +214,7 @@ private:
 	 * @param Name  Property name.
 	 * @param Label Property label.
 	 */
-	void CreateAnimatableUserProperty(KFbxNode* Node, FLOAT Value, const char* Name, const char* Label);
+	void CreateAnimatableUserProperty(fbx::FbxNode* Node, FLOAT Value, const char* Name, const char* Label);
 };
 
 
