@@ -8223,6 +8223,190 @@ IMPLEMENT_CLASS(UFindUnreferencedFunctionsCommandlet);
 IMPLEMENT_CLASS(UByteCodeSerializer);
 
 /*-----------------------------------------------------------------------------
+	UCheckPackageLoadCommandlet
+-----------------------------------------------------------------------------*/
+
+// BM: Preload's "serialized wrong amount" check is only a warning under BATMAN, so gather up the
+// diagnostics that stock UE3 would have made fatal and fail on them instead of letting them scroll past.
+class FLoadDiagnosticSink : public FOutputDevice
+{
+public:
+	TArray<FString> Failures;
+
+	virtual void Serialize( const TCHAR* Data, EName Event )
+	{
+		const FString Line( Data );
+		if( Event == NAME_Error
+		||	Event == NAME_Critical
+		||	Line.InStr( TEXT("[LAYOUT]") ) != INDEX_NONE
+		||	Line.InStr( TEXT("skipping CDO") ) != INDEX_NONE )
+		{
+			Failures.AddItem( Line );
+		}
+	}
+};
+
+static void DescribeLoadedObject( UObject* Object )
+{
+	warnf( NAME_Log, TEXT("  %s"), *Object->GetFullName() );
+
+	UTexture2D* Texture = Cast<UTexture2D>( Object );
+	if( Texture != NULL )
+	{
+		warnf( NAME_Log, TEXT("    %dx%d (original %dx%d) Format=%d LODGroup=%d NeverStream=%d Mips=%d"),
+			Texture->SizeX, Texture->SizeY, Texture->OriginalSizeX, Texture->OriginalSizeY,
+			(INT)Texture->Format, (INT)Texture->LODGroup, (INT)Texture->NeverStream, Texture->Mips.Num() );
+
+		for( INT MipIndex=0; MipIndex<Texture->Mips.Num(); MipIndex++ )
+		{
+			FTexture2DMipMap& Mip = Texture->Mips(MipIndex);
+			warnf( NAME_Log, TEXT("    Mip %d: %dx%d %d bytes, available=%d, separate file=%d"),
+				MipIndex, Mip.SizeX, Mip.SizeY, Mip.Data.GetBulkDataSize(),
+				(INT)Mip.Data.IsAvailableForUse(), (INT)Mip.Data.IsStoredInSeparateFile() );
+		}
+	}
+
+	UObjectReferencer* Referencer = Cast<UObjectReferencer>( Object );
+	if( Referencer != NULL )
+	{
+		for( INT Index=0; Index<Referencer->ReferencedObjects.Num(); Index++ )
+		{
+			UObject* Referenced = Referencer->ReferencedObjects(Index);
+			warnf( NAME_Log, TEXT("    [%d] %s"), Index, Referenced ? *Referenced->GetFullName() : TEXT("NULL") );
+		}
+	}
+}
+
+// BM: commandlets only load startup packages under -user, and without the script packages every class is
+// still the native stub the binary registered - no UProperties, so offset-addressed tags have nothing to land on.
+static void CreateBareEditorEngine()
+{
+	// The commandlet CDO is read before any script package is loaded, so GIsEditor/GIsClient/GIsServer arrive
+	// here as FALSE and every linker would be built with empty context flags, silently creating no exports.
+	GIsEditor = GIsClient = GIsServer = TRUE;
+	GIsGame = FALSE;
+
+	GIsUCC = FALSE;
+	LoadAllNativeScriptPackages( FALSE );
+	GIsUCC = TRUE;
+
+	// Skip UEditorEngine::InitEditor - deserializing content doesn't need the editor's own content set.
+	UClass* EngineClass = UObject::StaticLoadClass( UEditorEngine::StaticClass(), NULL, TEXT("engine-ini:Engine.Engine.EditorEngine"), NULL, LOAD_None, NULL );
+	UObject* DefaultEngine = EngineClass->GetDefaultObject(TRUE);
+	EngineClass->ConditionalLink();
+	DefaultEngine->LoadConfig();
+	GEngine = GEditor = ConstructObject<UEditorEngine>( EngineClass );
+}
+
+void UCheckPackageLoadCommandlet::CreateCustomEngine()
+{
+	CreateBareEditorEngine();
+}
+
+INT UCheckPackageLoadCommandlet::Main( const FString& Params )
+{
+	TArray<FString> Tokens, Switches;
+	ParseCommandLine( *Params, Tokens, Switches );
+
+	if( Tokens.Num() == 0 )
+	{
+		warnf( NAME_Warning, TEXT("Usage: CheckPackageLoad <package or filename> [...]") );
+		return 1;
+	}
+
+	const UBOOL bVerbose = Switches.ContainsItem( TEXT("VERBOSE") );
+
+	INT NumFailedPackages = 0;
+	for( INT TokenIndex=0; TokenIndex<Tokens.Num(); TokenIndex++ )
+	{
+		const FString& Token = Tokens(TokenIndex);
+
+		FLoadDiagnosticSink Diagnostics;
+		GLog->AddOutputDevice( &Diagnostics );
+
+		warnf( NAME_Log, TEXT("=== Loading %s"), *Token );
+		UPackage* Package = UObject::LoadPackage( NULL, *Token, LOAD_None );
+
+		if( Package == NULL )
+		{
+			warnf( NAME_Error, TEXT("Failed to load %s"), *Token );
+		}
+
+		GLog->RemoveOutputDevice( &Diagnostics );
+
+		TArray<UObject*> Contents;
+		INT NumUnloaded = 0;
+		INT NumMissingExports = 0;
+		if( Package != NULL )
+		{
+			ULinkerLoad* Linker = UObject::GetPackageLinker( Package, NULL, LOAD_NoWarn|LOAD_Quiet, NULL, NULL );
+			warnf( NAME_Log, TEXT("Loaded %s: %d exports, %d imports"), *Package->GetName(),
+				Linker ? Linker->ExportMap.Num() : -1, Linker ? Linker->ImportMap.Num() : -1 );
+
+			// An export CreateExport quietly refused is a load failure that leaves half a package behind.
+			for( INT ExportIndex=0; Linker && ExportIndex<Linker->ExportMap.Num(); ExportIndex++ )
+			{
+				// Forced exports are dissociated from the linker once the load finishes, so fall back to the path.
+				UObject* Object = Linker->ExportMap(ExportIndex)._Object;
+				if( Object == NULL )
+				{
+					Object = UObject::StaticFindObject( NULL, NULL, *Linker->GetExportPathName(ExportIndex, NULL, TRUE), FALSE );
+				}
+
+				if( Object == NULL )
+				{
+					if( NumMissingExports < 10 )
+					{
+						warnf( NAME_Log, TEXT("  export %d was never created: %s"), ExportIndex, *Linker->GetExportFullName(ExportIndex) );
+					}
+					NumMissingExports++;
+					continue;
+				}
+
+				Contents.AddItem( Object );
+				if( Object->HasAnyFlags(RF_NeedLoad|RF_NeedPostLoad) )
+				{
+					NumUnloaded++;
+					warnf( NAME_Error, TEXT("%s was never fully loaded"), *Object->GetFullName() );
+				}
+			}
+
+			if( NumMissingExports > 0 )
+			{
+				warnf( NAME_Error, TEXT("%s: %d of %d exports were never created"), *Package->GetName(), NumMissingExports, Linker->ExportMap.Num() );
+			}
+
+			if( bVerbose || Contents.Num() < 64 )
+			{
+				for( INT Index=0; Index<Contents.Num(); Index++ )
+				{
+					DescribeLoadedObject( Contents(Index) );
+				}
+			}
+		}
+
+		if( Diagnostics.Failures.Num() > 0 || NumUnloaded > 0 || NumMissingExports > 0 || Package == NULL )
+		{
+			NumFailedPackages++;
+			warnf( NAME_Warning, TEXT("FAILED %s (%d diagnostics)"), *Token, Diagnostics.Failures.Num() );
+			for( INT Index=0; Index<Diagnostics.Failures.Num(); Index++ )
+			{
+				warnf( NAME_Warning, TEXT("  %s"), *Diagnostics.Failures(Index) );
+			}
+		}
+		else
+		{
+			warnf( NAME_Log, TEXT("OK %s"), *Token );
+		}
+	}
+
+	warnf( NAME_Log, TEXT("CheckPackageLoad: %d of %d packages failed"), NumFailedPackages, Tokens.Num() );
+	return NumFailedPackages;
+}
+
+IMPLEMENT_CLASS(UCheckPackageLoadCommandlet);
+
+/*-----------------------------------------------------------------------------
 	UDumpClassLayoutCommandlet
 -----------------------------------------------------------------------------*/
 
@@ -8262,11 +8446,7 @@ static FString DescribeStructLayout( UStruct* Struct, const TCHAR* Kind )
 
 void UDumpClassLayoutCommandlet::CreateCustomEngine()
 {
-	// Skip UEditorEngine::InitEditor - we only need the loaded classes, not a working editor.
-	UClass* EngineClass = UObject::StaticLoadClass( UEditorEngine::StaticClass(), NULL, TEXT("engine-ini:Engine.Engine.EditorEngine"), NULL, LOAD_None, NULL );
-	EngineClass->GetDefaultObject(TRUE);
-	EngineClass->ConditionalLink();
-	GEngine = GEditor = ConstructObject<UEditorEngine>( EngineClass );
+	CreateBareEditorEngine();
 }
 
 INT UDumpClassLayoutCommandlet::Main( const FString& Params )

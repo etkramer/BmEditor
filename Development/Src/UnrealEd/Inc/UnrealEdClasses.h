@@ -465,6 +465,28 @@ public:
 	virtual void Render(const FSceneView* View,FPrimitiveDrawInterface* PDI);
 };
 
+class UCheckPackageLoadCommandlet : public UCommandlet
+{
+public:
+    //## BEGIN PROPS CheckPackageLoadCommandlet
+    //## END PROPS CheckPackageLoadCommandlet
+
+    DECLARE_CLASS(UCheckPackageLoadCommandlet,UCommandlet,0|CLASS_Transient,UnrealEd)
+	/**
+	 * Creates a bare editor engine so the commandlet can run without the editor's content dependencies.
+	 */
+	virtual void CreateCustomEngine();
+
+	/**
+	 * Commandlet entry point
+	 *
+	 * @param	Params	the command line parameters that were passed in.
+	 *
+	 * @return	0 if every package loaded cleanly; otherwise, the number of packages that failed.
+	 */
+	virtual INT Main(const FString& Params);
+};
+
 class UConvertMapToNavMesh : public UCommandlet
 {
 public:
@@ -5271,6 +5293,7 @@ AUTOGENERATE_FUNCTION(UGameStatsDBUploader,-1,execPostProcessStream);
 	UCascadeOptions::StaticClass(); \
 	UCascadePreviewComponent::StaticClass(); \
 	UCheckLightMapUVsCommandlet::StaticClass(); \
+	UCheckPackageLoadCommandlet::StaticClass(); \
 	UCheckpointGameAssetDatabaseCommandlet::StaticClass(); \
 	UClassExporterUC::StaticClass(); \
 	UClassFactoryUC::StaticClass(); \
@@ -5660,6 +5683,7 @@ VERIFY_CLASS_OFFSET_NODIE(UCascadeOptions,CascadeOptions,MotionModeRadius)
 VERIFY_CLASS_SIZE_NODIE(UCascadeOptions)
 VERIFY_CLASS_OFFSET_NODIE(UCascadePreviewComponent,CascadePreviewComponent,CascadePtr)
 VERIFY_CLASS_SIZE_NODIE(UCascadePreviewComponent)
+VERIFY_CLASS_SIZE_NODIE(UCheckPackageLoadCommandlet)
 VERIFY_CLASS_SIZE_NODIE(UConvertMapToNavMesh)
 VERIFY_CLASS_OFFSET_NODIE(UCurveEdOptions,CurveEdOptions,MinViewRange)
 VERIFY_CLASS_OFFSET_NODIE(UCurveEdOptions,CurveEdOptions,SelectedKeyColor)
