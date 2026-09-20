@@ -45,16 +45,17 @@ INT FMaterialResource::CompileProperty(EMaterialShaderPlatform MatPlatform,EMate
 	case MP_AnisotropicDirection: return Material->AnisotropicDirection.Compile(Compiler,FVector(0,1,0));
 	case MP_WorldPositionOffset: return Material->WorldPositionOffset.Compile(Compiler,FVector(0,0,0));
 	case MP_WorldDisplacement: return Material->WorldDisplacement.Compile(Compiler,FVector(0,0,0));
-	case MP_TangentDisplacement: return Material->TangentDisplacement.Compile(Compiler,0.0f);
+	case MP_TangentDisplacement: return Material->TangentDisplacement_DEPRECATED.Compile(Compiler,0.0f);
 	case MP_SubsurfaceInscatteringColor: return Material->SubsurfaceInscatteringColor.Compile(Compiler,FColor(255,255,255));
 	case MP_SubsurfaceAbsorptionColor: return Material->SubsurfaceAbsorptionColor.Compile(Compiler,FColor(230,200,200));
 	case MP_SubsurfaceScatteringRadius: return Material->SubsurfaceScatteringRadius.Compile(Compiler,0.0f);
 #if BATMAN
-	case MP_FresnelMin: return Material->FresnelMin.Compile(Compiler,0.05f);
-	case MP_FresnelExponent: return Material->FresnelExponent.Compile(Compiler,5.0f);
-	case MP_LightWrapping: return Material->LightWrapping.Compile(Compiler,FColor(0,0,0));
-	case MP_SSSNormal: return Material->SSSNormal.Compile(Compiler,FVector(0,0,1));
-	case MP_SSSMask: return Material->SSSMask.Compile(Compiler,FColor(0,0,0));
+	// BM: AK's Material has no Fresnel/LightWrapping/SSSNormal/SSSMask inputs - these compile as unconnected
+	case MP_FresnelMin: return Compiler->Constant(0.05f);
+	case MP_FresnelExponent: return Compiler->Constant(5.0f);
+	case MP_LightWrapping: return Compiler->Constant3(0.0f,0.0f,0.0f);
+	case MP_SSSNormal: return Compiler->Constant3(0.0f,0.0f,1.0f);
+	case MP_SSSMask: return Compiler->Constant3(0.0f,0.0f,0.0f);
 	case MP_SSSRadius: return Material->SSSRadius.Compile(Compiler,1.0f);
 	case MP_SpecularColor2: return Material->SpecularColor2.Compile(Compiler,FColor(128,128,128));
 	case MP_SpecularPower2: return Material->SpecularPower2.Compile(Compiler,16.0f);
@@ -349,15 +350,15 @@ UBOOL UMaterial::GetUsageByFlag(EMaterialUsage Usage) const
 		case MATUSAGE_SplineMesh: UsageValue = bUsedWithSplineMeshes; break;
 		case MATUSAGE_ScreenDoorFade: UsageValue = bUsedWithScreenDoorFade; break;
 		case MATUSAGE_APEXMesh: UsageValue = bUsedWithAPEXMeshes; break;
-		case MATUSAGE_VertexLighting: UsageValue = bUsedWithVertexLighting; break;
-		case MATUSAGE_StaticModulatedShadows: UsageValue = bUsedWithStaticModulatedShadows; break;
+		// BM: AK's Material has no vertex-lighting, modulated-shadow or per-light-type usage flags
+		case MATUSAGE_VertexLighting: UsageValue = FALSE; break;
+		case MATUSAGE_StaticModulatedShadows: UsageValue = FALSE; break;
 		case MATUSAGE_PerVertexRockAtmosFog: UsageValue = bUsedWithPerVertexRockAtmosFog; break;
 		case MATUSAGE_LightEnvironments: UsageValue = bUsedWithLightEnvironment; break;
 		case MATUSAGE_StaticMesh: UsageValue = bUsedWithStaticMesh; break;
-		// BM: retail maps both spot and point usages to the spot flag
-		case MATUSAGE_DirectionalLights: UsageValue = bRecievesDynamicDirectionalLights; break;
+		case MATUSAGE_DirectionalLights:
 		case MATUSAGE_SpotLights:
-		case MATUSAGE_PointLights: UsageValue = bRecievesDynamicSpotLights; break;
+		case MATUSAGE_PointLights: UsageValue = FALSE; break;
 		default: appErrorf(TEXT("Unknown material usage: %u"), (INT)Usage);
 	};
 	return UsageValue;
@@ -390,15 +391,15 @@ void UMaterial::SetUsageByFlag(EMaterialUsage Usage, UBOOL NewValue)
 		case MATUSAGE_SplineMesh: bUsedWithSplineMeshes = NewValue; break;
 		case MATUSAGE_ScreenDoorFade: bUsedWithScreenDoorFade = NewValue; break;
 		case MATUSAGE_APEXMesh: bUsedWithAPEXMeshes = NewValue; break;
-		case MATUSAGE_VertexLighting: bUsedWithVertexLighting = NewValue; break;
-		case MATUSAGE_StaticModulatedShadows: bUsedWithStaticModulatedShadows = NewValue; break;
+		// BM: AK's Material has no vertex-lighting, modulated-shadow or per-light-type usage flags
+		case MATUSAGE_VertexLighting: break;
+		case MATUSAGE_StaticModulatedShadows: break;
 		case MATUSAGE_PerVertexRockAtmosFog: bUsedWithPerVertexRockAtmosFog = NewValue; break;
 		case MATUSAGE_LightEnvironments: bUsedWithLightEnvironment = NewValue; break;
 		case MATUSAGE_StaticMesh: bUsedWithStaticMesh = NewValue; break;
-		// BM: retail maps both spot and point usages to the spot flag
-		case MATUSAGE_DirectionalLights: bRecievesDynamicDirectionalLights = NewValue; break;
+		case MATUSAGE_DirectionalLights:
 		case MATUSAGE_SpotLights:
-		case MATUSAGE_PointLights: bRecievesDynamicSpotLights = NewValue; break;
+		case MATUSAGE_PointLights: break;
 		default: appErrorf(TEXT("Unknown material usage: %u"), (INT)Usage);
 	};
 }
@@ -436,10 +437,9 @@ FString UMaterial::GetUsageName(EMaterialUsage Usage) const
 		case MATUSAGE_PerVertexRockAtmosFog: UsageName = TEXT("bUsedWithPerVertexRockAtmosFog"); break;
 		case MATUSAGE_LightEnvironments: UsageName = TEXT("bUsedWithLightEnvironment"); break;
 		case MATUSAGE_StaticMesh: UsageName = TEXT("bUsedWithStaticMesh"); break;
-		// BM: retail maps both spot and point usages to the spot flag
 		case MATUSAGE_DirectionalLights: UsageName = TEXT("bRecievesDynamicDirectionalLights"); break;
-		case MATUSAGE_SpotLights:
-		case MATUSAGE_PointLights: UsageName = TEXT("bRecievesDynamicSpotLights"); break;
+		case MATUSAGE_SpotLights: UsageName = TEXT("bRecievesDynamicSpotLights"); break;
+		case MATUSAGE_PointLights: UsageName = TEXT("bRecievesDynamicPointLights"); break;
 		default: appErrorf(TEXT("Unknown material usage: %u"), (INT)Usage);
 	};
 	return UsageName;
@@ -1295,9 +1295,9 @@ void UMaterial::Serialize(FArchive& Ar)
 		{
 			// If we are loading a material resource saved before texture references were managed by the material resource,
 			// Pass the legacy texture references to the material resource.
-			MaterialResources[MSP_SM3]->AddLegacyTextures(ReferencedTextures);
+			MaterialResources[MSP_SM3]->AddLegacyTextures(ReferencedTextures_DEPRECATED);
 			// Empty legacy texture references on load
-			ReferencedTextures.Empty();
+			ReferencedTextures_DEPRECATED.Empty();
 		}
 		if (bSerializeShaderMap == TRUE)
 		{
@@ -2270,7 +2270,7 @@ FExpressionInput* UMaterial::GetExpressionInputForProperty(EMaterialProperty InP
 		return &WorldDisplacement;
 		break;
 	case MP_TangentDisplacement:
-		return &TangentDisplacement;
+		return &TangentDisplacement_DEPRECATED;
 		break;
 	case MP_SubsurfaceInscatteringColor:
 		return &SubsurfaceInscatteringColor;
@@ -2282,20 +2282,13 @@ FExpressionInput* UMaterial::GetExpressionInputForProperty(EMaterialProperty InP
 		return &SubsurfaceScatteringRadius;
 		break;
 #if BATMAN
+	// BM: AK's Material has no Fresnel/LightWrapping/SSSNormal/SSSMask inputs
 	case MP_FresnelMin:
-		return &FresnelMin;
-		break;
 	case MP_FresnelExponent:
-		return &FresnelExponent;
-		break;
 	case MP_LightWrapping:
-		return &LightWrapping;
-		break;
 	case MP_SSSNormal:
-		return &SSSNormal;
-		break;
 	case MP_SSSMask:
-		return &SSSMask;
+		return NULL;
 		break;
 	case MP_SSSRadius:
 		return &SSSRadius;

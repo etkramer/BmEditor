@@ -6,14 +6,15 @@ class MaterialExpressionStaticSwitchParameter extends MaterialExpressionParamete
 	collapsecategories
 	hidecategories(Object);
 
+// BM: AK splits these three out into MaterialExpressionStaticBoolParameter, ahead of A and B
 var() bool	DefaultValue;
 var() bool	ExtendedCaptionDisplay;
 
-var ExpressionInput A;
-var ExpressionInput B;
-
 //the override that will be set when this expression is being compiled from a static permutation
 var const native transient pointer InstanceOverride{const FStaticSwitchParameter};
+
+var ExpressionInput A;
+var ExpressionInput B;
 
 cpptext
 {

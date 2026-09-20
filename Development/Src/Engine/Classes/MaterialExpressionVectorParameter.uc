@@ -17,5 +17,6 @@ cpptext
 
 defaultproperties
 {
+	DefaultValue=(R=0.0,G=0.0,B=0.0,A=1.0)
 	MenuCategories(0)="Parameters"
 }

@@ -71,7 +71,9 @@ enum EMaterialLightingModel
 	MLM_Unlit,
 	MLM_SHPRT,
 	MLM_Custom,
-	MLM_Anisotropic
+	MLM_Anisotropic,
+	// BM
+	MLM_RockBRDF
 };
 
 // This is used by the drawing passes to determine tessellation policy, so changes here need to be supported in native code.
@@ -79,7 +81,9 @@ enum EMaterialTessellationMode
 {
 	MTM_NoTessellation,
 	MTM_FlatTessellation,
-	MTM_PNTriangles
+	MTM_PNTriangles,
+	// BM
+	MTM_PhongTessellation
 };
 
 enum EMobileTextureTransformTarget

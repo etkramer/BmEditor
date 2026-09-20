@@ -319,11 +319,11 @@ WxMaterialEditorContextMenu_ConnectorOptions::WxMaterialEditorContextMenu_Connec
 			Append( ID_MATERIALEDITOR_CONNECT_TO_SubsurfaceInscatteringColor, *LocalizeUnrealEd("ConnectToSubsurfaceInscatteringColor"), TEXT("") );
 			Append( ID_MATERIALEDITOR_CONNECT_TO_SubsurfaceAbsorptionColor, *LocalizeUnrealEd("ConnectToSubsurfaceAbsorptionColor"), TEXT("") );
 			Append( ID_MATERIALEDITOR_CONNECT_TO_SubsurfaceScatteringRadius, *LocalizeUnrealEd("ConnectToSubsurfaceScatteringRadius"), TEXT("") );
-			Append( ID_MATERIALEDITOR_CONNECT_TO_FresnelMin, *LocalizeUnrealEd("ConnectToFresnelMin"), TEXT("") );
-			Append( ID_MATERIALEDITOR_CONNECT_TO_FresnelExponent, *LocalizeUnrealEd("ConnectToFresnelExponent"), TEXT("") );
-			Append( ID_MATERIALEDITOR_CONNECT_TO_LightWrapping, *LocalizeUnrealEd("ConnectToLightWrapping"), TEXT("") );
-			Append( ID_MATERIALEDITOR_CONNECT_TO_SSSNormal, *LocalizeUnrealEd("ConnectToSSSNormal"), TEXT("") );
-			Append( ID_MATERIALEDITOR_CONNECT_TO_SSSMask, *LocalizeUnrealEd("ConnectToSSSMask"), TEXT("") );
+			Append( ID_MATERIALEDITOR_CONNECT_TO_SSSColor, *LocalizeUnrealEd("ConnectToSSSColor"), TEXT("") );
+			Append( ID_MATERIALEDITOR_CONNECT_TO_MetalMask, *LocalizeUnrealEd("ConnectToMetalMask"), TEXT("") );
+			Append( ID_MATERIALEDITOR_CONNECT_TO_BlurDirection, *LocalizeUnrealEd("ConnectToBlurDirection"), TEXT("") );
+			Append( ID_MATERIALEDITOR_CONNECT_TO_FaceWorksDeepScatterColor, *LocalizeUnrealEd("ConnectToFaceWorksDeepScatterColor"), TEXT("") );
+			Append( ID_MATERIALEDITOR_CONNECT_TO_PostWorldPositionOffset, *LocalizeUnrealEd("ConnectToPostWorldPositionOffset"), TEXT("") );
 			Append( ID_MATERIALEDITOR_CONNECT_TO_SSSRadius, *LocalizeUnrealEd("ConnectToSSSRadius"), TEXT("") );
 		}
 	}

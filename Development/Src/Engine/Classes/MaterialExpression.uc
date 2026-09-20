@@ -9,6 +9,9 @@ class MaterialExpression extends Object within Material
 struct ExpressionInput
 {
 	var MaterialExpression	Expression;
+	// BM
+	var int					OutputIndex;
+	var string				InputName;
 	var int					Mask,
 							MaskR,
 							MaskG,
@@ -17,9 +20,20 @@ struct ExpressionInput
 	var int					GCC64_Padding; // @todo 64: if the C++ didn't mismirror this structure (with MaterialInput), we might not need this
 };
 
+// BM
+struct ExpressionOutput
+{
+	var string				OutputName;
+	var int					Mask,
+							MaskR,
+							MaskG,
+							MaskB,
+							MaskA;
+};
+
 /** This variable is conlficting with Materia var, making new ones (MaterialExpressionEditor), and then deprecating this **/
-var deprecated int	EditorX,
-					EditorY;
+var deprecated editoronly int	EditorX,
+								EditorY;
 
 var editoronly int		MaterialExpressionEditorX,
 						MaterialExpressionEditorY;
@@ -33,21 +47,20 @@ var transient bool			bNeedToUpdatePreview;
 /** Indicates that this is a 'parameter' type of expression and should always be loaded (ie not cooked away) because we might want the default parameter. */
 var bool					bIsParameterExpression;
 
-/** A reference to the compound expression this material expression belongs to. */
-var const MaterialExpressionCompound	Compound;
-
-/** A description that level designers can add (shows in the material editor UI). */
-var() string				Desc;
+/** If TRUE, the expression is drawn collapsed in the material editor. */
+var bool bCollapsedInEditor;
 
 /** If TRUE, use the output name as the label for the pin */
 var bool bShowOutputNameOnPin;
 /** If TRUE, do not render the preview window for the expression */
 var bool bHidePreviewWindow;
 
-/** Categories to sort this expression into... */
-var array<name>	MenuCategories;
+/** If TRUE, the expression's input pins are drawn. */
+var bool bShowInputs;
+/** If TRUE, the expression's output pins are drawn. */
+var bool bShowOutputs;
 
-/** 
+/**
  *	If TRUE, this expression is used when generating the StaticParameterSet.
  *	It is important to set this correctly if the cooker is using the CleanupMaterials functionality.
  *	If it is not set correctly, the cleanup code will remove the expression and the StaticParameterSet
@@ -56,6 +69,24 @@ var array<name>	MenuCategories;
  *	will be called by the CleanupMaterials function to remove unrequired expressions.
  */
 var bool bUsedByStaticParameterSet;
+
+/** The material this expression belongs to. */
+var const Material			Material;
+
+/** The material function this expression belongs to. */
+var const MaterialFunction	Function;
+
+/** A description that level designers can add (shows in the material editor UI). */
+var() editoronly string		Desc;
+
+/** Colour of the expression's border in the material editor. */
+var color					BorderColor;
+
+/** Categories to sort this expression into... */
+var editoronly array<name>	MenuCategories;
+
+/** The expression's outputs. */
+var array<ExpressionOutput>	Outputs;
 
 cpptext
 {
@@ -115,4 +146,11 @@ cpptext
 	 */
 	static void CopyMaterialExpressions(const TArray<class UMaterialExpression*>& SrcExpressions, const TArray<class UMaterialExpressionComment*>& SrcExpressionComments, 
 										class UMaterial* Material, TArray<class UMaterialExpression*>& OutNewExpressions, TArray<class UMaterialExpression*>& OutNewComments);
+}
+
+defaultproperties
+{
+	bShowInputs=TRUE
+	bShowOutputs=TRUE
+	Outputs(0)=(OutputName="")
 }

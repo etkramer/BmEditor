@@ -12,6 +12,9 @@ var()	name		ParameterName;
 /** GUID that should be unique within the material, this is used for parameter renaming. */
 var	  const	guid	ExpressionGUID;
 
+// BM
+var()	name		Group;
+
 cpptext
 {
 	virtual INT Compile(FMaterialCompiler* Compiler);

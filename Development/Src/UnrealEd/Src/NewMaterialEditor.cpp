@@ -442,15 +442,15 @@ static FExpressionInput* GetMaterialInput(UMaterial* Material, INT Index)
 	case 15: ExpressionInput = &Material->AnisotropicDirection ; break;
 	case 16: ExpressionInput = &Material->WorldPositionOffset ; break;
 	case 17: ExpressionInput = &Material->WorldDisplacement ; break;
-	case 18: ExpressionInput = &Material->TangentDisplacement ; break;
+	case 18: ExpressionInput = &Material->TangentDisplacement_DEPRECATED ; break;
 	case 19: ExpressionInput = &Material->SubsurfaceInscatteringColor; break;
 	case 20: ExpressionInput = &Material->SubsurfaceAbsorptionColor; break;
 	case 21: ExpressionInput = &Material->SubsurfaceScatteringRadius; break;
-	case 22: ExpressionInput = &Material->FresnelMin ; break;
-	case 23: ExpressionInput = &Material->FresnelExponent ; break;
-	case 24: ExpressionInput = &Material->LightWrapping ; break;
-	case 25: ExpressionInput = &Material->SSSNormal ; break;
-	case 26: ExpressionInput = &Material->SSSMask ; break;
+	case 22: ExpressionInput = &Material->SSSColor ; break;
+	case 23: ExpressionInput = &Material->MetalMask ; break;
+	case 24: ExpressionInput = &Material->BlurDirection ; break;
+	case 25: ExpressionInput = &Material->FaceWorksDeepScatterColor ; break;
+	case 26: ExpressionInput = &Material->PostWorldPositionOffset ; break;
 	case 27: ExpressionInput = &Material->SSSRadius ; break;
 	default: appErrorf( TEXT("%i: Invalid material input index"), Index );
 	}
@@ -625,15 +625,15 @@ static void GetListOfReferencingInputs(const UMaterialExpression* InMaterialExpr
 	__GATHER_REFERENCE_TO_EXPRESSION( InMaterialExpression, Material, AnisotropicDirection );
 	__GATHER_REFERENCE_TO_EXPRESSION( InMaterialExpression, Material, WorldPositionOffset );
 	__GATHER_REFERENCE_TO_EXPRESSION( InMaterialExpression, Material, WorldDisplacement );
-	__GATHER_REFERENCE_TO_EXPRESSION( InMaterialExpression, Material, TangentDisplacement );
+	__GATHER_REFERENCE_TO_EXPRESSION( InMaterialExpression, Material, TangentDisplacement_DEPRECATED );
 	__GATHER_REFERENCE_TO_EXPRESSION( InMaterialExpression, Material, SubsurfaceInscatteringColor );
 	__GATHER_REFERENCE_TO_EXPRESSION( InMaterialExpression, Material, SubsurfaceAbsorptionColor );
 	__GATHER_REFERENCE_TO_EXPRESSION( InMaterialExpression, Material, SubsurfaceScatteringRadius );
-	__GATHER_REFERENCE_TO_EXPRESSION( InMaterialExpression, Material, FresnelMin );
-	__GATHER_REFERENCE_TO_EXPRESSION( InMaterialExpression, Material, FresnelExponent );
-	__GATHER_REFERENCE_TO_EXPRESSION( InMaterialExpression, Material, LightWrapping );
-	__GATHER_REFERENCE_TO_EXPRESSION( InMaterialExpression, Material, SSSNormal );
-	__GATHER_REFERENCE_TO_EXPRESSION( InMaterialExpression, Material, SSSMask );
+	__GATHER_REFERENCE_TO_EXPRESSION( InMaterialExpression, Material, SSSColor );
+	__GATHER_REFERENCE_TO_EXPRESSION( InMaterialExpression, Material, MetalMask );
+	__GATHER_REFERENCE_TO_EXPRESSION( InMaterialExpression, Material, BlurDirection );
+	__GATHER_REFERENCE_TO_EXPRESSION( InMaterialExpression, Material, FaceWorksDeepScatterColor );
+	__GATHER_REFERENCE_TO_EXPRESSION( InMaterialExpression, Material, PostWorldPositionOffset );
 	__GATHER_REFERENCE_TO_EXPRESSION( InMaterialExpression, Material, SSSRadius );
 	__GATHER_REFERENCE_TO_EXPRESSION( InMaterialExpression, Material, SpecularColor2 );
 	__GATHER_REFERENCE_TO_EXPRESSION( InMaterialExpression, Material, SpecularPower2 );
@@ -789,12 +789,6 @@ static void InitExpressions(UMaterial* Material)
 		UMaterialExpressionComment* Comment = Material->EditorComments( MaterialExpressionIndex );
 		Comment->SetFlags( RF_Transactional );
 	}
-	for( INT MaterialExpressionIndex = 0 ; MaterialExpressionIndex < Material->EditorCompounds.Num() ; ++MaterialExpressionIndex )
-	{
-		UMaterialExpressionCompound* Compound = Material->EditorCompounds( MaterialExpressionIndex );
-		Compound->SetFlags( RF_Transactional );
-	}
-
 }
 
 } // namespace
@@ -1034,11 +1028,11 @@ BEGIN_EVENT_TABLE( WxMaterialEditor, WxMaterialEditorBase )
 	EVT_MENU( ID_MATERIALEDITOR_CONNECT_TO_SubsurfaceScatteringRadius, WxMaterialEditor::OnConnectToMaterial_SubsurfaceScatteringRadius )
 	EVT_MENU( ID_MATERIALEDITOR_CONNECT_TO_SpecularColor2, WxMaterialEditor::OnConnectToMaterial_SpecularColor2 )
 	EVT_MENU( ID_MATERIALEDITOR_CONNECT_TO_SpecularPower2, WxMaterialEditor::OnConnectToMaterial_SpecularPower2 )
-	EVT_MENU( ID_MATERIALEDITOR_CONNECT_TO_FresnelMin, WxMaterialEditor::OnConnectToMaterial_FresnelMin )
-	EVT_MENU( ID_MATERIALEDITOR_CONNECT_TO_FresnelExponent, WxMaterialEditor::OnConnectToMaterial_FresnelExponent )
-	EVT_MENU( ID_MATERIALEDITOR_CONNECT_TO_LightWrapping, WxMaterialEditor::OnConnectToMaterial_LightWrapping )
-	EVT_MENU( ID_MATERIALEDITOR_CONNECT_TO_SSSNormal, WxMaterialEditor::OnConnectToMaterial_SSSNormal )
-	EVT_MENU( ID_MATERIALEDITOR_CONNECT_TO_SSSMask, WxMaterialEditor::OnConnectToMaterial_SSSMask )
+	EVT_MENU( ID_MATERIALEDITOR_CONNECT_TO_SSSColor, WxMaterialEditor::OnConnectToMaterial_SSSColor )
+	EVT_MENU( ID_MATERIALEDITOR_CONNECT_TO_MetalMask, WxMaterialEditor::OnConnectToMaterial_MetalMask )
+	EVT_MENU( ID_MATERIALEDITOR_CONNECT_TO_BlurDirection, WxMaterialEditor::OnConnectToMaterial_BlurDirection )
+	EVT_MENU( ID_MATERIALEDITOR_CONNECT_TO_FaceWorksDeepScatterColor, WxMaterialEditor::OnConnectToMaterial_FaceWorksDeepScatterColor )
+	EVT_MENU( ID_MATERIALEDITOR_CONNECT_TO_PostWorldPositionOffset, WxMaterialEditor::OnConnectToMaterial_PostWorldPositionOffset )
 	EVT_MENU( ID_MATERIALEDITOR_CONNECT_TO_SSSRadius, WxMaterialEditor::OnConnectToMaterial_SSSRadius )
 	
 	EVT_TEXT(ID_MATERIALEDITOR_SEARCH, WxMaterialEditor::OnSearchChanged)
@@ -1749,15 +1743,15 @@ WxMaterialEditor::WxMaterialEditor(wxWindow* InParent, wxWindowID InID, UMateria
 	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("AnisotropicDirection"), &Material->AnisotropicDirection ) );
 	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("WorldPositionOffset"), &Material->WorldPositionOffset ) );
 	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("WorldDisplacement"), &Material->WorldDisplacement ) );
-	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("TangentDisplacement"), &Material->TangentDisplacement ) );
+	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("TangentDisplacement"), &Material->TangentDisplacement_DEPRECATED ) );
 	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("SubsurfaceInscatteringColor"), &Material->SubsurfaceInscatteringColor ) );
 	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("SubsurfaceAbsorptionColor"), &Material->SubsurfaceAbsorptionColor ) );
 	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("SubsurfaceScatteringRadius"), &Material->SubsurfaceScatteringRadius ) );
-	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("FresnelMin"), &Material->FresnelMin ) );
-	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("FresnelExponent"), &Material->FresnelExponent ) );
-	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("LightWrapping"), &Material->LightWrapping ) );
-	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("SSSNormal"), &Material->SSSNormal ) );
-	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("SSSMask"), &Material->SSSMask ) );
+	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("SSSColor"), &Material->SSSColor ) );
+	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("MetalMask"), &Material->MetalMask ) );
+	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("BlurDirection"), &Material->BlurDirection ) );
+	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("FaceWorksDeepScatterColor"), &Material->FaceWorksDeepScatterColor ) );
+	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("PostWorldPositionOffset"), &Material->PostWorldPositionOffset ) );
 	MaterialInputs.AddItem( FMaterialInputInfo( TEXT("SSSRadius"), &Material->SSSRadius ) );
 	
 
@@ -1897,15 +1891,6 @@ void WxMaterialEditor::FlushCompoundExpressionInfo(UBOOL bRefresh)
 		delete Info;
 	}
 	CompoundInfoMap.Empty();
-
-	if ( bRefresh )
-	{
-		for( INT CompoundIndex = 0 ; CompoundIndex < Material->EditorCompounds.Num() ; ++CompoundIndex )
-		{
-			UMaterialExpressionCompound* Compound = Material->EditorCompounds(CompoundIndex);
-			UpdateCompoundExpressionInfo( Compound );
-		}
-	}
 }
 
 /** Refreshes the viewport containing the material expression graph. */
@@ -2144,13 +2129,10 @@ void WxMaterialEditor::DeleteObjects( const TArray<UMaterialExpression*>& Expres
 			{
 				UMaterialExpressionCompound* Compound = Compounds( CompoundIndex );
 				Compound->Modify();
-				Material->EditorCompounds.RemoveItem( Compound );
 				for( INT MaterialExpressionIndex = 0 ; MaterialExpressionIndex < Compound->MaterialExpressions.Num() ; ++MaterialExpressionIndex )
 				{
 					UMaterialExpression* MaterialExpression = Compound->MaterialExpressions( MaterialExpressionIndex );
-					check( MaterialExpression->Compound == Compound );
 					MaterialExpression->Modify();
-					MaterialExpression->Compound = NULL;
 				}
 				FCompoundInfo** CompoundInfo = CompoundInfoMap.Find( Compound );
 				check( CompoundInfo );
@@ -2608,13 +2590,6 @@ void WxMaterialEditor::DoubleClickedConnector(FLinkedObjectConnector& Connector)
 /** Draws the specified material expression node. */
 void WxMaterialEditor::DrawMaterialExpression(UMaterialExpression* MaterialExpression, UBOOL bExpressionSelected, FCanvas* Canvas)
 {
-	// Don't render the expression if it is contained by a compound that is visible.
-	const UBOOL bCompoundVisible = MaterialExpression->Compound && !MaterialExpression->Compound->bExpanded;
-	if ( bCompoundVisible )
-	{
-		return;
-	}
-
 	// Construct the FLinkedObjDrawInfo for use by the linked-obj drawing utils.
 	FLinkedObjDrawInfo ObjInfo;
 	ObjInfo.ObjObject = MaterialExpression;
@@ -2928,13 +2903,6 @@ void WxMaterialEditor::DrawMaterialExpressionConnections(UMaterialExpression* Ma
 /** Draws comments for the specified material expression node. */
 void WxMaterialEditor::DrawMaterialExpressionComments(UMaterialExpression* MaterialExpression, FCanvas* Canvas)
 {
-	// Don't render the expression if it is contained by a compound that is visible.
-	const UBOOL bCompoundVisible = MaterialExpression->Compound && !MaterialExpression->Compound->bExpanded;
-	if ( bCompoundVisible )
-	{
-		return;
-	}
-
 	// Draw the material expression comment string unzoomed.
 	if( MaterialExpression->Desc.Len() > 0 )
 	{
@@ -4126,11 +4094,6 @@ void WxMaterialEditor::BeginTransactionOnSelected()
 		UMaterialExpressionComment* Comment = Material->EditorComments( MaterialExpressionIndex );
 		Comment->Modify();
 	}
-	for( INT MaterialExpressionIndex = 0 ; MaterialExpressionIndex < Material->EditorCompounds.Num() ; ++MaterialExpressionIndex )
-	{
-		UMaterialExpressionCompound* Compound = Material->EditorCompounds( MaterialExpressionIndex );
-		Compound->Modify();
-	}
 }
 
 /**
@@ -4605,19 +4568,11 @@ void WxMaterialEditor::CreateNewCompoundExpression()
 		for( INT MaterialExpressionIndex = 0 ; MaterialExpressionIndex < SelectedExpressions.Num() ; ++MaterialExpressionIndex )
 		{
 			UMaterialExpression* MaterialExpression			= SelectedExpressions( MaterialExpressionIndex );
-			if ( MaterialExpression->Compound )
+			UMaterialExpressionCompound* CompoundExpression	= Cast<UMaterialExpressionCompound>( MaterialExpression );
+			if ( CompoundExpression )
 			{
-				const FString NewError( FString::Printf( LocalizeSecure(LocalizeUnrealEd("Error_ExpressionAlreadyBelongsToCompound_F"), *MaterialExpression->GetCaption(), *MaterialExpression->Compound->GetCaption()) ) );
-				ErrorString += FString::Printf( TEXT("%s\n"), *NewError );
-			}
-			else
-			{
-				UMaterialExpressionCompound* CompoundExpression	= Cast<UMaterialExpressionCompound>( MaterialExpression );
-				if ( CompoundExpression )
-				{
-					const FString NewError( FString::Printf( LocalizeSecure(LocalizeUnrealEd("Error_ExpressionCompoundsCantContainOtherCompounds_F"), *MaterialExpression->GetCaption()) ) );
-					ErrorString += NewError + TEXT("\n");
-				}
+				const FString NewError( FString::Printf( LocalizeSecure(LocalizeUnrealEd("Error_ExpressionCompoundsCantContainOtherCompounds_F"), *MaterialExpression->GetCaption()) ) );
+				ErrorString += NewError + TEXT("\n");
 			}
 		}
 
@@ -4636,7 +4591,6 @@ void WxMaterialEditor::CreateNewCompoundExpression()
 			Material->Modify();
 
 			NewCompound = ConstructObject<UMaterialExpressionCompound>( UMaterialExpressionCompound::StaticClass(), Material, NAME_None, RF_Transactional );
-			Material->EditorCompounds.AddItem( NewCompound );
 
 			const FIntRect SelectedBounds = GetBoundingBoxOfSelectedExpressions();
 			const FIntPoint Extents( SelectedBounds.Max.X - SelectedBounds.Min.X, SelectedBounds.Max.Y - SelectedBounds.Min.Y );
@@ -4648,8 +4602,6 @@ void WxMaterialEditor::CreateNewCompoundExpression()
 			for( INT MaterialExpressionIndex = 0 ; MaterialExpressionIndex < SelectedExpressions.Num() ; ++MaterialExpressionIndex )
 			{
 				UMaterialExpression* MaterialExpression = SelectedExpressions( MaterialExpressionIndex );
-				check( MaterialExpression->Compound == NULL );
-				MaterialExpression->Compound = NewCompound;
 				NewCompound->MaterialExpressions.AddItem( MaterialExpression );
 			}
 		}
@@ -5329,11 +5281,11 @@ void WxMaterialEditor::OnConnectToMaterial_TangentDisplacement(wxCommandEvent& I
 void WxMaterialEditor::OnConnectToMaterial_SubsurfaceInscatteringColor(wxCommandEvent& In) { OnConnectToMaterial(19); }
 void WxMaterialEditor::OnConnectToMaterial_SubsurfaceAbsorptionColor(wxCommandEvent& In) { OnConnectToMaterial(20); }
 void WxMaterialEditor::OnConnectToMaterial_SubsurfaceScatteringRadius(wxCommandEvent& In) { OnConnectToMaterial(21); }
-void WxMaterialEditor::OnConnectToMaterial_FresnelMin(wxCommandEvent& In) { OnConnectToMaterial(22); }
-void WxMaterialEditor::OnConnectToMaterial_FresnelExponent(wxCommandEvent& In) { OnConnectToMaterial(23); }
-void WxMaterialEditor::OnConnectToMaterial_LightWrapping(wxCommandEvent& In) { OnConnectToMaterial(24); }
-void WxMaterialEditor::OnConnectToMaterial_SSSNormal(wxCommandEvent& In) { OnConnectToMaterial(25); }
-void WxMaterialEditor::OnConnectToMaterial_SSSMask(wxCommandEvent& In) { OnConnectToMaterial(26); }
+void WxMaterialEditor::OnConnectToMaterial_SSSColor(wxCommandEvent& In) { OnConnectToMaterial(22); }
+void WxMaterialEditor::OnConnectToMaterial_MetalMask(wxCommandEvent& In) { OnConnectToMaterial(23); }
+void WxMaterialEditor::OnConnectToMaterial_BlurDirection(wxCommandEvent& In) { OnConnectToMaterial(24); }
+void WxMaterialEditor::OnConnectToMaterial_FaceWorksDeepScatterColor(wxCommandEvent& In) { OnConnectToMaterial(25); }
+void WxMaterialEditor::OnConnectToMaterial_PostWorldPositionOffset(wxCommandEvent& In) { OnConnectToMaterial(26); }
 void WxMaterialEditor::OnConnectToMaterial_SSSRadius(wxCommandEvent& In) { OnConnectToMaterial(27); }
 
 void WxMaterialEditor::OnShowHideConnectors(wxCommandEvent& In)
@@ -5726,15 +5678,15 @@ void WxMaterialEditor::GetVisibleMaterialParameters(const UMaterial *Material, U
 	GetVisibleMaterialParametersFromExpression(Material->TwoSidedLightingColor.Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
 	GetVisibleMaterialParametersFromExpression(Material->WorldPositionOffset.Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
 	GetVisibleMaterialParametersFromExpression(Material->WorldDisplacement.Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
-	GetVisibleMaterialParametersFromExpression(Material->TangentDisplacement.Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
+	GetVisibleMaterialParametersFromExpression(Material->TangentDisplacement_DEPRECATED.Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
 	GetVisibleMaterialParametersFromExpression(Material->SubsurfaceInscatteringColor.Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
 	GetVisibleMaterialParametersFromExpression(Material->SubsurfaceAbsorptionColor.Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
 	GetVisibleMaterialParametersFromExpression(Material->SubsurfaceScatteringRadius.Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
-	GetVisibleMaterialParametersFromExpression(Material->FresnelMin.Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
-	GetVisibleMaterialParametersFromExpression(Material->FresnelExponent.Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
-	GetVisibleMaterialParametersFromExpression(Material->LightWrapping.Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
-	GetVisibleMaterialParametersFromExpression(Material->SSSNormal.Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
-	GetVisibleMaterialParametersFromExpression(Material->SSSMask.Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
+	GetVisibleMaterialParametersFromExpression(Material->SSSColor.Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
+	GetVisibleMaterialParametersFromExpression(Material->MetalMask.Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
+	GetVisibleMaterialParametersFromExpression(Material->BlurDirection.Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
+	GetVisibleMaterialParametersFromExpression(Material->FaceWorksDeepScatterColor.Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
+	GetVisibleMaterialParametersFromExpression(Material->PostWorldPositionOffset.Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
 	GetVisibleMaterialParametersFromExpression(Material->SSSRadius.Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
 	GetVisibleMaterialParametersFromExpression(Material->SpecularColor2.Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
 	GetVisibleMaterialParametersFromExpression(Material->SpecularPower2.Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);

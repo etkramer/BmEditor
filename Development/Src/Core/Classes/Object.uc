@@ -271,6 +271,15 @@ enum EDecalPriority
 	DP_AfterDefault5,
 };
 
+// BM
+/** How a decal's geometry is generated. */
+enum EDecalDrawMode
+{
+	DDM_Quad,
+	DDM_Box_No_Back,
+	DDM_Box,
+};
+
 /** Various ways to interpolate TAlphaBlend. */
 enum AlphaBlendType
 {

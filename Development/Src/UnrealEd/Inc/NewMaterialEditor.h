@@ -706,11 +706,11 @@ private:
 	void OnConnectToMaterial_SubsurfaceScatteringRadius(wxCommandEvent& In);
 	void OnConnectToMaterial_SpecularColor2(wxCommandEvent& In);
 	void OnConnectToMaterial_SpecularPower2(wxCommandEvent& In);
-	void OnConnectToMaterial_FresnelMin(wxCommandEvent& In);
-	void OnConnectToMaterial_FresnelExponent(wxCommandEvent& In);
-	void OnConnectToMaterial_LightWrapping(wxCommandEvent& In);
-	void OnConnectToMaterial_SSSNormal(wxCommandEvent& In);
-	void OnConnectToMaterial_SSSMask(wxCommandEvent& In);
+	void OnConnectToMaterial_SSSColor(wxCommandEvent& In);
+	void OnConnectToMaterial_MetalMask(wxCommandEvent& In);
+	void OnConnectToMaterial_BlurDirection(wxCommandEvent& In);
+	void OnConnectToMaterial_FaceWorksDeepScatterColor(wxCommandEvent& In);
+	void OnConnectToMaterial_PostWorldPositionOffset(wxCommandEvent& In);
 	void OnConnectToMaterial_SSSRadius(wxCommandEvent& In);
 
 	void OnShowHideConnectors(wxCommandEvent& In);

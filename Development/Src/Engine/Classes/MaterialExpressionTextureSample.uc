@@ -8,6 +8,8 @@ class MaterialExpressionTextureSample extends MaterialExpression
 
 var() Texture		Texture;
 var ExpressionInput	Coordinates;
+// BM
+var ExpressionInput	TextureObject;
 
 cpptext
 {

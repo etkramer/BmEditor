@@ -965,6 +965,7 @@
   2 MaterialExpressionWindDirectionAndSpeed Engine [] []
   2 MaterialExpressionWorldNormal Engine [] []
   2 MaterialExpressionWorldPosition Engine [] []
+ 1 MaterialFunction Engine [] []
  1 MetaData Core [] []
  1 Model Engine [] []
  1 MorphTarget Engine [] []

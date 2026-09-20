@@ -12,14 +12,12 @@ enum EParticleDownsampling
 	PDS_Quarter,
 };
 
-enum MatLoadedPhysMaterial
-{
-	LPM_NoLoadedPhysMat,
-};
-
 struct MaterialInput
 {
 	var MaterialExpression	Expression;
+	// BM
+	var int					OutputIndex;
+	var string				InputName;
 	var int					Mask,
 							MaskR,
 							MaskG,
@@ -53,100 +51,34 @@ struct Vector2MaterialInput extends MaterialInput
 				ConstantY;
 };
 
-var(PhysicalMaterial)	Texture2D			PhysMaterialMask;
-var(PhysicalMaterial)	INT					PhysMaterialMaskUVChannel;
-var(PhysicalMaterial)	PhysicalMaterial	BlackPhysicalMaterial;
-var(PhysicalMaterial)	PhysicalMaterial	WhitePhysicalMaterial;
+// BM
+struct native MaterialFunctionInfo
+{
+	var guid			StateId;
+	var MaterialFunction Function;
+};
 
-var(Translucency) nontransactional EParticleDownsampling NvidiaParticleDownsampling;
+var(PhysicalMaterialMask)	Texture2D			PhysMaterialMask;
+var(PhysicalMaterialMask)	PhysicalMaterial	BlackPhysicalMaterial;
+var(PhysicalMaterialMask)	PhysicalMaterial	WhitePhysicalMaterial;
+var(PhysicalMaterialMask)	INT					PhysMaterialMaskUVChannel;
 
-var() MatLoadedPhysMaterial PhysMaterialOverrideDropDown;
+var(Translucency) notforconsole EParticleDownsampling NvidiaParticleDownsampling;
 
 var() EBlendMode BlendMode;
 var() EMaterialLightingModel LightingModel;
 
-var() bool PhysMaterialOverrideDropDownUPDATELIST;
+var(RS_Decal) EDecalPriority DecalPriority;
+var(RS_Decal) EDecalDrawMode DecalDrawMode;
 
-var() bool EnableSubsurfaceScattering;
-var() bool TwoSided;
-var(Translucency) bool TwoSidedSeparatePass;
-
-var(RS_Options) bool bSpecularBlinnPhong;
-var(RS_Options) bool bSpecularConserveEnergy;
-var(RS_Options) bool bSpecularMaskByShading;
-var(RS_Options) bool SortWithSceneTextureSampleMaterials;
-var(RS_Options) bool bDisableTwoSidedLighting;
-
-var(Translucency) bool bDisableDepthTest;
-var(Translucency) bool bAllowFog;
-var(Translucency) bool bTranslucencyReceiveDominantShadowsFromStatic;
-var(Translucency) bool bTranslucencyInheritDominantShadowsFromOpaque;
-var(Translucency) bool bAllowTranslucencyDoF;
-var(Translucency) bool bUseOneLayerDistortion;
-var(Translucency) bool bUseLitTranslucencyDepthPass;
-var(Translucency) bool bUseLitTranslucencyPostRenderDepthPass;
-var(Translucency) bool bCastLitTranslucencyShadowAsMasked;
-
-var(Usage) editoronly const bool bLockUsageFlags;
-var(MutuallyExclusiveUsage) const bool bUsedAsLightFunction;
-var(MutuallyExclusiveUsage) const bool bUsedWithFogVolumes;
-var(Usage) const bool bUsedWithVertexLighting;
-var(Usage) const bool bUsedWithStaticModulatedShadows;
-var(Usage) bool bUsedWithPerVertexRockAtmosFog;
-var(Usage) const bool bUsedWithLightEnvironment;
-var(Usage) bool bRecievesDynamicDirectionalLights;
-var(Usage) bool bRecievesDynamicSpotLights;
-var(Usage) bool bRecievesDynamicPointLights;
-var(Usage) bool bUsedWithStaticMesh;
-var const editconst bool bUsedAsSpecialEngineMaterial;
-var(Usage) const bool bUsedWithSkeletalMesh;
-var(Usage) const bool bUsedWithTerrain;
-var(Usage) const bool bUsedWithLandscape;
-var(Usage) const bool bUsedWithFracturedMeshes;
-var		   const bool bUsedWithParticleSystem;
-var(Usage) const bool bUsedWithParticleSprites;
-var(Usage) const bool bUsedWithBeamTrails;
-var(Usage) const bool bUsedWithParticleSubUV;
-var(Usage) const bool bUsedWithSpeedTree;
-var(Usage) const bool bUsedWithStaticLighting;
-var(Usage) const bool bUsedWithLensFlare;
-var(Usage) const bool bUsedWithGammaCorrection;
-var(Usage) const bool bUsedWithInstancedMeshParticles;
-var(Usage) const bool bUsedWithFluidSurfaces;
-var(Usage) const bool bUsedWithMaterialEffect;
-var(Usage) const bool bUsedWithMorphTargets;
-var(Usage) const bool bUsedWithRadialBlur;
-var(Usage) const bool bUsedWithInstancedMeshes;
-var(Usage) const bool bUsedWithSplineMeshes;
-var(Usage) const bool bUsedWithAPEXMeshes;
-var(Usage) const bool bUsedWithApexSprites;
-var(Usage) const bool bUsedWithScreenDoorFade;
-var(Usage) const bool bUsedWithD3D11Tessellation;
-var(D3D11) const bool bUsedWithTessellationFlat;
-var(D3D11) const bool bUsedWithTessellationPN;
-var(D3D11) const bool bUsedWithTessellationPhong;
-var(D3D11) const bool bUsedWithTessellationMeshDicing;
-var(D3D11) const bool bUsedWithTessellationWaterTightNormals;
-
-var(D3D11) bool bUseImageBasedReflections;
-
-var() bool Wireframe;
-var() bool bPerPixelCameraVector;
-var() bool bAllowLightmapSpecular;
-var() bool CanStripNormalsAndTangents;
-var() bool CanStripVertexColours;
-var bool UseFastLODRendering;
-
-var deprecated bool bIsFallbackMaterial;
-
-var private bool bUsesDistortion;
-var private bool bIsMasked;
-var transient duplicatetransient private bool bIsPreviewMaterial;
+var(D3D11) const EMaterialTessellationMode D3D11TessellationMode;
 
 var ColorMaterialInput		DiffuseColor;
 var ScalarMaterialInput		DiffusePower;
 var ColorMaterialInput		SpecularColor;
+var ColorMaterialInput		SpecularColor2;
 var ScalarMaterialInput		SpecularPower;
+var ScalarMaterialInput		SpecularPower2;
 var VectorMaterialInput		Normal;
 
 var ColorMaterialInput		EmissiveColor;
@@ -157,62 +89,180 @@ var ScalarMaterialInput		OpacityMask;
 var() float OpacityMaskClipValue;
 var() float OpacityMaskClipValuePostDepth;
 
+var float ShadowDepthBias;
+
 var Vector2MaterialInput	Distortion;
 
 var ColorMaterialInput		CustomLighting;
 var ColorMaterialInput		CustomSkylightDiffuse;
 var VectorMaterialInput		AnisotropicDirection;
 
-var ScalarMaterialInput		FresnelMin;
-var ScalarMaterialInput		FresnelExponent;
-
-var ColorMaterialInput		LightWrapping;
-
-var VectorMaterialInput		SSSNormal;
-var ColorMaterialInput		SSSMask;
+var ColorMaterialInput		SSSColor;
 var ScalarMaterialInput		SSSRadius;
-
-var ColorMaterialInput		SpecularColor2;
-var ScalarMaterialInput		SpecularPower2;
+var ScalarMaterialInput		MetalMask;
+var Vector2MaterialInput	BlurDirection;
+var ColorMaterialInput		FaceWorksDeepScatterColor;
 
 var ScalarMaterialInput		TwoSidedLightingMask;
 var ColorMaterialInput		TwoSidedLightingColor;
 
 var VectorMaterialInput		WorldPositionOffset;
+var VectorMaterialInput		PostWorldPositionOffset;
 var VectorMaterialInput		WorldDisplacement;
-var ScalarMaterialInput		TangentDisplacement;
+var deprecated ScalarMaterialInput	TangentDisplacement;
+var ScalarMaterialInput		TessellationMultiplier;
 
 var ColorMaterialInput		SubsurfaceInscatteringColor;
 var ColorMaterialInput		SubsurfaceAbsorptionColor;
 var ScalarMaterialInput		SubsurfaceScatteringRadius;
 
-var(RS_Options) const LinearColor SSSColourDiffuse;
-var(RS_Options) const LinearColor SSSColourEpidermal;
-var(RS_Options) const LinearColor SSSColourSubdermal;
-var(RS_Options) const LinearColor SSSColourTransmittance;
+var() bool bIgnoreMissingLODFadeWhenUsedInLODs;
+var(D3D11) bool EnableSubsurfaceScattering;
+var(D3D11) bool bEnableMaskedAntialiasing;
+var() bool TwoSided;
+var(Translucency) bool TwoSidedSeparatePass;
 
-var() int MaxBonesPerBatch;
+var(RS_Options) bool bThinBackScattering;
+var deprecated bool bDeferredCoverageTransparency;
+var(RS_Options) bool bHairForwardLighting;
+var(RS_Options) bool bExpensiveForwardLighting;
+var(RS_Options) bool bVertexOffsetBeforeSkinning;
+var(RS_Options) bool bVertexOffsetAfterProjection;
+var(RS_Options) bool bVolumeLighting;
+var(RS_Options) bool bVolumeLightingPerPixel;
+var(RS_Options) bool SortWithSceneTextureSampleMaterials;
+var(RS_Options) bool bDisableTwoSidedLighting;
+var(RS_Options) bool WorldNormalMap;
+var(RS_Options) bool bDeriveTangentSpace;
+var(RS_Options) bool bDeriveNormals;
+var(RS_Options) bool bParticleMotionBlur;
 
-var const native editconst pointer MaterialResources[2]{FMaterialResource};
+var(RS_ViewModes) bool bRenderAsPointCloud;
+var bool bVisibleAgainstStaticChannel;
+var(RS_PointCloudOptions) bool bGenerateFakeNormals;
+var(RS_PointCloudOptions) bool bDoPointCloudFalloff;
+var(RS_PointCloudOptions) bool bDoPointCloudFalloffMin;
+var(RS_PointCloudOptions) bool bPointCloudTransitionAsAlpha;
+var(RS_MapPointCloudOptions) bool bSupportsMapViewPointCloud;
+var(RS_MapPointCloudOptions) bool bUseMatColorInMapViewPointCloud;
+var(RS_MapPointCloudOptions) bool bFadeAgainstOccludedDepth;
 
-var const native editconst pointer DefaultMaterialInstances[3]{class FDefaultMaterialInstance};
+var(RS_Options) bool ReflectionsOnTranslucency;
+var(RS_Options) bool XrayVisualsOnTranslucency;
 
-var int		EditorX,
-			EditorY,
-			EditorPitch,
-			EditorYaw;
+var(RS_Decal) bool DisableDepth;
+var(RS_Decal) bool DisableDiffuse;
+var(RS_Decal) bool DisableEmissive;
+var(RS_Decal) bool DisableMetalness;
+var(RS_Decal) bool DisableNormals;
+var(RS_Decal) bool DisableReflectivity;
+var(RS_Decal) bool DisableRoughness;
+
+var(Translucency) bool bDisableDepthTest;
+var(Translucency) bool bDisableDepthWrite;
+var(Translucency) bool bSceneTextureRenderBehindTranslucency;
+var(Translucency) bool bExpensiveDrawBehindAllOtherTranslucency;
+var(Translucency) bool bAllowFog;
+var(Translucency) bool bAllowFogPerPixel;
+var deprecated bool bTranslucencyReceiveDominantShadowsFromStatic;
+var deprecated bool bTranslucencyInheritDominantShadowsFromOpaque;
+var deprecated bool bAllowTranslucencyDoF;
+var(Translucency) bool bUseOneLayerDistortion;
+var(Translucency) bool bUseLitTranslucencyDepthPass;
+var(Translucency) bool bUseLitTranslucencyPostRenderDepthPass;
+var(Translucency) bool bCastLitTranslucencyShadowAsMasked;
+
+var(Usage) editoronly const bool bLockUsageFlags;
+var(MutuallyExclusiveUsage) const bool bUsedAsLightFunction;
+var(MutuallyExclusiveUsage) const bool bUsedWithFogVolumes;
+var(Usage) bool bUsedWithPerVertexRockAtmosFog;
+var const transient bool bUsedWithLightEnvironment;
+var(Usage) bool bUsedWithStaticMesh;
+var const duplicatetransient bool bUsedAsSpecialEngineMaterial;
+var(Usage) const bool bUsedWithSkeletalMesh;
+var const transient bool bUsedWithTerrain;
+var const transient bool bUsedWithLandscape;
+var(Usage) const bool bUsedWithFracturedMeshes;
+var		   const bool bUsedWithParticleSystem;
+var(Usage) const bool bUsedWithParticleSprites;
+var(Usage) const bool bUsedWithBeamTrails;
+var(Usage) const bool bUsedWithParticleSubUV;
+var(Usage) const bool bUsedWithParticleGPU;
+var const transient bool bUsedWithSpeedTree;
+var const transient bool bUsedWithStaticLighting;
+var(Usage) const bool bUsedWithLensFlare;
+var(Usage) const bool bUsedWithGammaCorrection;
+var(Usage) const bool bUsedWithHitMasks;
+var(Usage) const bool bUsedWithInstancedMeshParticles;
+var(Usage) const bool bUsedWithFluidSurfaces;
+var(Usage) const bool bUsedWithRockDecals;
+var(Usage) const bool bUsedWithMaterialEffect;
+var(Usage) const bool bUsedWithMorphTargets;
+var(Usage) const bool bUsedWithRadialBlur;
+var(Usage) const bool bUsedWithInstancedMeshes;
+var(Usage) const bool bUsedWithSplineMeshes;
+var(Usage) const bool bUsedWithAPEXMeshes;
+var(Usage) const bool bUsedWithAPEXClothing;
+var(Usage) const bool bUsedWithApexSprites;
+var(Usage) const bool bUsedWithOpacityShadows;
+var const transient bool bUsedWithScreenDoorFade;
+
+var(D3D11) const bool bEnableCrackFreeDisplacement;
+var(D3D11) bool bUseImageBasedReflections;
+
+var(Misc) bool Wireframe;
+var transient bool bPerPixelCameraVector;
+var transient bool bAllowLightmapSpecular;
+var() bool CanStripNormalsAndTangents;
+var() bool CanStripVertexColours;
+var bool UseFastLODRendering;
+var() bool DisallowGlobalSamplerStates;
+
+var deprecated bool bIsFallbackMaterial;
+
+var private bool bUsesDistortion;
+var private bool bIsMasked;
+var private bool bUsesSSS;
+var private bool bUseBlurDirection;
+var transient duplicatetransient private bool bIsPreviewMaterial;
+
+var(RS_PointCloudOptions) float PointCloudOcclusion;
+var(RS_PointCloudOptions) float PointCloudScale;
+
+var(RS_Options) const LinearColor SSSColourDefault;
+
+var(D3D11) float ImageReflectionNormalDampening;
+
+var(FaceWorks) float DeepScatterIntensity;
+var(FaceWorks) float DeepScatterRadius;
+var(FaceWorks) float ThicknessNormalOffset;
+var(FaceWorks) float ThicknessBlurRadius;
+var(FaceWorks) float ThicknessDepthSharpness;
+
+var const native duplicatetransient pointer MaterialResources[2]{FMaterialResource};
+
+var const native duplicatetransient pointer DefaultMaterialInstances[3]{class FDefaultMaterialInstance};
+
+var editoronly int	EditorX,
+					EditorY,
+					EditorPitch,
+					EditorYaw;
 
 var array<MaterialExpression>			Expressions;
 
 var editoronly array<MaterialExpressionComment>	EditorComments;
 
-var editoronly array<MaterialExpressionCompound> EditorCompounds;
+var array<MaterialFunctionInfo>			MaterialFunctionInfos;
 
 var native map{FName, TArray<UMaterialExpression*>} EditorParameters;
 
-var private editoronly const array<texture> ReferencedTextures;
+var private deprecated editoronly const array<texture> ReferencedTextures;
 
 var private editoronly const array<guid> ReferencedTextureGuids;
+
+var(Source) editoronly editconst string SourceTimestamp;
+
+var(Source) editoronly editconst string SourceAuthor;
 
 cpptext
 {
@@ -422,25 +472,33 @@ protected:
 
 defaultproperties
 {
-	BlendMode=BLEND_Opaque
+	PhysMaterialMaskUVChannel=-1
+	LightingModel=MLM_RockBRDF
+	DecalPriority=DP_Default
 	DiffuseColor=(Constant=(R=128,G=128,B=128))
 	DiffusePower=(Constant=1.0)
 	SpecularColor=(Constant=(R=128,G=128,B=128))
+	SpecularColor2=(Constant=(R=128,G=128,B=128))
 	SpecularPower=(Constant=15.0)
-	Distortion=(ConstantX=0,ConstantY=0)
-	Opacity=(Constant=1)
-	OpacityMask=(Constant=1)
+	SpecularPower2=(Constant=15.0)
+	Opacity=(Constant=1.0)
+	OpacityMask=(Constant=1.0)
 	OpacityMaskClipValue=0.3333
 	OpacityMaskClipValuePostDepth=0.3333
 	TwoSidedLightingColor=(Constant=(R=255,G=255,B=255))
 	SubsurfaceInscatteringColor=(Constant=(R=255,G=255,B=255))
 	SubsurfaceAbsorptionColor=(Constant=(R=230,G=200,B=200))
-	SSSColourDiffuse=(R=0.225,G=0.270,B=0.300,A=1.0)
-	SSSColourEpidermal=(R=0.500,G=0.425,B=0.300,A=1.0)
-	SSSColourSubdermal=(R=0.380,G=0.200,B=0.080,A=1.0)
-	SSSColourTransmittance=(R=0.350,G=0.050,B=0.050,A=1.0)
+	bDoPointCloudFalloff=TRUE
 	bAllowFog=TRUE
 	bUsedWithStaticMesh=TRUE
 	bAllowLightmapSpecular=TRUE
-	PhysMaterialMaskUVChannel=-1
+	PointCloudOcclusion=0.2
+	PointCloudScale=6.0
+	SSSColourDefault=(R=0.45,G=0.2,B=0.06,A=1.0)
+	ImageReflectionNormalDampening=5.0
+	DeepScatterIntensity=0.3
+	DeepScatterRadius=1.2
+	ThicknessNormalOffset=-1.0
+	ThicknessBlurRadius=0.015
+	ThicknessDepthSharpness=0.1
 }

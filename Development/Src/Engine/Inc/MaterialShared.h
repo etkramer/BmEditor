@@ -1320,6 +1320,9 @@ public:
 struct FExpressionInput
 {
 	class UMaterialExpression*	Expression;
+	// BM
+	INT							OutputIndex;
+	FString						InputName;
 	UBOOL						Mask,
 								MaskR,
 								MaskG,

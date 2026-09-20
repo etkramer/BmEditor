@@ -534,11 +534,12 @@ public:
 		case MP_CustomLightingDiffuse: return Material->CustomSkylightDiffuse.Compile(Compiler,FColor(0,0,0));
 		case MP_AnisotropicDirection: return Material->AnisotropicDirection.Compile(Compiler,FVector(0,1,0));
 #if BATMAN
-		case MP_FresnelMin: return Material->FresnelMin.Compile(Compiler,0.05f);
-		case MP_FresnelExponent: return Material->FresnelExponent.Compile(Compiler,5.0f);
-		case MP_LightWrapping: return Material->LightWrapping.Compile(Compiler,FColor(0,0,0));
-		case MP_SSSNormal: return Material->SSSNormal.Compile(Compiler,FVector(0,0,1));
-		case MP_SSSMask: return Material->SSSMask.Compile(Compiler,FColor(0,0,0));
+		// BM: AK's Material has no Fresnel/LightWrapping/SSSNormal/SSSMask inputs
+		case MP_FresnelMin: return Compiler->Constant(0.05f);
+		case MP_FresnelExponent: return Compiler->Constant(5.0f);
+		case MP_LightWrapping: return Compiler->Constant3(0.0f,0.0f,0.0f);
+		case MP_SSSNormal: return Compiler->Constant3(0.0f,0.0f,1.0f);
+		case MP_SSSMask: return Compiler->Constant3(0.0f,0.0f,0.0f);
 		case MP_SSSRadius: return Material->SSSRadius.Compile(Compiler,1.0f);
 		case MP_SpecularColor2: return Material->SpecularColor2.Compile(Compiler,FColor(128,128,128));
 		case MP_SpecularPower2: return Material->SpecularPower2.Compile(Compiler,16.0f);

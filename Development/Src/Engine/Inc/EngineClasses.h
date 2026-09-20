@@ -1004,12 +1004,14 @@ enum EMaterialTessellationMode
     MTM_NoTessellation      =0,
     MTM_FlatTessellation    =1,
     MTM_PNTriangles         =2,
-    MTM_MAX                 =3,
+    MTM_PhongTessellation   =3,
+    MTM_MAX                 =4,
 };
 #define FOREACH_ENUM_EMATERIALTESSELLATIONMODE(op) \
     op(MTM_NoTessellation) \
     op(MTM_FlatTessellation) \
-    op(MTM_PNTriangles) 
+    op(MTM_PNTriangles) \
+    op(MTM_PhongTessellation) 
 enum EMaterialLightingModel
 {
     MLM_Phong               =0,
@@ -1018,7 +1020,8 @@ enum EMaterialLightingModel
     MLM_SHPRT               =3,
     MLM_Custom              =4,
     MLM_Anisotropic         =5,
-    MLM_MAX                 =6,
+    MLM_RockBRDF            =6,
+    MLM_MAX                 =7,
 };
 #define FOREACH_ENUM_EMATERIALLIGHTINGMODEL(op) \
     op(MLM_Phong) \
@@ -1026,7 +1029,8 @@ enum EMaterialLightingModel
     op(MLM_Unlit) \
     op(MLM_SHPRT) \
     op(MLM_Custom) \
-    op(MLM_Anisotropic) 
+    op(MLM_Anisotropic) \
+    op(MLM_RockBRDF) 
 enum EBlendMode
 {
     BLEND_Opaque            =0,
@@ -19224,12 +19228,18 @@ public:
     BITFIELD bRealtimePreview:1;
     BITFIELD bNeedToUpdatePreview:1;
     BITFIELD bIsParameterExpression:1;
+    BITFIELD bCollapsedInEditor:1;
     BITFIELD bShowOutputNameOnPin:1;
     BITFIELD bHidePreviewWindow:1;
+    BITFIELD bShowInputs:1;
+    BITFIELD bShowOutputs:1;
     BITFIELD bUsedByStaticParameterSet:1;
-    class UMaterialExpressionCompound* Compound;
+    class UMaterial* Material;
+    class UMaterialFunction* Function;
     FStringNoInit Desc;
+    FColor BorderColor;
     TArrayNoInit<FName> MenuCategories;
+    TArrayNoInit<FExpressionOutput> Outputs;
     //## END PROPS MaterialExpression
 
     DECLARE_ABSTRACT_CLASS(UMaterialExpression,UObject,0,Engine)
@@ -24331,7 +24341,7 @@ VERIFY_CLASS_OFFSET_NODIE(ULightmassPrimitiveSettingsObject,LightmassPrimitiveSe
 VERIFY_CLASS_SIZE_NODIE(ULightmassPrimitiveSettingsObject)
 VERIFY_CLASS_SIZE_NODIE(UMapInfo)
 VERIFY_CLASS_OFFSET_NODIE(UMaterialExpression,MaterialExpression,EditorX_DEPRECATED)
-VERIFY_CLASS_OFFSET_NODIE(UMaterialExpression,MaterialExpression,MenuCategories)
+VERIFY_CLASS_OFFSET_NODIE(UMaterialExpression,MaterialExpression,Outputs)
 VERIFY_CLASS_SIZE_NODIE(UMaterialExpression)
 VERIFY_CLASS_OFFSET_NODIE(UMaterialExpressionLightingDiffuseLambert,MaterialExpressionLightingDiffuseLambert,Power)
 VERIFY_CLASS_OFFSET_NODIE(UMaterialExpressionLightingDiffuseLambert,MaterialExpressionLightingDiffuseLambert,Lookup)

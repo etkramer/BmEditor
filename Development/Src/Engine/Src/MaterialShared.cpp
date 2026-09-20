@@ -45,14 +45,14 @@ FMaterialViewRelevance UMaterialInterface::GetViewRelevance()
 		MaterialViewRelevance.bTranslucency = bIsTranslucent;
 		MaterialViewRelevance.bDistortion = Material->HasDistortion();
 		MaterialViewRelevance.bOneLayerDistortionRelevance = bIsTranslucent && Material->bUseOneLayerDistortion;
-		MaterialViewRelevance.bInheritDominantShadowsRelevance = bIsTranslucent && Material->bTranslucencyInheritDominantShadowsFromOpaque;
+		MaterialViewRelevance.bInheritDominantShadowsRelevance = bIsTranslucent && Material->bTranslucencyInheritDominantShadowsFromOpaque_DEPRECATED;
 		MaterialViewRelevance.bLit = bIsLit;
 		MaterialViewRelevance.bUsesSceneColor = Material->UsesSceneColor();
 		MaterialViewRelevance.bSceneTextureRenderBehindTranslucency = FALSE;
 		MaterialViewRelevance.bDynamicLitTranslucencyPrepass = bIsTranslucent && bIsLit && Material->bUseLitTranslucencyDepthPass;
 		MaterialViewRelevance.bDynamicLitTranslucencyPostRenderDepthPass = bIsTranslucent && Material->bUseLitTranslucencyPostRenderDepthPass;
 		MaterialViewRelevance.bSoftMasked = Material->BlendMode == BLEND_SoftMasked;
-		MaterialViewRelevance.bTranslucencyDoF = bIsTranslucent && Material->bAllowTranslucencyDoF;
+		MaterialViewRelevance.bTranslucencyDoF = bIsTranslucent && Material->bAllowTranslucencyDoF_DEPRECATED;
 		MaterialViewRelevance.bSeparateTranslucency = FALSE;
 		return MaterialViewRelevance;
 	}
@@ -1228,8 +1228,8 @@ UBOOL FMaterialResource::IsTerrainMaterial() const { return FALSE; }
 UBOOL FMaterialResource::IsLightmapSpecularAllowed() const { return Material->bAllowLightmapSpecular; }
 UBOOL FMaterialResource::HasNormalmapConnected() const { return Material->Normal.Expression != NULL; }
 UBOOL FMaterialResource::HasVertexPositionOffsetConnected() const { return Material->WorldPositionOffset.Expression != NULL; }
-UBOOL FMaterialResource::AllowTranslucencyDoF() const { return Material->bAllowTranslucencyDoF && IsTranslucentBlendMode((EBlendMode)Material->BlendMode); }
-UBOOL FMaterialResource::TranslucencyReceiveDominantShadowsFromStatic() const { return Material->bTranslucencyReceiveDominantShadowsFromStatic && IsTranslucentBlendMode((EBlendMode)Material->BlendMode); }
+UBOOL FMaterialResource::AllowTranslucencyDoF() const { return Material->bAllowTranslucencyDoF_DEPRECATED && IsTranslucentBlendMode((EBlendMode)Material->BlendMode); }
+UBOOL FMaterialResource::TranslucencyReceiveDominantShadowsFromStatic() const { return Material->bTranslucencyReceiveDominantShadowsFromStatic_DEPRECATED && IsTranslucentBlendMode((EBlendMode)Material->BlendMode); }
 FString FMaterialResource::GetBaseMaterialPathName() const { return Material->GetPathName(); }
 #if BATMAN
 UBOOL FMaterialResource::IsBmCookedMaterialResource() const
@@ -1246,29 +1246,33 @@ UBOOL FMaterialResource::IsDecalMaterial() const
 	return FALSE;
 }
 
+// BM: AK's Material has no SSSNormal input
 UBOOL FMaterialResource::HasSSSNormal() const
 {
-	return Material->SSSNormal.Expression != NULL;
+	return FALSE;
 }
 
 #if BATMAN
-UBOOL FMaterialResource::SpecularConserveEnergy() const { return Material->bSpecularConserveEnergy; }
-UBOOL FMaterialResource::SpecularMaskByShading() const { return Material->bSpecularMaskByShading; }
-UBOOL FMaterialResource::SpecularBlinnPhong() const { return Material->bSpecularBlinnPhong; }
-UBOOL FMaterialResource::SpecularHasFresnel() const { return Material->FresnelExponent.Expression != NULL || Material->FresnelMin.Expression != NULL; }
+// BM: AK's Material has none of the BM2-era specular option flags or Fresnel inputs
+UBOOL FMaterialResource::SpecularConserveEnergy() const { return FALSE; }
+UBOOL FMaterialResource::SpecularMaskByShading() const { return FALSE; }
+UBOOL FMaterialResource::SpecularBlinnPhong() const { return FALSE; }
+UBOOL FMaterialResource::SpecularHasFresnel() const { return FALSE; }
 UBOOL FMaterialResource::DisableTwoSidedLighting() const { return Material->bDisableTwoSidedLighting; }
 
 UBOOL FMaterialResource::HasDiffusePower() const { return Material->DiffusePower.Expression != NULL; }
-UBOOL FMaterialResource::HasLightWrapping() const { return Material->LightWrapping.Expression != NULL; }
-UBOOL FMaterialResource::HasSSSMask() const { return Material->SSSMask.Expression != NULL; }
+UBOOL FMaterialResource::HasLightWrapping() const { return FALSE; }
+UBOOL FMaterialResource::HasSSSMask() const { return FALSE; }
 UBOOL FMaterialResource::HasSpecular2() const { return Material->SpecularColor2.Expression != NULL; }
 
 FLOAT FMaterialResource::GetOpacityMaskClipValuePostDepth() const { return Material->OpacityMaskClipValuePostDepth; }
 
-FLinearColor FMaterialResource::GetSSSColourDiffuse() const { return Material->SSSColourDiffuse; }
-FLinearColor FMaterialResource::GetSSSColourEpidermal() const { return Material->SSSColourEpidermal; }
-FLinearColor FMaterialResource::GetSSSColourSubdermal() const { return Material->SSSColourSubdermal; }
-FLinearColor FMaterialResource::GetSSSColourTransmittance() const { return Material->SSSColourTransmittance; }
+// BM: AK's Material carries a single SSSColourDefault instead of the four BM2-era SSS colours;
+// these keep the values the BM2 defaults supplied, since no material can override them any more.
+FLinearColor FMaterialResource::GetSSSColourDiffuse() const { return FLinearColor(0.225f,0.270f,0.300f,1.0f); }
+FLinearColor FMaterialResource::GetSSSColourEpidermal() const { return FLinearColor(0.500f,0.425f,0.300f,1.0f); }
+FLinearColor FMaterialResource::GetSSSColourSubdermal() const { return FLinearColor(0.380f,0.200f,0.080f,1.0f); }
+FLinearColor FMaterialResource::GetSSSColourTransmittance() const { return FLinearColor(0.350f,0.050f,0.050f,1.0f); }
 #endif
 
 UBOOL FMaterialResource::IsUsedWithSkeletalMesh() const
@@ -1322,14 +1326,15 @@ UBOOL FMaterialResource::IsUsedWithStaticLighting() const
 }
 
 #if BATMAN
+// BM: AK's Material has no modulated-shadow or vertex-lighting usage flag
 UBOOL FMaterialResource::IsUsedWithStaticModulatedShadows() const
 {
-	return Material->bUsedWithStaticModulatedShadows;
+	return FALSE;
 }
 
 UBOOL FMaterialResource::IsUsedWithVertexLighting() const
 {
-	return Material->bUsedWithVertexLighting;
+	return FALSE;
 }
 
 UBOOL FMaterialResource::IsUsedWithStaticMesh() const
@@ -1343,19 +1348,20 @@ UBOOL FMaterialResource::IsUsedWithPerVertexRockAtmosFog() const
 	return Material->bUsedWithPerVertexRockAtmosFog && Material->bAllowFog;
 }
 
+// BM: AK's Material has no per-light-type receive flags
 UBOOL FMaterialResource::RecievesDynamicDirectionalLights() const
 {
-	return Material->bRecievesDynamicDirectionalLights;
+	return TRUE;
 }
 
 UBOOL FMaterialResource::RecievesDynamicSpotLights() const
 {
-	return Material->bRecievesDynamicSpotLights;
+	return TRUE;
 }
 
 UBOOL FMaterialResource::RecievesDynamicPointLights() const
 {
-	return Material->bRecievesDynamicPointLights;
+	return TRUE;
 }
 #endif
 
@@ -1543,7 +1549,8 @@ UBOOL FMaterialResource::CanStripVertexColours() const { return Material->CanStr
 
 UBOOL FMaterialResource::ShouldUseFastLODRendering() const { return Material->UseFastLODRendering; }
 
-INT FMaterialResource::GetMaxBonesPerBatch() const { return Material->MaxBonesPerBatch ? Material->MaxBonesPerBatch : 75; }
+// BM: AK's Material has no MaxBonesPerBatch override
+INT FMaterialResource::GetMaxBonesPerBatch() const { return 75; }
 
 #endif
 
@@ -1553,7 +1560,7 @@ UBOOL FMaterialResource::CastLitTranslucencyShadowAsMasked() const { return IsTr
 /** Returns TRUE if the material is translucent and wants to inherit dynamic shadows cast by dominant lights onto opaque pixels. */
 UBOOL FMaterialResource::TranslucencyInheritDominantShadowsFromOpaque() const 
 { 
-	return IsTranslucentBlendMode((EBlendMode)Material->BlendMode) && Material->bTranslucencyInheritDominantShadowsFromOpaque; 
+	return IsTranslucentBlendMode((EBlendMode)Material->BlendMode) && Material->bTranslucencyInheritDominantShadowsFromOpaque_DEPRECATED; 
 }
 
 FString FMaterialResource::GetFriendlyName() const { return *Material->GetName(); }
@@ -2979,6 +2986,8 @@ void FMaterial::SetupMaterialEnvironment(
 	case MLM_Unlit: OutEnvironment.Definitions.Set(TEXT("MATERIAL_LIGHTINGMODEL_UNLIT"),TEXT("1")); break;
 	case MLM_Custom: OutEnvironment.Definitions.Set(TEXT("MATERIAL_LIGHTINGMODEL_CUSTOM"),TEXT("1")); break;
 	case MLM_Anisotropic: OutEnvironment.Definitions.Set(TEXT("MATERIAL_LIGHTINGMODEL_ANISOTROPIC"),TEXT("1")); break;
+	// BM: AK's default lighting model. We have no Rock BRDF shader, so compile it as Phong.
+	case MLM_RockBRDF: OutEnvironment.Definitions.Set(TEXT("MATERIAL_LIGHTINGMODEL_PHONG"),TEXT("1")); break;
 	default: appErrorf(TEXT("Unknown material lighting model: %u"),(INT)GetLightingModel());
 	};
 
