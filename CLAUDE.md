@@ -62,9 +62,10 @@ BM4 packages are all Ver=863, LicenseeVer=227. Reading the licensee as a stock U
 
 Take property presence, declaration order and type from it. Do NOT take keywords from it - its flag decoding is broadly unreliable:
 
-- `atomicwhencooked` is not a real keyword; it is a misreading of `immutablewhencooked`. `duplicatetransient` and `nontransactional` are very likely not real either.
-- Assume keywords on properties that already exist in stock UE3 are UNCHANGED. If the decompile shows a different flag set on an existing property than this tree has, the decompile is wrong - keep ours.
-- This matters beyond cosmetics: keywords do not move offsets, but `transient` and friends decide whether a property serializes at all, so adopting a hallucinated flag corrupts the stream even when field order is perfect.
+- `atomicwhencooked` is not a real keyword; it is a misreading of `immutablewhencooked`.
+- Assume keywords on properties that already exist in stock UE3 are UNCHANGED. If the decompile shows a different flag set on an existing property than this tree has, the decompile is wrong - KEEP OURS. Add fields and fix their order; do not touch the keywords of fields we already have.
+- Observed failure: the decompile renders stock `editconst` as `duplicatetransient`, and a stage adopted that on `AnimSequence.SequenceLength`, `NumFrames` and `CompressionScheme`. `duplicatetransient` and `nontransactional` are both real UE3 keywords (`UnNames.h:150,175`, `CPF_DuplicateTransient`/`CPF_NonTransactional`), which is exactly why this is easy to miss - but they were wrong here.
+- This matters beyond cosmetics: keywords do not move offsets, but they decide whether a property serializes. `CPF_DuplicateTransient` and `CPF_NonTransactional` are consumed by `ShouldSerializeValue` (`UnType.h:362-368`), so a wrongly-adopted flag changes the stream even when field order is perfect.
 - Unresolved default properties appear as `self[0xNNN]=`. Those offsets ARE reliable and are the primary evidence for verifying a layout.
 
 ## Class Layouts
