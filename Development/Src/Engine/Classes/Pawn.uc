@@ -37,43 +37,54 @@ struct native ScalarParameterInterpStruct
 	var() float WarmupTime;
 };
 
+//-----------------------------------------------------------------------------
+// Variables.  Declaration order is AK's class layout - do not reorder.
+
 var const float			MaxStepHeight,
 						MaxJumpHeight;
 var const float			WalkableFloorZ;		/** minimum z value for floor normal (if less, not a walkable floor for this pawn) */
-
-/** Used in determining if pawn is going off ledge.  If the ledge is "shorter" than this value then the pawn will be able to walk off it. **/
+var float SecondaryStepHeight;
 var const float     LedgeCheckThreshold;
 var const Vector    PartialLedgeMoveDir;
-
-/** Controller currently possessing this Pawn */
 var editinline repnotify Controller Controller;
-
-/** Chained pawn list */
 var const Pawn NextPawn;
-
-/** Used for cacheing net relevancy test */
-var float				NetRelevancyTime;
 var playerController	LastRealViewer;
 var actor				LastViewer;
-
-/** If true, call the script TickSpecial() event. */
+var PathConstraint		PathConstraintList;
+var PathGoalEvaluator	PathGoalList;
+var const NavigationPoint Anchor;			// current nearest path;
+var const NavigationPoint LastAnchor;		// recent nearest path
+var transient PhysicsVolume HeadVolume;		// physics volume of head
+var const	pawn		noise1other;
+var const	pawn		noise2other;
+var editinline RepNotify PlayerReplicationInfo PlayerReplicationInfo;
+var LadderVolume OnLadder;		// ladder currently being climbed
+var PlayerStart LastStartSpot;	// used to avoid spawn camping
+var	repnotify	Vehicle DrivenVehicle;
+var Controller LastHitBy; //give kill credit to this guy if hit momentum causes pawn to fall to his death
+var repnotify InventoryManager			InvManager;
+var		Weapon					Weapon;
+var	RB_BodyInstance		PhysicsPushBody;
+var Actor LinkedCullPawn;
+var protected transient MaterialInstanceConstant MIC_PawnMat;
+var protected transient MaterialInstanceConstant MIC_PawnHair;
+var export editinline ParticleSystemComponent SurveillanceParticleEffect;
+var PrimitiveComponent PreRagdollCollisionComponent;
+var class<InventoryManager>		InventoryManagerClass;
+var	CylinderComponent		CylinderComponent;
+var() SkeletalMeshComponent	Mesh;
+var class<DamageType>	HitDamageType;			// damage type of last hit (for playing hit/death anims)
+var class<AIController> ControllerClass;	// default class to use when pawn is controlled by AI
+var float				NetRelevancyTime;
 var bool bScriptTickSpecial;
-
-// Physics related flags.
 var bool		bUpAndOut;			// used by swimming
 var bool		bIsWalking;			// currently walking (can't jump, affects animations)
-
-// Crouching
 var				bool	bWantsToCrouch;		// if true crouched (physics will automatically reduce collision height to CrouchHeight)
 var		const	bool	bIsCrouched;		// set by physics to specify that pawn is currently crouched
 var		const	bool	bTryToUncrouch;		// when auto-crouch during movement, continually try to uncrouch
 var()			bool	bCanCrouch;			// if true, this pawn is capable of crouching
-
 var bool		bCrawler;			// crawling - pitch and roll based on surface pawn is on
-
-/** Used by movement natives to slow pawn as it reaches its destination to prevent overshooting */
 var const bool	bReducedSpeed;
-
 var bool		bJumpCapable;
 var	bool		bCanJump;			// movement capabilities - used by AI
 var	bool		bCanWalk;
@@ -95,87 +106,63 @@ var const bool	bPushesRigidBodies;	// Will do a check to find nearby PHYS_RigidB
 var	bool		bForceFloorCheck;	// force the pawn in PHYS_Walking to do a check for a valid floor even if he hasn't moved.	Cleared after next floor check.
 var bool		bForceKeepAnchor;	// Force ValidAnchor function to accept any non-NULL anchor as valid (used to override when we want to set anchor for path finding)
 var bool		bRootMotionOverridesFallingXY;
-
+var transient bool bRootMotionOverridesFallingXY_2;
 var config bool bCanMantle;			// can this pawn mantle over cover
 var config bool bCanClimbUp;		// can this pawn climb up cover wall
 var		   bool bCanClimbCeilings;	// can this pawn climb ceiling nodes
 var config bool bCanSwatTurn;		// can this pawn swat turn between cover
 var config bool bCanLeap;			// can this pawn use LeapReachSpec
 var config bool	bCanCoverSlip;		// can this pawn coverslip
-
-/** if set, display "MAP HAS PATHING ERRORS" and message in the log when a Pawn fails a full path search */
 var globalconfig bool bDisplayPathErrors;
-
-// AI related flags
 var		bool	bCanPickupInventory;	// if true, will pickup inventory when touching pickup actors
 var		bool	bAmbientCreature;		// AIs will ignore me
 var(AI) bool	bLOSHearing;			// can hear sounds from line-of-sight sources (which are close enough to hear)
-										// bLOSHearing=true is like UT/Unreal hearing
 var(AI) bool	bMuffledHearing;		// can hear sounds through walls (but muffled - sound distance increased to double plus 4x the distance through walls
 var(AI) bool	bDontPossess;			// if true, Pawn won't be possessed at game start
 var		bool	bRollToDesired;			// Update roll when turning to desired rotation (normally false)
 var		bool	bStationary;			// pawn can't move
-
 var		bool	bCachedRelevant;		// network relevancy caching flag
 var		bool	bNoWeaponFiring;		// TRUE indicates that weapon firing is disabled for this pawn
 var		bool	bModifyReachSpecCost;	// pawn should call virtual function to modify reach spec costs
 var		bool	bModifyNavPointDest;	// pawn should call virtual function to modify destination location when moving to nav point
-/** set if Pawn counts as a vehicle for pathfinding checks (so don't use bBlockedForVehicles nodes, etc) */
 var bool bPathfindsAsVehicle;
+var bool bPrevBypassSimulatedClientPhysics;
+var bool HasDied;
+var bool TurnedOff;
 var	bool	bRunPhysicsWithNoController;	// When there is no Controller, Walking Physics abort and force a velocity and acceleration of 0. Set this to TRUE to override.
 var bool	bForceMaxAccel;	// ignores Acceleration component, and forces max AccelRate to drive Pawn at full velocity.
 var bool	bLimitFallAccel; // should acceleration be limited (by a factor of GroundSpeed and AirControl) when in PHYS_Falling?
 var bool bReplicateHealthToAll; /** if true, replicate this Pawn's health to all clients; otherwise, only if owned by or ViewTarget of a client */
-/** this flag forces APawn::CalcVelocity() to just use RMVelocity directly */
 var bool bForceRMVelocity;
-/** this flag forces APawn::CalcVelocity() to never use root motion derived velocity */
 var bool bForceRegularVelocity;
 var bool				bPlayedDeath;			// set when death animation has been played (used in network games)
-/** DesiredRotation is set by somebody - Pawn's default behavior (using direction for desiredrotation) does not work **/
 var				const private{private} bool		bDesiredRotationSet;
-/** Do not overwrite current DesiredRotation **/
 var				const private{private} bool		bLockDesiredRotation;
-/** Unlock DesiredRotation when Reached to the destination
-  * This is used when bLockDesiredRotation=TRUE
-  * This will set bLockDesiredRotation = FALSE when reached to DesiredRotation
-  */
 var				const private{private} bool		bUnlockWhenReached;
 var bool		bCanTraverse;
+var bool bCanJumpUpWalls;
 var bool		bUseSimplePhysWalking;
 var bool		bUseComplexStepUpCode;
 var bool		bIsBatman;
-/** Controls whether the pawn needs the base ticked before this one can be ticked */
-var bool bNeedsBaseTickedFirst;
-/** Whether root motion should be extracted from the interp curve or not */
-/** NOTE: Currently assumes blending isn't altering the root bone */
+var transient repnotify bool bUsedByMatinee;
 var bool					bRootMotionFromInterpCurve;
-//debug
 var(Debug) bool bDebugShowCameraLocation;
+var(Pawn) bool bFastAttachedMove;
 var bool		bAllowSlideOffEdges;
-
-/** Physics to use when walking. Typically set to PHYS_Walking or PHYS_NavMeshWalking */
+var transient bool bSurveillanceVisualEffectDisabled;
+var bool bAttachSurveillanceEffectToSocket;
 var(Movement) EPhysics  WalkingPhysics;
-
 var EPathSearchType	PathSearchType;
-
-/** replicated to we can see where remote clients are looking */
 var		const	byte	RemoteViewPitch;
-/** increased when weapon fires. 0 = not firing. 1 - 255 = firing */
 var repnotify	byte	FlashCount;
-/** firing mode used when firing */
 var	repnotify	byte	FiringMode;
-
+var Component.ECollisionFilter PlayerCollisionFilter;
+var Component.ECollisionFilter NonPlayerCollisionFilter;
 var		const	float	UncrouchTime;		// when auto-crouch during movement, continually try to uncrouch once this decrements to zero
 var				float	CrouchHeight;		// CollisionHeight when crouching
 var				float	CrouchRadius;		// CollisionRadius when crouching
 var		const	int		FullHeight;			// cached for pathfinding
-/** Pawn multiplies cost of NavigationPoints that don't have bPreferredVehiclePath set by this number */
 var float NonPreferredVehiclePathMultiplier;
-
-/** List of search constraints for pathing */
-var PathConstraint		PathConstraintList;
-var PathGoalEvaluator	PathGoalList;
-
 var		float	DesiredSpeed;
 var		float	MaxDesiredSpeed;
 var(AI) float	HearingThreshold;	// max distance at which a makenoise(1.0) loudness sound can be heard
@@ -186,9 +173,7 @@ var const float	AvgPhysicsTime;		// Physics updating time monitoring (for AI mon
 var			  float		  Mass;				// Mass of this pawn.
 var			  float		  Buoyancy;			// Water buoyancy. A ratio (1.0 = neutral buoyancy, 0.0 = no buoyancy)
 var		float	MeleeRange;			// Max range for melee attack (not including collision radii)
-var const NavigationPoint Anchor;			// current nearest path;
 var const int             AnchorItem;       // Used to index into nav mesh polys
-var const NavigationPoint LastAnchor;		// recent nearest path
 var		float	FindAnchorFailedTime;	// last time a FindPath() attempt failed to find an anchor.
 var		float	LastValidAnchorTime;	// last time a valid anchor was found
 var		float	DestinationOffset;	// used to vary destination over NavigationPoints
@@ -198,8 +183,6 @@ var		float	SerpentineDist;
 var		float	SerpentineTime;		// how long to stay straight before strafing again
 var		float	SpawnTime;			// worldinfo time when this pawn was spawned
 var		int		MaxPitchLimit;		// limit on view pitching
-
-// Movement.
 var float	GroundSpeed;	// The maximum ground speed.
 var float	WaterSpeed;		// The maximum swimming speed.
 var float	AirSpeed;		// The maximum flying speed.
@@ -213,132 +196,53 @@ var float	WalkingPct;		// pct. of running speed that walking speed is
 var float	MovementSpeedModifier; // a modifier that can be used to override the movement speed.
 var float	CrouchedPct;	// pct. of running speed that crouched walking speed is
 var float	MaxFallSpeed;	// max speed pawn can land without taking damage
-
-/** AI will take paths that require a landing velocity less than (MaxFallSpeed * AIMaxFallSpeedFactor) */
 var float AIMaxFallSpeedFactor;
-
 var(Camera) float	BaseEyeHeight;	// Base eye height above collision center.
 var(Camera) float		EyeHeight;		// Current eye height, adjusted for bobbing and stairs.
 var	vector			Floor;			// Normal of floor pawn is standing on (only used by PHYS_Spider and PHYS_Walking)
 var float			SplashTime;		// time of last splash
-var transient PhysicsVolume HeadVolume;		// physics volume of head
 var() int Health;		/** amount of health this Pawn has */
 var() int HealthMax;		/** normal maximum health of Pawn - defaults to default.Health unless explicitly set otherwise */
 var	float			BreathTime;		// used for getting BreathTimer() messages (for no air, etc.)
 var float			UnderWaterTime; // how much time pawn can go without air (in seconds)
 var	float			LastPainTime;	// last time pawn played a takehit animation (updated in PlayHit())
 var float           KismetDeathDelayTime;
-
-/** RootMotion derived velocity calculated by APawn::CalcVelocity() (used when replaying client moves in net games (since can't rely on animation when replaying moves)) */
 var vector RMVelocity;
-
-// Sound and noise management
-// remember location and position of last noises propagated
 var const	vector		noise1spot;
 var const	float		noise1time;
-var const	pawn		noise1other;
 var const	float		noise1loudness;
 var const	vector		noise2spot;
 var const	float		noise2time;
-var const	pawn		noise2other;
 var const	float		noise2loudness;
-
 var float SoundDampening;
 var float DamageScaling;
-
 var localized  string MenuName; // Name used for this pawn type in menus (e.g. player selection)
-
-var class<AIController> ControllerClass;	// default class to use when pawn is controlled by AI
-
-var editinline RepNotify PlayerReplicationInfo PlayerReplicationInfo;
-
-var LadderVolume OnLadder;		// ladder currently being climbed
-
 var name LandMovementState;		// PlayerControllerState to use when moving on land or air
 var name WaterMovementState;	// PlayerControllerState to use when moving in water
-
-var PlayerStart LastStartSpot;	// used to avoid spawn camping
 var float LastStartTime;
-
 var vector				TakeHitLocation;		// location of last hit (for playing hit/death anims)
-var class<DamageType>	HitDamageType;			// damage type of last hit (for playing hit/death anims)
 var vector				TearOffMomentum;		// momentum to apply when torn off (bTearOff == true)
-var() SkeletalMeshComponent	Mesh;
-
-var	CylinderComponent		CylinderComponent;
-
 var()	float				RBPushRadius; // Unreal units
 var()	float				RBPushStrength;
-
-var	repnotify	Vehicle DrivenVehicle;
-
 var float AlwaysRelevantDistanceSquared;	// always relevant to other clients if closer than this distance to viewer, and have controller
-
-/** Radius that is checked for nearby vehicles when pressing use */
 var() float	VehicleCheckRadius;
-
-var Controller LastHitBy; //give kill credit to this guy if hit momentum causes pawn to fall to his death
-
 var()	float	ViewPitchMin;
 var()	float	ViewPitchMax;
-
-/** Max difference between pawn's Rotation.Yaw and DesiredRotation.Yaw for pawn to be considered as having reached its desired rotation */
 var		int		AllowedYawError;
-/** Desired Target Rotation : Physics will smoothly rotate actor to this rotation **/
-/** In future I will uncomment this change. Currently Actor has the variable.**/
 var(Movement)	const rotator     DesiredRotation;
-/** Inventory Manager */
-var class<InventoryManager>		InventoryManagerClass;
-var repnotify InventoryManager			InvManager;
-
-/** Weapon currently held by Pawn */
-var		Weapon					Weapon;
-
-/**
- * This next group of replicated properties are used to cause 3rd person effects on
- * remote clients.	FlashLocation and FlashCount are altered by the weapon to denote that
- * a shot has occured and FiringMode is used to determine what type of shot.
- */
-
-/** Hit Location of instant hit weapons. vect(0,0,0) = not firing. */
 var repnotify	vector	FlashLocation;
-/** last FlashLocation that was an actual shot, i.e. not counting clears to (0,0,0)
- * this is used to make sure we set unique values to FlashLocation for consecutive shots even when there was a clear in between,
- * so that if a client missed the clear due to low net update rate, it still gets the new firing location
- */
 var vector LastFiringFlashLocation;
-/** tracks the number of consecutive shots. Note that this is not replicated, so it's not correct on remote clients. It's only updated when the pawn is relevant. */
 var				int		ShotCount;
-
-/** set in InitRagdoll() to old CollisionComponent (since it must be Mesh for ragdolls) so that TermRagdoll() can restore it */
-var PrimitiveComponent PreRagdollCollisionComponent;
-
-/** Physics object created to create contacts with physics objects, used to push them around. */
-var	RB_BodyInstance		PhysicsPushBody;
-
-/** @HACK: count of times processLanded() was called but it failed without changing physics for some reason
- * so we can detect and avoid a rare case where Pawns get stuck in that state
- */
 var int FailedLandingCount;
-
 var Vector walkFailPoint;
-var Actor LinkedCullPawn;
-
-/** Array of Slots */
 var transient Array<AnimNodeSlot>	SlotNodes;
-/** List of Matinee InterpGroup controlling this actor. */
 var transient Array<InterpGroup>	InterpGroupList;
-
-/** General material used to control common pawn material parameters (e.g. burning) */
-var protected transient MaterialInstanceConstant MIC_PawnMat;
-var protected transient MaterialInstanceConstant MIC_PawnHair;
-
 var() Array<ScalarParameterInterpStruct> ScalarParameterInterpArray;
-
 var RootMotionCurve			RootMotionInterpCurve;
 var float					RootMotionInterpRate;
 var float					RootMotionInterpCurrentTime;
 var Vector					RootMotionInterpCurveLastValue;
+var name SurveillanceEffectSocket;
 
 cpptext
 {

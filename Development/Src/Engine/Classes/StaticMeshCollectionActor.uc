@@ -21,6 +21,8 @@ var	const	array<StaticMeshComponent>	StaticMeshComponents;
  */
 var	config	int							MaxStaticMeshComponents;
 
+var const native Pointer SMCPoolHandle;
+
 cpptext
 {
 	/* === AActor interface === */

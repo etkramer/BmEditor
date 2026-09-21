@@ -17,10 +17,6 @@ const	INFINITE_PATH_COST	=	10000000;
 //------------------------------------------------------------------------------
 // NavigationPoint variables
 
-var transient bool bEndPoint;	// used by C++ navigation code
-var transient bool bTransientEndPoint; // set right before a path finding attempt, cleared afterward.
-var transient bool bHideEditorPaths;	// don't show paths to this node in the editor
-var transient bool bCanReach;		// used during paths review in editor
 
 /** structure for inserting things into the navigation octree */
 struct native NavigationOctreeObject
@@ -81,56 +77,16 @@ struct native NavigationOctreeObject
 		void Serialize(FArchive& Ar);
 	}
 };
-var native transient const NavigationOctreeObject NavOctreeObject;
 
-var() bool bBlocked;			// this node is currently unuseable
-var() bool bOneWayPath;			// reachspecs from this path only in the direction the path is facing (180 degrees)
-var	bool bNeverUseStrafing;	// shouldn't use bAdvancedTactics going to this point
-var const bool bForceNoStrafing;// override any LD changes to bNeverUseStrafing
-var const bool bAutoBuilt;		// placed during execution of "PATHS BUILD"
-var	bool bSpecialMove;			// if true, pawn will call SuggestMovePreparation() when moving toward this node
-var bool bNoAutoConnect;		// don't connect this path to others except with special conditions (used by LiftCenter, for example)
-var	const bool	bNotBased;		// used by path builder - if true, no error reported if node doesn't have a valid base
-var const bool  bPathsChanged;	// used for incremental path rebuilding in the editor
-var bool		bDestinationOnly; // used by path building - means no automatically generated paths are sourced from this node
-var	bool		bSourceOnly;	// used by path building - means this node is not the destination of any automatically generated path
-var bool		bSpecialForced;	// paths that are forced should call the SpecialCost() and SuggestMovePreparation() functions
-var bool		bMustBeReachable;	// used for PathReview code
-var bool		bBlockable;		// true if path can become blocked (used by pruning during path building)
-var	bool		bFlyingPreferred;	// preferred by flying creatures
-var bool		bMayCausePain;		// set in C++ if in PhysicsVolume that may cause pain
-var transient bool bAlreadyVisited;	// internal use
-var() bool 	bVehicleDestination;	// if true, forced paths to this node will have max width to accomodate vehicles
-var() bool bMakeSourceOnly;
-var	bool	bMustTouchToReach;		// if true. reach tests are based on whether pawn can move to overlap this NavigationPoint (only valid if bCollideActors=true)
 /** whether walking on (being based on) this NavigationPoint counts as reaching it */
-var bool bCanWalkOnToReach;
 /** if true, attempt to build long range (> MAXPATHDIST) paths to/from this node */
-var bool bBuildLongPaths;
 /** indicates vehicles cannot use this node */
-var(VehicleUsage) bool bBlockedForVehicles;
 /** vehicles with bUsePreferredVehiclePaths set (large vehicles, usually) will prioritize using these nodes */
-var(VehicleUsage) bool bPreferredVehiclePath;
 /** Does this nav point point to others in separate levels? */
-var const bool bHasCrossLevelPaths;
-var bool bSkipPathBuilding;
 
-var() editinline const editconst duplicatetransient array<ReachSpec> PathList; //index of reachspecs (used by C++ Navigation code)
 /** List of navigation points to prevent paths being built to */
-var editoronly duplicatetransient array<ActorReference> EditorProscribedPaths;
 /** List of navigation points to force paths to be built to */
-var editoronly duplicatetransient array<ActorReference> EditorForcedPaths;
 /** List of volumes containing this navigation point relevant for gameplay */
-var() const editconst  array<ActorReference>	Volumes;
-var int visitedWeight;
-var const int bestPathWeight;
-var const private NavigationPoint nextNavigationPoint;
-var const NavigationPoint nextOrdered;	// for internal use during route searches
-var const NavigationPoint prevOrdered;	// for internal use during route searches
-var const NavigationPoint previousPath;
-var int Cost;					// added cost to visit this pathnode
-var() int ExtraCost;			// Extra weight added by level designer
-var transient int TransientCost;	// added right before a path finding attempt, cleared afterward.
 
 /** Mapping of Cost/Description for costs of this node */
 struct native DebugNavCost
@@ -152,35 +108,78 @@ struct native DebugNavCost
 		}
 	}
 };
-var transient array<DebugNavCost> CostArray;
 
-var DroppedPickup	InventoryCache;		// used to point to dropped weapons
-var float	InventoryDist;
-var const float LastDetourWeight;
 
-var	CylinderComponent		CylinderComponent;
 
 /** path size of the largest ReachSpec in this node's PathList */
-var() editconst const Cylinder MaxPathSize;
 
 /** GUID used for linking paths across levels */
-var() editconst const duplicatetransient guid NavGuid;
 
 /** Normal editor sprite */
-var const transient SpriteComponent GoodSprite;
 /** Used to draw bad collision intersection in editor */
-var const transient SpriteComponent BadSprite;
 
 /** Which navigation network does this navigation point connect to? */
-var() editconst const int NetworkID;
 
 /** Pawn that is currently anchor to this navigation point */
-var transient Pawn AnchoredPawn;
 /** Last time a pawn was anchored to this navigation point - set when Pawn chooses a new anchor */
-var transient float LastAnchoredPawnTime;
 
 /** whether we need to save this in checkpoints because it has been modified by Kismet */
-var transient bool bShouldSaveForCheckpoint;
+var transient bool bEndPoint;	// used by C++ navigation code
+var transient bool bTransientEndPoint; // set right before a path finding attempt, cleared afterward.
+var transient bool bHideEditorPaths;	// don't show paths to this node in the editor
+var transient bool bCanReach;		// used during paths review in editor
+var() bool bBlocked;			// this node is currently unuseable
+var() bool bOneWayPath;			// reachspecs from this path only in the direction the path is facing (180 degrees)
+var	bool bNeverUseStrafing;	// shouldn't use bAdvancedTactics going to this point
+var const bool bForceNoStrafing;// override any LD changes to bNeverUseStrafing
+var const bool bAutoBuilt;		// placed during execution of "PATHS BUILD"
+var	bool bSpecialMove;			// if true, pawn will call SuggestMovePreparation() when moving toward this node
+var bool bNoAutoConnect;		// don't connect this path to others except with special conditions (used by LiftCenter, for example)
+var	const bool	bNotBased;		// used by path builder - if true, no error reported if node doesn't have a valid base
+var const bool  bPathsChanged;	// used for incremental path rebuilding in the editor
+var bool		bDestinationOnly; // used by path building - means no automatically generated paths are sourced from this node
+var	bool		bSourceOnly;	// used by path building - means this node is not the destination of any automatically generated path
+var bool		bSpecialForced;	// paths that are forced should call the SpecialCost() and SuggestMovePreparation() functions
+var bool		bMustBeReachable;	// used for PathReview code
+var bool		bBlockable;		// true if path can become blocked (used by pruning during path building)
+var	bool		bFlyingPreferred;	// preferred by flying creatures
+var bool		bMayCausePain;		// set in C++ if in PhysicsVolume that may cause pain
+var transient bool bAlreadyVisited;	// internal use
+var() bool 	bVehicleDestination;	// if true, forced paths to this node will have max width to accomodate vehicles
+var() bool bMakeSourceOnly;
+var	bool	bMustTouchToReach;		// if true. reach tests are based on whether pawn can move to overlap this NavigationPoint (only valid if bCollideActors=true)
+var bool bCanWalkOnToReach;
+var bool bBuildLongPaths;
+var(VehicleUsage) bool bBlockedForVehicles;
+var(VehicleUsage) bool bPreferredVehiclePath;
+var const bool bHasCrossLevelPaths;
+var bool bSkipPathBuilding;
+var native transient const NavigationOctreeObject NavOctreeObject;
+var() editinline const editconst duplicatetransient array<ReachSpec> PathList; //index of reachspecs (used by C++ Navigation code)
+var editoronly duplicatetransient array<ActorReference> EditorProscribedPaths;
+var editoronly duplicatetransient array<ActorReference> EditorForcedPaths;
+var() const editconst  array<ActorReference>	Volumes;
+var int visitedWeight;
+var const int bestPathWeight;
+var const private NavigationPoint nextNavigationPoint;
+var const NavigationPoint nextOrdered;	// for internal use during route searches
+var const NavigationPoint prevOrdered;	// for internal use during route searches
+var const NavigationPoint previousPath;
+var DroppedPickup	InventoryCache;		// used to point to dropped weapons
+var transient Pawn AnchoredPawn;
+var const transient SpriteComponent BadSprite;
+var const transient SpriteComponent GoodSprite;
+var	CylinderComponent		CylinderComponent;
+var int Cost;					// added cost to visit this pathnode
+var() int ExtraCost;			// Extra weight added by level designer
+var transient int TransientCost;	// added right before a path finding attempt, cleared afterward.
+var transient array<DebugNavCost> CostArray;
+var float	InventoryDist;
+var const float LastDetourWeight;
+var() editconst const Cylinder MaxPathSize;
+var() editconst const duplicatetransient guid NavGuid;
+var() editconst const int NetworkID;
+var transient float LastAnchoredPawnTime;
 
 struct CheckpointRecord
 {
@@ -440,8 +439,6 @@ function OnToggle(SeqAct_Toggle inAction)
 	}
 
 	WorldInfo.Game.NotifyNavigationChanged(self);
-
-	bShouldSaveForCheckpoint = true;
 }
 
 simulated event ShutDown()
@@ -450,13 +447,12 @@ simulated event ShutDown()
 
 	bBlocked = TRUE;
 	WorldInfo.Game.NotifyNavigationChanged(self);
-
-	bShouldSaveForCheckpoint = true;
 }
 
 function bool ShouldSaveForCheckpoint()
 {
-	return bShouldSaveForCheckpoint;
+	// BM: AK's NavigationPoint has no bShouldSaveForCheckpoint flag.
+	return false;
 }
 
 function CreateCheckpointRecord(out CheckpointRecord Record)
@@ -467,7 +463,6 @@ function CreateCheckpointRecord(out CheckpointRecord Record)
 function ApplyCheckpointRecord(const out CheckpointRecord Record)
 {
 	bBlocked = Record.bBlocked;
-	bShouldSaveForCheckpoint = true;
 }
 
 /** @return Debug abbrev for hud printing */

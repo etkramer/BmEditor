@@ -306,13 +306,39 @@ public:
     FLOAT MaxStepHeight;
     FLOAT MaxJumpHeight;
     FLOAT WalkableFloorZ;
+    FLOAT SecondaryStepHeight;
     FLOAT LedgeCheckThreshold;
     FVector PartialLedgeMoveDir;
     class AController* Controller;
     class APawn* NextPawn;
-    FLOAT NetRelevancyTime;
     class APlayerController* LastRealViewer;
     class AActor* LastViewer;
+    class UPathConstraint* PathConstraintList;
+    class UPathGoalEvaluator* PathGoalList;
+    class ANavigationPoint* Anchor;
+    class ANavigationPoint* LastAnchor;
+    class APhysicsVolume* HeadVolume;
+    class APawn* noise1other;
+    class APawn* noise2other;
+    class APlayerReplicationInfo* PlayerReplicationInfo;
+    class ALadderVolume* OnLadder;
+    class APlayerStart* LastStartSpot;
+    class AVehicle* DrivenVehicle;
+    class AController* LastHitBy;
+    class AInventoryManager* InvManager;
+    class AWeapon* Weapon;
+    class URB_BodyInstance* PhysicsPushBody;
+    class AActor* LinkedCullPawn;
+    class UMaterialInstanceConstant* MIC_PawnMat;
+    class UMaterialInstanceConstant* MIC_PawnHair;
+    class UParticleSystemComponent* SurveillanceParticleEffect;
+    class UPrimitiveComponent* PreRagdollCollisionComponent;
+    class UClass* InventoryManagerClass;
+    class UCylinderComponent* CylinderComponent;
+    class USkeletalMeshComponent* Mesh;
+    class UClass* HitDamageType;
+    class UClass* ControllerClass;
+    FLOAT NetRelevancyTime;
     BITFIELD bScriptTickSpecial:1;
     BITFIELD bUpAndOut:1;
     BITFIELD bIsWalking:1;
@@ -343,6 +369,7 @@ public:
     BITFIELD bForceFloorCheck:1;
     BITFIELD bForceKeepAnchor:1;
     BITFIELD bRootMotionOverridesFallingXY:1;
+    BITFIELD bRootMotionOverridesFallingXY_2:1;
     BITFIELD bCanMantle:1;
     BITFIELD bCanClimbUp:1;
     BITFIELD bCanClimbCeilings:1;
@@ -362,6 +389,9 @@ public:
     BITFIELD bModifyReachSpecCost:1;
     BITFIELD bModifyNavPointDest:1;
     BITFIELD bPathfindsAsVehicle:1;
+    BITFIELD bPrevBypassSimulatedClientPhysics:1;
+    BITFIELD HasDied:1;
+    BITFIELD TurnedOff:1;
     BITFIELD bRunPhysicsWithNoController:1;
     BITFIELD bForceMaxAccel:1;
     BITFIELD bLimitFallAccel:1;
@@ -375,26 +405,30 @@ private:
     BITFIELD bUnlockWhenReached:1;
 public:
     BITFIELD bCanTraverse:1;
+    BITFIELD bCanJumpUpWalls:1;
     BITFIELD bUseSimplePhysWalking:1;
     BITFIELD bUseComplexStepUpCode:1;
     BITFIELD bIsBatman:1;
-    BITFIELD bNeedsBaseTickedFirst:1;
+    BITFIELD bUsedByMatinee:1;
     BITFIELD bRootMotionFromInterpCurve:1;
     BITFIELD bDebugShowCameraLocation:1;
+    BITFIELD bFastAttachedMove:1;
     BITFIELD bAllowSlideOffEdges:1;
+    BITFIELD bSurveillanceVisualEffectDisabled:1;
+    BITFIELD bAttachSurveillanceEffectToSocket:1;
     SCRIPT_ALIGN;
     BYTE WalkingPhysics;
     BYTE PathSearchType;
     BYTE RemoteViewPitch;
     BYTE FlashCount;
     BYTE FiringMode;
+    BYTE PlayerCollisionFilter;
+    BYTE NonPlayerCollisionFilter;
     FLOAT UncrouchTime;
     FLOAT CrouchHeight;
     FLOAT CrouchRadius;
     INT FullHeight;
     FLOAT NonPreferredVehiclePathMultiplier;
-    class UPathConstraint* PathConstraintList;
-    class UPathGoalEvaluator* PathGoalList;
     FLOAT DesiredSpeed;
     FLOAT MaxDesiredSpeed;
     FLOAT HearingThreshold;
@@ -405,9 +439,7 @@ public:
     FLOAT Mass;
     FLOAT Buoyancy;
     FLOAT MeleeRange;
-    class ANavigationPoint* Anchor;
     INT AnchorItem;
-    class ANavigationPoint* LastAnchor;
     FLOAT FindAnchorFailedTime;
     FLOAT LastValidAnchorTime;
     FLOAT DestinationOffset;
@@ -435,7 +467,6 @@ public:
     FLOAT EyeHeight;
     FVector Floor;
     FLOAT SplashTime;
-    class APhysicsVolume* HeadVolume;
     INT Health;
     INT HealthMax;
     FLOAT BreathTime;
@@ -445,57 +476,39 @@ public:
     FVector RMVelocity;
     FVector noise1spot;
     FLOAT noise1time;
-    class APawn* noise1other;
     FLOAT noise1loudness;
     FVector noise2spot;
     FLOAT noise2time;
-    class APawn* noise2other;
     FLOAT noise2loudness;
     FLOAT SoundDampening;
     FLOAT DamageScaling;
     FStringNoInit MenuName;
-    class UClass* ControllerClass;
-    class APlayerReplicationInfo* PlayerReplicationInfo;
-    class ALadderVolume* OnLadder;
     FName LandMovementState;
     FName WaterMovementState;
-    class APlayerStart* LastStartSpot;
     FLOAT LastStartTime;
     FVector TakeHitLocation;
-    class UClass* HitDamageType;
     FVector TearOffMomentum;
-    class USkeletalMeshComponent* Mesh;
-    class UCylinderComponent* CylinderComponent;
     FLOAT RBPushRadius;
     FLOAT RBPushStrength;
-    class AVehicle* DrivenVehicle;
     FLOAT AlwaysRelevantDistanceSquared;
     FLOAT VehicleCheckRadius;
-    class AController* LastHitBy;
     FLOAT ViewPitchMin;
     FLOAT ViewPitchMax;
     INT AllowedYawError;
     FRotator DesiredRotation;
-    class UClass* InventoryManagerClass;
-    class AInventoryManager* InvManager;
-    class AWeapon* Weapon;
     FVector FlashLocation;
     FVector LastFiringFlashLocation;
     INT ShotCount;
-    class UPrimitiveComponent* PreRagdollCollisionComponent;
-    class URB_BodyInstance* PhysicsPushBody;
     INT FailedLandingCount;
     FVector walkFailPoint;
-    class AActor* LinkedCullPawn;
     TArrayNoInit<class UAnimNodeSlot*> SlotNodes;
     TArrayNoInit<class UInterpGroup*> InterpGroupList;
-    class UMaterialInstanceConstant* MIC_PawnMat;
-    class UMaterialInstanceConstant* MIC_PawnHair;
     TArrayNoInit<struct FScalarParameterInterpStruct> ScalarParameterInterpArray;
     struct FRootMotionCurve RootMotionInterpCurve;
     FLOAT RootMotionInterpRate;
     FLOAT RootMotionInterpCurrentTime;
     FVector RootMotionInterpCurveLastValue;
+    FName SurveillanceEffectSocket;
     //## END PROPS Pawn
 
     UBOOL PickWallAdjust(FVector WallHitNormal,class AActor* HitActor);
@@ -1824,7 +1837,7 @@ FNativeFunctionLookup GEngineAVehicleNatives[] =
 
 #ifdef VERIFY_CLASS_SIZES
 VERIFY_CLASS_OFFSET_NODIE(APawn,Pawn,MaxStepHeight)
-VERIFY_CLASS_OFFSET_NODIE(APawn,Pawn,RootMotionInterpCurveLastValue)
+VERIFY_CLASS_OFFSET_NODIE(APawn,Pawn,SurveillanceEffectSocket)
 VERIFY_CLASS_SIZE_NODIE(APawn)
 VERIFY_CLASS_OFFSET_NODIE(AMatineePawn,MatineePawn,PreviewMesh)
 VERIFY_CLASS_SIZE_NODIE(AMatineePawn)

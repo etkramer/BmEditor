@@ -17,9 +17,12 @@ cpptext
 
 var() bool bEnabled;
 var() bool bPrimaryStart;		// None primary starts used only if no primary start available
+var bool bBestStart;
 
 /** Team specific player start, 255 for any team */
 var() int TeamIndex;
+var int Score;
+var int SelectionIndex;
 
 /* epic ===============================================
 * ::OnToggle

@@ -392,12 +392,8 @@ public:
     BITFIELD bForceSaveInCheckpoint:1;
     BITFIELD bCollideActors_OldValue_DEPRECATED:1;
     class USkeletalMeshComponent* SkeletalMeshComponent;
-    class ULightEnvironmentComponent* LightEnvironment;
-    class UObject* ImpactSoundEvent;
     FLOAT LastImpactTime;
     class UObject* ImpactForceComponent;
-    class USkeletalMesh* ReplicatedMesh;
-    class UMaterialInterface* ReplicatedMaterial;
     TArrayNoInit<struct FSkelMeshActorControlTarget> ControlTargets;
     TArrayNoInit<class UInterpGroup*> InterpGroupList;
     FName SavedAnimSeqName;

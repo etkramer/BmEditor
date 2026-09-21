@@ -738,10 +738,6 @@ void AActor::execTrace( FFrame& Stack, RESULT_DECL )
 		TraceFlags -= TRACE_Movers;
 	}
 
-	if( bMoveIgnoresDestruction )
-	{
-		TraceFlags |= TRACE_MoveIgnoresDestruction;
-	}
  
 
 	AActor* TraceActor = this;

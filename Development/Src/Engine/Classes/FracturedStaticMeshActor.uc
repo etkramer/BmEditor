@@ -117,8 +117,6 @@ var() RBCollisionChannelContainer FracturePartRBPartCollideWithChannels;
 /** Array of parts that are waiting to be spawned in an upcoming tick */
 var transient array< DeferredPartToSpawn > DeferredPartsToSpawn;
 
-var(Investigate) vector InvestigateOffset;
-
 /** Cached info for part impacts */
 var		PhysEffectInfo	PartImpactEffect;
 

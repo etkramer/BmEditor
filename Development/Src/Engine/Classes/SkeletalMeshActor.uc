@@ -6,23 +6,14 @@ class SkeletalMeshActor extends Actor
 	ClassGroup(SkeletalMeshes)
 	placeable;
 
-var()		bool		bDamageAppliesImpulse;
 
 /** Whether or not this actor should respond to anim notifies - CURRENTLY ONLY AFFECTS PlayParticleEffect NOTIFIES**/
-var() bool bShouldDoAnimNotifies;
 
-var()	SkeletalMeshComponent			SkeletalMeshComponent;
-var() const editconst LightEnvironmentComponent LightEnvironment;
 
-var		object							ImpactSoundEvent;
-var		float							LastImpactTime;
-var		object							ImpactForceComponent;
 
 /** Used to replicate mesh to clients */
-var repnotify transient SkeletalMesh ReplicatedMesh;
 
 /** used to replicate the material in index 0 */
-var repnotify MaterialInterface ReplicatedMaterial;
 
 struct CheckpointRecord
 {
@@ -34,7 +25,6 @@ struct CheckpointRecord
 };
 
 /** @hack: force saving positional data in checkpoint - some uses in Matinee require this */
-var() bool bForceSaveInCheckpoint;
 
 /** Struct that stores info to update one skel control with a location target */
 struct native SkelMeshActorControlTarget
@@ -46,18 +36,24 @@ struct native SkelMeshActorControlTarget
 };
 
 /** Set of skel controls to update targets of, based on Actor location */
-var() array<SkelMeshActorControlTarget>		ControlTargets;
 
 /** mirror of bCollideActors used for backwards compatibility with change of default bCollideActors to FALSE
  * we save the value in previous package versions into this property instead and copy back
  * thus preserving the value of the property in old content regardless of whether they modified it
  */
-var deprecated bool bCollideActors_OldValue;
 
 /** List of Matinee InterpGroup controlling this actor. */
-var transient Array<InterpGroup>	InterpGroupList;
 
 /** This is only editor only, when exiting Matinee, it should preserve previous position **/
+var()		bool		bDamageAppliesImpulse;
+var() bool bShouldDoAnimNotifies;
+var() bool bForceSaveInCheckpoint;
+var deprecated bool bCollideActors_OldValue;
+var()	SkeletalMeshComponent			SkeletalMeshComponent;
+var		float							LastImpactTime;
+var		object							ImpactForceComponent;
+var() array<SkelMeshActorControlTarget>		ControlTargets;
+var transient Array<InterpGroup>	InterpGroupList;
 var transient private name       SavedAnimSeqName;
 var transient private float      SavedCurrentTime;
 
@@ -107,20 +103,8 @@ protected:
 }
 
 
-replication
-{
-	if (Role == ROLE_Authority)
-		ReplicatedMesh, ReplicatedMaterial;
-}
-
 simulated event PostBeginPlay()
 {
-	// grab the current mesh for replication
-	if (Role == ROLE_Authority && SkeletalMeshComponent != None)
-	{
-		ReplicatedMesh = SkeletalMeshComponent.SkeletalMesh;
-	}
-
 	// Unfix bodies flagged as 'full anim weight'
 	if( SkeletalMeshComponent != None &&
 		//SkeletalMeshComponent.bEnableFullAnimWeightBodies &&
@@ -150,18 +134,7 @@ native simulated function UpdateAnimSetList();
 
 simulated event ReplicatedEvent( name VarName )
 {
-	if (VarName == 'ReplicatedMesh')
-	{
-		SkeletalMeshComponent.SetSkeletalMesh(ReplicatedMesh);
-	}
-	else if (VarName == 'ReplicatedMaterial')
-	{
-		SkeletalMeshComponent.SetMaterial(0, ReplicatedMaterial);
-	}
-	else
-	{
-		Super.ReplicatedEvent(VarName);
-	}
+	Super.ReplicatedEvent(VarName);
 }
 
 /** Handling Toggle event from Kismet. */
@@ -211,11 +184,6 @@ simulated function OnToggle(SeqAct_Toggle action)
 function OnSetMaterial(SeqAct_SetMaterial Action)
 {
 	SkeletalMeshComponent.SetMaterial( Action.MaterialIndex, Action.NewMaterial );
-	if (Action.MaterialIndex == 0)
-	{
-		ReplicatedMaterial = Action.NewMaterial;
-		ForceNetRelevant();
-	}
 }
 
 simulated event BeginAnimControl(InterpGroup InInterpGroup)
@@ -316,7 +284,6 @@ event OnSetMesh(SeqAct_SetMesh Action)
 		if (Action.NewSkeletalMesh != None && Action.NewSkeletalMesh != SkeletalMeshComponent.SkeletalMesh)
 		{
 			SkeletalMeshComponent.SetSkeletalMesh(Action.NewSkeletalMesh);
-			ReplicatedMesh = Action.NewSkeletalMesh;
 		}
 	}
 }
@@ -616,15 +583,6 @@ defaultproperties
 {
 	Begin Object Class=AnimNodeSequence Name=AnimNodeSeq0
 	End Object
-
-	Begin Object Class=DynamicLightEnvironmentComponent Name=MyLightEnvironment
-		bEnabled=TRUE
-		TickGroup=TG_DuringAsyncWork
-		// Using a skylight for secondary lighting by default to be cheap
-		// Characters and other important skeletal meshes should set bSynthesizeSHLight=true
-	End Object
-	Components.Add(MyLightEnvironment)
-	LightEnvironment=MyLightEnvironment
 
 	Begin Object Class=SkeletalMeshComponent Name=SkeletalMeshComponent0
 		Animations=AnimNodeSeq0

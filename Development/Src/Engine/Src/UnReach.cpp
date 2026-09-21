@@ -597,12 +597,6 @@ UBOOL UReachSpec::ShouldPruneAgainst( UReachSpec* Spec )
 {
 	if( !bPruned && !bSkipPrune && *End != NULL )
 	{
-		if( PruneSpecList.FindItemIndex(Spec->GetClass())  >= 0 ||
-			Spec->PruneSpecList.FindItemIndex(GetClass())  >= 0 )
-		{
-			return TRUE;
-		}
-
 		return (*this <= *Spec);
 	}
 

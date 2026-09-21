@@ -9,6 +9,9 @@ class Volume extends Brush
 	native
 	nativereplication;
 
+var Actor AssociatedActor;
+var(Collision) PhysicalMaterial PhysicalMaterialOverrideForCollisionComponent;
+
 /** Should pawns be forced to walk when inside this volume? */
 var() bool bForcePawnWalk;
 
@@ -17,7 +20,8 @@ var() bool bProcessAllActors;
 
 var() bool bOnlyCollideWithPlayer;
 var() bool bNoWallPlant;
-var() PhysicalMaterial PhysicalMaterialOverrideForCollisionComponent;
+var(Collision) bool bPawnsOnly;
+var const int PinGcRefCount;
 
 cpptext
 {

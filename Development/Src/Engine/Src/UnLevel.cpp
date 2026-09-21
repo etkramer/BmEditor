@@ -2680,8 +2680,7 @@ static UBOOL DoesHitBlockEdge( const FCheckResult* Hit, AActor* Actor, ULevel* L
 
 	AStaticMeshActorBase* MeshActor = Cast<AStaticMeshActorBase>( HitActor );
 	if( MeshActor
-	&&	(	( !bRailingTop && HitActor != Actor && (MeshActor->bRailing || MeshActor->bForceAllowKismetModification) )
-		||	( MeshActor->bGrappleToSlopedRoof && Actor == HitActor ) ) )
+	&&	!bRailingTop && HitActor != Actor && (MeshActor->bRailing || MeshActor->bForceAllowKismetModification) )
 	{
 		return FALSE;
 	}
@@ -2839,7 +2838,6 @@ static UBOOL AddToEdgeCollection( FActorEdgeCollection& Collection, FVector Poin
 				if( bSpikeyRailing )							EdgeType |= EDGETYPE_SpikeyRailing;
 				if( bWideRailing )								EdgeType |= EDGETYPE_WideRailing;
 				if( bRailingTop || (i > 0 && !bAllowCrevice) )	EdgeType |= EDGETYPE_ShimmyOnly;
-				if( Actor && Actor->bGrappleToSlopedRoof )		EdgeType |= EDGETYPE_SpecialRoofEdge;
 				Edge.EdgeType = EdgeType;
 
 				Collection.AddEdge( Edge );
@@ -2961,7 +2959,6 @@ static UBOOL AddToEdgeCollection( FActorEdgeCollection& Collection, FVector Poin
 					if( bSpikeyRailing )						EdgeType |= EDGETYPE_SpikeyRailing;
 					if( bWideRailing )							EdgeType |= EDGETYPE_WideRailing;
 					if( i > 0 && !bAllowCrevice )				EdgeType |= EDGETYPE_ShimmyOnly;
-					if( Actor && Actor->bGrappleToSlopedRoof )	EdgeType |= EDGETYPE_SpecialRoofEdge;
 					Edge.EdgeType = EdgeType;
 
 					Collection.AddEdge( Edge );

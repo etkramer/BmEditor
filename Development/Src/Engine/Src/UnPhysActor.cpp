@@ -1313,7 +1313,8 @@ void AKActorSpawnable::ResetComponents()
 	//DetachComponent(LightEnvironment);
     //LightEnvironment = NULL;
     ReplicatedMesh = NULL;
-    ReplicatedMaterial = NULL;
+    ReplicatedMaterial0 = NULL;
+    ReplicatedMaterial1 = NULL;
 
 	//AKActor
 	DetachComponent(ImpactEffectComponent);

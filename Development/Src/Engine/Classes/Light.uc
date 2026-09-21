@@ -63,6 +63,7 @@ public:
 
 /** replicated copy of LightComponent's bEnabled property */
 var repnotify bool bEnabled;
+var int MatineeControlReferenceCount;
 
 replication
 {

@@ -8,13 +8,6 @@ class SkeletalMeshCinematicActor extends SkeletalMeshActor
 
 defaultproperties
 {
-	Begin Object Name=MyLightEnvironment
-		bSynthesizeSHLight=TRUE
-		bUseBooleanEnvironmentShadowing=FALSE
-		bIsCharacterLightEnvironment=TRUE
-		bAllowDynamicShadowsOnTranslucency=TRUE
-	End Object
-
 	Begin Object Name=SkeletalMeshComponent0
 		// Keep expensive defaults that are almost always needed on cinematic skeletal mesh actors
 		MinDistFactorForKinematicUpdate=0

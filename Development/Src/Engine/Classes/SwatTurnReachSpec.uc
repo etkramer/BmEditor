@@ -20,5 +20,4 @@ var() editconst Byte SpecDirection;
 defaultproperties
 {
 	bSkipPrune=FALSE
-	PruneSpecList(0)=class'ReachSpec'
 }

@@ -18,6 +18,166 @@
 #ifndef INCLUDED_ENGINE_ENUMS
 #define INCLUDED_ENGINE_ENUMS 1
 
+enum ESideStory
+{
+    ESideStory_None         =0,
+    ESideStory_Azrael       =1,
+    ESideStory_Bane         =2,
+    ESideStory_C            =3,
+    ESideStory_DeadShot     =4,
+    ESideStory_E            =5,
+    ESideStory_F            =6,
+    ESideStory_G            =7,
+    ESideStory_Hush         =8,
+    ESideStory_I            =9,
+    ESideStory_AutoJez      =10,
+    ESideStory_K            =11,
+    ESideStory_L            =12,
+    ESideStory_MadHatter    =13,
+    ESideStory_Nora         =14,
+    ESideStory_O            =15,
+    ESideStory_Paths        =16,
+    ESideStory_Q            =17,
+    ESideStory_Races        =18,
+    ESideStory_S            =19,
+    ESideStory_ThugBullies  =20,
+    ESideStory_U            =21,
+    ESideStory_V            =22,
+    ESideStory_W            =23,
+    ESideStory_X            =24,
+    ESideStory_Y            =25,
+    ESideStory_Zsasz        =26,
+    ESideStory__A_DontUse   =27,
+    ESideStory__B_DontUse   =28,
+    ESideStory__C_DontUse   =29,
+    ESideStory__D           =30,
+    ESideStory__E           =31,
+    ESideStory__F           =32,
+    ESideStory__G           =33,
+    ESideStory__H           =34,
+    ESideStory__I           =35,
+    ESideStory__J           =36,
+    ESideStory__K           =37,
+    ESideStory__L           =38,
+    ESideStory__M           =39,
+    ESideStory__N_DontUse   =40,
+    ESideStory__O_DontUse   =41,
+    ESideStory__P           =42,
+    ESideStory__Q_DontUse   =43,
+    ESideStory__R_DontUse   =44,
+    ESideStory__S_DontUse   =45,
+    ESideStory__T           =46,
+    ESideStory__U           =47,
+    ESideStory__V_DontUse   =48,
+    ESideStory__W           =49,
+    ESideStory__X_DontUse   =50,
+    ESideStory__Y           =51,
+    ESideStory__Z           =52,
+    ESideStory_MAX          =53,
+};
+#define FOREACH_ENUM_ESIDESTORY(op) \
+    op(ESideStory_None) \
+    op(ESideStory_Azrael) \
+    op(ESideStory_Bane) \
+    op(ESideStory_C) \
+    op(ESideStory_DeadShot) \
+    op(ESideStory_E) \
+    op(ESideStory_F) \
+    op(ESideStory_G) \
+    op(ESideStory_Hush) \
+    op(ESideStory_I) \
+    op(ESideStory_AutoJez) \
+    op(ESideStory_K) \
+    op(ESideStory_L) \
+    op(ESideStory_MadHatter) \
+    op(ESideStory_Nora) \
+    op(ESideStory_O) \
+    op(ESideStory_Paths) \
+    op(ESideStory_Q) \
+    op(ESideStory_Races) \
+    op(ESideStory_S) \
+    op(ESideStory_ThugBullies) \
+    op(ESideStory_U) \
+    op(ESideStory_V) \
+    op(ESideStory_W) \
+    op(ESideStory_X) \
+    op(ESideStory_Y) \
+    op(ESideStory_Zsasz) \
+    op(ESideStory__A_DontUse) \
+    op(ESideStory__B_DontUse) \
+    op(ESideStory__C_DontUse) \
+    op(ESideStory__D) \
+    op(ESideStory__E) \
+    op(ESideStory__F) \
+    op(ESideStory__G) \
+    op(ESideStory__H) \
+    op(ESideStory__I) \
+    op(ESideStory__J) \
+    op(ESideStory__K) \
+    op(ESideStory__L) \
+    op(ESideStory__M) \
+    op(ESideStory__N_DontUse) \
+    op(ESideStory__O_DontUse) \
+    op(ESideStory__P) \
+    op(ESideStory__Q_DontUse) \
+    op(ESideStory__R_DontUse) \
+    op(ESideStory__S_DontUse) \
+    op(ESideStory__T) \
+    op(ESideStory__U) \
+    op(ESideStory__V_DontUse) \
+    op(ESideStory__W) \
+    op(ESideStory__X_DontUse) \
+    op(ESideStory__Y) \
+    op(ESideStory__Z) 
+enum EHideRule
+{
+    EHideRule_Never         =0,
+    EHideRule_AfterCh0      =1,
+    EHideRule_AfterCh1      =2,
+    EHideRule_AfterCh2      =3,
+    EHideRule_AfterCh3      =4,
+    EHideRule_AfterCh4      =5,
+    EHideRule_AfterCh5      =6,
+    EHideRule_AfterCh6      =7,
+    EHideRule_AfterCh7      =8,
+    EHideRule_AfterCh8      =9,
+    EHideRule_AfterCh9      =10,
+    EHideRule_BeforeCh1     =11,
+    EHideRule_BeforeCh2     =12,
+    EHideRule_BeforeCh3     =13,
+    EHideRule_BeforeCh4     =14,
+    EHideRule_BeforeCh5     =15,
+    EHideRule_BeforeCh6     =16,
+    EHideRule_BeforeCh7     =17,
+    EHideRule_BeforeCh8     =18,
+    EHideRule_BeforeCh9     =19,
+    EHideRule_BeforeCh10    =20,
+    EHideRule_InFearGas     =21,
+    EHideRule_MAX           =22,
+};
+#define FOREACH_ENUM_EHIDERULE(op) \
+    op(EHideRule_Never) \
+    op(EHideRule_AfterCh0) \
+    op(EHideRule_AfterCh1) \
+    op(EHideRule_AfterCh2) \
+    op(EHideRule_AfterCh3) \
+    op(EHideRule_AfterCh4) \
+    op(EHideRule_AfterCh5) \
+    op(EHideRule_AfterCh6) \
+    op(EHideRule_AfterCh7) \
+    op(EHideRule_AfterCh8) \
+    op(EHideRule_AfterCh9) \
+    op(EHideRule_BeforeCh1) \
+    op(EHideRule_BeforeCh2) \
+    op(EHideRule_BeforeCh3) \
+    op(EHideRule_BeforeCh4) \
+    op(EHideRule_BeforeCh5) \
+    op(EHideRule_BeforeCh6) \
+    op(EHideRule_BeforeCh7) \
+    op(EHideRule_BeforeCh8) \
+    op(EHideRule_BeforeCh9) \
+    op(EHideRule_BeforeCh10) \
+    op(EHideRule_InFearGas) 
 enum EDoubleClickDir
 {
     DCLICK_None             =0,
@@ -117,10 +277,12 @@ enum EPhysics
     PHYS_SoftBody           =11,
     PHYS_NavMeshWalking     =12,
     PHYS_Floating           =13,
-    PHYS_Ceiling            =14,
-    PHYS_Unused             =15,
-    PHYS_Custom             =16,
-    PHYS_MAX                =17,
+    PHYS_Driving            =14,
+    PHYS_Shimmying          =15,
+    PHYS_Ceiling            =16,
+    PHYS_Unused             =17,
+    PHYS_Custom             =18,
+    PHYS_MAX                =19,
 };
 #define FOREACH_ENUM_EPHYSICS(op) \
     op(PHYS_None) \
@@ -137,6 +299,8 @@ enum EPhysics
     op(PHYS_SoftBody) \
     op(PHYS_NavMeshWalking) \
     op(PHYS_Floating) \
+    op(PHYS_Driving) \
+    op(PHYS_Shimmying) \
     op(PHYS_Ceiling) \
     op(PHYS_Unused) \
     op(PHYS_Custom) 
@@ -1686,6 +1850,7 @@ struct FTimerData
 {
     BITFIELD bLoop:1;
     BITFIELD bPaused:1;
+    BITFIELD bIgnoreGameTimeDilation:1;
     FName FuncName;
     FLOAT Rate;
     FLOAT Count;
@@ -1809,6 +1974,22 @@ struct FAnimSlotDesc
     }
 };
 
+struct FPendingTouch
+{
+    class AActor* TouchingActor;
+    class UPrimitiveComponent* HitComponent;
+    FVector HitLocation;
+    FVector HitNormal;
+    class UPrimitiveComponent* SourceComponent;
+
+    /** Constructors */
+    FPendingTouch() {}
+    FPendingTouch(EEventParm)
+    {
+        appMemzero(this, sizeof(FPendingTouch));
+    }
+};
+
 struct FPhysContactModificationData
 {
     INT ChangeFlags;
@@ -1838,7 +2019,6 @@ struct FInvestigationData
 {
     FStringNoInit InvestigationInfoTitle;
     FStringNoInit InvestigationInfo;
-    class UObject* BatmanThought;
     FName GlobalFlagCheck;
     BITFIELD bInvertFlag:1;
     BITFIELD bWarningFlag:1;
@@ -2637,40 +2817,44 @@ public:
     //## BEGIN PROPS Actor
     TArrayNoInit<class UActorComponent*> Components;
     TArrayNoInit<class UActorComponent*> AllComponents;
+    class UObject* DefaultAkAudible;
+    class AActor* Owner;
+    class AActor* Base;
+    class APawn* Instigator;
+    class AWorldInfo* WorldInfo;
+    class UAnimNodeSequence* LatentSeqNode;
+    class APhysicsVolume* PhysicsVolume;
+    class UPrimitiveComponent* CollisionComponent;
+    class USkeletalMeshComponent* BaseSkelComponent;
     FVector Location;
     FRotator Rotation;
     FLOAT DrawScale;
     FVector DrawScale3D;
     FVector PrePivot;
     FColor EditorIconColor;
-    FRenderCommandFence DetachFence;
-    BYTE Physics;
-    BYTE RemoteRole;
-    BYTE Role;
-    BYTE CollisionType;
-    BYTE ReplicatedCollisionType;
-    BYTE TickGroup;
-    BYTE FramesTillInvestigateSightCheck;
-    class AActor* Owner;
-    class AActor* Base;
-    TArrayNoInit<struct FTimerData> Timers;
+    FLOAT EditorIconDrawScale;
+    BITFIELD HighResTextureStreaming:1;
+    BITFIELD BoostDynamicTextureStreaming:1;
+    BITFIELD bHidingIsTemporary:1;
+    BITFIELD bIsTemporarilyHidden:1;
 private:
     BITFIELD bStatic:1;
 public:
     BITFIELD bHidden:1;
+    BITFIELD bHiddenInitial:1;
     BITFIELD bNoDelete:1;
     BITFIELD bDeleteMe:1;
-    BITFIELD bTicked:1;
     BITFIELD bOnlyOwnerSee:1;
 private:
     BITFIELD bTickIsDisabled:1;
 public:
     BITFIELD bStasis:1;
+    BITFIELD bWaitForTickBeforeStasis:1;
+    BITFIELD bEnableChunkyTick:1;
     BITFIELD bWorldGeometry:1;
     BITFIELD bIgnoreRigidBodyPawns:1;
     BITFIELD bOrientOnSlope:1;
     BITFIELD bIgnoreEncroachers:1;
-    BITFIELD bPushedByEncroachers:1;
     BITFIELD bDestroyedByInterpActor:1;
     BITFIELD bRouteBeginPlayEvenIfStatic:1;
     BITFIELD bIsMoving:1;
@@ -2701,13 +2885,22 @@ public:
     BITFIELD bPostRenderIfNotVisible:1;
     BITFIELD bAllowActorThoughts:1;
     BITFIELD bAllowTwoWayEncroach:1;
+    BITFIELD bAllowDisableRigidBody:1;
+    BITFIELD bEnableOptionalRBCollision:1;
+    BITFIELD bForceSetAnimPositionInMatinee:1;
+    BITFIELD bIsRoad:1;
+    BITFIELD bIsTunnel:1;
+    BITFIELD bIsTrainTracks:1;
+    BITFIELD bIsVehicleJumpRamp:1;
+    BITFIELD bNoBatmobileImpactSparks:1;
     BITFIELD bForceNetUpdate:1;
+    BITFIELD bLightsUpdateLastRenderTime:1;
     BITFIELD bManualPerformPhysics:1;
     BITFIELD bHardAttach:1;
     BITFIELD bSnapAttach:1;
     BITFIELD bIgnoreBaseRotation:1;
     BITFIELD bBasedActorsNoMove:1;
-    BITFIELD bShadowParented:1;
+    BITFIELD bSkipAttachedMoves:1;
     BITFIELD bCanBeAdheredTo:1;
     BITFIELD bCanBeFrictionedTo:1;
     BITFIELD bHurtEntry:1;
@@ -2720,36 +2913,43 @@ public:
     BITFIELD bCanTeleport:1;
     BITFIELD bAlwaysTick:1;
     BITFIELD bBlocksNavigation:1;
+    BITFIELD bInvalidateParentLODOnRemove:1;
     BITFIELD BlockRigidBody:1;
     BITFIELD bCollideWhenPlacing:1;
     BITFIELD bCollideActors:1;
+    BITFIELD bCollideActorsInitial:1;
     BITFIELD bCollideWorld:1;
     BITFIELD bCollideComplex:1;
     BITFIELD bBlockActors:1;
     BITFIELD bProjTarget:1;
     BITFIELD bBlocksTeleport:1;
-    BITFIELD bForceZeroExtentCollision:1;
     BITFIELD bPlayerMovementCheck:1;
-    BITFIELD bMoveIgnoresDestruction:1;
+    BITFIELD bMoveCollidesWithDynamicApexChunks:1;
+    BITFIELD bProjectileMoveSingleBlocking:1;
     BITFIELD bForceNoVolumeTrace:1;
     BITFIELD bNoEncroachCheck:1;
     BITFIELD bCollideAsEncroacher:1;
     BITFIELD bPhysRigidBodyOutOfWorldCheck:1;
     BITFIELD bComponentOutsideWorld:1;
     BITFIELD bForceOctreeSNFilter:1;
+    BITFIELD bForceOctreeMNFilter:1;
     BITFIELD bRigidBodyWasAwake:1;
     BITFIELD bCallRigidBodyWakeEvents:1;
+    BITFIELD bIgnoreHurtRadiusLosCheck:1;
     BITFIELD bBounce:1;
     BITFIELD bJustTeleported:1;
+    BITFIELD bEnableMobileTouch:1;
     BITFIELD bNetInitial:1;
     BITFIELD bNetOwner:1;
     BITFIELD bOwnerAlwaysReplicated:1;
     BITFIELD bHiddenEd:1;
     BITFIELD bEditable:1;
     BITFIELD bHiddenEdGroup:1;
+    BITFIELD bHiddenEdLayer:1;
     BITFIELD bHiddenEdCustom:1;
     BITFIELD bHiddenEdTemporary:1;
     BITFIELD bHiddenEdLevel:1;
+    BITFIELD bHiddenEdScene:1;
     BITFIELD bEdShouldSnap:1;
     BITFIELD bTempEditor:1;
     BITFIELD bPathColliding:1;
@@ -2759,52 +2959,79 @@ public:
     BITFIELD bLockLocation:1;
     BITFIELD bForceAllowKismetModification:1;
     BITFIELD bStripThisActorWhenCooking:1;
+    BITFIELD bEdCanScale:1;
+    BITFIELD bEdCanNonUniformScale:1;
+    BITFIELD bEdCanNegativeScale:1;
     BITFIELD bDonePostBeginPlay:1;
     BITFIELD bBatmanCanClimb:1;
     BITFIELD bAllowSlopedEdges:1;
     BITFIELD bAllowCrevice:1;
-    BITFIELD bGrappleToSlopedRoof:1;
+    BITFIELD bAutoGrapplePoints:1;
+    BITFIELD bAutoGrapplePointsAreLowPriority:1;
+    BITFIELD bAutoGrapplePointsAllowSwinging:1;
     BITFIELD CanAlwaysLinkEdges:1;
     BITFIELD bDisallowShimmy:1;
+    BITFIELD bAllowNarrowAutoGrappleForConcaveEdge:1;
     BITFIELD bValidLineLauncherTarget:1;
     BITFIELD bValidGelTarget:1;
+    BITFIELD bPlayerAlwaysSlidesOff:1;
     BITFIELD bCurrentInvestigateHightlighted:1;
     BITFIELD CachedInvestigateSightCheck:1;
+    BITFIELD bIgnoreLOSCheck:1;
     BITFIELD bDebugEffectIsRelevant:1;
-    BITFIELD bLoadIfPhysXLevel0:1;
-    BITFIELD bLoadIfPhysXLevel1:1;
-    BITFIELD bLoadIfPhysXLevel2:1;
+    BITFIELD bUpdateComponentsInPriorityOrder:1;
+    BITFIELD bHasAPEXCloth:1;
+    FLOAT HighResTextureStreamingOverrideTimestamp;
+    BYTE HideOnChapterCondition;
+    BYTE HideOnSideStory;
+    BYTE HideOnSideStoryCondition;
+    BYTE Physics;
+    BYTE HideOnSideStoryInitialPhysics;
+    BYTE RemoteRole;
+    BYTE Role;
+    BYTE CollisionFilter;
+    BYTE CollisionType;
+    BYTE ReplicatedCollisionType;
+    BYTE TickGroup;
+    SCRIPT_ALIGN;
+    FRenderCommandFence DetachFence;
+    TArrayNoInit<struct FTimerData> Timers;
+    INT EditorTrackingVal;
+    QWORD TickedFrame;
+    INT ChunkyTick_DeferredNumFrames;
+    FLOAT ChunkyTick_DeferredDeltaSeconds;
     FStringNoInit LastEdit;
-    class APawn* Instigator;
-    class AWorldInfo* WorldInfo;
     FLOAT LifeSpan;
     struct FBlockingVolumeTypesContainer CanTraceActorBlockedTypes;
     FLOAT LastRenderTime;
     FName Tag;
+    FName Layer;
     FName Group;
     QWORD HiddenEditorViews;
     TArrayNoInit<class AActor*> Touching;
     TArrayNoInit<class AActor*> Children;
     FLOAT LatentFloat;
-    class UAnimNodeSequence* LatentSeqNode;
-    class APhysicsVolume* PhysicsVolume;
+    TArrayNoInit<struct FPendingTouch> PendingTouches;
     FVector Velocity;
     FVector Acceleration;
     FVector AngularVelocity;
-    class USkeletalMeshComponent* BaseSkelComponent;
     FName BaseBoneName;
     TArrayNoInit<class AActor*> Attached;
     FVector RelativeLocation;
     FRotator RelativeRotation;
-    class UPrimitiveComponent* CollisionComponent;
     INT OverlapTag;
     FRotator RotationRate;
     TArrayNoInit<class UClass*> SupportedEvents;
     TArrayNoInit<class USequenceEvent*> GeneratedEvents;
+    TArrayNoInit<class USequenceEvent*> DuplicatedEvents;
     TArrayNoInit<class USeqAct_Latent*> LatentActions;
     FLOAT InvestigationMaxDistance;
     TArrayNoInit<struct FInvestigationData> InvestigationDataArray;
     FLOAT InvestigationPriorityOverride;
+    FLOAT CachedInvestigateTimestamp;
+    FLOAT CachedInvestigateUrgency;
+    FVector InvestigateOffset;
+    TArrayNoInit<FPointer> PendingASyncLoads;
     //## END PROPS Actor
 
     virtual void ForceUpdateComponents(UBOOL bCollisionUpdate=FALSE,UBOOL bTransformOnly=TRUE);
@@ -4921,11 +5148,14 @@ class AVolume : public ABrush
 {
 public:
     //## BEGIN PROPS Volume
+    class AActor* AssociatedActor;
+    class UPhysicalMaterial* PhysicalMaterialOverrideForCollisionComponent;
     BITFIELD bForcePawnWalk:1;
     BITFIELD bProcessAllActors:1;
     BITFIELD bOnlyCollideWithPlayer:1;
     BITFIELD bNoWallPlant:1;
-    class UPhysicalMaterial* PhysicalMaterialOverrideForCollisionComponent;
+    BITFIELD bPawnsOnly:1;
+    INT PinGcRefCount;
     //## END PROPS Volume
 
     DECLARE_FUNCTION(execEncompasses);
@@ -6187,17 +6417,24 @@ class ADynamicSMActor : public AActor
 public:
     //## BEGIN PROPS DynamicSMActor
     class UStaticMeshComponent* StaticMeshComponent;
-    class UDynamicLightEnvironmentComponent* LightEnvironment;
     class UStaticMesh* ReplicatedMesh;
-    class UMaterialInterface* ReplicatedMaterial;
+    class UMaterialInterface* ReplicatedMaterial0;
+    class UMaterialInterface* ReplicatedMaterial1;
     BITFIELD bForceStaticDecals:1;
     BITFIELD bPawnCanBaseOn:1;
     BITFIELD bSafeBaseIfAsleep:1;
     BITFIELD bGoIntoStasisWhenHidden:1;
+    BITFIELD bVehicleJumpAutoAlignX:1;
+    BITFIELD bVehicleJumpAutoAlignY:1;
+    BITFIELD bVehicleJumpAutoAlignNegX:1;
+    BITFIELD bVehicleJumpAutoAlignNegY:1;
+    BITFIELD bDisableRigidBodyPhysicsWhenPawnBasedOn:1;
     SCRIPT_ALIGN;
     FVector ReplicatedMeshTranslation;
     FRotator ReplicatedMeshRotation;
     FVector ReplicatedMeshScale3D;
+    BYTE JumpOffPawnDirectionMask;
+    FLOAT MinImpactVelocityForImpactEffect;
     //## END PROPS DynamicSMActor
 
     DECLARE_ABSTRACT_CLASS(ADynamicSMActor,AActor,0,Engine)
@@ -7121,6 +7358,7 @@ public:
     INT Distance;
     FVector Direction;
     class ANavigationPoint* Start;
+    class AActor* BlockedBy;
     struct FActorReference End;
     INT CollisionRadius;
     INT CollisionHeight;
@@ -7134,8 +7372,7 @@ public:
     BITFIELD bCheckForObstructions:1;
     BITFIELD bSkipPrune:1;
     BITFIELD bDisabled:1;
-    TArrayNoInit<class UClass*> PruneSpecList;
-    class AActor* BlockedBy;
+    SCRIPT_ALIGN;
     //## END PROPS ReachSpec
 
     DECLARE_FUNCTION(execCostFor);
@@ -7355,7 +7592,6 @@ public:
     BITFIELD bPreferredVehiclePath:1;
     BITFIELD bHasCrossLevelPaths:1;
     BITFIELD bSkipPathBuilding:1;
-    BITFIELD bShouldSaveForCheckpoint:1;
     SCRIPT_ALIGN;
     struct FNavigationOctreeObject NavOctreeObject;
     TArrayNoInit<class UReachSpec*> PathList;
@@ -7368,20 +7604,20 @@ public:
     class ANavigationPoint* nextOrdered;
     class ANavigationPoint* prevOrdered;
     class ANavigationPoint* previousPath;
+    class ADroppedPickup* InventoryCache;
+    class APawn* AnchoredPawn;
+    class USpriteComponent* BadSprite;
+    class USpriteComponent* GoodSprite;
+    class UCylinderComponent* CylinderComponent;
     INT Cost;
     INT ExtraCost;
     INT TransientCost;
     TArrayNoInit<struct FDebugNavCost> CostArray;
-    class ADroppedPickup* InventoryCache;
     FLOAT InventoryDist;
     FLOAT LastDetourWeight;
-    class UCylinderComponent* CylinderComponent;
     FCylinder MaxPathSize;
     FGuid NavGuid;
-    class USpriteComponent* GoodSprite;
-    class USpriteComponent* BadSprite;
     INT NetworkID;
-    class APawn* AnchoredPawn;
     FLOAT LastAnchoredPawnTime;
     //## END PROPS NavigationPoint
 
@@ -11998,7 +12234,10 @@ public:
     //## BEGIN PROPS PlayerStart
     BITFIELD bEnabled:1;
     BITFIELD bPrimaryStart:1;
+    BITFIELD bBestStart:1;
     INT TeamIndex;
+    INT Score;
+    INT SelectionIndex;
     //## END PROPS PlayerStart
 
     DECLARE_CLASS(APlayerStart,ANavigationPoint,0,Engine)
@@ -12193,6 +12432,138 @@ public:
     NO_DEFAULT_CONSTRUCTOR(ARigidBodyBase)
 };
 
+struct FRailingBlockerPair
+{
+    INT CollectionIndex;
+    INT RailingIndex;
+    TArrayNoInit<class ARStaticClimbableActor*> OtherActors;
+
+    /** Constructors */
+    FRailingBlockerPair() {}
+    FRailingBlockerPair(EEventParm)
+    {
+        appMemzero(this, sizeof(FRailingBlockerPair));
+    }
+};
+
+class ARStaticClimbableActor : public AActor
+{
+public:
+    //## BEGIN PROPS RStaticClimbableActor
+    BITFIELD bRailing:1;
+    BITFIELD bSpikeyRailing:1;
+    BITFIELD bUseBoundingBoxForClimbing:1;
+    BITFIELD bClimbableSlopedRailing:1;
+    BITFIELD bNeverUseBracedShimmy:1;
+    BITFIELD bAllowWideRailings:1;
+    BITFIELD bDontBlockShimmyEdges:1;
+    BITFIELD bNoRailingTops:1;
+    BITFIELD bCanBeRailingBlocker:1;
+    TArrayNoInit<struct FRailingBlockerPair> RailingBlockers;
+    //## END PROPS RStaticClimbableActor
+
+    DECLARE_ABSTRACT_CLASS(ARStaticClimbableActor,AActor,0,Engine)
+    NO_DEFAULT_CONSTRUCTOR(ARStaticClimbableActor)
+};
+
+class AStaticMeshActorBase : public ARStaticClimbableActor
+{
+public:
+    //## BEGIN PROPS StaticMeshActorBase
+    BITFIELD bDontAdjustCameraForSlope:1;
+    BITFIELD bIsVehicleBigJump:1;
+    BITFIELD bVehicleJumpAutoAlignX:1;
+    BITFIELD bVehicleJumpAutoAlignY:1;
+    BITFIELD bVehicleJumpAutoAlignNegX:1;
+    BITFIELD bVehicleJumpAutoAlignNegY:1;
+    BITFIELD bHideIfFlexEnabled:1;
+    BITFIELD bWithinPxSublevel:1;
+    SCRIPT_ALIGN;
+    //## END PROPS StaticMeshActorBase
+
+    DECLARE_ABSTRACT_CLASS(AStaticMeshActorBase,ARStaticClimbableActor,0,Engine)
+	/**
+	 * Initializes this actor when play begins.  This version marks the actor as ready to execute script, but skips
+	 * the rest of the stuff that actors normally do in PostBeginPlay().
+	 */
+	virtual void PostBeginPlay();
+};
+
+class AStaticMeshActor : public AStaticMeshActorBase
+{
+public:
+    //## BEGIN PROPS StaticMeshActor
+    class UStaticMeshComponent* StaticMeshComponent;
+    BITFIELD bDisableAutoBaseOnProcBuilding:1;
+    BITFIELD bProxy:1;
+    BITFIELD bHiddenByProxy:1;
+    BITFIELD OldCastShadow:1;
+    BITFIELD OldAcceptsLights:1;
+    SCRIPT_ALIGN;
+    BYTE OldCollisionType;
+    SCRIPT_ALIGN;
+    //## END PROPS StaticMeshActor
+
+    DECLARE_CLASS(AStaticMeshActor,AStaticMeshActorBase,0,Engine)
+	/**
+	 * Function that gets called from within Map_Check to allow this actor to check itself
+	 * for any potential errors and register them with map check dialog.
+	 */
+#if WITH_EDITOR
+	virtual void CheckForErrors();
+	
+	/** tells this Actor to set its collision for the path building state
+	 * for normally colliding Actors that AI should path through (e.g. doors) or vice versa
+	 * @param bNowPathBuilding - whether we are now building paths
+	 */
+	virtual void SetCollisionForPathBuilding(UBOOL bNowPathBuilding);
+#endif
+
+	/** Used to parent this StaticMeshComponent to a base building's low LOD. */
+	virtual void SetBase(AActor *NewBase, FVector NewFloor = FVector(0,0,1), INT bNotifyActor=1, USkeletalMeshComponent* SkelComp=NULL, FName BoneName=NAME_None );
+
+	virtual void PostEditMove( UBOOL bFinished );
+
+protected:
+	/** 
+	* This function actually does the work for the GetDetailInfo and is virtual.  
+	* It should only be called from GetDetailedInfo as GetDetailedInfo is safe to call on NULL object pointers
+	**/
+	virtual FString GetDetailedInfoInternal() const;
+};
+
+class AStaticMeshCollectionActor : public AStaticMeshActorBase
+{
+public:
+    //## BEGIN PROPS StaticMeshCollectionActor
+    TArrayNoInit<class UStaticMeshComponent*> StaticMeshComponents;
+    INT MaxStaticMeshComponents;
+    FPointer SMCPoolHandle;
+    //## END PROPS StaticMeshCollectionActor
+
+    DECLARE_CLASS(AStaticMeshCollectionActor,AStaticMeshActorBase,0|CLASS_Config,Engine)
+    static const TCHAR* StaticConfigName() {return TEXT("Engine");}
+
+	/* === AActor interface === */
+	/**
+	 * Updates the CachedLocalToWorld transform for all attached components.
+	 */
+	virtual void UpdateComponentsInternal( UBOOL bCollisionUpdate=FALSE );
+
+
+	/* === UObject interface === */
+	/**
+	 * Serializes the LocalToWorld transforms for the StaticMeshComponents contained in this actor.
+	 */
+	virtual void Serialize( FArchive& Ar );
+
+	/** 
+	  * Used by Octree ActorRadius check to determine whether to return a component even if the actor owning the component has already been returned.
+	  * Make sure all static mesh components which can become dynamic are returned
+	  */
+	virtual UBOOL ForceReturnComponent(UPrimitiveComponent* TestPrimitive);
+};
+
 class ASceneCaptureActor : public AActor
 {
 public:
@@ -12383,96 +12754,6 @@ public:
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent);
 	virtual void TickSpecial(FLOAT DeltaTime);
 	UBOOL CanTeleport(AActor* A);
-};
-
-class AStaticMeshActorBase : public AActor
-{
-public:
-    //## BEGIN PROPS StaticMeshActorBase
-    BITFIELD bRailing:1;
-    BITFIELD bSpikeyRailing:1;
-    BITFIELD bUseBoundingBoxForClimbing:1;
-    BITFIELD bClimbableSlopedRailing:1;
-    BITFIELD bDontAdjustCameraForSlope:1;
-    BITFIELD bNeverUseBracedShimmy:1;
-    BITFIELD bAllowWideRailings:1;
-    SCRIPT_ALIGN;
-    //## END PROPS StaticMeshActorBase
-
-    DECLARE_ABSTRACT_CLASS(AStaticMeshActorBase,AActor,0,Engine)
-	/**
-	 * Initializes this actor when play begins.  This version marks the actor as ready to execute script, but skips
-	 * the rest of the stuff that actors normally do in PostBeginPlay().
-	 */
-	virtual void PostBeginPlay();
-};
-
-class AStaticMeshActor : public AStaticMeshActorBase
-{
-public:
-    //## BEGIN PROPS StaticMeshActor
-    class UStaticMeshComponent* StaticMeshComponent;
-    BITFIELD bDisableAutoBaseOnProcBuilding:1;
-    SCRIPT_ALIGN;
-    //## END PROPS StaticMeshActor
-
-    DECLARE_CLASS(AStaticMeshActor,AStaticMeshActorBase,0,Engine)
-	/**
-	 * Function that gets called from within Map_Check to allow this actor to check itself
-	 * for any potential errors and register them with map check dialog.
-	 */
-#if WITH_EDITOR
-	virtual void CheckForErrors();
-	
-	/** tells this Actor to set its collision for the path building state
-	 * for normally colliding Actors that AI should path through (e.g. doors) or vice versa
-	 * @param bNowPathBuilding - whether we are now building paths
-	 */
-	virtual void SetCollisionForPathBuilding(UBOOL bNowPathBuilding);
-#endif
-
-	/** Used to parent this StaticMeshComponent to a base building's low LOD. */
-	virtual void SetBase(AActor *NewBase, FVector NewFloor = FVector(0,0,1), INT bNotifyActor=1, USkeletalMeshComponent* SkelComp=NULL, FName BoneName=NAME_None );
-
-	virtual void PostEditMove( UBOOL bFinished );
-
-protected:
-	/** 
-	* This function actually does the work for the GetDetailInfo and is virtual.  
-	* It should only be called from GetDetailedInfo as GetDetailedInfo is safe to call on NULL object pointers
-	**/
-	virtual FString GetDetailedInfoInternal() const;
-};
-
-class AStaticMeshCollectionActor : public AStaticMeshActorBase
-{
-public:
-    //## BEGIN PROPS StaticMeshCollectionActor
-    TArrayNoInit<class UStaticMeshComponent*> StaticMeshComponents;
-    INT MaxStaticMeshComponents;
-    //## END PROPS StaticMeshCollectionActor
-
-    DECLARE_CLASS(AStaticMeshCollectionActor,AStaticMeshActorBase,0|CLASS_Config,Engine)
-    static const TCHAR* StaticConfigName() {return TEXT("Engine");}
-
-	/* === AActor interface === */
-	/**
-	 * Updates the CachedLocalToWorld transform for all attached components.
-	 */
-	virtual void UpdateComponentsInternal( UBOOL bCollisionUpdate=FALSE );
-
-
-	/* === UObject interface === */
-	/**
-	 * Serializes the LocalToWorld transforms for the StaticMeshComponents contained in this actor.
-	 */
-	virtual void Serialize( FArchive& Ar );
-
-	/** 
-	  * Used by Octree ActorRadius check to determine whether to return a component even if the actor owning the component has already been returned.
-	  * Make sure all static mesh components which can become dynamic are returned
-	  */
-	virtual UBOOL ForceReturnComponent(UPrimitiveComponent* TestPrimitive);
 };
 
 struct FSMMaterialSetterDatum
@@ -14753,6 +15034,8 @@ class UAkHash : public UObject
 public:
     //## BEGIN PROPS AkHash
     INT HashValue;
+    BITFIELD bAutoGenerated:1;
+    SCRIPT_ALIGN;
     //## END PROPS AkHash
 
     INT GetHashValue();
@@ -22466,6 +22749,10 @@ AUTOGENERATE_FUNCTION(UUIManager,-1,execGetUIManager);
 	AProjectile::StaticClass(); \
 	GNativeLookupFuncs.Set(FName("Projectile"), GEngineAProjectileNatives); \
 	ARigidBodyBase::StaticClass(); \
+	ARStaticClimbableActor::StaticClass(); \
+	AStaticMeshActorBase::StaticClass(); \
+	AStaticMeshActor::StaticClass(); \
+	AStaticMeshCollectionActor::StaticClass(); \
 	ASceneCaptureActor::StaticClass(); \
 	ASceneCapture2DActor::StaticClass(); \
 	ASceneCaptureCubeMapActor::StaticClass(); \
@@ -22473,9 +22760,6 @@ AUTOGENERATE_FUNCTION(UUIManager,-1,execGetUIManager);
 	ASceneCapturePortalActor::StaticClass(); \
 	APortalTeleporter::StaticClass(); \
 	GNativeLookupFuncs.Set(FName("PortalTeleporter"), GEngineAPortalTeleporterNatives); \
-	AStaticMeshActorBase::StaticClass(); \
-	AStaticMeshActor::StaticClass(); \
-	AStaticMeshCollectionActor::StaticClass(); \
 	AStaticMeshActorBasedOnExtremeContent::StaticClass(); \
 	ATrigger::StaticClass(); \
 	UActorComponent::StaticClass(); \
@@ -23737,7 +24021,7 @@ FNativeFunctionLookup GEngineUUIManagerNatives[] =
 
 #ifdef VERIFY_CLASS_SIZES
 VERIFY_CLASS_OFFSET_NODIE(AActor,Actor,Components)
-VERIFY_CLASS_OFFSET_NODIE(AActor,Actor,InvestigationPriorityOverride)
+VERIFY_CLASS_OFFSET_NODIE(AActor,Actor,PendingASyncLoads)
 VERIFY_CLASS_SIZE_NODIE(AActor)
 VERIFY_CLASS_OFFSET_NODIE(AAkSoundActor,AkSoundActor,ActorAudioComponent)
 VERIFY_CLASS_SIZE_NODIE(AAkSoundActor)
@@ -23745,7 +24029,8 @@ VERIFY_CLASS_OFFSET_NODIE(ABrush,Brush,CsgOper)
 VERIFY_CLASS_OFFSET_NODIE(ABrush,Brush,SavedSelections)
 VERIFY_CLASS_SIZE_NODIE(ABrush)
 VERIFY_CLASS_SIZE_NODIE(ABrushShape)
-VERIFY_CLASS_OFFSET_NODIE(AVolume,Volume,PhysicalMaterialOverrideForCollisionComponent)
+VERIFY_CLASS_OFFSET_NODIE(AVolume,Volume,AssociatedActor)
+VERIFY_CLASS_OFFSET_NODIE(AVolume,Volume,PinGcRefCount)
 VERIFY_CLASS_SIZE_NODIE(AVolume)
 VERIFY_CLASS_OFFSET_NODIE(ABlockingVolume,BlockingVolume,DebugRenderingColor)
 VERIFY_CLASS_SIZE_NODIE(ABlockingVolume)
@@ -23788,7 +24073,7 @@ VERIFY_CLASS_OFFSET_NODIE(ADroppedPickup,DroppedPickup,Inventory)
 VERIFY_CLASS_OFFSET_NODIE(ADroppedPickup,DroppedPickup,PickupCache)
 VERIFY_CLASS_SIZE_NODIE(ADroppedPickup)
 VERIFY_CLASS_OFFSET_NODIE(ADynamicSMActor,DynamicSMActor,StaticMeshComponent)
-VERIFY_CLASS_OFFSET_NODIE(ADynamicSMActor,DynamicSMActor,ReplicatedMeshScale3D)
+VERIFY_CLASS_OFFSET_NODIE(ADynamicSMActor,DynamicSMActor,MinImpactVelocityForImpactEffect)
 VERIFY_CLASS_SIZE_NODIE(ADynamicSMActor)
 VERIFY_CLASS_OFFSET_NODIE(AInterpActor,InterpActor,MyMarker)
 VERIFY_CLASS_OFFSET_NODIE(AInterpActor,InterpActor,AmbientSoundComponent)
@@ -23875,6 +24160,7 @@ VERIFY_CLASS_OFFSET_NODIE(APickupFactory,PickupFactory,InventoryType)
 VERIFY_CLASS_OFFSET_NODIE(APickupFactory,PickupFactory,OriginalFactory)
 VERIFY_CLASS_SIZE_NODIE(APickupFactory)
 VERIFY_CLASS_OFFSET_NODIE(APlayerStart,PlayerStart,TeamIndex)
+VERIFY_CLASS_OFFSET_NODIE(APlayerStart,PlayerStart,SelectionIndex)
 VERIFY_CLASS_SIZE_NODIE(APlayerStart)
 VERIFY_CLASS_OFFSET_NODIE(APortalMarker,PortalMarker,MyPortal)
 VERIFY_CLASS_SIZE_NODIE(APortalMarker)
@@ -23892,6 +24178,15 @@ VERIFY_CLASS_OFFSET_NODIE(AProjectile,Projectile,Speed)
 VERIFY_CLASS_OFFSET_NODIE(AProjectile,Projectile,CylinderComponent)
 VERIFY_CLASS_SIZE_NODIE(AProjectile)
 VERIFY_CLASS_SIZE_NODIE(ARigidBodyBase)
+VERIFY_CLASS_OFFSET_NODIE(ARStaticClimbableActor,RStaticClimbableActor,RailingBlockers)
+VERIFY_CLASS_SIZE_NODIE(ARStaticClimbableActor)
+VERIFY_CLASS_SIZE_NODIE(AStaticMeshActorBase)
+VERIFY_CLASS_OFFSET_NODIE(AStaticMeshActor,StaticMeshActor,StaticMeshComponent)
+VERIFY_CLASS_OFFSET_NODIE(AStaticMeshActor,StaticMeshActor,OldCollisionType)
+VERIFY_CLASS_SIZE_NODIE(AStaticMeshActor)
+VERIFY_CLASS_OFFSET_NODIE(AStaticMeshCollectionActor,StaticMeshCollectionActor,StaticMeshComponents)
+VERIFY_CLASS_OFFSET_NODIE(AStaticMeshCollectionActor,StaticMeshCollectionActor,SMCPoolHandle)
+VERIFY_CLASS_SIZE_NODIE(AStaticMeshCollectionActor)
 VERIFY_CLASS_OFFSET_NODIE(ASceneCaptureActor,SceneCaptureActor,SceneCapture)
 VERIFY_CLASS_SIZE_NODIE(ASceneCaptureActor)
 VERIFY_CLASS_OFFSET_NODIE(ASceneCapture2DActor,SceneCapture2DActor,DrawFrustum)
@@ -23906,12 +24201,6 @@ VERIFY_CLASS_SIZE_NODIE(ASceneCapturePortalActor)
 VERIFY_CLASS_OFFSET_NODIE(APortalTeleporter,PortalTeleporter,SisterPortal)
 VERIFY_CLASS_OFFSET_NODIE(APortalTeleporter,PortalTeleporter,MyMarker)
 VERIFY_CLASS_SIZE_NODIE(APortalTeleporter)
-VERIFY_CLASS_SIZE_NODIE(AStaticMeshActorBase)
-VERIFY_CLASS_OFFSET_NODIE(AStaticMeshActor,StaticMeshActor,StaticMeshComponent)
-VERIFY_CLASS_SIZE_NODIE(AStaticMeshActor)
-VERIFY_CLASS_OFFSET_NODIE(AStaticMeshCollectionActor,StaticMeshCollectionActor,StaticMeshComponents)
-VERIFY_CLASS_OFFSET_NODIE(AStaticMeshCollectionActor,StaticMeshCollectionActor,MaxStaticMeshComponents)
-VERIFY_CLASS_SIZE_NODIE(AStaticMeshCollectionActor)
 VERIFY_CLASS_OFFSET_NODIE(AStaticMeshActorBasedOnExtremeContent,StaticMeshActorBasedOnExtremeContent,StaticMeshComponent)
 VERIFY_CLASS_OFFSET_NODIE(AStaticMeshActorBasedOnExtremeContent,StaticMeshActorBasedOnExtremeContent,NonExtremeContent)
 VERIFY_CLASS_SIZE_NODIE(AStaticMeshActorBasedOnExtremeContent)
@@ -24437,7 +24726,7 @@ VERIFY_CLASS_OFFSET_NODIE(URDialogueEvent,RDialogueEvent,WwiseDialogueEvent)
 VERIFY_CLASS_OFFSET_NODIE(URDialogueEvent,RDialogueEvent,ConversationID)
 VERIFY_CLASS_SIZE_NODIE(URDialogueEvent)
 VERIFY_CLASS_OFFSET_NODIE(UReachSpec,ReachSpec,NavOctreeObject)
-VERIFY_CLASS_OFFSET_NODIE(UReachSpec,ReachSpec,BlockedBy)
+VERIFY_CLASS_OFFSET_NODIE(UReachSpec,ReachSpec,PathColorIndex)
 VERIFY_CLASS_SIZE_NODIE(UReachSpec)
 VERIFY_CLASS_SIZE_NODIE(UAdvancedReachSpec)
 VERIFY_CLASS_SIZE_NODIE(UCeilingReachSpec)

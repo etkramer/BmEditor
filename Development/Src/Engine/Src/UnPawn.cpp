@@ -3877,20 +3877,6 @@ FRotator APawn::GetViewRotation()
  */
 UBOOL APawn::Tick( FLOAT DeltaTime, enum ELevelTick TickType )
 {
-	if (Base != NULL && bNeedsBaseTickedFirst && Base->bTicked != GWorld->Ticked && Base->WantsTick())
-	{
-		if (TickGroup == Base->TickGroup)
-		{
-			// Make sure the base is ticked so there isn't an off by one frame
-			Base->Tick(DeltaTime,TickType);
-		}
-		else
-		{
-			debugfSlow(TEXT("Potential problem ticking base across tick groups: this (%s), base (%s)"),
-				*GetName(),
-				*Base->GetName());
-		}
-	}
 	return Super::Tick(DeltaTime,TickType);
 }
 /**

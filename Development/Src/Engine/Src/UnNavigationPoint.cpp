@@ -1560,14 +1560,12 @@ UBOOL ANavigationPoint::FindAlternatePath(UReachSpec* StraightPath, INT Accumula
 				debugf( TEXT("Dist check %f thresh %f ShouldPrune %d"), Dist, DistThresh, Spec->ShouldPruneAgainst( StraightPath ) );
 				if( !Spec->ShouldPruneAgainst(StraightPath) )
 				{
-					debugf(TEXT("Str8 %s (%s) bPruned %s bSkipPrune %s End %s PruneList %d %d operator %s %s %s Rad %d %d Height %d %d"), 
+					debugf(TEXT("Str8 %s (%s) bPruned %s bSkipPrune %s End %s operator %s %s %s Rad %d %d Height %d %d"), 
 						*StraightPath->GetName(), 
 						*Spec->GetName(), 
 						Spec->bPruned?TEXT("TRUE"):TEXT("FALSE"),
 						Spec->bSkipPrune?TEXT("TRUE"):TEXT("FALSE"),
 						*Spec->End->GetName(),
-						Spec->PruneSpecList.FindItemIndex(StraightPath->GetClass()),
-						StraightPath->PruneSpecList.FindItemIndex(Spec->GetClass()),
 						(*Spec <= *StraightPath) ? TEXT("TRUE") : TEXT("FALSE"),
 						Spec->IsProscribed()?TEXT("TRUE"):TEXT("FALSE"),
 						Spec->IsForced()?TEXT("TRUE"):TEXT("FALSE"),

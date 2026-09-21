@@ -10,6 +10,7 @@
 #include "EngineSplineClasses.h"
 #include "EngineMeshClasses.h"
 
+IMPLEMENT_CLASS(ARStaticClimbableActor);
 IMPLEMENT_CLASS(AStaticMeshActorBase);
 IMPLEMENT_CLASS(AStaticMeshActor);
 IMPLEMENT_CLASS(AStaticMeshCollectionActor);

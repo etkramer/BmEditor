@@ -84,6 +84,8 @@ cpptext
 var	int		Distance;
 var Vector	Direction;	// only valid when both start/end are static
 var() const editconst NavigationPoint	Start;		// navigationpoint at start of this path
+/** Actor that is blocking this ReachSpec, making it temporarily unusable */
+var Actor BlockedBy;
 var() const editconst ActorReference	End;
 var() const editconst int				CollisionRadius;
 var() const editconst int				CollisionHeight;
@@ -99,11 +101,6 @@ var bool bCanCutCorners;
 var bool bCheckForObstructions;
 /** Prune paths should skip trying to prune along these */
 var const bool	bSkipPrune;
-/** Can always prune against these types of specs (even though class doesn't match) */
-var const array< class<ReachSpec> > PruneSpecList;
-
-/** Actor that is blocking this ReachSpec, making it temporarily unusable */
-var Actor BlockedBy;
 /** Reachspec has been disabled/blocked by kismet */
 var() editconst bool  bDisabled;
 

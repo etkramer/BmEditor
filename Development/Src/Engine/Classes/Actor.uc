@@ -46,36 +46,10 @@ const REP_RBLOCATION_ERROR_TOLERANCE_SQ = 16.0f;
  * always loaded correctly in the editor.  See UStruct::SerializeTaggedProperties for details.
  */
 
-/** The actor components which are attached directly to the actor's location/rotation. */
-var private const array<ActorComponent>	Components;
 
-/** All actor components which are directly or indirectly attached to the actor. */
-var private transient const array<ActorComponent> AllComponents;
+//-----------------------------------------------------------------------------
+// Enums.
 
-// The actor's position and rotation.
-/** Actor's location; use Move or SetLocation to change. */
-var(Movement) const vector			Location;
-
-/** The actor's rotation; use SetRotation to change. */
-var(Movement) const rotator			Rotation;
-
-/** Scaling factor, 1.0=normal size. */
-var(Display) const repnotify interp	float	DrawScale <UIMin=0.1 | UIMax=4.0>;
-
-/** Scaling vector, (1.0,1.0,1.0)=normal size. */
-var(Display) const interp	vector	DrawScale3D;
-
-/** Offset from box center for drawing. */
-var(Display) const			vector	PrePivot;
-
-/** Color to tint the icon for this actor */
-var(Display) editoronly Color EditorIconColor;
-
-/** A fence to track when the primitive is detached from the scene in the rendering thread. */
-var private native const RenderCommandFence DetachFence;
-
-// Priority Parameters
-// Actor's current physics mode.
 enum ENetRole
 {
 	ROLE_None,              // No role at all.
@@ -84,7 +58,7 @@ enum ENetRole
 	ROLE_Authority,			// Authoritative control over the actor.
 };
 
-var(Movement) const enum EPhysics
+enum EPhysics
 {
 	PHYS_None,
 	PHYS_Walking,
@@ -100,14 +74,16 @@ var(Movement) const enum EPhysics
 	PHYS_SoftBody, /** update bounding boxes and killzone test, otherwise like PHYS_None */
 	PHYS_NavMeshWalking, /** slide along navmesh, "fake" phys_walking */
 	PHYS_Floating,
+	PHYS_Driving,
+	PHYS_Shimmying,
 	PHYS_Ceiling,
 	PHYS_Unused,
 	PHYS_Custom,	/** user-defined custom physics */
 	PHYS_MAX,
-} Physics;
-var ENetRole RemoteRole, Role;
+};
+
 /** enum for LDs to select collision options - sets Actor flags and that of our CollisionComponent via PostEditChange() */
-var(Collision) const transient enum ECollisionType
+enum ECollisionType
 {
 	COLLIDE_CustomDefault, // custom programmer set collison (PostEditChange() will restore collision to defaults when this is selected)
 	COLLIDE_NoCollision, // doesn't collide
@@ -119,14 +95,7 @@ var(Collision) const transient enum ECollisionType
 	COLLIDE_TouchAllButWeapons, // touches (doesn't block) only non-zero extent things
 	COLLIDE_BlockWeaponsKickable, // Same as BlockWeapons, but enables flags to be kicked by player physics
 	COLLIDE_MAX,
-} CollisionType;
-/** used when collision is changed via Kismet "Change Collision" action to set component flags on the CollisionComponent
- * will not modify replicated Actor flags regardless of setting
- */
-var transient ECollisionType ReplicatedCollisionType;
-/** The ticking group this actor belongs to */
-var const ETickingGroup TickGroup;
-var byte FramesTillInvestigateSightCheck;
+};
 
 /** The set of Directions an actor can be moving **/
 enum EMoveDir
@@ -148,15 +117,130 @@ enum EActorMetricsType
 	METRICS_SECTIONS,
 };
 
+// Traveling from server to server.
+enum ETravelType
+{
+	TRAVEL_Absolute,	// Absolute URL.
+	TRAVEL_Partial,		// Partial (carry name, reset server).
+	TRAVEL_Relative,	// Relative URL.
+};
 
-// Owner.
-var const Actor	Owner;			// Owner actor.
-var(Attachment) const Actor	Base;           // Actor we're standing on.
+// double click move direction.
+enum EDoubleClickDir
+{
+	DCLICK_None,
+	DCLICK_Left,
+	DCLICK_Right,
+	DCLICK_Forward,
+	DCLICK_Back,
+	DCLICK_Active,
+	DCLICK_Done
+};
+
+// BM: story-progress rules that decide when an actor hides itself
+enum EHideRule
+{
+	EHideRule_Never,
+	EHideRule_AfterCh0,
+	EHideRule_AfterCh1,
+	EHideRule_AfterCh2,
+	EHideRule_AfterCh3,
+	EHideRule_AfterCh4,
+	EHideRule_AfterCh5,
+	EHideRule_AfterCh6,
+	EHideRule_AfterCh7,
+	EHideRule_AfterCh8,
+	EHideRule_AfterCh9,
+	EHideRule_BeforeCh1,
+	EHideRule_BeforeCh2,
+	EHideRule_BeforeCh3,
+	EHideRule_BeforeCh4,
+	EHideRule_BeforeCh5,
+	EHideRule_BeforeCh6,
+	EHideRule_BeforeCh7,
+	EHideRule_BeforeCh8,
+	EHideRule_BeforeCh9,
+	EHideRule_BeforeCh10,
+	EHideRule_InFearGas,
+};
+
+enum ESideStory
+{
+	ESideStory_None,
+	ESideStory_Azrael,
+	ESideStory_Bane,
+	ESideStory_C,
+	ESideStory_DeadShot,
+	ESideStory_E,
+	ESideStory_F,
+	ESideStory_G,
+	ESideStory_Hush,
+	ESideStory_I,
+	ESideStory_AutoJez,
+	ESideStory_K,
+	ESideStory_L,
+	ESideStory_MadHatter,
+	ESideStory_Nora,
+	ESideStory_O,
+	ESideStory_Paths,
+	ESideStory_Q,
+	ESideStory_Races,
+	ESideStory_S,
+	ESideStory_ThugBullies,
+	ESideStory_U,
+	ESideStory_V,
+	ESideStory_W,
+	ESideStory_X,
+	ESideStory_Y,
+	ESideStory_Zsasz,
+	ESideStory__A_DontUse,
+	ESideStory__B_DontUse,
+	ESideStory__C_DontUse,
+	ESideStory__D,
+	ESideStory__E,
+	ESideStory__F,
+	ESideStory__G,
+	ESideStory__H,
+	ESideStory__I,
+	ESideStory__J,
+	ESideStory__K,
+	ESideStory__L,
+	ESideStory__M,
+	ESideStory__N_DontUse,
+	ESideStory__O_DontUse,
+	ESideStory__P,
+	ESideStory__Q_DontUse,
+	ESideStory__R_DontUse,
+	ESideStory__S_DontUse,
+	ESideStory__T,
+	ESideStory__U,
+	ESideStory__V_DontUse,
+	ESideStory__W,
+	ESideStory__X_DontUse,
+	ESideStory__Y,
+	ESideStory__Z,
+};
+
+//@note: Pawns have properties that override these values
+const MINFLOORZ = 0.7; // minimum z value for floor normal (if less, not a walkable floor)
+					   // 0.7 ~= 45 degree angle for floor
+const ACTORMAXSTEPHEIGHT = 35.0; // max height floor walking actor can step up to
+
+const RBSTATE_LINVELSCALE = 10.0;
+const RBSTATE_ANGVELSCALE = 1000.0;
+
+const RB_None=0x00;			// Not set, empty
+const RB_NeedsUpdate=0x01;	// If bNewData & RB_NeedsUpdate != 0 then an update is needed
+const RB_Sleeping=0x02;		// if bNewData & RB_Sleeping != 0 then this RigidBody needs to sleep
+
+//-----------------------------------------------------------------------------
+// Structures.
 
 struct native TimerData
 {
 	var bool			bLoop;
 	var bool			bPaused;
+	var bool			bIgnoreGameTimeDilation;
 	var Name			FuncName;
 	var float			Rate, Count;
 	var float           TimerTimeDilation;
@@ -179,127 +263,6 @@ struct native TimerData
 		TimerTimeDilation=1.0f
 	}
 };
-var const array<TimerData>			Timers;			// list of currently active timers
-
-// Flags.
-var const public{private} bool bStatic;	// Does not move or change over time. It is only safe to change this property in defaultproperties.
-
-/** If this is True, all PrimitiveComponents of the actor are hidden.  If this is false, only PrimitiveComponents with HiddenGame=True are hidden. */
-var(Display) const bool	bHidden;
-
-var			  const	bool	bNoDelete;			// Cannot be deleted during play.
-var			  const	bool	bDeleteMe;			// About to be deleted.
-var transient const bool	bTicked;			// Actor has been updated.
-var const				bool    bOnlyOwnerSee;		// Only owner can see this actor.
-
-/** if set, this Actor and all of its components are not ticked. Modify via SetTickIsDisabled()
- * this flag has no effect on bStatic Actors
- */
-var const public{private} bool bTickIsDisabled;
-
-var const bool bStasis;
-var					bool	bWorldGeometry;		// Collision and Physics treats this actor as static world geometry
-
-/** Ignore Unreal collisions between PHYS_RigidBody pawns (vehicles/ragdolls) and this actor (only relevant if bIgnoreEncroachers is false) */
-var					bool	bIgnoreRigidBodyPawns;
-var					bool	bOrientOnSlope;		// when landing, orient base on slope of floor
-var			  const	bool	bIgnoreEncroachers;	// Ignore collisions between movers and this actor
-/** whether encroachers can push this Actor (only relevant if bIgnoreEncroachers is false and not an encroacher ourselves)
- * if false, the encroacher gets EncroachingOn() called immediately instead of trying to safely move this actor first
- */
-var bool bPushedByEncroachers;
-/** If TRUE, when an InterpActor (Mover) encroaches or runs into this Actor, it is destroyed, and will not stop the mover. */
-var bool bDestroyedByInterpActor;
-
-/** Whether to route BeginPlay even if the actor is static. */
-var			  const bool	bRouteBeginPlayEvenIfStatic;
-/** Used to determine when we stop moving, so we can update PreviousLocalToWorld to stop motion blurring. */
-var			  const	bool	bIsMoving;
-/**
- *	If true (and is an encroacher) will do the encroachment check inside MoveActor even if there is no movement.
- *	This is useful for objects that may change bounding box but not actually move.
- */
-var					bool	bAlwaysEncroachCheck;
-/** whether this Actor may return an alternate location from GetTargetLocation() when bRequestAlternateLoc is true
- * (used as an early out when tracing to those locations, etc)
- */
-var bool bHasAlternateTargetLocation;
-
-/** If TRUE, PHYS_Walking will attempt to step up onto this object when it hits it */
-var(Collision)		bool	bCanStepUpOn;
-var(Collision)		bool	bAICanStepUpOn;
-
-// Networking flags
-var			  const	bool	bNetTemporary;				// Tear-off simulation in network play.
-var			  const	bool	bOnlyRelevantToOwner;			// this actor is only relevant to its owner. If this flag is changed during play, all non-owner channels would need to be explicitly closed.
-var transient				bool	bNetDirty;				// set when any attribute is assigned a value in unrealscript, reset when the actor is replicated
-var					bool	bAlwaysRelevant;			// Always relevant for network.
-var					bool	bReplicateInstigator;		// Replicate instigator to client (used by bNetTemporary projectiles).
-var					bool	bReplicateMovement;			// if true, replicate movement/location related properties
-var					bool	bSkipActorPropertyReplication; // if true, don't replicate actor class variables for this actor
-var					bool	bUpdateSimulatedPosition;	// if true, update velocity/location after initialization for simulated proxies
-var					bool	bTearOff;					// if true, this actor is no longer replicated to new clients, and
-														// is "torn off" (becomes a ROLE_Authority) on clients to which it was being replicated.
-var					bool	bOnlyDirtyReplication;		// if true, only replicate actor if bNetDirty is true - useful if no C++ changed attributes (such as physics)
-														// bOnlyDirtyReplication only used with bAlwaysRelevant actors
-
-/** Whether this actor will interact with fluid surfaces or not. */
-var(Physics)		bool	bAllowFluidSurfaceInteraction;
-
-
-/** Demo recording variables */
-/** Set when we are currently replicating this Actor into a demo */
-var transient				bool	bDemoRecording;
-/** Demo recording driver owns this actor. */
-var					bool	bDemoOwner;
-
-/** force Actor to be relevant for demos (only works on dynamic actors) */
-var bool bForceDemoRelevant;
-
-/** Should replicate initial rotation.  This property should never be changed during execution, as the client and server rely on the default value of this property always being the same. */
-var const           bool    bNetInitialRotation;
-
-var					bool	bReplicateRigidBodyLocation;	// replicate Location property even when in PHYS_RigidBody
-var					bool	bKillDuringLevelTransition;	// If set, actor and its components are marked as pending kill during seamless map transitions
-/** whether we already exchanged Role/RemoteRole on the client, as removing then readding a streaming level
- * causes all initialization to be performed again even though the actor may not have actually been reloaded
- */
-var const				bool	bExchangedRoles;
-
-/** If true, texture streaming code iterates over all StaticMeshComponents found on this actor when building texture streaming information. */
-var(Advanced)				bool	bConsiderAllStaticMeshComponentsForStreaming;
-
-//debug
-var(Debug)					bool	 bDebug;	// Used to toggle debug logging
-
-// HUD
-/** IF true, may call PostRenderFor() even when this actor is not visible */
-var							bool	bPostRenderIfNotVisible;
-var bool bAllowActorThoughts;
-var bool bAllowTwoWayEncroach;
-
-/** When set to TRUE will force this actor to immediately be considered for replication, instead of waiting for NetUpdateTime */
-var transient bool bForceNetUpdate;
-var bool bManualPerformPhysics;
-/** Uses 'hard' attachment code. bBlockActor must also be false.
-	This actor cannot then move relative to base (setlocation etc.).
-	Dont set while currently based on something! */
-var(Attachment) const bool bHardAttach;
-var(Attachment) bool bSnapAttach;
-
-/** If TRUE, this actor ignores the effects of changes in its  base's rotation on its location and rotation. */
-var(Attachment) bool bIgnoreBaseRotation;
-var(Attachment) bool bBasedActorsNoMove;
-
-/** If TRUE, BaseSkelComponent is used as the shadow parent for this actor.*/
-var(Attachment) bool bShadowParented;
-
-/** Determines whether or not adhesion code should attempt to adhere to this actor. **/
-var bool bCanBeAdheredTo;
-
-/** Determines whether or not friction code should attempt to friction to this actor. **/
-var bool bCanBeFrictionedTo;
-
 
 struct native immutablewhencooked BlockingVolumeTypesContainer
 {
@@ -321,9 +284,6 @@ struct native immutablewhencooked BlockingVolumeTypesContainer
 	var() bool SmokeBomb;
 	var() bool REC;
 };
-
-//-----------------------------------------------------------------------------
-// Structures.
 
 struct native transient TraceHitInfo
 {
@@ -390,6 +350,16 @@ struct native transient AnimSlotDesc
 	var int				NumChannels;
 };
 
+// BM: a touch deferred until the end of the physics step
+struct native PendingTouch
+{
+	var Actor TouchingActor;
+	var export PrimitiveComponent HitComponent;
+	var vector HitLocation;
+	var vector HitNormal;
+	var export PrimitiveComponent SourceComponent;
+};
+
 struct native transient PhysContactModificationData
 {
 	var int ChangeFlags;
@@ -406,88 +376,10 @@ struct native InvestigationData
 {
 	var() notforconsole string InvestigationInfoTitle;
 	var() notforconsole string InvestigationInfo;
-	var() object BatmanThought;
 	var() name GlobalFlagCheck;
 	var() bool bInvertFlag;
 	var() bool bWarningFlag;
 };
-
-//-----------------------------------------------------------------------------
-// Display properties.
-
-// Advanced.
-var			  bool		bHurtEntry;				// keep HurtRadius from being reentrant
-var			  bool		bGameRelevant;			// Always relevant for game
-var const     bool		bMovable;				// Actor can be moved.
-var			  bool		bDestroyInPainVolume;	// destroy this actor if it enters a pain volume
-var			  bool		bCanBeDamaged;			// can take damage
-var			  bool		bShouldBaseAtStartup;	// if true, find base for this actor at level startup, if collides with world and PHYS_None or PHYS_Rotating
-var			  bool		bPendingDelete;			// set when actor is about to be deleted (since endstate and other functions called
-												// during deletion process before bDeleteMe is set).
-var			  bool		bCanTeleport;			// This actor can be teleported.
-var			  const	bool	bAlwaysTick;		// Update even when paused
-/** indicates that this Actor can dynamically block AI paths */
-var(Navigation) bool bBlocksNavigation;
-/** mirrored copy of CollisionComponent's BlockRigidBody for the Actor property window for LDs (so it's next to CollisionType)
- * purely for editing convenience and not used at all by the physics code
- */
-var(Collision) const transient bool BlockRigidBody;
-
-//-----------------------------------------------------------------------------
-// Collision.
-
-// Collision flags.
-var 			bool		bCollideWhenPlacing;	// This actor collides with the world when placing.
-var const	bool		bCollideActors;			// Collides with other actors.
-var		bool		bCollideWorld;			// Collides with the world.
-var(Collision)			bool		bCollideComplex;		// Ignore Simple Collision on Static Meshes, and collide per Poly.
-var			bool		bBlockActors;			// Blocks other nonplayer actors.
-var						bool		bProjTarget;			// Projectiles should potentially target this actor.
-var						bool		bBlocksTeleport;
-var						bool		bForceZeroExtentCollision;
-var						bool		bPlayerMovementCheck;
-/** Controls whether move operations should collide with destructible pieces or not. */
-var						bool		bMoveIgnoresDestruction;
-var						bool		bForceNoVolumeTrace;
-
-/**
- *	For encroachers, don't do the overlap check when they move. You will not get touch events for this actor moving, but it is much faster.
- *	So if you want touch events from volumes or triggers you need to set this to be FALSE.
- *	This is an optimisation for large numbers of PHYS_RigidBody actors for example.
- */
-var(Collision)			bool		bNoEncroachCheck;
-
-/** If true, this actor collides as an encroacher, even if its physics is not PHYS_RigidBody or PHYS_Interpolating */
-var						bool		bCollideAsEncroacher;
-
-/** If true, do a zero-extent trace each frame from old to new Location when in PHYS_RigidBody. If it hits the world (ie might be tunneling), call FellOutOfWorld. */
-var(Collision)			bool		bPhysRigidBodyOutOfWorldCheck;
-
-/** Set TRUE if a component is ever attached which is outside the world. OutsideWorldBounds will be called in Tick in this case. */
-var	const transient		bool		bComponentOutsideWorld;
-
-/** If TRUE, components of this Actor will only ever be placed into one node of the octree. This makes insertion faster, but may impact runtime performance */
-var                     bool        bForceOctreeSNFilter;
-
-/** RigidBody of CollisionComponent was awake last frame -- used to call OnWakeRBPhysics/OnSleepRBPhysics events */
-var const transient		bool		bRigidBodyWasAwake;
-/** Should call OnWakeRBPhysics/OnSleepRBPhysics events */
-var						bool		bCallRigidBodyWakeEvents;
-
-//-----------------------------------------------------------------------------
-// Physics.
-
-// Options.
-var			  bool        bBounce;           // Bounces when hits ground fast.
-var			  const bool  bJustTeleported;   // Used by engine physics - not valid for scripts.
-
-//@note: Pawns have properties that override these values
-const MINFLOORZ = 0.7; // minimum z value for floor normal (if less, not a walkable floor)
-					   // 0.7 ~= 45 degree angle for floor
-const ACTORMAXSTEPHEIGHT = 35.0; // max height floor walking actor can step up to
-
-const RBSTATE_LINVELSCALE = 10.0;
-const RBSTATE_ANGVELSCALE = 1000.0;
 
 /** describes the physical state of a rigid body
  * @warning: C++ mirroring is in UnPhysPublic.h
@@ -500,10 +392,6 @@ struct RigidBodyState
 	var vector	AngVel; // RBSTATE_ANGVELSCALE times actual (precision reasons)
 	var	byte	bNewData;
 };
-
-const RB_None=0x00;			// Not set, empty
-const RB_NeedsUpdate=0x01;	// If bNewData & RB_NeedsUpdate != 0 then an update is needed
-const RB_Sleeping=0x02;		// if bNewData & RB_Sleeping != 0 then this RigidBody needs to sleep
 
 /** Information about one contact between a pair of rigid bodies
  * @warning: C++ mirroring is in UnPhysPublic.h
@@ -542,10 +430,250 @@ struct native PhysEffectInfo
 	var() editoronly export ActorComponent Force;
 };
 
-// endif
+struct native Thought
+{
+	var string Text;
+	var byte Red;
+	var byte Green;
+	var byte Blue;
+	var byte Alpha;
+};
 
 //-----------------------------------------------------------------------------
-// Networking.
+// Variables.  Declaration order is AK's class layout - do not reorder.
+
+/** The actor components which are attached directly to the actor's location/rotation. */
+var private const array<ActorComponent>	Components;
+
+/** All actor components which are directly or indirectly attached to the actor. */
+var private transient const array<ActorComponent> AllComponents;
+
+/** Default audible emitter for this actor (RAkAudible in retail). */
+var(Audible) const export editinline Object DefaultAkAudible;
+
+// Owner.
+var const Actor	Owner;			// Owner actor.
+var(Attachment) const Actor	Base;           // Actor we're standing on.
+var Pawn                  Instigator;    // Pawn responsible for damage caused by this actor.
+var const transient WorldInfo	WorldInfo;
+var const AnimNodeSequence	LatentSeqNode; // Internal latent function use.
+// physics volume this actor is currently in
+var transient const PhysicsVolume	PhysicsVolume;
+
+// Collision primitive.
+var(Collision) editconst PrimitiveComponent CollisionComponent;
+
+// Attachment related variables
+var(Attachment) SkeletalMeshComponent	BaseSkelComponent;
+
+// The actor's position and rotation.
+/** Actor's location; use Move or SetLocation to change. */
+var(Movement) const vector			Location;
+
+/** The actor's rotation; use SetRotation to change. */
+var(Movement) const rotator			Rotation;
+
+/** Scaling factor, 1.0=normal size. */
+var(Display) const repnotify interp	float	DrawScale <UIMin=0.1 | UIMax=4.0>;
+
+/** Scaling vector, (1.0,1.0,1.0)=normal size. */
+var(Display) const interp	vector	DrawScale3D;
+
+/** Offset from box center for drawing. */
+var(Display) const			vector	PrePivot;
+
+/** Color to tint the icon for this actor */
+var(Display) editoronly Color EditorIconColor;
+var(Display) editoronly float EditorIconDrawScale;
+
+// Flags.  The whole bool block is one bitfield in AK's layout - order is load-bearing.
+var(Display) bool HighResTextureStreaming;
+var bool BoostDynamicTextureStreaming;
+var(Display) bool bHidingIsTemporary;
+var bool bIsTemporarilyHidden;
+var const public{private} bool bStatic;	// Does not move or change over time. It is only safe to change this property in defaultproperties.
+
+/** If this is True, all PrimitiveComponents of the actor are hidden.  If this is false, only PrimitiveComponents with HiddenGame=True are hidden. */
+var(Display) const bool	bHidden;
+var const bool bHiddenInitial;
+
+var			  const	bool	bNoDelete;			// Cannot be deleted during play.
+var			  const	bool	bDeleteMe;			// About to be deleted.
+var const				bool    bOnlyOwnerSee;		// Only owner can see this actor.
+
+/** if set, this Actor and all of its components are not ticked. Modify via SetTickIsDisabled()
+ * this flag has no effect on bStatic Actors
+ */
+var const public{private} bool bTickIsDisabled;
+
+var const bool bStasis;
+var const bool bWaitForTickBeforeStasis;
+var bool bEnableChunkyTick;
+var					bool	bWorldGeometry;		// Collision and Physics treats this actor as static world geometry
+
+/** Ignore Unreal collisions between PHYS_RigidBody pawns (vehicles/ragdolls) and this actor (only relevant if bIgnoreEncroachers is false) */
+var					bool	bIgnoreRigidBodyPawns;
+var					bool	bOrientOnSlope;		// when landing, orient base on slope of floor
+var			  const	bool	bIgnoreEncroachers;	// Ignore collisions between movers and this actor
+/** If TRUE, when an InterpActor (Mover) encroaches or runs into this Actor, it is destroyed, and will not stop the mover. */
+var bool bDestroyedByInterpActor;
+
+/** Whether to route BeginPlay even if the actor is static. */
+var			  const bool	bRouteBeginPlayEvenIfStatic;
+/** Used to determine when we stop moving, so we can update PreviousLocalToWorld to stop motion blurring. */
+var			  const	bool	bIsMoving;
+/**
+ *	If true (and is an encroacher) will do the encroachment check inside MoveActor even if there is no movement.
+ *	This is useful for objects that may change bounding box but not actually move.
+ */
+var					bool	bAlwaysEncroachCheck;
+/** whether this Actor may return an alternate location from GetTargetLocation() when bRequestAlternateLoc is true
+ * (used as an early out when tracing to those locations, etc)
+ */
+var bool bHasAlternateTargetLocation;
+
+/** If TRUE, PHYS_Walking will attempt to step up onto this object when it hits it */
+var(Collision)		bool	bCanStepUpOn;
+var(Collision)		bool	bAICanStepUpOn;
+
+// Networking flags
+var			  const	bool	bNetTemporary;				// Tear-off simulation in network play.
+var			  const	bool	bOnlyRelevantToOwner;			// this actor is only relevant to its owner. If this flag is changed during play, all non-owner channels would need to be explicitly closed.
+var transient				bool	bNetDirty;				// set when any attribute is assigned a value in unrealscript, reset when the actor is replicated
+var					bool	bAlwaysRelevant;			// Always relevant for network.
+var					bool	bReplicateInstigator;		// Replicate instigator to client (used by bNetTemporary projectiles).
+var					bool	bReplicateMovement;			// if true, replicate movement/location related properties
+var					bool	bSkipActorPropertyReplication; // if true, don't replicate actor class variables for this actor
+var					bool	bUpdateSimulatedPosition;	// if true, update velocity/location after initialization for simulated proxies
+var					bool	bTearOff;					// if true, this actor is no longer replicated to new clients, and
+														// is "torn off" (becomes a ROLE_Authority) on clients to which it was being replicated.
+var					bool	bOnlyDirtyReplication;		// if true, only replicate actor if bNetDirty is true - useful if no C++ changed attributes (such as physics)
+														// bOnlyDirtyReplication only used with bAlwaysRelevant actors
+
+/** Whether this actor will interact with fluid surfaces or not. */
+var(Physics)		bool	bAllowFluidSurfaceInteraction;
+
+/** Demo recording variables */
+/** Set when we are currently replicating this Actor into a demo */
+var transient				bool	bDemoRecording;
+/** Demo recording driver owns this actor. */
+var					bool	bDemoOwner;
+
+/** force Actor to be relevant for demos (only works on dynamic actors) */
+var bool bForceDemoRelevant;
+
+/** Should replicate initial rotation.  This property should never be changed during execution, as the client and server rely on the default value of this property always being the same. */
+var const           bool    bNetInitialRotation;
+
+var					bool	bReplicateRigidBodyLocation;	// replicate Location property even when in PHYS_RigidBody
+var					bool	bKillDuringLevelTransition;	// If set, actor and its components are marked as pending kill during seamless map transitions
+/** whether we already exchanged Role/RemoteRole on the client, as removing then readding a streaming level
+ * causes all initialization to be performed again even though the actor may not have actually been reloaded
+ */
+var const				bool	bExchangedRoles;
+
+/** If true, texture streaming code iterates over all StaticMeshComponents found on this actor when building texture streaming information. */
+var(Advanced)				bool	bConsiderAllStaticMeshComponentsForStreaming;
+
+//debug
+var(Debug)					bool	 bDebug;	// Used to toggle debug logging
+
+// HUD
+/** IF true, may call PostRenderFor() even when this actor is not visible */
+var							bool	bPostRenderIfNotVisible;
+var bool bAllowActorThoughts;
+var bool bAllowTwoWayEncroach;
+var bool bAllowDisableRigidBody;
+var bool bEnableOptionalRBCollision;
+var bool bForceSetAnimPositionInMatinee;
+var(Vehicle) bool bIsRoad;
+var(Vehicle) bool bIsTunnel;
+var(Vehicle) bool bIsTrainTracks;
+var(Vehicle) bool bIsVehicleJumpRamp;
+var(Vehicle) bool bNoBatmobileImpactSparks;
+
+/** When set to TRUE will force this actor to immediately be considered for replication, instead of waiting for NetUpdateTime */
+var transient bool bForceNetUpdate;
+var(Actor) bool bLightsUpdateLastRenderTime;
+var bool bManualPerformPhysics;
+/** Uses 'hard' attachment code. bBlockActor must also be false.
+	This actor cannot then move relative to base (setlocation etc.).
+	Dont set while currently based on something! */
+var(Attachment) const bool bHardAttach;
+var(Attachment) bool bSnapAttach;
+
+/** If TRUE, this actor ignores the effects of changes in its  base's rotation on its location and rotation. */
+var(Attachment) bool bIgnoreBaseRotation;
+var(Attachment) bool bBasedActorsNoMove;
+var(Attachment) bool bSkipAttachedMoves;
+
+/** Determines whether or not adhesion code should attempt to adhere to this actor. **/
+var bool bCanBeAdheredTo;
+
+/** Determines whether or not friction code should attempt to friction to this actor. **/
+var bool bCanBeFrictionedTo;
+
+var			  bool		bHurtEntry;				// keep HurtRadius from being reentrant
+var			  bool		bGameRelevant;			// Always relevant for game
+var const     bool		bMovable;				// Actor can be moved.
+var			  bool		bDestroyInPainVolume;	// destroy this actor if it enters a pain volume
+var			  bool		bCanBeDamaged;			// can take damage
+var			  bool		bShouldBaseAtStartup;	// if true, find base for this actor at level startup, if collides with world and PHYS_None or PHYS_Rotating
+var			  bool		bPendingDelete;			// set when actor is about to be deleted (since endstate and other functions called
+												// during deletion process before bDeleteMe is set).
+var			  bool		bCanTeleport;			// This actor can be teleported.
+var			  const	bool	bAlwaysTick;		// Update even when paused
+/** indicates that this Actor can dynamically block AI paths */
+var(Navigation) bool bBlocksNavigation;
+var bool bInvalidateParentLODOnRemove;
+/** mirrored copy of CollisionComponent's BlockRigidBody for the Actor property window for LDs (so it's next to CollisionType)
+ * purely for editing convenience and not used at all by the physics code
+ */
+var(Collision) const transient bool BlockRigidBody;
+
+// Collision flags.
+var 			bool		bCollideWhenPlacing;	// This actor collides with the world when placing.
+var const	bool		bCollideActors;			// Collides with other actors.
+var const	bool		bCollideActorsInitial;
+var		bool		bCollideWorld;			// Collides with the world.
+var(Collision)			bool		bCollideComplex;		// Ignore Simple Collision on Static Meshes, and collide per Poly.
+var			bool		bBlockActors;			// Blocks other nonplayer actors.
+var						bool		bProjTarget;			// Projectiles should potentially target this actor.
+var						bool		bBlocksTeleport;
+var						bool		bPlayerMovementCheck;
+var						bool		bMoveCollidesWithDynamicApexChunks;
+var						bool		bProjectileMoveSingleBlocking;
+var						bool		bForceNoVolumeTrace;
+
+/**
+ *	For encroachers, don't do the overlap check when they move. You will not get touch events for this actor moving, but it is much faster.
+ *	So if you want touch events from volumes or triggers you need to set this to be FALSE.
+ *	This is an optimisation for large numbers of PHYS_RigidBody actors for example.
+ */
+var(Collision)			bool		bNoEncroachCheck;
+
+/** If true, this actor collides as an encroacher, even if its physics is not PHYS_RigidBody or PHYS_Interpolating */
+var						bool		bCollideAsEncroacher;
+
+/** If true, do a zero-extent trace each frame from old to new Location when in PHYS_RigidBody. If it hits the world (ie might be tunneling), call FellOutOfWorld. */
+var(Collision)			bool		bPhysRigidBodyOutOfWorldCheck;
+
+/** Set TRUE if a component is ever attached which is outside the world. OutsideWorldBounds will be called in Tick in this case. */
+var	const transient		bool		bComponentOutsideWorld;
+
+/** If TRUE, components of this Actor will only ever be placed into one node of the octree. This makes insertion faster, but may impact runtime performance */
+var                     bool        bForceOctreeSNFilter;
+var                     bool        bForceOctreeMNFilter;
+
+/** RigidBody of CollisionComponent was awake last frame -- used to call OnWakeRBPhysics/OnSleepRBPhysics events */
+var const transient		bool		bRigidBodyWasAwake;
+/** Should call OnWakeRBPhysics/OnSleepRBPhysics events */
+var						bool		bCallRigidBodyWakeEvents;
+var(Collision)			bool		bIgnoreHurtRadiusLosCheck;
+
+var			  bool        bBounce;           // Bounces when hits ground fast.
+var			  const bool  bJustTeleported;   // Used by engine physics - not valid for scripts.
+var bool bEnableMobileTouch;
 
 // Symmetric network flags, valid during replication only.
 var const bool bNetInitial;       // Initial network update.
@@ -556,9 +684,11 @@ var const bool bOwnerAlwaysReplicated;
 var const bool  bHiddenEd;     // Is hidden within the editor at its startup.
 var const bool  bEditable;	// Whether the actor can be manipulated by editor operations.
 var const bool  bHiddenEdGroup;// Is hidden by the group browser.
+var const bool  bHiddenEdLayer;
 var const bool bHiddenEdCustom; // custom visibility flag for game-specific editor modes; not used by base editor functionality
 var transient editoronly bool bHiddenEdTemporary; // Is temporarily hidden within the editor; used for show/hide/etc. functionality w/o dirtying the actor
 var transient editoronly bool bHiddenEdLevel; // Is hidden by the level browser.
+var transient editoronly bool bHiddenEdScene;
 var(Advanced) bool        bEdShouldSnap; // Snap to grid in editor.
 var transient const bool  bTempEditor;   // Internal UnrealEd.
 var(Collision) bool		  bPathColliding;// this actor should collide (if bWorldGeometry && bBlockActors is true) during path building (ignored if bStatic is true, as actor will always collide during path building)
@@ -569,29 +699,58 @@ var(Advanced) bool        bLockLocation; // Prevent the actor from being moved i
 /** always allow Kismet to modify this Actor, even if it's static and not networked (e.g. for server side only stuff) */
 var const bool bForceAllowKismetModification;
 var(Advanced) bool bStripThisActorWhenCooking;
+var bool bEdCanScale;
+var bool bEdCanNonUniformScale;
+var bool bEdCanNegativeScale;
 var const transient bool bDonePostBeginPlay;
 var(Collision) bool bBatmanCanClimb;
 var(Collision) bool bAllowSlopedEdges;
 var(Collision) bool bAllowCrevice;
-var(Collision) const bool bGrappleToSlopedRoof;
+var(Grapple) bool bAutoGrapplePoints;
+var(Grapple) bool bAutoGrapplePointsAreLowPriority;
+var(Grapple) bool bAutoGrapplePointsAllowSwinging;
 var bool CanAlwaysLinkEdges;
 var(Advanced) const bool bDisallowShimmy;
+var(AdvancedClimb) const bool bAllowNarrowAutoGrappleForConcaveEdge;
 var(Gadget) bool bValidLineLauncherTarget;
 var(Gadget) bool bValidGelTarget;
+var(Advanced) const bool bPlayerAlwaysSlidesOff;
 var bool bCurrentInvestigateHightlighted;
 var bool CachedInvestigateSightCheck;
+var(Investigate) bool bIgnoreLOSCheck;
 var(Debug) bool bDebugEffectIsRelevant;
-var(Advanced) bool bLoadIfPhysXLevel0;
-var(Advanced) bool bLoadIfPhysXLevel1;
-var(Advanced) bool bLoadIfPhysXLevel2;
-var(Debug) editoronly editconst string LastEdit;
-var Pawn                  Instigator;    // Pawn responsible for damage caused by this actor.
-var const transient WorldInfo	WorldInfo;
+var transient bool bUpdateComponentsInPriorityOrder;
+var transient bool bHasAPEXCloth;
+
+var(Display) transient float HighResTextureStreamingOverrideTimestamp;
+
+var(Display) EHideRule HideOnChapterCondition;
+var(Display) ESideStory HideOnSideStory;
+var(Display) EHideRule HideOnSideStoryCondition;
+var(Movement) const EPhysics Physics;
+var EPhysics HideOnSideStoryInitialPhysics;
+var ENetRole RemoteRole, Role;
+var Component.ECollisionFilter CollisionFilter;
+var(Collision) const transient ECollisionType CollisionType;
+/** used when collision is changed via Kismet "Change Collision" action to set component flags on the CollisionComponent
+ * will not modify replicated Actor flags regardless of setting
+ */
+var transient ECollisionType ReplicatedCollisionType;
+/** The ticking group this actor belongs to */
+var const ETickingGroup TickGroup;
+
+/** A fence to track when the primitive is detached from the scene in the rendering thread. */
+var private native const RenderCommandFence DetachFence;
+
+var const array<TimerData>			Timers;			// list of currently active timers
+var editoronly int EditorTrackingVal;
+/** Frame stamp of the last tick; replaces BM1/BM2's bTicked. */
+var transient qword TickedFrame;
+var transient int ChunkyTick_DeferredNumFrames;
+var transient float ChunkyTick_DeferredDeltaSeconds;
+var(Object) editoronly editconst string LastEdit;
 var	float						LifeSpan;		// How old the object lives before dying, 0=forever.
 var BlockingVolumeTypesContainer CanTraceActorBlockedTypes;
-
-//-----------------------------------------------------------------------------
-// Major actor properties.
 
 /**
  * The value of WorldInfo->TimeSeconds for the frame when this actor was last rendered.  This is written
@@ -603,6 +762,7 @@ var transient float		LastRenderTime;
 
 // Actor's tag name.
 var(Object)	name			Tag;
+var name					Layer;
 var(Object) editoronly name			Group;
 
 /** Bitflag to represent which views this actor is hidden in, via per-view layer visibilty */
@@ -612,10 +772,8 @@ var transient qword			HiddenEditorViews;
 var transient const array<Actor>	Touching;		 // List of touching actors.
 var transient const array<Actor>	Children;		// array of actors owned by this actor
 var const float				LatentFloat;   // Internal latent function use.
-var const AnimNodeSequence	LatentSeqNode; // Internal latent function use.
+var transient const array<PendingTouch> PendingTouches;
 
-// physics volume this actor is currently in
-var transient const PhysicsVolume	PhysicsVolume;
 // Velocity.
 var					vector			Velocity;
 // Acceleration.
@@ -623,8 +781,6 @@ var					vector			Acceleration;
 // Angular velocity, in radians/sec.  Read-only, see RotationRate to set rotation.
 var	transient const	vector			AngularVelocity;
 
-// Attachment related variables
-var(Attachment) SkeletalMeshComponent	BaseSkelComponent;
 var(Attachment) name					BaseBoneName;
 
 /** array of actors attached to this actor. */
@@ -634,46 +790,10 @@ var const vector		RelativeLocation;
 /** rotation relative to base/bone (valid if base exists) */
 var const rotator		RelativeRotation;
 
-// Collision primitive.
-var(Collision) editconst PrimitiveComponent CollisionComponent;
-
 var				native int	  		OverlapTag;
 
 // Physics properties.
 var(Movement) rotator	  RotationRate;		// Change in rotation per second.
-
-//-----------------------------------------------------------------------------
-// Enums.
-
-// Traveling from server to server.
-enum ETravelType
-{
-	TRAVEL_Absolute,	// Absolute URL.
-	TRAVEL_Partial,		// Partial (carry name, reset server).
-	TRAVEL_Relative,	// Relative URL.
-};
-
-
-// double click move direction.
-enum EDoubleClickDir
-{
-	DCLICK_None,
-	DCLICK_Left,
-	DCLICK_Right,
-	DCLICK_Forward,
-	DCLICK_Back,
-	DCLICK_Active,
-	DCLICK_Done
-};
-
-struct native Thought
-{
-	var string Text;
-	var byte Red;
-	var byte Green;
-	var byte Blue;
-	var byte Alpha;
-};
 
 //-----------------------------------------------------------------------------
 // Kismet
@@ -683,12 +803,18 @@ var const array<class<SequenceEvent> > SupportedEvents;
 
 /** List of all events currently associated with this actor */
 var const array<SequenceEvent> GeneratedEvents;
+var transient array<SequenceEvent> DuplicatedEvents;
 
 /** List of all latent actions currently active on this actor */
 var array<SeqAct_Latent> LatentActions;
 var(Investigate) float InvestigationMaxDistance;
 var(Investigate) array<InvestigationData> InvestigationDataArray;
 var(Investigate) float InvestigationPriorityOverride;
+var float CachedInvestigateTimestamp;
+var float CachedInvestigateUrgency;
+var(Investigate) vector InvestigateOffset;
+var const native transient array<Pointer> PendingASyncLoads;
+
 
 /**
  * Struct used for cross level actor references
@@ -3943,7 +4069,7 @@ defaultproperties
 	Role=ROLE_Authority
 	RemoteRole=ROLE_None
 	ReplicatedCollisionType=COLLIDE_CustomDefault
-	FramesTillInvestigateSightCheck=255
+	CollisionFilter=COF_Actor
 	bMovable=true
 	bEditable=true
 	bHiddenEdGroup=false
@@ -3951,16 +4077,18 @@ defaultproperties
 	bHiddenEdLevel=false
 	bReplicateMovement=true
 	bRouteBeginPlayEvenIfStatic=TRUE
-	bPushedByEncroachers=true
 	bCanStepUpOn=TRUE
 	bAICanStepUpOn=TRUE
 	bAllowFluidSurfaceInteraction=TRUE
 	bAllowSlopedEdges=TRUE
 	bValidLineLauncherTarget=TRUE
 	bValidGelTarget=TRUE
-	bLoadIfPhysXLevel0=TRUE
-	bLoadIfPhysXLevel1=TRUE
-	bLoadIfPhysXLevel2=TRUE
+	HighResTextureStreaming=TRUE
+	bSkipAttachedMoves=TRUE
+	bLightsUpdateLastRenderTime=TRUE
+	bEdCanScale=TRUE
+	bEdCanNonUniformScale=TRUE
+	bEdCanNegativeScale=TRUE
 
 	SupportedEvents(0)=class'SeqEvent_Touch'
 	SupportedEvents(1)=class'SeqEvent_Destroyed'

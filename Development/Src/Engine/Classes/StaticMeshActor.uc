@@ -14,6 +14,11 @@ var() const editconst StaticMeshComponent	StaticMeshComponent;
 
 /** If checked, this actor will not try to set its base to any proc building below it.*/
 var() editoronly bool bDisableAutoBaseOnProcBuilding;
+var editoronly bool bProxy;
+var editoronly bool bHiddenByProxy;
+var editoronly bool OldCastShadow;
+var editoronly bool OldAcceptsLights;
+var editoronly byte OldCollisionType;
 
 cpptext
 {

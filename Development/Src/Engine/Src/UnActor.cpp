@@ -2834,7 +2834,7 @@ void AActor::SetTickIsDisabled(UBOOL bInDisabled)
 			// if we had already been ticked this frame yet still got here, this function would have had to have been already called with TRUE this frame
 			// and thus we would have been in the PendingUntickableActors list, preventing us from reaching this code
 			// therefore, we can assume we haven't been ticked, so make sure the flag indicates this
-			bTicked = !GWorld->Ticked;
+			TickedFrame = !GWorld->Ticked;
 		}
 		bTickIsDisabled = bInDisabled;
 	}

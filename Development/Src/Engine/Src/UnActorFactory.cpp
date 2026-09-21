@@ -1041,10 +1041,6 @@ AActor* UActorFactorySkeletalMesh::CreateActor( const FVector* const Location, c
 
 		// Change properties
 		NewSMActor->SkeletalMeshComponent->SkeletalMesh = SkeletalMesh;
-		if (GIsGame)
-		{
-			NewSMActor->ReplicatedMesh = SkeletalMesh;
-		}
 		if(AnimSet)
 		{
 			NewSMActor->SkeletalMeshComponent->AnimSets.AddItem( AnimSet );

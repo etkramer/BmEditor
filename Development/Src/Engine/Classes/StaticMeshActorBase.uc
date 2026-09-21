@@ -3,18 +3,19 @@
  *
  * Copyright 1998-2011 Epic Games, Inc. All Rights Reserved.
  */
-class StaticMeshActorBase extends Actor
+class StaticMeshActorBase extends RStaticClimbableActor
 	ClassGroup(StaticMeshes)
 	native
 	abstract;
 
-var(Collision) const bool bRailing;
-var(Collision) const bool bSpikeyRailing;
-var(Collision) const bool bUseBoundingBoxForClimbing;
-var(Collision) const bool bClimbableSlopedRailing;
 var(Collision) const bool bDontAdjustCameraForSlope;
-var(Collision) const bool bNeverUseBracedShimmy;
-var(Advanced) const bool bAllowWideRailings;
+var(Vehicle) const bool bIsVehicleBigJump;
+var(Vehicle) const bool bVehicleJumpAutoAlignX;
+var(Vehicle) const bool bVehicleJumpAutoAlignY;
+var(Vehicle) const bool bVehicleJumpAutoAlignNegX;
+var(Vehicle) const bool bVehicleJumpAutoAlignNegY;
+var(Advanced) const bool bHideIfFlexEnabled;
+var transient notforconsole bool bWithinPxSublevel;
 
 cpptext
 {

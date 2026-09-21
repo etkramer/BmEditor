@@ -1076,7 +1076,7 @@ UBOOL APawn::PlayerControlled()
  */
 UBOOL AActor::Tick( FLOAT DeltaSeconds, ELevelTick TickType )
 {
-	bTicked = GWorld->Ticked;
+	TickedFrame = GWorld->Ticked;
 
 	// Non-player update.
 	const UBOOL bShouldTick = ((TickType!=LEVELTICK_ViewportsOnly) || PlayerControlled());
@@ -1139,7 +1139,7 @@ Non-player controllers don't support being an autonomous proxy
 */
 UBOOL AController::Tick( FLOAT DeltaSeconds, ELevelTick TickType )
 {
-	bTicked = GWorld->Ticked;
+	TickedFrame = GWorld->Ticked;
 
 	if (TickType == LEVELTICK_ViewportsOnly)
 	{
@@ -1211,7 +1211,7 @@ Controllers are never animated, and do not look for an owner to be ticked before
 */
 UBOOL APlayerController::Tick( FLOAT DeltaSeconds, ELevelTick TickType )
 {
-	bTicked = GWorld->Ticked;
+	TickedFrame = GWorld->Ticked;
 
 	GetViewTarget();
 	if( (RemoteRole == ROLE_AutonomousProxy) && !IsLocalPlayerController() )
@@ -2452,7 +2452,7 @@ static void TickNewlySpawned(UWorld* World,FLOAT DeltaSeconds,
 	{
 		AActor* Actor = World->NewlySpawned(NewlySpawnedIndex);
 		if( Actor 
-		&&	Actor->bTicked != (DWORD)World->Ticked 
+		&&	Actor->TickedFrame != (QWORD)World->Ticked 
 		&&	!Actor->ActorIsPendingKill() )
 		{			
 			checkf(!Actor->HasAnyFlags(RF_Unreachable), TEXT("%s"), *Actor->GetFullName());
@@ -2486,7 +2486,7 @@ void DeferNewlySpawned(UWorld* World,FDeferredTickList& DeferredList)
 	{
 		AActor* Actor = World->NewlySpawned(NewlySpawnedIndex);
 		if( Actor
-		&&	Actor->bTicked != (DWORD)World->Ticked
+		&&	Actor->TickedFrame != (QWORD)World->Ticked
 		&&	!Actor->ActorIsPendingKill() )
 		{
 			debugfSlow(NAME_DevTick,TEXT("Deferring newly spawned actor (%s) in group (%d)"), *Actor->GetName(),(INT)GWorld->TickGroup);
@@ -2526,7 +2526,7 @@ template<typename ITER> void TickActors(UWorld* World,FLOAT DeltaSeconds,
 			UBOOL bTicked;
 			{
 				// Don't tick the actor if it was already ticked this frame
-				if (Actor->bTicked != GWorld->Ticked)
+				if (Actor->TickedFrame != (QWORD)GWorld->Ticked)
 				{
 					GAMEPLAY_PROFILER_TRACK_ACTOR(Actor);
 					bTicked = Actor->Tick(DeltaSeconds,TickType);
@@ -3204,7 +3204,7 @@ void UWorld::Tick( ELevelTick TickType, FLOAT DeltaSeconds )
 					}
 				}
 
-				Actor->bTicked = (DWORD)Ticked;
+				Actor->TickedFrame = (QWORD)Ticked;
 			}
 		}
 

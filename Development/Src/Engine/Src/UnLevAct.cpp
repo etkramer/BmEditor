@@ -528,7 +528,7 @@ AActor* UWorld::SpawnActor
 	{
 		Actor->Tag = Class->GetFName();
 	}
-	Actor->bTicked		= !Ticked;
+	Actor->TickedFrame	= !Ticked;
 	Actor->WorldInfo	= GetWorldInfo();
 
 	// Set network role.
@@ -1451,11 +1451,6 @@ UBOOL UWorld::MoveActor
 				TraceFlags |= TRACE_ComplexCollision;
 			}
 
-			if( Actor->bMoveIgnoresDestruction )
-			{
-				TraceFlags |= TRACE_MoveIgnoresDestruction;
-			}
-
 			FVector ColCenter;
 
 			if( Actor->CollisionComponent->IsValidComponent() )
@@ -1812,7 +1807,7 @@ UBOOL UWorld::CheckEncroachment
 		{
 			UBOOL bStillEncroaching = TRUE;
 			// Actors can be pushed by movers or karma stuff.
-			if (Actor->IsEncroacher() && !Test->Actor->IsEncroacher() && Test->Actor->bPushedByEncroachers)
+			if (Actor->IsEncroacher() && !Test->Actor->IsEncroacher())
 			{
 				// check if mover can safely push encroached actor
 				// Move test actor away from mover

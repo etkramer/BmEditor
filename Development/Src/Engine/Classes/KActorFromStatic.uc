@@ -179,6 +179,4 @@ defaultproperties
 	CollisionComponent=None
 	StaticMeshComponent=None
 	Components.Remove(StaticMeshComponent0)
-	LightEnvironment=None
-	Components.Remove(MyLightEnvironment)
 }

@@ -9,25 +9,32 @@ class DynamicSMActor extends Actor
 	native
 	abstract;
 
-var() const editconst StaticMeshComponent	StaticMeshComponent;
-var() const editconst DynamicLightEnvironmentComponent LightEnvironment;
 /** Used to replicate mesh to clients */
-var repnotify transient StaticMesh ReplicatedMesh;
 /** used to replicate the material in index 0 */
-var repnotify MaterialInterface ReplicatedMaterial;
 /** used to replicate StaticMeshComponent.bForceStaticDecals */
-var repnotify bool bForceStaticDecals;
 
 /** If a Pawn can be 'based' on this KActor. If not, they will 'bounce' off when they try to. */
-var() bool	bPawnCanBaseOn;
 /** Pawn can base on this KActor if it is asleep -- Pawn will disable KActor physics while based */
-var() bool	bSafeBaseIfAsleep;
-var() bool bGoIntoStasisWhenHidden;
 
 /** Extra component properties to replicate */
+var() const editconst StaticMeshComponent	StaticMeshComponent;
+var repnotify transient StaticMesh ReplicatedMesh;
+var repnotify MaterialInterface ReplicatedMaterial0;
+var repnotify MaterialInterface ReplicatedMaterial1;
+var repnotify bool bForceStaticDecals;
+var() bool	bPawnCanBaseOn;
+var() bool	bSafeBaseIfAsleep;
+var() bool bGoIntoStasisWhenHidden;
+var(Vehicle) const bool bVehicleJumpAutoAlignX;
+var(Vehicle) const bool bVehicleJumpAutoAlignY;
+var(Vehicle) const bool bVehicleJumpAutoAlignNegX;
+var(Vehicle) const bool bVehicleJumpAutoAlignNegY;
+var(Advanced) bool bDisableRigidBodyPhysicsWhenPawnBasedOn;
 var repnotify vector ReplicatedMeshTranslation;
 var repnotify rotator ReplicatedMeshRotation;
 var repnotify vector ReplicatedMeshScale3D;
+var(Advanced) byte JumpOffPawnDirectionMask;
+var(VFX) float MinImpactVelocityForImpactEffect;
 
 cpptext
 {
@@ -50,7 +57,7 @@ protected:
 replication
 {
 	if (bNetDirty)
-		ReplicatedMesh, ReplicatedMaterial, ReplicatedMeshTranslation, ReplicatedMeshRotation, ReplicatedMeshScale3D, bForceStaticDecals;
+		ReplicatedMesh, ReplicatedMaterial0, ReplicatedMeshTranslation, ReplicatedMeshRotation, ReplicatedMeshScale3D, bForceStaticDecals;
 }
 
 event PostBeginPlay()
@@ -68,15 +75,11 @@ simulated event ReplicatedEvent(name VarName)
 {
 	if (VarName == 'ReplicatedMesh')
 	{
-		// Enable the light environment if it is not already
-		LightEnvironment.bCastShadows = false;
-		LightEnvironment.SetEnabled(TRUE);
-
 		StaticMeshComponent.SetStaticMesh(ReplicatedMesh);
 	}
-	else if (VarName == nameof(ReplicatedMaterial))
+	else if (VarName == nameof(ReplicatedMaterial0))
 	{
-		StaticMeshComponent.SetMaterial(0, ReplicatedMaterial);
+		StaticMeshComponent.SetMaterial(0, ReplicatedMaterial0);
 	}
 	else if (VarName == 'ReplicatedMeshTranslation')
 	{
@@ -110,9 +113,6 @@ function OnSetMesh(SeqAct_SetMesh Action)
 		if( (Action.NewStaticMesh != None) &&
 			(Action.NewStaticMesh != StaticMeshComponent.StaticMesh || bForce) )
 		{
-			// Enable the light environment if it is not already
-			LightEnvironment.bCastShadows = false;
-			LightEnvironment.SetEnabled(TRUE);
 			// force decals on this mesh to be treated as movable or not (if False then decals will use fastpath)
 			bForceStaticDecals = !Action.bIsAllowedToMove;
 			StaticMeshComponent.SetForceStaticDecals(bForceStaticDecals);
@@ -131,7 +131,7 @@ function OnSetMaterial(SeqAct_SetMaterial Action)
 	StaticMeshComponent.SetMaterial( Action.MaterialIndex, Action.NewMaterial );
 	if (Action.MaterialIndex == 0)
 	{
-		ReplicatedMaterial = Action.NewMaterial;
+		ReplicatedMaterial0 = Action.NewMaterial;
 		ForceNetRelevant();
 	}
 }
@@ -223,27 +223,8 @@ event Detach( Actor Other )
 }
 
 
-/**
- * This will turn "off" the light environment so it will no longer update.
- * This is useful for having a Timer call this once something has come to a stop and doesn't need 100% correct lighting.
- **/
-simulated final function SetLightEnvironmentToNotBeDynamic()
-{
-	if( LightEnvironment != none )
-	{
-		LightEnvironment.bDynamic = FALSE;
-	}
-}
-
-
 defaultproperties
 {
-	Begin Object Class=DynamicLightEnvironmentComponent Name=MyLightEnvironment
-		bEnabled=TRUE
-	End Object
-	LightEnvironment=MyLightEnvironment
-	Components.Add(MyLightEnvironment)
-
 	Begin Object Class=StaticMeshComponent Name=StaticMeshComponent0
 	    BlockRigidBody=false
 		bUsePrecomputedShadows=FALSE
@@ -270,6 +251,4 @@ defaultproperties
 	bPawnCanBaseOn=true
 	bGoIntoStasisWhenHidden=true
 
-	// Automatically shadow parent to whatever this actor is attached to by default
-	bShadowParented=true
 }

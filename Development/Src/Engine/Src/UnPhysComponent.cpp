@@ -6225,7 +6225,6 @@ IMPLEMENT_CLASS(AKActorFromStatic);
 void AKActorFromStatic::MakeStatic()
 {
 	// Lighting
-	LightEnvironment = NULL;
 	StaticMeshComponent->LightingChannels.Dynamic = FALSE;
 
 	// Physics and collision

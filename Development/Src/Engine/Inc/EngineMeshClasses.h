@@ -840,7 +840,6 @@ public:
     SCRIPT_ALIGN;
     FRBCollisionChannelContainer FracturePartRBPartCollideWithChannels;
     TArrayNoInit<struct FDeferredPartToSpawn> DeferredPartsToSpawn;
-    FVector InvestigateOffset;
     struct FPhysEffectInfo PartImpactEffect;
     class UAkEvent* ExplosionFractureSound;
     class UAkEvent* SingleChunkFractureSound;
