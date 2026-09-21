@@ -98,6 +98,9 @@ These are deliberate, disclosed compromises. Do not silently remove one, and do 
 - `MLM_RockBRDF` compiles as Phong.
 - `UnClass.cpp:1220` re-seeks the stream when a named struct tag consumes the wrong byte count (`correcting stream`). Pre-existing from bmgame2. It is a counted diagnostic (`correcting` in `[PKGSTAT]`), not a silent one, and since `PostProcessSettings` and `InterpTrackDirector.DirectorTrackCut` were matched to AK it fires zero times on `<startup>` and on every map measured so far. Keep it: only a handful of packages have been measured, and any struct still wrong elsewhere depends on it.
 - `UnModel.h:52` fabricates `BackfaceShadowTexCoord = ShadowTexCoord` for cooked AK verts, which have no such field.
+- `Engine/Src/UnSkeletalMesh.cpp:1295` truncates AK's INT `RequiredBones` into a BYTE array. This ALIASES rather than drops - bone 256 becomes bone 0 - and it is emitted at `NAME_Warning`, so no `[PKGSTAT]` category counts it.
+
+See `BM4_STATUS.md` for what works, the honest per-package measurements, the ranked class-divergence work list and the known silent corruption.
 
 ## Measuring a Load
 
