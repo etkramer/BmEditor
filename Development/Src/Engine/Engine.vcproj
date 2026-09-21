@@ -9002,6 +9002,14 @@
 					>
 				</File>
 				<File
+					RelativePath=".\Classes\AkBankExternalHook.uc"
+					>
+				</File>
+				<File
+					RelativePath=".\Classes\RExternalHook.uc"
+					>
+				</File>
+				<File
 					RelativePath=".\Classes\AkComponent.uc"
 					>
 				</File>

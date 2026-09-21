@@ -1,9 +1,9 @@
 /*=============================================================================
 	UnAkAudio.cpp: Audiokinetic/Wwise object stubs.
 
-	BM: These classes exist so that BM2's Ak assets round-trip through the editor
+	BM: These classes exist so that the game's Ak assets round-trip through the editor
 	with the correct layout and serialization. There is no Wwise runtime here -
-	every script native is a no-op; only UAkBank::Serialize does real work.
+	every script native is a no-op; only URExternalHook::Serialize does real work.
 =============================================================================*/
 
 #include "EnginePrivate.h"
@@ -16,6 +16,8 @@ IMPLEMENT_CLASS(UAkAsset);
 IMPLEMENT_CLASS(UAkAssetPrep);
 IMPLEMENT_CLASS(UAkEvent);
 IMPLEMENT_CLASS(UAkAssetPack);
+IMPLEMENT_CLASS(URExternalHook);
+IMPLEMENT_CLASS(UAkBankExternalHook);
 IMPLEMENT_CLASS(UAkBank);
 IMPLEMENT_CLASS(UAkWwise);
 IMPLEMENT_CLASS(UAkComponent);
@@ -51,46 +53,75 @@ FLOAT URDialogueEvent::GetCueDuration()
 }
 
 /*-----------------------------------------------------------------------------
-	UAkBank
+	URExternalHook
 -----------------------------------------------------------------------------*/
 
+// AK's layouts, from GetPrivateStaticClassBody in the retail binary.
+checkAtCompileTime( sizeof(FExternalHookDataEntry) == 116, FExternalHookDataEntry_layout_changed );
+checkAtCompileTime( sizeof(URExternalHook) == 124, URExternalHook_layout_changed );
+checkAtCompileTime( sizeof(UAkBankExternalHook) == 124, UAkBankExternalHook_layout_changed );
+checkAtCompileTime( sizeof(UAkBank) == 164, UAkBank_layout_changed );
+
 /**
- * BM: Retail reads only the payload whose language matches the running one and
- * seeks past the rest. We have no Wwise runtime to hand a bank to, so every
- * payload is kept in StoredBankData instead, which is exactly what the retail
- * save path writes back out - giving us a byte-identical round trip.
+ * BM: after the tagged properties AK writes one bulk-data payload per ExternalEntries
+ * element - for an AkBank, one Wwise SoundBank ("BKHD") per cooked language.
+ *
+ * Retail keeps only the payload whose Tag matches the running language and discards
+ * the rest as it reads them; the editor keeps them all so a re-save writes back what
+ * it read. Nothing here interprets the payload - there is no Wwise runtime in this
+ * tree - it is parsed for its size and offset only.
  */
-void UAkBank::Serialize( FArchive& Ar )
+/**
+ * BM: script frees the array's memory without running our C++ destructors, so the payloads have
+ * to let go of the linker here or it is left holding dangling FByteBulkData pointers. Retail's
+ * destructor (sub_DBBFB0 -> sub_DB9640) frees ExternalEntries for the same reason.
+ */
+void URExternalHook::FinishDestroy()
+{
+	for( INT EntryIndex = 0; EntryIndex < ExternalEntries.Num(); EntryIndex++ )
+	{
+		ExternalEntries(EntryIndex).BulkStoredData.RemoveBulkData();
+	}
+
+	Super::FinishDestroy();
+}
+
+void URExternalHook::Serialize( FArchive& Ar )
 {
 	Super::Serialize( Ar );
 
-	if( BanksCooked <= 0 )
-	{
-		return;
-	}
-
 	if( Ar.IsLoading() )
 	{
-		// Placement new rather than AddZeroed - FByteBulkData has a vtable.
-		StoredBankData.Empty( BanksCooked );
-		for( INT BankIndex = 0; BankIndex < BanksCooked; BankIndex++ )
+		for( INT EntryIndex = 0; EntryIndex < ExternalEntries.Num(); EntryIndex++ )
 		{
-			new(StoredBankData) FByteBulkData();
+			// Script hands us zeroed memory and FByteBulkData has a vtable, so construct the
+			// payload before touching it - which is what retail's serializer does too.
+			FExternalHookDataEntry& Entry = ExternalEntries(EntryIndex);
+			::new((BYTE*)&Entry.BulkStoredData) FByteBulkData();
+			Entry.BulkStoredData.Serialize( Ar, this );
 		}
 	}
-
-	// Nothing to write if we never got a payload (e.g. a bank created in the editor).
-	if( StoredBankData.Num() != BanksCooked )
+	else if( Ar.IsSaving() )
 	{
-		warnf( NAME_Warning, TEXT("%s: expected %d cooked bank payloads, have %d"), *GetFullName(), BanksCooked, StoredBankData.Num() );
-		return;
-	}
-
-	for( INT BankIndex = 0; BankIndex < BanksCooked; BankIndex++ )
-	{
-		StoredBankData(BankIndex).Serialize( Ar, this );
+		for( INT EntryIndex = 0; EntryIndex < ExternalEntries.Num(); EntryIndex++ )
+		{
+			if( bCooked )
+			{
+				ExternalEntries(EntryIndex).BulkStoredData.Serialize( Ar, this );
+			}
+			else
+			{
+				// Uncooked, the payload lives outside the package and only the header is written.
+				FByteBulkData EmptyData;
+				EmptyData.Serialize( Ar, this );
+			}
+		}
 	}
 }
+
+/*-----------------------------------------------------------------------------
+	UAkBank
+-----------------------------------------------------------------------------*/
 
 UBOOL UAkBank::LoadBank( UBOOL performDeferredLoad )
 {
@@ -101,7 +132,7 @@ void UAkBank::UnloadBank( UBOOL performDeferredUnload )
 {
 }
 
-void UAkBank::ForceUnloadBank()
+void UAkBank::ReloadBank()
 {
 }
 

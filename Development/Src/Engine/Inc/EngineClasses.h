@@ -15438,71 +15438,6 @@ public:
     NO_DEFAULT_CONSTRUCTOR(UAkTriggerName)
 };
 
-class UAkBank : public UAkAssetBase
-{
-public:
-    //## BEGIN PROPS AkBank
-    BITFIELD IncludeBankInAssetPack:1;
-    BITFIELD MaxStreamPriority:1;
-    BITFIELD ShouldBeLoaded:1;
-    BITFIELD DoNotFreeBulkData:1;
-    SCRIPT_ALIGN;
-    BYTE BankLoadType;
-    INT LoadCounter;
-    INT HookCounter;
-    INT PreloadStreamsCounter;
-    FPointer LockedMemory;
-    FByteBulkData LoadedBankData;
-    TArrayNoInit<FByteBulkData> StoredBankData;
-    TArrayNoInit<FString> Languages;
-    INT BanksCooked;
-    //## END PROPS AkBank
-
-    UBOOL LoadBank(UBOOL performDeferredLoad);
-    void UnloadBank(UBOOL performDeferredUnload);
-    void ForceUnloadBank();
-    UBOOL IsBankLoadComplete();
-    UBOOL PreloadBankStreams(UBOOL preload,BYTE Priority=2);
-    UBOOL IsBankStreamPreloaded();
-    DECLARE_FUNCTION(execLoadBank)
-    {
-        P_GET_UBOOL(performDeferredLoad);
-        P_FINISH;
-        *(UBOOL*)Result=this->LoadBank(performDeferredLoad);
-    }
-    DECLARE_FUNCTION(execUnloadBank)
-    {
-        P_GET_UBOOL(performDeferredUnload);
-        P_FINISH;
-        this->UnloadBank(performDeferredUnload);
-    }
-    DECLARE_FUNCTION(execForceUnloadBank)
-    {
-        P_FINISH;
-        this->ForceUnloadBank();
-    }
-    DECLARE_FUNCTION(execIsBankLoadComplete)
-    {
-        P_FINISH;
-        *(UBOOL*)Result=this->IsBankLoadComplete();
-    }
-    DECLARE_FUNCTION(execPreloadBankStreams)
-    {
-        P_GET_UBOOL(preload);
-        P_GET_BYTE_OPTX(Priority,2);
-        P_FINISH;
-        *(UBOOL*)Result=this->PreloadBankStreams(preload,Priority);
-    }
-    DECLARE_FUNCTION(execIsBankStreamPreloaded)
-    {
-        P_FINISH;
-        *(UBOOL*)Result=this->IsBankStreamPreloaded();
-    }
-    DECLARE_CLASS(UAkBank,UAkAssetBase,0,Engine)
-	// UObject interface.
-	virtual void Serialize( FArchive& Ar );
-};
-
 class UAkAssetPack : public UAkHash
 {
 public:
@@ -15545,6 +15480,108 @@ public:
 
     DECLARE_CLASS(UAkStackName,UAkHash,0,Engine)
     NO_DEFAULT_CONSTRUCTOR(UAkStackName)
+};
+
+struct FExternalHookDataEntry
+{
+    FStringNoInit Entry;
+    FStringNoInit Platform;
+    FStringNoInit Tag;
+    FByteBulkData BulkStoredData;
+    BITFIELD bPreallocated:1;
+    SCRIPT_ALIGN;
+
+    /** Constructors */
+    FExternalHookDataEntry() {}
+    FExternalHookDataEntry(EEventParm)
+    {
+        appMemzero(this, sizeof(FExternalHookDataEntry));
+    }
+};
+
+class URExternalHook : public UAkHash
+{
+public:
+    //## BEGIN PROPS RExternalHook
+    TArrayNoInit<struct FExternalHookDataEntry> ExternalEntries;
+    BITFIELD bExternalEntriesInitialized:1;
+    BITFIELD bCooked:1;
+    INT LockedIndex;
+    FPointer LockedMemory;
+    //## END PROPS RExternalHook
+
+    DECLARE_CLASS(URExternalHook,UAkHash,0,Engine)
+	// UObject interface.
+	virtual void FinishDestroy();
+	virtual void Serialize( FArchive& Ar );
+};
+
+class UAkBankExternalHook : public URExternalHook
+{
+public:
+    //## BEGIN PROPS AkBankExternalHook
+    //## END PROPS AkBankExternalHook
+
+    DECLARE_CLASS(UAkBankExternalHook,URExternalHook,0,Engine)
+    NO_DEFAULT_CONSTRUCTOR(UAkBankExternalHook)
+};
+
+class UAkBank : public UAkBankExternalHook
+{
+public:
+    //## BEGIN PROPS AkBank
+    BYTE BankLoadType;
+    SCRIPT_ALIGN;
+    BITFIELD bContainsXMA:1;
+    TArrayNoInit<class UAkParameterName*> ReferencedParameters;
+    INT ShouldLoadCounter;
+    INT LoadCounter;
+    INT DeferredLoadCounter;
+    INT PreloadStreamsCounter;
+    //## END PROPS AkBank
+
+    UBOOL LoadBank(UBOOL performDeferredLoad);
+    void UnloadBank(UBOOL performDeferredUnload);
+    void ReloadBank();
+    UBOOL IsBankLoadComplete();
+    UBOOL PreloadBankStreams(UBOOL preload,BYTE Priority=2);
+    UBOOL IsBankStreamPreloaded();
+    DECLARE_FUNCTION(execLoadBank)
+    {
+        P_GET_UBOOL(performDeferredLoad);
+        P_FINISH;
+        *(UBOOL*)Result=this->LoadBank(performDeferredLoad);
+    }
+    DECLARE_FUNCTION(execUnloadBank)
+    {
+        P_GET_UBOOL(performDeferredUnload);
+        P_FINISH;
+        this->UnloadBank(performDeferredUnload);
+    }
+    DECLARE_FUNCTION(execReloadBank)
+    {
+        P_FINISH;
+        this->ReloadBank();
+    }
+    DECLARE_FUNCTION(execIsBankLoadComplete)
+    {
+        P_FINISH;
+        *(UBOOL*)Result=this->IsBankLoadComplete();
+    }
+    DECLARE_FUNCTION(execPreloadBankStreams)
+    {
+        P_GET_UBOOL(preload);
+        P_GET_BYTE_OPTX(Priority,2);
+        P_FINISH;
+        *(UBOOL*)Result=this->PreloadBankStreams(preload,Priority);
+    }
+    DECLARE_FUNCTION(execIsBankStreamPreloaded)
+    {
+        P_FINISH;
+        *(UBOOL*)Result=this->IsBankStreamPreloaded();
+    }
+    DECLARE_CLASS(UAkBank,UAkBankExternalHook,0,Engine)
+    NO_DEFAULT_CONSTRUCTOR(UAkBank)
 };
 
 class UBookMark : public UObject
@@ -22361,14 +22398,14 @@ AUTOGENERATE_FUNCTION(UAkHash,-1,execDetermineHashValue);
 AUTOGENERATE_FUNCTION(UAkHash,-1,execGetOriginalNameString);
 AUTOGENERATE_FUNCTION(UAkHash,-1,execGetHashString);
 AUTOGENERATE_FUNCTION(UAkHash,-1,execGetHashValue);
+AUTOGENERATE_FUNCTION(UAkAssetPack,-1,execUnloadAssetPack);
+AUTOGENERATE_FUNCTION(UAkAssetPack,-1,execLoadAssetPack);
 AUTOGENERATE_FUNCTION(UAkBank,-1,execIsBankStreamPreloaded);
 AUTOGENERATE_FUNCTION(UAkBank,-1,execPreloadBankStreams);
 AUTOGENERATE_FUNCTION(UAkBank,-1,execIsBankLoadComplete);
-AUTOGENERATE_FUNCTION(UAkBank,-1,execForceUnloadBank);
+AUTOGENERATE_FUNCTION(UAkBank,-1,execReloadBank);
 AUTOGENERATE_FUNCTION(UAkBank,-1,execUnloadBank);
 AUTOGENERATE_FUNCTION(UAkBank,-1,execLoadBank);
-AUTOGENERATE_FUNCTION(UAkAssetPack,-1,execUnloadAssetPack);
-AUTOGENERATE_FUNCTION(UAkAssetPack,-1,execLoadAssetPack);
 AUTOGENERATE_FUNCTION(UAkWwise,-1,execFullReset);
 AUTOGENERATE_FUNCTION(UAkWwise,-1,execGetSurveillanceFocus);
 AUTOGENERATE_FUNCTION(UAkWwise,-1,execIsSurveillanceUIVisible);
@@ -22869,11 +22906,13 @@ AUTOGENERATE_FUNCTION(UUIManager,-1,execGetUIManager);
 	UAkSwitchGroupName::StaticClass(); \
 	UAkSwitchName::StaticClass(); \
 	UAkTriggerName::StaticClass(); \
-	UAkBank::StaticClass(); \
-	GNativeLookupFuncs.Set(FName("AkBank"), GEngineUAkBankNatives); \
 	UAkAssetPack::StaticClass(); \
 	GNativeLookupFuncs.Set(FName("AkAssetPack"), GEngineUAkAssetPackNatives); \
 	UAkStackName::StaticClass(); \
+	URExternalHook::StaticClass(); \
+	UAkBankExternalHook::StaticClass(); \
+	UAkBank::StaticClass(); \
+	GNativeLookupFuncs.Set(FName("AkBank"), GEngineUAkBankNatives); \
 	UAkWwise::StaticClass(); \
 	GNativeLookupFuncs.Set(FName("AkWwise"), GEngineUAkWwiseNatives); \
 	UBookMark::StaticClass(); \
@@ -23557,21 +23596,21 @@ FNativeFunctionLookup GEngineUAkHashNatives[] =
 	{NULL, NULL}
 };
 
+FNativeFunctionLookup GEngineUAkAssetPackNatives[] = 
+{ 
+	MAP_NATIVE(UAkAssetPack, execUnloadAssetPack)
+	MAP_NATIVE(UAkAssetPack, execLoadAssetPack)
+	{NULL, NULL}
+};
+
 FNativeFunctionLookup GEngineUAkBankNatives[] = 
 { 
 	MAP_NATIVE(UAkBank, execIsBankStreamPreloaded)
 	MAP_NATIVE(UAkBank, execPreloadBankStreams)
 	MAP_NATIVE(UAkBank, execIsBankLoadComplete)
-	MAP_NATIVE(UAkBank, execForceUnloadBank)
+	MAP_NATIVE(UAkBank, execReloadBank)
 	MAP_NATIVE(UAkBank, execUnloadBank)
 	MAP_NATIVE(UAkBank, execLoadBank)
-	{NULL, NULL}
-};
-
-FNativeFunctionLookup GEngineUAkAssetPackNatives[] = 
-{ 
-	MAP_NATIVE(UAkAssetPack, execUnloadAssetPack)
-	MAP_NATIVE(UAkAssetPack, execLoadAssetPack)
 	{NULL, NULL}
 };
 
@@ -24483,14 +24522,18 @@ VERIFY_CLASS_SIZE_NODIE(UAkSwitchGroupName)
 VERIFY_CLASS_OFFSET_NODIE(UAkSwitchName,AkSwitchName,ParentSwitchGroup)
 VERIFY_CLASS_SIZE_NODIE(UAkSwitchName)
 VERIFY_CLASS_SIZE_NODIE(UAkTriggerName)
-VERIFY_CLASS_OFFSET_NODIE(UAkBank,AkBank,BankLoadType)
-VERIFY_CLASS_OFFSET_NODIE(UAkBank,AkBank,BanksCooked)
-VERIFY_CLASS_SIZE_NODIE(UAkBank)
 VERIFY_CLASS_OFFSET_NODIE(UAkAssetPack,AkAssetPack,AssetPackBanks)
 VERIFY_CLASS_OFFSET_NODIE(UAkAssetPack,AkAssetPack,PrepareEventIDs)
 VERIFY_CLASS_SIZE_NODIE(UAkAssetPack)
 VERIFY_CLASS_OFFSET_NODIE(UAkStackName,AkStackName,StackColor)
 VERIFY_CLASS_SIZE_NODIE(UAkStackName)
+VERIFY_CLASS_OFFSET_NODIE(URExternalHook,RExternalHook,ExternalEntries)
+VERIFY_CLASS_OFFSET_NODIE(URExternalHook,RExternalHook,LockedMemory)
+VERIFY_CLASS_SIZE_NODIE(URExternalHook)
+VERIFY_CLASS_SIZE_NODIE(UAkBankExternalHook)
+VERIFY_CLASS_OFFSET_NODIE(UAkBank,AkBank,BankLoadType)
+VERIFY_CLASS_OFFSET_NODIE(UAkBank,AkBank,PreloadStreamsCounter)
+VERIFY_CLASS_SIZE_NODIE(UAkBank)
 VERIFY_CLASS_OFFSET_NODIE(UAkWwise,AkWwise,__AkSoundCallback__Delegate)
 VERIFY_CLASS_OFFSET_NODIE(UAkWwise,AkWwise,__AkMusicCallback__Delegate)
 VERIFY_CLASS_SIZE_NODIE(UAkWwise)
