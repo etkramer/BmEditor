@@ -65,13 +65,6 @@ struct FScalarParameterInterpStruct
     }
 };
 
-struct Pawn_eventSpeak_Parms
-{
-    class USoundCue* Cue;
-    Pawn_eventSpeak_Parms(EEventParm)
-    {
-    }
-};
 struct Pawn_eventSoakPause_Parms
 {
     Pawn_eventSoakPause_Parms(EEventParm)
@@ -299,7 +292,7 @@ struct Pawn_eventCacheAnimNodes_Parms
     {
     }
 };
-class APawn : public AActor, public IInterface_Speaker
+class APawn : public AActor
 {
 public:
     //## BEGIN PROPS Pawn
@@ -856,12 +849,6 @@ public:
         P_FINISH;
         this->SetScalarParameterInterp(ScalarParameterInterp);
     }
-    void eventSpeak(class USoundCue* Cue)
-    {
-        Pawn_eventSpeak_Parms Parms(EC_EventParm);
-        Parms.Cue=Cue;
-        ProcessEvent(FindFunctionChecked(ENGINE_Speak),&Parms);
-    }
     void eventSoakPause()
     {
         ProcessEvent(FindFunctionChecked(ENGINE_SoakPause),NULL);
@@ -1067,7 +1054,6 @@ public:
     DECLARE_ABSTRACT_CLASS(APawn,AActor,0|CLASS_Config|CLASS_NativeReplication,Engine)
     static const TCHAR* StaticConfigName() {return TEXT("Game");}
 
-    virtual UObject* GetUObjectInterfaceInterface_Speaker(){return this;}
 	// declare type for node evaluation functions
 	typedef FLOAT ( *NodeEvaluator ) (ANavigationPoint*, APawn*, FLOAT);
 

@@ -14,8 +14,7 @@ class Pawn extends Actor
 	placeable
 	config(Game)
 	dependson(Controller)
-	nativereplication
-	implements(Interface_Speaker);
+	nativereplication;
 
 enum EPathSearchType
 {
@@ -3416,20 +3415,6 @@ native function SetRootMotionInterpCurrentTime( float inTime, optional float Del
 
 /** Set a ScalarParameter to Interpolate */
 final simulated native function SetScalarParameterInterp(const out ScalarParameterInterpStruct ScalarParameterInterp);
-
-/** Simple interface for handling pawn dialogue. */
-simulated event Speak(SoundCue Cue)
-{
-	// Trivial implementation for now.
-
-	// @TODO: handle things like
-	// - speaking one line at a time
-	// - playing facefx if appropriate
-	// - dialogue-specific soundmodes
-	// - etc
-
-	PlaySound(Cue, TRUE);
-}
 
 /**
  *	Handler for the SeqAct_SetVelocity action. Allows level designer to impart a velocity on the actor.
