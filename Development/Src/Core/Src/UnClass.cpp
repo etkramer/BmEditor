@@ -673,6 +673,24 @@ static void ReportMissingOffsetProperty( const UStruct* Struct, const FPropertyT
 		*Struct->GetName(), (UINT)Tag.PropertyOffset, *Tag.Type.ToString(), *Ar.GetArchiveName() );
 }
 
+// BM: an object tag whose offset happens to hit a pointer of an unrelated class. A ComponentProperty reports
+// itself as an ObjectProperty, so the type test above cannot catch it and the value would be written into a
+// slot the engine later reads as a component.
+static void ReportOffsetClassMismatch( const UStruct* Struct, const UObjectProperty* Prop, const FPropertyTag& Tag, const UObject* Value, FArchive& Ar )
+{
+	static TSet<QWORD> ReportedSites;
+	const QWORD Site = ((QWORD)Struct->GetFName().GetIndex() << 32) | (QWORD)Tag.PropertyOffset;
+	if( ReportedSites.Contains(Site) )
+	{
+		return;
+	}
+	ReportedSites.Add( Site );
+
+	warnf( NAME_Warning, TEXT("[LAYOUT] %s: offset %u holds %s %s (a %s), but the package writes %s there (package %s)"),
+		*Struct->GetName(), (UINT)Tag.PropertyOffset, *Prop->GetName(), *Prop->GetOuter()->GetName(),
+		*Prop->PropertyClass->GetName(), *Value->GetFullName(), *Ar.GetArchiveName() );
+}
+
 static void ReportLayoutMismatch( const UStruct* Struct, const UProperty* Prop, const FPropertyTag& Tag, FArchive& Ar )
 {
 	if( IsBmOffsetTagCompatible( Prop, Tag ) )
@@ -798,7 +816,20 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 						Ar << *(FString*)Dest;
 						break;
 					case NAME_ObjectNCRProperty:
-						Ar << *(UObject**)Dest;
+						{
+							UObject* OffsetObject = NULL;
+							Ar << OffsetObject;
+
+							UObjectProperty* ObjectProp = bDiscardOffsetValue ? NULL : Cast<UObjectProperty>(OffsetProp);
+							if( ObjectProp != NULL && OffsetObject != NULL && !OffsetObject->IsA(ObjectProp->PropertyClass) )
+							{
+								ReportOffsetClassMismatch( this, ObjectProp, Tag, OffsetObject, Ar );
+							}
+							else if( !bDiscardOffsetValue )
+							{
+								*(UObject**)Dest = OffsetObject;
+							}
+						}
 						break;
 					default:
 						appErrorf(TEXT("BM: unexpected simple type %s at offset %u in %s"),
