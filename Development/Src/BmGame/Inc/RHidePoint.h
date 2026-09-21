@@ -14,12 +14,13 @@ struct FHideLink
 	FVector	MidPoint;
 };
 
-// Declares no data members - see UnClassExtension.h.
-class ARHidePoint : public AFracturedStaticMeshActor
+// Declares no data members - see UnClassExtension.h. AK's RHidePoint extends Actor, so anything
+// below AActor here would be C++ members sitting on top of the script class's own properties.
+class ARHidePoint : public AActor
 {
 public:
 	// DECLARE_CLASS would normally provide this; we have no UClass of our own.
-	typedef AFracturedStaticMeshActor Super;
+	typedef AActor Super;
 
 	virtual void PostEditMove(UBOOL bFinished);
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent);

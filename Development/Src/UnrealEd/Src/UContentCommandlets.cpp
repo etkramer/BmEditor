@@ -8321,6 +8321,10 @@ static void CreateBareEditorEngine()
 	DefaultEngine->LoadConfig();
 	GEngine = GEditor = ConstructObject<UEditorEngine>( EngineClass );
 
+	// Skipping InitEditor also skips the AddToRoot in UEngine::Init, so FEngineLoop::Exit's garbage
+	// collection would free GEngine before it calls GEngine->PreExit() a few lines later.
+	GEngine->AddToRoot();
+
 	// Several PostLoad paths fall back on GEngine->DefaultMaterial, which only InitEditor would normally load.
 	GEngine->DefaultMaterial = LoadObject<UMaterial>( NULL, *GEngine->DefaultMaterialName, NULL, LOAD_None, NULL );
 }

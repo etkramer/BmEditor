@@ -654,8 +654,25 @@ static FName GetBmSimpleTypeID( INT TypeIndex )
 static UBOOL IsBmOffsetTagCompatible( const UProperty* Prop, const FPropertyTag& Tag )
 {
 	const FName ExpectedID = GetBmSimpleTypeID( (INT)Tag.Type.GetIndex() );
+	if( Prop->GetID() != ExpectedID )
+	{
+		return FALSE;
+	}
+
+	// BM: a vector/rotator tag reports itself as a plain StructProperty, so the type test alone lets it
+	// write three raw floats over any other struct of ours that happens to sit at retail's offset.
+	const UStructProperty* StructProp = ConstCast<UStructProperty>( Prop );
+	if( StructProp != NULL )
+	{
+		const EName ExpectedStruct = Tag.Type == FName(NAME_RotatorProperty) ? NAME_Rotator : NAME_Vector;
+		if( StructProp->Struct == NULL || StructProp->Struct->GetFName() != FName(ExpectedStruct) )
+		{
+			return FALSE;
+		}
+	}
+
 	const INT ElementOffset = (INT)Tag.PropertyOffset - Prop->Offset;
-	return Prop->GetID() == ExpectedID && (ElementOffset % Prop->ElementSize) == 0;
+	return (ElementOffset % Prop->ElementSize) == 0;
 }
 
 // BM: a class that declares nothing at retail's offset, reported once per site like the mismatch below.
@@ -2558,15 +2575,16 @@ void UClass::Link( FArchive& Ar, UBOOL Props )
 {
 	Super::Link( Ar, Props );
 #if BATMAN
-	// BM: extensions are constructed into storage sized by the script class, so they can't declare data members.
+	// BM: an extension is constructed into storage laid out by the script class, so its C++ members have to
+	// end where the script class's own properties begin - i.e. it must not reach past the super's size.
 	if( Props )
 	{
 		FClassExtension* Extension = FindClassExtension(this);
 		if( Extension )
 		{
-			const INT ClassSize = Align(PropertiesSize, MinAlignment);
-			checkf(Extension->ClassSize <= ClassSize, TEXT("Class extension %s is %i bytes but the script class is only %i - it must not declare data members"),
-				*GetPathName(), Extension->ClassSize, ClassSize);
+			const INT InheritedSize = SuperStruct ? Align(GetSuperClass()->PropertiesSize, MinAlignment) : 0;
+			checkf(Extension->ClassSize <= InheritedSize, TEXT("Class extension %s is %i bytes but the script class only inherits %i - its C++ base is deeper than the script class's"),
+				*GetPathName(), Extension->ClassSize, InheritedSize);
 		}
 	}
 #endif
