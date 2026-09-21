@@ -4180,6 +4180,9 @@ class UParticleModuleParameterDynamic : public UParticleModuleParameterBase
 public:
     //## BEGIN PROPS ParticleModuleParameterDynamic
     TArrayNoInit<struct FEmitterDynamicParameter> DynamicParams;
+    INT UpdateFlags;
+    BITFIELD bUsesVelocity:1;
+    SCRIPT_ALIGN;
     //## END PROPS ParticleModuleParameterDynamic
 
     DECLARE_CLASS(UParticleModuleParameterDynamic,UParticleModuleParameterBase,0,Engine)
@@ -6786,6 +6789,7 @@ VERIFY_CLASS_OFFSET_NODIE(UParticleModuleOrientationAxisLock,ParticleModuleOrien
 VERIFY_CLASS_SIZE_NODIE(UParticleModuleOrientationAxisLock)
 VERIFY_CLASS_SIZE_NODIE(UParticleModuleParameterBase)
 VERIFY_CLASS_OFFSET_NODIE(UParticleModuleParameterDynamic,ParticleModuleParameterDynamic,DynamicParams)
+VERIFY_CLASS_OFFSET_NODIE(UParticleModuleParameterDynamic,ParticleModuleParameterDynamic,UpdateFlags)
 VERIFY_CLASS_SIZE_NODIE(UParticleModuleParameterDynamic)
 VERIFY_CLASS_OFFSET_NODIE(UParticleModuleParameterDynamic_Seeded,ParticleModuleParameterDynamic_Seeded,RandomSeedInfo)
 VERIFY_CLASS_SIZE_NODIE(UParticleModuleParameterDynamic_Seeded)

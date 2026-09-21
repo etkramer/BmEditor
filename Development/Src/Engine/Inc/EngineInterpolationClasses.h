@@ -943,11 +943,12 @@ class UInterpTrackFloatMaterialParam : public UInterpTrackFloatBase
 {
 public:
     //## BEGIN PROPS InterpTrackFloatMaterialParam
+    BITFIELD AllMaterialsOnThisActor:1;
+    BITFIELD bNeedsMaterialRefsUpdate:1;
+    BITFIELD ResetWhenMatineeExits:1;
     TArrayNoInit<struct FMaterialReferenceList> Materials;
     class UMaterialInterface* Material_DEPRECATED;
     FName ParamName;
-    BITFIELD bNeedsMaterialRefsUpdate:1;
-    SCRIPT_ALIGN;
     //## END PROPS InterpTrackFloatMaterialParam
 
     DECLARE_CLASS(UInterpTrackFloatMaterialParam,UInterpTrackFloatBase,0,Engine)
@@ -1106,6 +1107,7 @@ public:
     FName LookAtGroupName;
     FLOAT LinCurveTension;
     FLOAT AngCurveTension;
+    FVector LevelOffset;
     BITFIELD bUseQuatInterpolation:1;
     BITFIELD bShowArrowAtKeys:1;
     BITFIELD bDisableMovement:1;

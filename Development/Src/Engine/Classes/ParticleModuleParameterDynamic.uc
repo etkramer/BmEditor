@@ -46,6 +46,14 @@ struct native EmitterDynamicParameter
 /** The dynamic parameters this module uses. */
 var() editfixedsize array<EmitterDynamicParameter>	DynamicParams;
 
+// BM
+/** Cached mask of which dynamic params need updating. */
+var int										UpdateFlags;
+
+// BM
+/** TRUE when any dynamic param selects a velocity-derived value. */
+var bool									bUsesVelocity;
+
 cpptext
 {
 	/**

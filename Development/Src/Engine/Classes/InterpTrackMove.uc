@@ -287,8 +287,12 @@ var()	float				LinCurveTension;
 /** Controls the tightness of the curve for the rotation path. */
 var()	float				AngCurveTension;
 
-/** 
- *	Use a Quaternion linear interpolation between keys. 
+// BM
+/** Offset applied to the whole track, matching AK's declaration order. */
+var		vector				LevelOffset;
+
+/**
+ *	Use a Quaternion linear interpolation between keys.
  *	This is robust and will find the 'shortest' distance between keys, but does not support ease in/out.
  */
 var()	bool				bUseQuatInterpolation;

@@ -4409,8 +4409,9 @@ public:
     FLOAT PathBuildTime;
     TArrayNoInit<class UInterpGroup*> InterpGroups;
     class UInterpCurveEdSetup* CurveEdSetup;
-    TArrayNoInit<class UInterpFilter*> InterpFilters;
     class UInterpFilter* SelectedFilter;
+    class UInterpGroupDirector* CachedDirectorGroup;
+    TArrayNoInit<class UInterpFilter*> InterpFilters;
     TArrayNoInit<class UInterpFilter*> DefaultFilters;
     FLOAT EdSectionStart;
     FLOAT EdSectionEnd;

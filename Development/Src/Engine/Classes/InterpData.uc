@@ -28,11 +28,15 @@ var	export array<InterpGroup>	InterpGroups;
 /** Used for curve editor to remember curve-editing setup. Only loaded in editor. */
 var	export InterpCurveEdSetup	CurveEdSetup;
 
-/** Used for filtering which tracks are currently visible. */
-var editoronly array<InterpFilter>	InterpFilters;
-
 /** The currently selected filter. */
 var editoronly InterpFilter			SelectedFilter;
+
+// BM
+/** Cached director group, matching AK's declaration order. */
+var transient InterpGroupDirector	CachedDirectorGroup;
+
+/** Used for filtering which tracks are currently visible. */
+var editoronly array<InterpFilter>	InterpFilters;
 
 /** Array of default filters. */
 var editoronly transient array<InterpFilter> DefaultFilters;
