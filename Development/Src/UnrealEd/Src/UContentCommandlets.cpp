@@ -8245,6 +8245,9 @@ enum ELoadDiagnosticCategory
 	LDC_BadScriptName,	// the same, in a bytecode stream
 	LDC_MissingClass,	// an export whose class could not be resolved - this is where exports go missing
 	LDC_BmScript,		// an import into the global cross-map BmScript package that resolved to nothing
+	LDC_BmScriptMissing,	// a BmScript class no loaded package defines, so every export of it is dropped
+	LDC_BmScriptDup,	// this package's BmScript copy discarded for an equally sized one from another file
+	LDC_BmScriptConflict,	// the same, but the two copies differ in size, so the defaults provably differ
 	LDC_MissingImport,	// any other import that failed to resolve
 	LDC_SkippedCDO,
 	LDC_TypeMismatch,
@@ -8256,7 +8259,8 @@ enum ELoadDiagnosticCategory
 static const TCHAR* GLoadDiagnosticCategoryNames[LDC_MAX] =
 {
 	TEXT("layout"), TEXT("serialsize"), TEXT("correcting"), TEXT("badname"), TEXT("badscriptname"),
-	TEXT("missingclass"), TEXT("bmscript"), TEXT("missingimport"), TEXT("skippedcdo"),
+	TEXT("missingclass"), TEXT("bmscript"), TEXT("bmscriptmissing"), TEXT("bmscriptdup"),
+	TEXT("bmscriptconflict"), TEXT("missingimport"), TEXT("skippedcdo"),
 	TEXT("typemismatch"), TEXT("notserializable"), TEXT("othererror")
 };
 
@@ -8271,12 +8275,23 @@ public:
 		appMemzero( CategoryCounts, sizeof(CategoryCounts) );
 	}
 
+	// BM: a map's BmScript objects are forced-export copies of ones another package already supplied, so the
+	// reuse is the cooker's own design and fires hundreds of times per map. Count it, but keep it out of the
+	// diagnostics total - only LDC_BmScriptConflict, where the two copies differ in size, is a defect.
+	static UBOOL IsInformational( INT Category )
+	{
+		return Category == LDC_BmScriptDup;
+	}
+
 	INT Total() const
 	{
 		INT Sum = 0;
 		for( INT Index=0; Index<LDC_MAX; Index++ )
 		{
-			Sum += CategoryCounts[Index];
+			if( !IsInformational(Index) )
+			{
+				Sum += CategoryCounts[Index];
+			}
 		}
 		return Sum;
 	}
@@ -8293,6 +8308,9 @@ public:
 		else if( Line.InStr( TEXT("Bad script name index") ) != INDEX_NONE )		Category = LDC_BadScriptName;
 		else if( Line.InStr( TEXT("Bad name index") ) != INDEX_NONE )				Category = LDC_BadName;
 		else if( Line.InStr( TEXT("Missing class ") ) != INDEX_NONE )				Category = LDC_MissingClass;
+		else if( Line.InStr( TEXT("[BMSCRIPT] unresolved") ) != INDEX_NONE )		Category = LDC_BmScriptMissing;
+		else if( Line.InStr( TEXT("[BMSCRIPT] reused") ) != INDEX_NONE )			Category = LDC_BmScriptDup;
+		else if( Line.InStr( TEXT("[BMSCRIPT] conflict") ) != INDEX_NONE )			Category = LDC_BmScriptConflict;
 		else if( Line.InStr( TEXT("Failed to load 'BmScript") ) != INDEX_NONE )	Category = LDC_BmScript;
 		else if( Line.InStr( TEXT("Failed to load '") ) != INDEX_NONE )				Category = LDC_MissingImport;
 		else if( Line.InStr( TEXT("skipping CDO") ) != INDEX_NONE )					Category = LDC_SkippedCDO;
@@ -8304,7 +8322,10 @@ public:
 		if( Category != INDEX_NONE )
 		{
 			CategoryCounts[Category]++;
-			Failures.AddItem( Line );
+			if( !IsInformational(Category) )
+			{
+				Failures.AddItem( Line );
+			}
 		}
 	}
 };

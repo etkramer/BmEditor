@@ -101,9 +101,9 @@ These are deliberate, disclosed compromises. Do not silently remove one, and do 
 
 ## Measuring a Load
 
-**Run ONE package per invocation when quoting numbers.** The `[LAYOUT]` reporters now dedupe on (package, class, site), so a package reports the same warnings wherever it appears in a run - but export creation still depends on load order, because every map's embedded script classes share one global `BmScript` package.
+**Run ONE package per invocation when quoting numbers.** Export creation and diagnostics both depend on load order, because every map's embedded script classes share one global `BmScript` package - see "The BmScript Package" for what that does to the numbers and when loading a second package first is the right call.
 
-**`CheckPackageLoad` prints one `[PKGSTAT]` line per load**, and one for the startup merge as `package=<startup>`. It carries `exports`, `imports`, `uncreated`, `unloaded`, a `diagnostics` total and a per-category breakdown (`layout serialsize correcting badname badscriptname missingclass bmscript missingimport skippedcdo typemismatch notserializable othererror`). Diff those lines; do not eyeball logs.
+**`CheckPackageLoad` prints one `[PKGSTAT]` line per load**, and one for the startup merge as `package=<startup>`. It carries `exports`, `imports`, `uncreated`, `unloaded`, a `diagnostics` total and a per-category breakdown (`layout serialsize correcting badname badscriptname missingclass bmscript bmscriptmissing bmscriptdup bmscriptconflict missingimport skippedcdo typemismatch notserializable othererror`). `bmscriptdup` is informational and is the one field not in the `diagnostics` total. Diff those lines; do not eyeball logs.
 
 **Diagnostic counts and uncreated exports are independent.** A package can report few diagnostics while dropping exports, so always quote both.
 
@@ -139,6 +139,28 @@ Consequence for the port: getting this merge working for BM4 is a prerequisite f
 - `UState`'s `StateFlags` is a WORD (all 1488 class exports of `Engine.upk` parse exactly at WORD, none at DWORD).
 - A bytecode name reference is a bare 4-byte name index, in the archive and in the script buffer alike; `FLabelEntry` keeps the full `FName`.
 - `EX_NameConst` (0x21) keeps the full `FName`; the index-only form is `EX_NameConstNoNumber` (0x2B). `EX_DynArrayRandomItem` (0x5B) takes one dynamic-array expression and no end token.
+
+## The BmScript Package
+
+`BmScript` is a hardcoded engine package name in retail (`BatmanAK.exe.c:4075252`, index 142, registered next to `Core`, `Engine`, `Editor`, `BmGame`, `BmEditor`), and it has no file on disk. It holds the game's non-shipped script classes - the `R*`/`M*` classes designers add per area. Its contents arrive from three places:
+
+- `Startup.upk` (282 classes) and `StartupPatch.upk` (166), the seekfree startup packages. `Startup` is in `[Engine.StartupPackages]`; `StartupPatch` is not, and nothing has established whether retail loads it.
+- a map's **persistent level**, which carries forced-export copies of whatever else that map's level set needs.
+- the map's **streaming sublevels**, which `import` those classes from `BmScript` rather than carrying them. `BmGame.ini`'s `[BmGame.RGameInfo] LevelVolumeList` is the level set (`JokerBoss_A2/_B1/_B2/_C1` belong to `JokerBoss`), and the persistent level always loads first.
+
+**Retail does nothing about collisions.** Its `CreateExport` reconciles a forced export with `StaticFindObjectFastInternal` exactly as ours does (`BatmanAK.exe.c:4127444`, same guard set), so the copy that loaded first wins and the rest are discarded silently. That is safe in the game only because one map's level set is all that is ever resident. The editor loads maps back to back in one process, so a second map's copy of a class can be replaced by a first map's.
+
+**Do not namespace `BmScript` per map.** The sharing is load-bearing: `JokerBoss_C1` imports `BmScript.RSeqAct_LockForensicsOn` from `JokerBoss.upk`, and every map imports `Startup`'s classes the same way. Per-map namespacing would break both.
+
+Cross-package reuse is therefore kept and reported, not prevented:
+
+- `[BMSCRIPT] reused` (`bmscriptdup`) - a copy replaced by an equally sized one from another file. This is the cooker's own duplication and fires hundreds of times per map, so it is counted but **excluded from the `diagnostics` total** and from the failure replay. Equal size is evidence, not proof, that the two copies hold the same values.
+- `[BMSCRIPT] conflict` (`bmscriptconflict`) - the two copies differ in size, so the discarded one provably held different data. Seen between maps (`Default__RBMCombatThrownObject_DroneRemote`, 62 bytes in `Clocktower` vs 98 in `JokerBoss`) and inside one level set (`RSeqAct_SideStory_Update:Activated`, 2760 bytes in `Clocktower` vs 2874 in `Clocktower_C1_ChA5`).
+- `[BMSCRIPT] unresolved` (`bmscriptmissing`) - a class no loaded package defines, reported once per package instead of only as one `Missing class` line per dropped instance.
+
+**A sublevel measured on its own loses exports, and that is the level set, not a bug in the package.** `JokerBoss_C1` alone drops 3 of 4994 exports (`bmscriptmissing=1`) and 1 after `JokerBoss`; `Clocktower_C1_ChA5` drops 14 of 1144 (`bmscriptmissing=5`) and 0 after `Clocktower`; `Clocktower_C1_Ch34` drops 19 of 2644 and 0. Load the persistent level first when the export count is what you are measuring, and say which packages were resident.
+
+**Reuse suppresses a map's own diagnostics.** A reconciled export is never deserialized, so it reports nothing. `JokerBoss` alone reports layout=243; after `Clocktower` it reports 34, with `bmscriptdup=2386`. Only a package loaded first, or alone, gives its real figures.
 
 ## Build and Run
 

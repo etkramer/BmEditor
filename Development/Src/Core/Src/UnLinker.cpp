@@ -3786,6 +3786,97 @@ static FString BmRemapPackageName( const FString& InName )
 	return InName;
 }
 
+// BM: AK keeps every map's own compiled classes in 'BmScript', a forced-export package with no file on
+// disk - a hardcoded engine name in retail (BatmanAK.exe.c:4075252, index 142, alongside Core/Engine/BmGame).
+// Its shared contents are cooked into Startup.upk and StartupPatch.upk; anything else a map needs is
+// duplicated into that map's persistent level, and its streaming sublevels import it from BmScript.
+// Retail's CreateExport reconciles those duplicates exactly as ours does - the copy that loaded first wins,
+// silently (BatmanAK.exe.c:4127444) - which is safe there only because one map's level set is all that is
+// ever resident. The editor loads maps one after another in one process, so record which file supplied each
+// BmScript object and say so when a later package's copy is thrown away.
+struct FBmScriptSource
+{
+	FString Filename;
+	INT SerialSize;
+};
+static TMap<FString,FBmScriptSource> GBmScriptSources;
+static TMap<FString,BYTE> GBmScriptMissingReported;
+
+static UBOOL IsBmScriptObject( UObject* Object )
+{
+	// Runs for every created export, so compare names rather than building a string per object.
+	static FName BmScriptPackageName( TEXT("BmScript") );
+	return Object != NULL && Object->GetOutermost()->GetFName() == BmScriptPackageName;
+}
+
+static void RegisterBmScriptObject( UObject* Object, INT SerialSize, const FString& InFilename )
+{
+	if( !IsBmScriptObject(Object) )
+	{
+		return;
+	}
+	const FString Path = Object->GetPathName();
+	if( GBmScriptSources.Find(Path) == NULL )
+	{
+		FBmScriptSource Source;
+		Source.Filename = InFilename;
+		Source.SerialSize = SerialSize;
+		GBmScriptSources.Set( Path, Source );
+	}
+}
+
+static void ReportBmScriptReuse( UObject* Object, INT SerialSize, const FString& InFilename )
+{
+	if( !IsBmScriptObject(Object) )
+	{
+		return;
+	}
+	FBmScriptSource* Source = GBmScriptSources.Find( Object->GetPathName() );
+	if( Source == NULL || Source->Filename == InFilename )
+	{
+		return;
+	}
+
+	// A different byte count proves the discarded copy held different values, so instances of it are now
+	// built against another package's defaults. Equal sizes are only evidence, not proof, of a true duplicate.
+	if( Source->SerialSize != SerialSize )
+	{
+		warnf( NAME_Warning, TEXT("[BMSCRIPT] conflict: %s came from %s (%d bytes); %s carries a %d-byte copy, which is discarded"),
+			*Object->GetPathName(), *Source->Filename, Source->SerialSize, *InFilename, SerialSize );
+	}
+	else
+	{
+		// Every map carries its own copy of the BmScript objects it uses, so this fires hundreds of times
+		// per map and is what the cooker intends. It is still a substitution, so it is counted - just not
+		// as a diagnostic, since equal sizes are not proof that the two copies hold the same values.
+		debugf( NAME_Log, TEXT("[BMSCRIPT] reused: %s from %s in place of %s's %d-byte copy"),
+			*Object->GetPathName(), *Source->Filename, *InFilename, SerialSize );
+	}
+}
+
+// A sublevel imports its script classes from whichever package of its map defines them, so an unresolved one
+// is a level-set dependency. Name it once instead of leaving only the 'Missing class' line per dropped instance.
+static void ReportMissingBmScriptClass( ULinkerLoad* Linker, PACKAGE_INDEX ClassIndex, const FString& InFilename )
+{
+	if( !IS_IMPORT_INDEX(ClassIndex) )
+	{
+		return;
+	}
+	const FString Path = Linker->GetImportPathName( -ClassIndex - 1 );
+	if( Path.Left(9) != TEXT("BmScript.") )
+	{
+		return;
+	}
+	const FString Key = InFilename + TEXT("|") + Path;
+	if( GBmScriptMissingReported.Find(Key) != NULL )
+	{
+		return;
+	}
+	GBmScriptMissingReported.Set( Key, 1 );
+	warnf( NAME_Warning, TEXT("[BMSCRIPT] unresolved: %s is not supplied by any loaded package, so %s drops every export of that class"),
+		*Path, *InFilename );
+}
+
 // BM: AK bytecode stores a name as a bare index, so map it through the linker's name table by hand.
 void SerializeScriptName( FArchive& Ar, NAME_INDEX& NameIndex )
 {
@@ -3902,6 +3993,7 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 #if BATMAN
 			// BM: stock UE3 drops the export without a word, so a package half-loads silently.
 			warnf( NAME_Warning, TEXT("Missing class %s for export %s in %s"), *GetExportClassName(Index).ToString(), *GetExportFullName(Index), *Filename );
+			ReportMissingBmScriptClass( this, Export.ClassIndex, Filename );
 #endif
 			return NULL;
 		}
@@ -4214,6 +4306,10 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 				// Found object, associate and return.
 				else
 				{
+#if BATMAN
+					// BM: this package's own copy is about to be thrown away in favour of whatever loaded first.
+					ReportBmScriptReuse( Export._Object, Export.SerialSize, Filename );
+#endif
 					// Mark that we need to dissociate forced exports later on if we are a forced export.
 					if( Export.HasAnyFlags( EF_ForcedExport ) )
 					{
@@ -4308,6 +4404,11 @@ UObject* ULinkerLoad::CreateExport( INT Index )
 			{
 				GForcedExportCount++;
 			}
+
+#if BATMAN
+			// BM: remember who supplied this one, so the next package carrying a copy can name it.
+			RegisterBmScriptObject( Export._Object, Export.SerialSize, Filename );
+#endif
 		}
 	}
 	return Export._Object;
