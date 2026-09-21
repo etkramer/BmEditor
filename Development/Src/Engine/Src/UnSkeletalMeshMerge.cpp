@@ -96,14 +96,6 @@ UBOOL FSkeletalMeshMerge::DoMerge()
 		USkeletalMesh* SrcMesh = SrcMeshList(MeshIdx);
 		if( SrcMesh )
 		{
-#if CONSOLE
-			if ( SrcMesh->bUsePackedPosition )
-			{
-				// BM: packed position must be off to merge meshes
-				debugf(NAME_Error, TEXT("Error in merging meshes. Turn off bUsePackedPosition on Source Mesh (%s)"), *SrcMesh->GetPathName());
-				return FALSE;
-			}
-#endif
 			if( bMaxNumLODsInit )
 			{
 				// initialize

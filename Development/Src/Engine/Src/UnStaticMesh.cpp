@@ -299,14 +299,24 @@ void FPositionVertexBuffer::RemoveLegacyShadowVolumeVertices(UINT InNumVertices)
 }
 
 /** Serializer. */
+#if BATMAN
+enum EBatmanPositionPackType
+{
+	BMPOSPACK_Full	= 0,
+	BMPOSPACK_Half3	= 4,
+};
+#endif
+
 FArchive& operator<<(FArchive& Ar,FPositionVertexBuffer& VertexBuffer)
 {
 #if BATMAN
 	// https://github.com/gildor2/UEViewer/blob/a0bfb468d42be831b126632fd8a0ae6b3614f981/Unreal/UnrealMesh/UnMesh3.cpp#L2677
-	BYTE PositionFormat = 0; // 0 -> FVector, 1 -> half[3], 2 -> half[4]
+	BYTE PositionFormat = BMPOSPACK_Full;
 	if (Ar.LicenseeVer() >= VER_BATMAN2)
 	{
 		Ar << PositionFormat;
+		checkf(PositionFormat == BMPOSPACK_Full || PositionFormat == BMPOSPACK_Half3,
+			TEXT("Unsupported static mesh position pack type %d"), PositionFormat);
 	}
 #endif
 
@@ -320,20 +330,35 @@ FArchive& operator<<(FArchive& Ar,FPositionVertexBuffer& VertexBuffer)
 	}
 #endif
 
-#if BATMAN
-	if (Ar.LicenseeVer() >= VER_BATMAN2)
-	{
-		// TODO: Implement 1/2
-		check(PositionFormat == 0);
-	}
-#endif
-
 	if(Ar.IsLoading())
 	{
 		// Allocate the vertex data storage type.
 		VertexBuffer.AllocateData();
 	}
 
+#if BATMAN
+	// BM: AK stores most static mesh positions as three halves rather than an FVector
+	if (Ar.IsLoading() && PositionFormat == BMPOSPACK_Half3)
+	{
+		INT ElementSize = 0;
+		INT NumPacked = 0;
+		Ar << ElementSize << NumPacked;
+		checkf(ElementSize == 3 * sizeof(WORD), TEXT("Packed static mesh position stride %d"), ElementSize);
+
+		VertexBuffer.VertexData->ResizeBuffer(NumPacked);
+		VertexBuffer.Data = VertexBuffer.VertexData->GetDataPointer();
+		VertexBuffer.Stride = VertexBuffer.VertexData->GetStride();
+		VertexBuffer.NumVertices = NumPacked;
+
+		for (INT VertIndex = 0; VertIndex < NumPacked; VertIndex++)
+		{
+			FFloat16 Packed[3];
+			Ar << Packed[0] << Packed[1] << Packed[2];
+			VertexBuffer.VertexPosition(VertIndex) = FVector(Packed[0], Packed[1], Packed[2]);
+		}
+	}
+	else
+#endif
 	if(VertexBuffer.VertexData != NULL)
 	{
 		// Serialize the vertex data.
@@ -1049,6 +1074,11 @@ FArchive& operator<<(FArchive& Ar,FStaticMeshVertexBuffer& VertexBuffer)
 	{
 		Ar << VertexBuffer.bHasNormalsAndTangents;
 	}
+
+	if (Ar.LicenseeVer() >= VER_STATICMESH_UV_STREAM_TAIL)
+	{
+		Ar << VertexBuffer.StreamTailValue;
+	}
 #endif
 
 	if( Ar.IsLoading() )
@@ -1295,8 +1325,25 @@ void FStaticMeshRenderData::Serialize( FArchive& Ar, UObject* Owner, INT Idx )
 		}
 	}
 
+#if BATMAN
+	// BM: AK writes a needs-CPU-access flag ahead of the triangle and adjacency index buffers, but not the wireframe one
+	if (Ar.LicenseeVer() >= VER_BATMAN2)
+	{
+		Ar << IndexBufferNeedsCPUAccess;
+	}
+#endif
 	Ar << IndexBuffer;
 	Ar << WireframeIndexBuffer;
+#if BATMAN
+	if (Ar.Ver() >= VER_ADDED_ADJACENCY_INDEX_BUFFER)
+	{
+		if (Ar.LicenseeVer() >= VER_BATMAN2)
+		{
+			Ar << AdjacencyIndexBufferNeedsCPUAccess;
+		}
+		Ar << AdjacencyIndexBuffer;
+	}
+#endif
 	if (Ar.Ver() < VER_REMOVED_SHADOW_VOLUMES)
 	{
 		TArray<FMeshEdge> LegacyEdges;
@@ -1732,6 +1779,13 @@ void UStaticMesh::InitializeIntrinsicPropertyValues()
 
 	// BM defaults, mirrored from UStaticMesh::InitializeIntrinsicPropertyValues in BmGame.exe.c.
 	LedgeSetup						= NULL;
+	ExtraLODModel					= NULL;
+	ExtraLODValue					= 0;
+	TrailingValue					= 0;
+	MeshTail[0]						= 1;
+	MeshTail[1]						= 0;
+	MeshTail[2]						= 5;
+	MeshTail[3]						= 0;
 	UseSimpleCollisionAlways		= FALSE;
 	ForceStripComplexCollision		= FALSE;
 	StoreUVsForPhysicalMaterialTexture = FALSE;
@@ -1776,6 +1830,12 @@ void UStaticMesh::AddReferencedObjects( TArray<UObject*>& ObjectArray )
 #endif
 		}
 	}
+#if BATMAN
+	for( INT SocketIndex=0; SocketIndex<Sockets.Num(); SocketIndex++ )
+	{
+		AddReferencedObject( ObjectArray, Sockets(SocketIndex) );
+	}
+#endif
 }
 
 void UStaticMesh::PreEditChange(UProperty* PropertyAboutToChange)
@@ -2017,6 +2077,40 @@ void UStaticMesh::Serialize(FArchive& Ar)
 		Ar << IgnoredLegacyContentTags;
 	}
 
+#if BATMAN
+	// BM: an optional extra LOD model, a fragment array and two ints sit ahead of LODModels
+	if (Ar.Ver() >= VER_ADDED_EXTRA_STATIC_MESH_LOD)
+	{
+		UBOOL bHasExtraLODModel = ExtraLODModel != NULL;
+		Ar << bHasExtraLODModel;
+		if (bHasExtraLODModel)
+		{
+			if (Ar.IsLoading() && ExtraLODModel == NULL)
+			{
+				ExtraLODModel = new FStaticMeshRenderData();
+			}
+			ExtraLODModel->Serialize( Ar, this, 0 );
+		}
+
+		if (Ar.Ver() >= VER_REMOVED_CONVEX_VOLUMES)
+		{
+			Ar << ExtraLODFragments;
+		}
+		else
+		{
+			TArray<INT> LegacyExtraLODData;
+			Ar << LegacyExtraLODData;
+		}
+
+		Ar << ExtraLODValue;
+	}
+
+	if (Ar.Ver() >= VER_ADDED_STATIC_MESH_TRAILING_INT)
+	{
+		Ar << TrailingValue;
+	}
+#endif
+
 	LODModels.Serialize( Ar, this );
 	
 	Ar << LODInfo;
@@ -2083,6 +2177,13 @@ void UStaticMesh::Serialize(FArchive& Ar)
 		Ar << CachedStreamingTextureFactors;
 	}
 	
+#if BATMAN
+	if (Ar.LicenseeVer() >= VER_BATMAN2)
+	{
+		Ar << Sockets;
+	}
+#endif
+
 	if( Ar.Ver() >= VER_KEEP_STATIC_MESH_DEGENERATES )
 	{
 		Ar << bRemoveDegenerates;
@@ -2096,6 +2197,14 @@ void UStaticMesh::Serialize(FArchive& Ar)
 	if (Ar.LicenseeVer() < VER_BATMAN2 && (!GCookingTarget || !Ar.IsSaving()) && InternalVersion >= 19)
 	{
 		Ar << MaterialOverrides;
+	}
+
+	if (Ar.LicenseeVer() >= VER_BATMAN2)
+	{
+		for (INT Index = 0; Index < ARRAY_COUNT(MeshTail); Index++)
+		{
+			Ar << MeshTail[Index];
+		}
 	}
 
 	if (Ar.LicenseeVer() >= 79)

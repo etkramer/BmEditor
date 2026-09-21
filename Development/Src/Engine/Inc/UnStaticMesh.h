@@ -276,6 +276,20 @@ struct FStaticMeshBuildVertex
 	WORD FragmentIndex;
 };
 
+#if BATMAN
+/** BM: Entry of the fragment array AK writes beside the extra LOD model. */
+struct FStaticMeshExtraLODFragment
+{
+	INT		Value;
+	BYTE	Flags[3];
+
+	friend FArchive& operator<<(FArchive& Ar,FStaticMeshExtraLODFragment& F)
+	{
+		return Ar << F.Value << F.Flags[0] << F.Flags[1] << F.Flags[2];
+	}
+};
+#endif
+
 /**
 * Identifies a single chunk of an index buffer
 */
@@ -421,13 +435,6 @@ public:
 		{
 			Ar << E.Fragments;
 		}
-
-#if BATMAN
-		if (Ar.LicenseeVer() >= VER_BATMAN2)
-		{
-			Ar << E.XRayMaterial;
-		}
-#endif
 
 		if (Ar.Ver() >= VER_ADDED_PLATFORMMESHDATA)
 		{
@@ -1020,6 +1027,9 @@ private:
 	/** Whether vertex data includes tangent basis (TangentX/TangentZ). FALSE for BM2 meshes that store only UVs. */
 	UBOOL bHasNormalsAndTangents;
 
+	// BM: AK writes this after the stream header; zero in all retail content examined
+	INT StreamTailValue;
+
 	/** Allocates the vertex data storage type. */
 	void AllocateData();
 };
@@ -1067,6 +1077,12 @@ public:
 	FRawStaticIndexBuffer					IndexBuffer;
 	/** Index buffer resource for rendering wireframe mode */
 	FRawIndexBuffer							WireframeIndexBuffer;
+#if BATMAN
+	// BM: AK's tessellation adjacency index buffer, always empty in cooked content
+	FRawStaticIndexBuffer					AdjacencyIndexBuffer;
+	UBOOL									IndexBufferNeedsCPUAccess;
+	UBOOL									AdjacencyIndexBufferNeedsCPUAccess;
+#endif
 	/** Index buffer resource for rendering wireframe mode */
 	TArray<FStaticMeshElement>				Elements;
 	/** Source data for mesh */
@@ -1221,6 +1237,18 @@ public:
 
 	/** BM: Ledge collision setup object (URLedgeSetup; typed as UObject* until that class is ported). */
 	UObject*								LedgeSetup;
+
+#if BATMAN
+	// BM: an optional extra LOD model AK writes ahead of LODModels, absent from all retail content examined
+	class FStaticMeshRenderData*			ExtraLODModel;
+	TArray<struct FStaticMeshExtraLODFragment>	ExtraLODFragments;
+	INT										ExtraLODValue;
+	INT										TrailingValue;
+	/** BM: Named attachment points, serialized natively by AK. */
+	TArray<UObject*>						Sockets;
+	// BM: four dwords between bRemoveDegenerates and LedgeSetup; constant (1, 0, 5, 0) in all retail content examined
+	INT										MeshTail[4];
+#endif
 
 	// Artist-accessible options.
 

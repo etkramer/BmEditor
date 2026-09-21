@@ -2211,7 +2211,7 @@ struct FSkelMeshSection
 		Ar << S.ChunkIndex;
 		Ar << S.BaseIndex;
 		
-		if (Ar.Ver() < VER_DWORD_SKELETAL_MESH_INDICES || Ar.LicenseeVer() >= VER_BATMAN2)
+		if (Ar.Ver() < VER_DWORD_SKELETAL_MESH_INDICES)
 		{
 			WORD NumTriangles = (WORD)S.NumTriangles;
 			Ar << NumTriangles;
@@ -2946,10 +2946,19 @@ private:
 	/** The scale of Mesh **/
 	FVector MeshExtension;
 
-	/** 
+#if BATMAN
+	// BM: AK writes these after the vertex stream; empty and zero in all retail content seen
+	TArray<FVector> TailVectors;
+	INT TailValue;
+
+	/** BM: reads AK's pack-type-prefixed vertex stream, unpacking fixed-point positions. */
+	void SerializeBatmanVertexData( FArchive& Ar );
+#endif
+
+	/**
 	* Allocates the vertex data storage type. Based on UV precision needed
 	*/
-	void AllocateData();	
+	void AllocateData();
 
 	/** 
 	* Allocates the vertex data to packed position type. 
@@ -3360,7 +3369,13 @@ public:
 	/** 
 	* Rendering data.
 	*/
-	FMultiSizeIndexContainer		MultiSizeIndexContainer; 
+	FMultiSizeIndexContainer		MultiSizeIndexContainer;
+#if BATMAN
+	// BM: AK writes an adjacency index buffer after the vertex influences (always empty in cooked content)
+	FMultiSizeIndexContainer		AdjacencyIndexContainer;
+	// BM: trailing per-LOD int array AK appends at licensee >= 107
+	TArray<INT>					LODTail;
+#endif
 	UINT						Size;
 	UINT						NumVertices;
 	/** The number of unique texture coordinate sets in this lod */
@@ -3480,10 +3495,27 @@ struct FSkeletalMeshLODInfo
 	TArray<BYTE>						OLD_TriangleSorting;	// deprecated
 	TArray<FTriangleSortSettings>		TriangleSortSettings;
 
-	/** BM: Author recorded on the source asset. */
-	FString								SourceAuthor;
+	/** BM: Skips vertex compression for this LOD. */
+	BITFIELD							bDisableCompression:1;
+	/** BM: Skips packed positions for this LOD. */
+	BITFIELD							bRockDisableCompressedPositions:1;
+	/** BM: Uses the most aggressive position packing for this LOD. */
+	BITFIELD							bRockUseSuperCompressedPositions:1;
+	/** BM: Set once the LOD has been auto-simplified. */
+	BITFIELD							bHasBeenSimplified:1;
+
 	/** BM: Full source path recorded on the asset. */
 	FString								MaxFilePath;
+	/** BM: Source path the asset was first imported from. */
+	FString								RootSourceFilePath;
+	/** BM: Source path recorded on the asset. */
+	FString								SourceFilePath;
+	/** BM: Source timestamp recorded on the asset. */
+	FString								SourceFileTimestamp;
+	/** BM: Author recorded on the source asset. */
+	FString								SourceAuthor;
+	/** BM: Import options the asset was built with. */
+	UObject*							SourceImportOptions;
 };
 
 struct FBoneMirrorInfo
@@ -3518,6 +3550,74 @@ struct FStretchDescription
 	BYTE	Phase;
 };
 template <> struct TIsPODType<FStretchDescription> { enum { Value = true }; };
+
+/** BM: Per-LOD clothing section mapping. */
+struct FApexClothingLodInfo
+{
+	TArray<INT>	ClothingSectionInfo;
+};
+
+/** BM: Clothing asset to section mapping. */
+struct FApexClothingAssetInfo
+{
+	TArray<FApexClothingLodInfo>	ClothingLodInfo;
+	FName							ClothingAssetName;
+};
+
+/** BM: How a mirrored bone's transform is rearranged. */
+struct FCharacterMirrorBoneAction
+{
+	BYTE	ShuffleRotation;
+	BYTE	FlipRotation;
+	BYTE	FlipTranslation;
+	BYTE	Padding;
+};
+
+/** BM: A bone in the character mirror table. */
+struct FCharacterMirrorBone
+{
+	INT							SourceBoneIndex;
+	FCharacterMirrorBoneAction	Action;
+};
+template <> struct TIsPODType<FCharacterMirrorBone> { enum { Value = true }; };
+
+/** BM: Normalized translation mass for one bone. */
+struct FBoneMass
+{
+	INT		BoneIndex;
+	FLOAT	Mass;
+};
+template <> struct TIsPODType<FBoneMass> { enum { Value = true }; };
+
+/** BM: Normalized rotation mass for one bone. */
+struct FRotationBoneMass
+{
+	FQuat	RotationOffset;
+	INT		BoneIndex;
+	FLOAT	Mass;
+};
+
+/** BM: Per-bone masses driving procedural motion. */
+struct FNormalizedBoneMasses
+{
+	TArray<FBoneMass>			Translation;
+	TArray<FRotationBoneMass>	Rotation;
+};
+
+/** BM: Per-LOD auto-simplification settings. */
+struct FSkeletalMeshOptimizationSettings
+{
+	FLOAT			MaxDeviationPercentage;
+	BYTE			SilhouetteImportance;
+	BYTE			TextureImportance;
+	BYTE			ShadingImportance;
+	BYTE			SkinningImportance;
+	BYTE			NormalMode;
+	FLOAT			BoneReductionRatio;
+	INT				MaxBonesPerVertex;
+	BITFIELD		UseVertexWelding:1;
+	TArray<FLOAT>	MaterialPriorities;
+};
 
 struct FBoneMirrorExport
 {
@@ -3673,6 +3773,8 @@ class USkeletalMesh : public UObject
 	TArray<class UApexClothingAsset *>	ClothingAssets;
 	/** BM: Bones that pin cloth back to the mesh when teleporting. */
 	TArray<FName>					ClothingTeleportRefBones;
+	/** BM: Clothing asset to section mapping, one entry per clothing asset. */
+	TArray<FApexClothingAssetInfo>	ClothingLodMap;
 	/** Origin in original coordinate system */
 	FVector 						Origin;
 	/** Amount to rotate when importing (mostly for yawing) */
@@ -3687,6 +3789,8 @@ class USkeletalMesh : public UObject
 
 	/** Static LOD models */
 	TIndirectArray<FStaticLODModel>	LODModels;
+	/** BM: Editor-side source mesh data. */
+	void*							SourceData;
 	/** Reference skeleton precomputed bases. */
 	TArray<FBoneAtom>					RefBasesInvMatrix;	// @todo: wasteful ?!
 	/** BM: Maps FaceFX bone index to RefSkeleton index. */
@@ -3695,8 +3799,17 @@ class USkeletalMesh : public UObject
 	TArray<FBoneMirrorInfo>			SkelMirrorTable;
 	BYTE							SkelMirrorAxis;
 	BYTE							SkelMirrorFlipAxis;
-	
-	/** 
+
+	/** BM: Per-bone mirroring used by the character mirror system. */
+	TArray<FCharacterMirrorBone>	CharacterMirrorBones;
+	/** BM: Bones counted as upper body. */
+	TArray<INT>						CharacterUpperBodyBoneIndices;
+	/** BM: Normalized per-bone masses driving procedural motion. */
+	FNormalizedBoneMasses			NormalizedBoneMasses;
+	/** BM: Bone the investigate system points at. */
+	INT								InvestigateLocationBoneIndex;
+
+	/**
 	 *	Array of named socket locations, set up in editor and used as a shortcut instead of specifying 
 	 *	everything explicitly to AttachComponent in the SkeletalMeshComponent. 
 	 */
@@ -3711,8 +3824,11 @@ class USkeletalMesh : public UObject
 	/** Match with BoneBreakNames array **/
 	TArray<BYTE>					BoneBreakOptions;
 
-	/** Array of information for each LOD level. */	
+	/** Array of information for each LOD level. */
 	TArray<FSkeletalMeshLODInfo>	LODInfo;
+
+	/** BM: Simplification settings, one entry per LOD. */
+	TArray<FSkeletalMeshOptimizationSettings>	OptimizationSettings;
 
 	/** For each bone specified here, all triangles rigidly weighted to that bone are entered into a kDOP, allowing per-poly collision checks. */
 	TArray<FName>					PerPolyCollisionBones;
@@ -3735,24 +3851,42 @@ class USkeletalMesh : public UObject
 	/** All meshes default to GPU skinning. Set to True to enable CPU skinning */
 	BITFIELD						bForceCPUSkinning:1;
 
+	/** BM: Mesh is used as a particle vertex spawn source. */
+	BITFIELD						bUsedWithParticleVertexSpawn:1;
+
 	/** If true, use 32 bit UVs. If false, use 16 bit UVs to save memory */
 	BITFIELD						bUseFullPrecisionUVs:1;
-	/** BM: Packed-position skinning flag. */
-	BITFIELD						bUsePackedPosition:1;
-	/** BM: Force-shadow-volume flag. */
-	BITFIELD						ForceShadowVolumes:1;
+	/** BM: Drops vertex colours on cook. */
+	BITFIELD						bStripVertexColours:1;
+	/** BM: Set once the mesh has been auto-simplified. */
+	BITFIELD						bHasBeenSimplified:1;
 	/** BM: Per-bone bounds toggle. */
 	BITFIELD						EnablePerBoneBounds:1;
 	/** BM: FaceFX toggle. */
 	BITFIELD						EnableFaceFX:1;
 	/** BM: FaceFX bone scaling toggle. */
 	BITFIELD						EnableFaceFXBoneScaling:1;
+	/** BM: Needs the full solver set at runtime. */
+	BITFIELD						RequiresMaxSolvers:1;
 	/** BM: Twist-bone fixers toggle. */
 	BITFIELD						EnableTwistBoneFixers:1;
-	/** BM: Clavicle fixer toggle. */
-	BITFIELD						EnableClavicleFixer:1;
+	/** BM: Knee/elbow fixer toggle. */
+	BITFIELD						EnableKneeElbowFixers:1;
+	/** BM: Neck twist fixer toggle. */
+	BITFIELD						EnableNeckTwistFixer:1;
+	/** BM: Collar twist fixer toggle. */
+	BITFIELD						EnableCollarTwistFixer:1;
 	/** BM: Stretches toggle. */
 	BITFIELD						EnableStretches:1;
+	/** BM: Skel controls toggle. */
+	BITFIELD						EnableSkelControls:1;
+	/** BM: Editor-only constraint feed override. */
+	BITFIELD						TEMP_EDITOR_HACK_ForceEulerFeedConstraints:1;
+	/** BM: Editor-only constraint feed override. */
+	BITFIELD						TEMP_EDITOR_HACK_ForceQuatFeedConstraints:1;
+
+	/** BM: Weight of the collar twist fixer. */
+	FLOAT							CollarTwistWeight;
 
 	/** FaceFX animation asset */
 	UFaceFXAsset*					FaceFXAsset;
@@ -3775,8 +3909,6 @@ class USkeletalMesh : public UObject
 	INT								LODBiasPS3;
 	/** LOD bias to use for Xbox 360.				*/
 	INT								LODBiasXbox360;
-	/** BM: Max bones per draw batch. */
-	INT								MaxBonesPerBatch;
 	/** BM: Cached package path name. */
 	FName							CachedPathName;
 
@@ -3989,6 +4121,9 @@ class USkeletalMesh : public UObject
 	/** BM: Full source path recorded on the asset. */
 	FString							MaxFilePath;
 
+	/** BM: Extra meshes whose sockets are merged into this one. */
+	TArray<USkeletalMesh*>			ExtraSocketMeshes;
+
 	/** Mapping between each vertex of the simulated soft-body's surface-mesh and the graphics mesh. */
 	TArray<INT>								SoftBodySurfaceToGraphicsVertMap;
 
@@ -4066,25 +4201,25 @@ class USkeletalMesh : public UObject
 	/** BM: Per-frame stretches applied to specific bones. */
 	TArray<FStretchDescription>		Stretches;
 
+	/** BM: Skel control trees run on this mesh. */
+	TArray<class UAnimTree*>		SkelControls;
+
 	/** BM: ApexClothing flag. */
 	BITFIELD						bUseClothingAssetMaterial:1;
 	/** BM: ApexClothing flag. */
 	BITFIELD						bUseClothCollisionChannels:1;
 
-	/** BM: D3D11 tessellation desired mode. */
-	BYTE							DesiredTessellationMode;
-	/** BM: D3D11 tessellation override-watertight-normals flag. */
-	BITFIELD						EnableWatertightNormalsOverride:1;
-	/** BM: D3D11 tessellation enable-mesh-dicing flag. */
-	BITFIELD						EnableMeshDicingForTessellation:1;
-	/** BM: D3D11 tessellation dicing target map width. */
-	INT								DicingTargetMapWidth;
-	/** BM: D3D11 tessellation dicing target map height. */
-	INT								DicingTargetMapHeight;
-	/** BM: D3D11 tessellation dicing target texels per edge. */
-	FLOAT							DicingTexelsPerEdge;
-	/** BM: D3D11 tessellation desired distance. */
-	FLOAT							DesiredTessellationDistance;
+	/** BM: Display factor below which cloth is fully skinned. */
+	FLOAT							DisplayFactorForFullySkinnedCloth;
+	/** BM: Display factor above which cloth is fully simulated. */
+	FLOAT							DisplayFactorForFullyPhysicalCloth;
+	/** BM: Scales wind applied to cloth. */
+	FLOAT							ClothWindStrengthScale;
+	/** BM: Time cloth takes to adapt to a wind change. */
+	FLOAT							ClothWindAdaptTime;
+
+	/** BM: Version of the index buffer optimiser the mesh was built with. */
+	INT								IndexBufferOptimisationVersion;
 
 	/**
 	* Initialize the mesh's render resources.

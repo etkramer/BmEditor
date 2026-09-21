@@ -8320,6 +8320,9 @@ static void CreateBareEditorEngine()
 	EngineClass->ConditionalLink();
 	DefaultEngine->LoadConfig();
 	GEngine = GEditor = ConstructObject<UEditorEngine>( EngineClass );
+
+	// Several PostLoad paths fall back on GEngine->DefaultMaterial, which only InitEditor would normally load.
+	GEngine->DefaultMaterial = LoadObject<UMaterial>( NULL, *GEngine->DefaultMaterialName, NULL, LOAD_None, NULL );
 }
 
 void UCheckPackageLoadCommandlet::CreateCustomEngine()

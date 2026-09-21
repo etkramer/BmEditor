@@ -53,6 +53,9 @@ FSkeletalMeshVertexBuffer::FSkeletalMeshVertexBuffer()
 ,	NumVertices(0)
 ,	MeshOrigin(FVector(0.f, 0.f, 0.f))
 , 	MeshExtension(FVector(1.f,1.f,1.f))
+#if BATMAN
+,	TailValue(0)
+#endif
 {
 }
 
@@ -124,6 +127,103 @@ void FSkeletalMeshVertexBuffer::InitRHI()
 		VertexBufferRHI = RHICreateVertexBuffer(ResourceArray->GetResourceDataSize(),ResourceArray,RUF_Static);
 	}
 }
+
+#if BATMAN
+// BM: AK replaced UE3's bUsePackedPosition with a pack type written ahead of the vertex stream.
+enum EBatmanVertexPackType
+{
+	BMVERTPACK_Full			= 0,
+	BMVERTPACK_Fixed64A		= 1,
+	BMVERTPACK_Fixed64B		= 2,
+	BMVERTPACK_Fixed32		= 3,
+};
+
+template<typename VertexType>
+static void SerializeBatmanVertices( FArchive& Ar, BYTE* Data, UINT Stride, INT NumVertices, INT PackType, const FVector& MeshOrigin, const FVector& MeshExtension )
+{
+	for( INT VertIndex=0; VertIndex < NumVertices; VertIndex++ )
+	{
+		VertexType& Vertex = *(VertexType*)(Data + VertIndex * Stride);
+		Vertex.FGPUSkinVertexBase::Serialize(Ar);
+
+		if( PackType == BMVERTPACK_Fixed64A || PackType == BMVERTPACK_Fixed64B )
+		{
+			SWORD Packed[4];
+			Ar << Packed[0] << Packed[1] << Packed[2] << Packed[3];
+			Vertex.Position.X = (Packed[0] / 32767.0f) * MeshExtension.X + MeshOrigin.X;
+			Vertex.Position.Y = (Packed[1] / 32767.0f) * MeshExtension.Y + MeshOrigin.Y;
+			Vertex.Position.Z = (Packed[2] / 32767.0f) * MeshExtension.Z + MeshOrigin.Z;
+		}
+		else if( PackType == BMVERTPACK_Fixed32 )
+		{
+			DWORD Packed = 0;
+			Ar << Packed;
+			Vertex.Position.X = ((Packed & 0x3FF) / 1023.0f) * MeshExtension.X + MeshOrigin.X;
+			Vertex.Position.Y = (((Packed >> 10) & 0x3FF) / 1023.0f) * MeshExtension.Y + MeshOrigin.Y;
+			Vertex.Position.Z = (((Packed >> 20) & 0x3FF) / 1023.0f) * MeshExtension.Z + MeshOrigin.Z;
+		}
+		else
+		{
+			Ar << Vertex.Position;
+		}
+
+		for( UINT UVIndex=0; UVIndex < ARRAY_COUNT(Vertex.UVs); UVIndex++ )
+		{
+			Ar << Vertex.UVs[UVIndex];
+		}
+	}
+}
+
+#define SERIALIZE_BATMAN_VERTICES_TEMPLATE( VertexDataType, NumUVs )																	\
+	switch(NumUVs)																														\
+	{																																	\
+		case 1: SerializeBatmanVertices< VertexDataType<1> >(Ar, VertData, VertStride, NumVertices, PackType, Origin, Extension); break;	\
+		case 2: SerializeBatmanVertices< VertexDataType<2> >(Ar, VertData, VertStride, NumVertices, PackType, Origin, Extension); break;	\
+		case 3: SerializeBatmanVertices< VertexDataType<3> >(Ar, VertData, VertStride, NumVertices, PackType, Origin, Extension); break;	\
+		case 4: SerializeBatmanVertices< VertexDataType<4> >(Ar, VertData, VertStride, NumVertices, PackType, Origin, Extension); break;	\
+		default: appErrorf(TEXT("Invalid number of texture coordinates"));																\
+	}																																	\
+
+void FSkeletalMeshVertexBuffer::SerializeBatmanVertexData( FArchive& Ar )
+{
+	INT PackType = BMVERTPACK_Full;
+	INT ElementSize = 0;
+	INT NumVertices = 0;
+
+	if( Ar.IsSaving() )
+	{
+		// The editor has no packed positions to write back, so save the unpacked form AK also accepts.
+		Ar << PackType;
+		VertexData->Serialize(Ar);
+		Data = VertexData->GetDataPointer();
+		Stride = VertexData->GetStride();
+		this->NumVertices = VertexData->GetNumVertices();
+		return;
+	}
+
+	Ar << PackType;
+	Ar << ElementSize << NumVertices;
+
+	VertexData->ResizeBuffer(NumVertices);
+	Data = VertexData->GetDataPointer();
+	Stride = VertexData->GetStride();
+	this->NumVertices = VertexData->GetNumVertices();
+
+	const FVector Origin = MeshOrigin;
+	const FVector Extension = MeshExtension;
+	BYTE* const VertData = Data;
+	const UINT VertStride = Stride;
+
+	if( !bUseFullPrecisionUVs )
+	{
+		SERIALIZE_BATMAN_VERTICES_TEMPLATE( TGPUSkinVertexFloat16Uvs, NumTexCoords );
+	}
+	else
+	{
+		SERIALIZE_BATMAN_VERTICES_TEMPLATE( TGPUSkinVertexFloat32Uvs, NumTexCoords );
+	}
+}
+#endif
 
 /**
 * Serializer for this class
@@ -209,15 +309,32 @@ FArchive& operator<<(FArchive& Ar,FSkeletalMeshVertexBuffer& VertexBuffer)
 		{
 			if( VertexBuffer.VertexData != NULL )
 			{
-				VertexBuffer.VertexData->Serialize(Ar);	
+#if BATMAN
+				if( Ar.LicenseeVer() >= VER_SKELMESH_PACKED_GPU_VERTS && !Ar.IsCountingMemory() )
+				{
+					VertexBuffer.SerializeBatmanVertexData(Ar);
+				}
+				else
+#endif
+				{
+					VertexBuffer.VertexData->Serialize(Ar);
 
-				// update cached buffer info
-				VertexBuffer.Data = VertexBuffer.VertexData->GetDataPointer();
-				VertexBuffer.Stride = VertexBuffer.VertexData->GetStride();
-				VertexBuffer.NumVertices = VertexBuffer.VertexData->GetNumVertices();
+					// update cached buffer info
+					VertexBuffer.Data = VertexBuffer.VertexData->GetDataPointer();
+					VertexBuffer.Stride = VertexBuffer.VertexData->GetStride();
+					VertexBuffer.NumVertices = VertexBuffer.VertexData->GetNumVertices();
+				}
 			}
 		}
 	}
+
+#if BATMAN
+	if( Ar.LicenseeVer() >= VER_SKELMESH_GPU_VERTS_TAIL )
+	{
+		Ar << VertexBuffer.TailVectors;
+		Ar << VertexBuffer.TailValue;
+	}
+#endif
 
 	return Ar;
 }
@@ -1050,30 +1167,6 @@ void FMultiSizeIndexContainer::CopyIndexBuffer(const TArray<DWORD>& NewArray)
 
 FArchive& operator<<(FArchive& Ar, FMultiSizeIndexContainer& Buffer)
 {
-#if BATMAN
-	if (Ar.LicenseeVer() >= VER_BATMAN2)
-	{
-		// BM2 format only serializes NeedsCPUAccess, so recover DataTypeSize from the
-		// element size that FRawStaticIndexBuffer16or32's BulkSerialize writes next
-		Ar << Buffer.NeedsCPUAccess;
-
-		if (Ar.IsLoading())
-		{
-			INT PeekedElementSize = sizeof(WORD);
-			const INT PeekPos = Ar.Tell();
-			Ar << PeekedElementSize;
-			Ar.Seek(PeekPos);
-
-			Buffer.DataTypeSize = (PeekedElementSize == sizeof(DWORD)) ? sizeof(DWORD) : sizeof(WORD);
-
-			if (Buffer.DataTypeSize != sizeof(WORD))
-			{
-				warnf(NAME_Warning, TEXT("Skeletal mesh LOD uses 32-bit indices - it exceeds MAXWORD verts and will not load in the retail game"));
-			}
-		}
-	}
-	else
-#endif
 	if (Ar.IsLoading() && Ar.Ver() < VER_DWORD_SKELETAL_MESH_INDICES)
 	{
 		Buffer.NeedsCPUAccess = TRUE;
@@ -1179,9 +1272,39 @@ void FStaticLODModel::Serialize( FArchive& Ar, UObject* Owner, INT Idx )
 		TArray<FMeshEdge> LegacyEdges;
 		Ar << LegacyEdges;
 	}
+#if BATMAN
+	// BM: AK widened RequiredBones to INT; ours stays BYTE, which is the UE3 256-bone limit
+	if (Ar.LicenseeVer() >= VER_SKELMESH_INT_REQUIRED_BONES)
+	{
+		TArray<INT> WideRequiredBones;
+		if (!Ar.IsLoading())
+		{
+			WideRequiredBones.Add(RequiredBones.Num());
+			for (INT I = 0; I < RequiredBones.Num(); ++I)
+			{
+				WideRequiredBones(I) = RequiredBones(I);
+			}
+		}
+		Ar << WideRequiredBones;
+		if (Ar.IsLoading())
+		{
+			RequiredBones.Empty(WideRequiredBones.Num());
+			RequiredBones.Add(WideRequiredBones.Num());
+			for (INT I = 0; I < WideRequiredBones.Num(); ++I)
+			{
+				if (WideRequiredBones(I) > MAXBYTE)
+				{
+					warnf(NAME_Warning, TEXT("Skeletal mesh LOD required bone %d exceeds the 256-bone limit"), WideRequiredBones(I));
+				}
+				RequiredBones(I) = (BYTE)WideRequiredBones(I);
+			}
+		}
+	}
+	else
+#endif
 	Ar << RequiredBones;
 
-	if( Ar.IsLoading() && (Ar.Ver() < VER_DWORD_SKELETAL_MESH_INDICES || Ar.LicenseeVer() >= VER_BATMAN2) )
+	if( Ar.IsLoading() && Ar.Ver() < VER_DWORD_SKELETAL_MESH_INDICES )
 	{
 		LegacyRawPointIndices.Serialize( Ar, Owner );
 		WORD* Src = (WORD*)LegacyRawPointIndices.Lock(LOCK_READ_ONLY);
@@ -1195,26 +1318,6 @@ void FStaticLODModel::Serialize( FArchive& Ar, UObject* Owner, INT Idx )
 		LegacyRawPointIndices.Unlock();
 		RawPointIndices.Unlock();
 	}
-#if BATMAN
-	else if (Ar.LicenseeVer() >= VER_BATMAN2)
-	{
-		// Saving BM2 format: write as WORD bulk data to match what BM2 expects on load
-		INT ElementCount = RawPointIndices.GetElementCount();
-		LegacyRawPointIndices.Lock(LOCK_READ_WRITE);
-		WORD* Dest = (WORD*)LegacyRawPointIndices.Realloc(ElementCount);
-		if (ElementCount > 0)
-		{
-			INT* Src = (INT*)RawPointIndices.Lock(LOCK_READ_ONLY);
-			for (INT I = 0; I < ElementCount; ++I)
-			{
-				Dest[I] = (WORD)Src[I];
-			}
-			RawPointIndices.Unlock();
-		}
-		LegacyRawPointIndices.Unlock();
-		LegacyRawPointIndices.Serialize(Ar, Owner);
-	}
-#endif
 	else
 	{
 		RawPointIndices.Serialize( Ar, Owner );
@@ -1250,6 +1353,18 @@ void FStaticLODModel::Serialize( FArchive& Ar, UObject* Owner, INT Idx )
 	{
 		Ar << VertexInfluences;
 	}
+
+#if BATMAN
+	if (Ar.Ver() >= VER_ADDED_ADJACENCY_INDEX_BUFFER)
+	{
+		Ar << AdjacencyIndexContainer;
+	}
+
+	if (Ar.LicenseeVer() >= VER_SKELMESH_LOD_TAIL)
+	{
+		Ar << LODTail;
+	}
+#endif
 }
 
 /**
@@ -1860,15 +1975,6 @@ void USkeletalMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 
 	UProperty* PropertyThatChanged = PropertyChangedEvent.Property;
 
-	// reassure if UsePackedPosition == FALSE when ForceCPUSkinning == TRUE
-	// if so, turn PackedPosition off to ensure users see same result as how it works internally
-	if ( GIsEditor &&
-		PropertyThatChanged && bForceCPUSkinning && bUsePackedPosition )
-	{
-		bUsePackedPosition = FALSE;
-		warnf(TEXT("Packed position isn't supported for CPU skinning"));
-	}
-
 	if( GIsEditor &&
 		PropertyThatChanged &&
 		PropertyThatChanged->GetFName() == FName(TEXT("bUseFullPrecisionUVs")) )
@@ -1897,7 +2003,7 @@ void USkeletalMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 	// rebuild vertex buffers
 	for( INT LODIndex = 0;LODIndex < LODModels.Num();LODIndex++ )
 	{
-		LODModels(LODIndex).BuildVertexBuffers(this, bUsePackedPosition);
+		LODModels(LODIndex).BuildVertexBuffers(this, FALSE);
 	}
 
 	// Reinitialize the mesh's render resources.
@@ -2011,19 +2117,6 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 	Ar << NameIndexMap;
 	Ar << PerPolyBoneKDOPs;
 
-#if BATMAN
-	// BM emits a DWORD holding bUseFullPrecisionUVs between PerPolyBoneKDOPs and BoneBreakNames.
-	if (Ar.LicenseeVer() >= VER_BATMAN1)
-	{
-		UBOOL bFlag = bUseFullPrecisionUVs;
-		Ar << bFlag;
-		if (Ar.IsLoading())
-		{
-			bUseFullPrecisionUVs = bFlag ? TRUE : FALSE;
-		}
-	}
-#endif
-
 	if (Ar.Ver() >= VER_ADDED_EXTRA_SKELMESH_VERTEX_INFLUENCE_MAPPING)
 	{
 		Ar << BoneBreakNames;
@@ -2063,6 +2156,13 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 	{
 		Ar << CachedStreamingTextureFactors;
 	}
+#if BATMAN
+	// BM: AK closes the mesh with GraphicsIndexIsCloth, always empty in cooked content
+	if ( Ar.LicenseeVer() >= VER_BATMAN4 )
+	{
+		Ar << GraphicsIndexIsCloth;
+	}
+#endif
 #if !CONSOLE
 	// Strip away loaded Editor-only data if we're a client and never care about saving.
 	if( Ar.IsLoading() && GIsClient && !GIsEditor && !GIsUCC )

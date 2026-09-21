@@ -140,3 +140,51 @@ struct native StretchInstances
 {
 	var StretchPhaseInstances Phases[EStretchPhase];
 };
+
+enum SkeletalMeshOptimizationImportance
+{
+	SMOI_Normal,
+	SMOI_High,
+	SMOI_Highest,
+};
+
+enum SkeletalMeshOptimizationNormalMode
+{
+	SMONM_PreserveSmoothingGroups,
+	SMONM_RecalculateNormals,
+	SMONM_RecalculateNormalsSoft,
+	SMONM_RecalculateNormalsHard,
+};
+
+struct native CharacterMirrorBoneAction
+{
+	var byte ShuffleRotation;
+	var byte FlipRotation;
+	var byte FlipTranslation;
+	var byte Padding;
+};
+
+struct native CharacterMirrorBone
+{
+	var int SourceBoneIndex;
+	var CharacterMirrorBoneAction Action;
+};
+
+struct native BoneMass
+{
+	var int BoneIndex;
+	var float Mass;
+};
+
+struct native RotationBoneMass
+{
+	var quat RotationOffset;
+	var int BoneIndex;
+	var float Mass;
+};
+
+struct native NormalizedBoneMasses
+{
+	var array<BoneMass> Translation;
+	var array<RotationBoneMass> Rotation;
+};

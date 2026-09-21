@@ -738,14 +738,29 @@ enum ELicenseeVersion
 	// - UStaticMeshComponent serializes XRayMaterials and ThermalMaterials
 	VER_STATICMESHCOMPONENT_VIEW_MATERIALS = 102,
 
+	// - FStaticLODModel gained a trailing int array
+	VER_SKELMESH_LOD_TAIL = 107,
+
 	// - Summary stores a table of string triples
 	VER_SUMMARY_STRING_TABLE = 110,
 
 	// - UMeshComponent gained BatmobileViewMaterials
 	VER_MESHCOMPONENT_BATMOBILE_VIEW_MATERIALS = 138,
 
+	// - FStaticLODModel::RequiredBones widened to INT
+	VER_SKELMESH_INT_REQUIRED_BONES = 159,
+
 	// - Summary stores the file offset of the precached export
 	VER_SUMMARY_PRECACHE_OFFSET = 175,
+
+	// - The GPU skin vertex buffer gained a trailing vector array and int
+	VER_SKELMESH_GPU_VERTS_TAIL = 190,
+
+	// - The static mesh UV stream gained a trailing int
+	VER_STATICMESH_UV_STREAM_TAIL = 194,
+
+	// - The GPU skin vertex buffer leads with a position pack type
+	VER_SKELMESH_PACKED_GPU_VERTS = 192,
 
 	// - UStaticMeshComponent gained LODBakeMaterials
 	VER_STATICMESHCOMPONENT_LOD_BAKE_MATERIALS = 199,

@@ -30,6 +30,23 @@ var()	const native			array<MaterialInterface>	Materials;
 var()	const native			array<ApexClothingAsset>    ClothingAssets;
 /** BM: Bones that pin cloth back to the mesh when teleporting. */
 var()	array<name>				ClothingTeleportRefBones;
+
+/** BM: Per-LOD clothing section mapping. */
+struct native ApexClothingLodInfo
+{
+	var()	editconst array<int>	ClothingSectionInfo;
+};
+
+/** BM: Clothing asset to section mapping. */
+struct native ApexClothingAssetInfo
+{
+	var()	editconst array<ApexClothingLodInfo>	ClothingLodInfo;
+	var		name								ClothingAssetName;
+};
+
+/** BM: Clothing asset to section mapping, one entry per clothing asset. */
+var()	editconst array<ApexClothingAssetInfo>	ClothingLodMap;
+
 /** Origin in original coordinate system */
 var()	const native			vector					Origin;
 /** Amount to rotate when importing (mostly for yawing) */
@@ -40,6 +57,8 @@ var		const native			int						SkeletalDepth;
 var		const native			map{FName,INT}			NameIndexMap;
 
 var		const native private	IndirectArray_Mirror	LODModels;		// FStaticLODModel
+/** BM: Editor-side source mesh data. */
+var		const native			pointer					SourceData{struct FSkeletalMeshSourceData};
 var		const native			array<AnimNode.BoneAtom>			RefBasesInvMatrix;
 /** BM: Maps FaceFX bone index to RefSkeleton index. */
 var		const					array<int>				FaceFXBoneToRefBone;
@@ -64,6 +83,15 @@ struct native BoneMirrorExport
 var()	editfixedsize	array<BoneMirrorInfo>	SkelMirrorTable;
 var()	EAxis									SkelMirrorAxis;
 var()	EAxis									SkelMirrorFlipAxis;
+
+/** BM: Per-bone mirroring used by the character mirror system. */
+var		array<RSkeletalMeshComponent_Export.CharacterMirrorBone>	CharacterMirrorBones;
+/** BM: Bones counted as upper body. */
+var		array<int>								CharacterUpperBodyBoneIndices;
+/** BM: Normalized per-bone masses driving procedural motion. */
+var		RSkeletalMeshComponent_Export.NormalizedBoneMasses	NormalizedBoneMasses;
+/** BM: Bone the investigate system points at. */
+var		int										InvestigateLocationBoneIndex;
 
 var		array<SkeletalMeshSocket>		Sockets;
 
@@ -130,14 +158,48 @@ struct native SkeletalMeshLODInfo
 	/** Per-section sorting options */
 	var		deprecated array<TriangleSortOption>	TriangleSorting;
 	var()	editfixedsize array<TriangleSortSettings> TriangleSortSettings;
+	/** BM: Skips vertex compression for this LOD. */
+	var		bool						bDisableCompression;
+	/** BM: Skips packed positions for this LOD. */
+	var()	bool						bRockDisableCompressedPositions;
+	/** BM: Uses the most aggressive position packing for this LOD. */
+	var()	bool						bRockUseSuperCompressedPositions;
+	/** BM: Set once the LOD has been auto-simplified. */
+	var		bool						bHasBeenSimplified;
+	/** BM: Full source path recorded on the asset. */
+	var		editoronly string			MaxFilePath;
+	/** BM: Source path the asset was first imported from. */
+	var()	editoronly string			RootSourceFilePath;
+	/** BM: Source path recorded on the asset. */
+	var()	editoronly string			SourceFilePath;
+	/** BM: Source timestamp recorded on the asset. */
+	var()	editoronly string			SourceFileTimestamp;
 	/** BM: Author recorded on the source asset. */
 	var()	editoronly string			SourceAuthor;
-	/** BM: Full source path recorded on the asset. */
-	var()	editoronly string			MaxFilePath;
+	/** BM: Import options the asset was built with. */
+	var()	editoronly Object			SourceImportOptions;
 };
 
 /** Struct containing information for each LOD level, such as materials to use, whether to cast shadows, and when use the LOD. */
 var()	editfixedsize array<SkeletalMeshLODInfo>	LODInfo;
+
+/** BM: Per-LOD auto-simplification settings. */
+struct native SkeletalMeshOptimizationSettings
+{
+	var		float														MaxDeviationPercentage;
+	var		RSkeletalMeshComponent_Export.SkeletalMeshOptimizationImportance	SilhouetteImportance;
+	var		RSkeletalMeshComponent_Export.SkeletalMeshOptimizationImportance	TextureImportance;
+	var		RSkeletalMeshComponent_Export.SkeletalMeshOptimizationImportance	ShadingImportance;
+	var		RSkeletalMeshComponent_Export.SkeletalMeshOptimizationImportance	SkinningImportance;
+	var		RSkeletalMeshComponent_Export.SkeletalMeshOptimizationNormalMode	NormalMode;
+	var		float														BoneReductionRatio;
+	var		int															MaxBonesPerVertex;
+	var		bool														UseVertexWelding;
+	var		array<float>												MaterialPriorities;
+};
+
+/** BM: Simplification settings, one entry per LOD. */
+var		array<SkeletalMeshOptimizationSettings>	OptimizationSettings;
 
 /** For each bone specified here, all triangles rigidly weighted to that bone are entered into a kDOP, allowing per-poly collision checks. */
 var()	array<name>	PerPolyCollisionBones;
@@ -163,24 +225,42 @@ var()	bool		bUseSimpleBoxCollision;
 /** All meshes default to GPU skinning. Set to True to enable CPU skinning. If CPU skinning is enabled, bUsePackedPosition can't be enabled */
 var()	const bool	bForceCPUSkinning;
 
+/** BM: Mesh is used as a particle vertex spawn source. */
+var()	const bool	bUsedWithParticleVertexSpawn;
+
 /** If true, use 32 bit UVs. If false, use 16 bit UVs to save memory */
 var()	const bool	bUseFullPrecisionUVs;
-/** BM: Packed-position skinning flag. */
-var()	const bool	bUsePackedPosition;
-/** BM: Force-shadow-volume flag. */
-var()	const bool	ForceShadowVolumes;
+/** BM: Drops vertex colours on cook. */
+var()	const bool	bStripVertexColours;
+/** BM: Set once the mesh has been auto-simplified. */
+var		bool		bHasBeenSimplified;
 /** BM: Per-bone bounds toggle. */
 var(Bounds) const bool EnablePerBoneBounds;
 /** BM: FaceFX toggle. */
 var(FaceFX) const bool EnableFaceFX;
 /** BM: FaceFX bone scaling toggle. */
 var(FaceFX) const bool EnableFaceFXBoneScaling;
+/** BM: Needs the full solver set at runtime. */
+var(ProceduralBones) const bool RequiresMaxSolvers;
 /** BM: Twist-bone fixers toggle. */
-var()	const bool	EnableTwistBoneFixers;
-/** BM: Clavicle fixer toggle. */
-var()	const bool	EnableClavicleFixer;
+var(ProceduralBones) const bool EnableTwistBoneFixers;
+/** BM: Knee/elbow fixer toggle. */
+var(ProceduralBones) const bool EnableKneeElbowFixers;
+/** BM: Neck twist fixer toggle. */
+var(ProceduralBones) const bool EnableNeckTwistFixer;
+/** BM: Collar twist fixer toggle. */
+var(ProceduralBones) const bool EnableCollarTwistFixer;
 /** BM: Stretches toggle. */
-var()	const bool	EnableStretches;
+var(ProceduralBones) const bool EnableStretches;
+/** BM: Skel controls toggle. */
+var(ProceduralBones) const bool EnableSkelControls;
+/** BM: Editor-only constraint feed override. */
+var(ProceduralBones) const transient bool TEMP_EDITOR_HACK_ForceEulerFeedConstraints;
+/** BM: Editor-only constraint feed override. */
+var(ProceduralBones) const transient bool TEMP_EDITOR_HACK_ForceQuatFeedConstraints;
+
+/** BM: Weight of the collar twist fixer. */
+var(ProceduralBones) float CollarTwistWeight;
 
 /** The FaceFX asset the skeletal mesh uses for FaceFX operations. */
 var() FaceFXAsset FaceFXAsset;
@@ -202,8 +282,6 @@ var() int LODBiasPC;
 var() int LODBiasPS3;
 /** LOD bias to use for Xbox 360. */
 var() int LODBiasXbox360;
-/** BM: Max bones per draw batch. */
-var() int MaxBonesPerBatch;
 /** BM: Cached package path name. */
 var() transient name CachedPathName;
 
@@ -443,6 +521,9 @@ var			editoronly string		SourceAuthor;
 /** BM: Full source path recorded on the asset. */
 var			editoronly string		MaxFilePath;
 
+/** BM: Extra meshes whose sockets are merged into this one. */
+var()	const array<SkeletalMesh>	ExtraSocketMeshes;
+
 struct native SoftBodyTetraLink
 {
 	var int Index;
@@ -610,25 +691,25 @@ var const transient qword				SkelMeshRUID;
 /** BM: Per-frame stretches applied to specific bones. */
 var()	array<RSkeletalMeshComponent_Export.StretchDescription>		Stretches;
 
+/** BM: Skel control trees run on this mesh. */
+var(ProceduralBones)	array<AnimTree>	SkelControls;
+
 /** BM: ApexClothing flag. */
 var(ApexClothing) const bool			bUseClothingAssetMaterial;
 /** BM: ApexClothing flag. */
 var(ApexClothing) const bool			bUseClothCollisionChannels;
 
-/** BM: D3D11 tessellation desired mode. */
-var(D3D11Tessellation) const EMaterialTessellationMode	DesiredTessellationMode;
-/** BM: D3D11 tessellation override-watertight-normals flag. */
-var(D3D11Tessellation) const bool		EnableWatertightNormalsOverride;
-/** BM: D3D11 tessellation enable-mesh-dicing flag. */
-var(D3D11Tessellation) const bool		EnableMeshDicingForTessellation;
-/** BM: D3D11 tessellation dicing target map width. */
-var(D3D11Tessellation) const int		DicingTargetMapWidth;
-/** BM: D3D11 tessellation dicing target map height. */
-var(D3D11Tessellation) const int		DicingTargetMapHeight;
-/** BM: D3D11 tessellation dicing target texels per edge. */
-var(D3D11Tessellation) const float		DicingTexelsPerEdge;
-/** BM: D3D11 tessellation desired distance. */
-var(D3D11Tessellation) const float		DesiredTessellationDistance;
+/** BM: Display factor below which cloth is fully skinned. */
+var(ApexClothing) float					DisplayFactorForFullySkinnedCloth;
+/** BM: Display factor above which cloth is fully simulated. */
+var(ApexClothing) float					DisplayFactorForFullyPhysicalCloth;
+/** BM: Scales wind applied to cloth. */
+var(ApexClothing) float					ClothWindStrengthScale;
+/** BM: Time cloth takes to adapt to a wind change. */
+var(ApexClothing) float					ClothWindAdaptTime;
+
+/** BM: Version of the index buffer optimiser the mesh was built with. */
+var		int								IndexBufferOptimisationVersion;
 
 defaultproperties
 {
@@ -652,17 +733,18 @@ defaultproperties
 	bUseSimpleBoxCollision=true
 
 	// BM
-	bUsePackedPosition=true
 	EnableFaceFX=true
 	EnableFaceFXBoneScaling=true
 	EnableTwistBoneFixers=true
-	EnableClavicleFixer=true
+	EnableKneeElbowFixers=true
 	EnableStretches=true
+	CollarTwistWeight=0.25
 	PreviewBoundsType=SMCBT_Editor
 	bUseClothCollisionChannels=true
-	DicingTargetMapWidth=512
-	DicingTargetMapHeight=512
-	DicingTexelsPerEdge=128.0
+	DisplayFactorForFullySkinnedCloth=0.25
+	DisplayFactorForFullyPhysicalCloth=0.5
+	ClothWindStrengthScale=10.0
+	ClothWindAdaptTime=0.2
 
 	bEnableClothOrthoBendConstraints = FALSE
 	bEnableClothSelfCollision = FALSE
