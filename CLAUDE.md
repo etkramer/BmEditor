@@ -101,9 +101,13 @@ These are deliberate, disclosed compromises. Do not silently remove one, and do 
 
 ## Measuring a Load
 
-**Run ONE package per invocation when quoting numbers.** The `[LAYOUT]` reporters dedupe process-wide on (class, offset), so a package loaded second reports far fewer warnings than the same package loaded alone - JokerBoss measures 65 diagnostics alone and 17 after Clocktower. Cross-run comparisons are meaningless unless the load order is identical.
+**Run ONE package per invocation when quoting numbers.** The `[LAYOUT]` reporters now dedupe on (package, class, site), so a package reports the same warnings wherever it appears in a run - but export creation still depends on load order, because every map's embedded script classes share one global `BmScript` package.
 
-**Diagnostic counts and uncreated exports are independent.** A package can report 2 diagnostics while dropping 14 exports. Always quote both, plus what `CheckPackageLoad` does *not* count: `correcting stream`, `Bad name index`, `Missing class`, `Failed to load 'BmScript.`.
+**`CheckPackageLoad` prints one `[PKGSTAT]` line per load**, and one for the startup merge as `package=<startup>`. It carries `exports`, `imports`, `uncreated`, `unloaded`, a `diagnostics` total and a per-category breakdown (`layout serialsize correcting badname badscriptname missingclass bmscript missingimport skippedcdo typemismatch notserializable othererror`). Diff those lines; do not eyeball logs.
+
+**Diagnostic counts and uncreated exports are independent.** A package can report few diagnostics while dropping exports, so always quote both.
+
+**The startup merge owns more diagnostics than any map.** `<startup>` reports 7241, including all 27 `correcting stream` warnings and all the BmScript import failures - those fire while `_BmGame.upk` loads, not while a map does. A map's own line is the only number that says anything about that map.
 
 **Deserializing is not loading correctly.** Offset-only tag acceptance only checks the property class, the struct for Vector/Rotator, and alignment. Drift that lands an Int tag on a different Int, an Object tag on a different pointer, or a bool dword on a different bool dword is accepted and written silently - and a bool tag carries the whole dword, so a wrong bit order takes AK's flags wholesale.
 
