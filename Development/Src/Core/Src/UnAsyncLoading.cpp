@@ -2017,6 +2017,22 @@ void FArchiveAsync::Serialize( void* Data, INT Count )
 	// Make sure serialization request fits entirely in already precached region.
 	if( !PrecacheBufferContainsRequest( CurrentPos, Count ) )
 	{
+#if BATMAN
+		// BM: Precache only ever holds one chunk, so a read crossing a chunk boundary can never be
+		// satisfied and the busy wait below spins forever. AK splits chunks on export boundaries, so
+		// this only happens when a serializer has already overrun its export - say so instead of hanging.
+		if( CompressedChunks )
+		{
+			const FCompressedChunk& Chunk = (*CompressedChunks)( FindCompressedChunkIndex( CurrentPos ) );
+			const INT ChunkEnd = Chunk.UncompressedOffset + Chunk.UncompressedSize;
+			if( CurrentPos + Count > ChunkEnd )
+			{
+				appErrorf( TEXT("Read of %d bytes at %d crosses the end of compressed chunk %d (%d..%d) in %s - the serializer has overrun its export"),
+					Count, CurrentPos, CurrentChunkIndex, Chunk.UncompressedOffset, ChunkEnd, *FileName );
+			}
+		}
+#endif
+
 		// Keep track of time we started to block.
 		StartTime	= appSeconds();
 		bIOBlocked	= TRUE;
