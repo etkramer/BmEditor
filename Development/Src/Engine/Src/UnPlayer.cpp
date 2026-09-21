@@ -2801,7 +2801,6 @@ void ULocalPlayer::UpdatePostProcessSettings(const FVector& ViewLocation)
 		if (bWantToResetToMapDefaultPP)
 		{
 			//Now set the interpolation durations to zero, so we will just go directly to the new settings
-			NewSettings.Bloom_InterpolationDuration = 0;
 			NewSettings.MotionBlur_InterpolationDuration = 0;
 			NewSettings.DOF_InterpolationDuration = 0;
 			NewSettings.Scene_InterpolationDuration = 0;
@@ -2952,23 +2951,16 @@ void ULocalPlayer::UpdatePPSetting(FCurrentPostProcessVolumeInfo& PPInfo, FPostP
 
 	if (PPInfo.LastSettings.bEnableBloom)
 	{
-		// calc bloom lerp amount
+		// BM: AK's settings have no Bloom_InterpolationDuration, so reuse the DOF one
 		FLOAT LerpAmount = 1.f;
-		const FLOAT RemainingBloomBlendTime = Max(NewSettings.Bloom_InterpolationDuration - ElapsedBlendTime,0.f);
+		const FLOAT RemainingBloomBlendTime = Max(NewSettings.DOF_InterpolationDuration - ElapsedBlendTime,0.f);
 		if(RemainingBloomBlendTime > DeltaTime)
 		{
 			LerpAmount = Clamp<FLOAT>(DeltaTime / RemainingBloomBlendTime,0.f,1.f);
 		}
 		// bloom values
-		LERP_POSTPROCESS(Bloom, Scale)
-		LERP_POSTPROCESS(Bloom, Threshold)
-		LERP_POSTPROCESS(Bloom, ScreenBlendThreshold)
-
-		// this one is in the wrong category (DOF, should be bloom)
-		LERP_POSTPROCESS(DOF, BlurBloomKernelSize)
-
-		PPInfo.LastSettings.Bloom_Tint = Lerp<FLinearColor>(FLinearColor(PPInfo.LastSettings.Bloom_Tint), FLinearColor(NewSettings.Bloom_Tint), LerpAmount).ToFColor(TRUE);
-		PPInfo.LastSettings.bOverride_Bloom_Tint = NewSettings.bOverride_Bloom_Tint;
+		LERP_POSTPROCESS_NAMED(BloomOverload, BloomOverload)
+		LERP_POSTPROCESS_NAMED(BloomLowerCut, BloomLowerCut)
 	}
 
 	if (PPInfo.LastSettings.bEnableDOF)
@@ -2981,16 +2973,8 @@ void ULocalPlayer::UpdatePPSetting(FCurrentPostProcessVolumeInfo& PPInfo, FPostP
 			LerpAmount = Clamp<FLOAT>(DeltaTime / RemainingDOFBlendTime,0.f,1.f);
 		}
 		// dof values
-		LERP_POSTPROCESS(DOF, FalloffExponent)
-		LERP_POSTPROCESS(DOF, BlurKernelSize)
-		LERP_POSTPROCESS(DOF, MaxNearBlurAmount)
-		LERP_POSTPROCESS(DOF, MinBlurAmount)
-		LERP_POSTPROCESS(DOF, MaxFarBlurAmount)
-		LERP_POSTPROCESS_COLOR_NAMED(DOF_ModulateBlurColor, DOF_ModulateBlurColor)
-		SET_POSTPROCESS(DOF, FocusType)
-		LERP_POSTPROCESS(DOF, FocusInnerRadius)
+		LERP_POSTPROCESS(DOF, ApertureStop)
 		LERP_POSTPROCESS(DOF, FocusDistance)
-		LERP_POSTPROCESS(DOF, FocusPosition)
 	}
 
 	if (PPInfo.LastSettings.bEnableMotionBlur)
@@ -3074,22 +3058,37 @@ void ULocalPlayer::UpdatePPSetting(FCurrentPostProcessVolumeInfo& PPInfo, FPostP
 		LERP_POSTPROCESS_NAMED(EnableAtmosH2Size, AtmosH2_GradientSize)
 		LERP_POSTPROCESS_NAMED(EnableAtmosH2Pos, AtmosH2_GradientPosition)
 
-		SET_POSTPROCESS_NAMED(EnableAtmosNoise, AtmosNoise)
-		LERP_POSTPROCESS_NAMED(EnableAtmosNoiseWind, AtmosNoiseWind)
-		PPInfo.LastSettings.AtmosNoiseOffset += PPInfo.LastSettings.AtmosNoiseWind * DeltaTime;
-		PPInfo.LastSettings.bOverride_EnableAtmosNoiseOffset = NewSettings.bOverride_EnableAtmosNoiseOffset;
-		PPInfo.LastSettings.AtmosNoiseFade = Lerp(PPInfo.LastSettings.AtmosNoiseFade, NewSettings.AtmosNoise ? 1.f : 0.f, LerpAmount);
-		PPInfo.LastSettings.bOverride_EnableAtmosNoiseFade = NewSettings.bOverride_EnableAtmosNoiseFade;
+		LERP_POSTPROCESS_NAMED(EnableAtmosNoiseD1, AtmosNoiseD1)
+		LERP_POSTPROCESS_NAMED(EnableAtmosNoiseD2, AtmosNoiseD2)
+		LERP_POSTPROCESS_NAMED(EnableAtmosNoiseH1, AtmosNoiseH1)
+		LERP_POSTPROCESS_NAMED(EnableAtmosNoiseH2, AtmosNoiseH2)
 
 		LERP_POSTPROCESS_COLOR_NAMED(EnableAtmosGlobal_Gradient_Colour, AtmosGlobal_Gradient_Colour)
 		LERP_POSTPROCESS_NAMED(EnableAtmosGlobal_Gradient_Direction, AtmosGlobal_Gradient_Direction)
 		LERP_POSTPROCESS_NAMED(EnableAtmosGlobal_Gradient_Density, AtmosGlobal_Gradient_Density)
+		LERP_POSTPROCESS_NAMED(EnableAtmosGlobal_Gradient_Cosine, AtmosGlobal_Gradient_Cosine)
+
+		LERP_POSTPROCESS_NAMED(EnableAtmosHazeWeight, AtmosHazeWeight)
+		LERP_POSTPROCESS_NAMED(EnableAtmosHazeNear, AtmosHazeNear)
+		LERP_POSTPROCESS_NAMED(EnableAtmosHazeFar, AtmosHazeFar)
+
+		LERP_POSTPROCESS_NAMED(EnableAtmosAmbientD1, AtmosAmbientD1)
+		LERP_POSTPROCESS_NAMED(EnableAtmosAmbientD2, AtmosAmbientD2)
+		LERP_POSTPROCESS_NAMED(EnableAtmosAmbientH1, AtmosAmbientH1)
+		LERP_POSTPROCESS_NAMED(EnableAtmosAmbientH2, AtmosAmbientH2)
+
+		LERP_POSTPROCESS_NAMED(EnableAtmosHeightMapModD1, AtmosHeightMapModD1)
+		LERP_POSTPROCESS_NAMED(EnableAtmosHeightMapModD2, AtmosHeightMapModD2)
+		LERP_POSTPROCESS_NAMED(EnableAtmosHeightMapModH1, AtmosHeightMapModH1)
+		LERP_POSTPROCESS_NAMED(EnableAtmosHeightMapModH2, AtmosHeightMapModH2)
+
+		LERP_POSTPROCESS_NAMED(ExposureAutoBracketing, ExposureAutoBracketing)
+		LERP_POSTPROCESS_NAMED(ExposureBaseOffset, ExposureBaseOffset)
 
 		PPInfo.LastSettings.bAtmosD1 = (Abs(PPInfo.LastSettings.AtmosD1_Density) > 0.001f) && (PPInfo.LastSettings.AtmosD1_Colour.A > 0);
 		PPInfo.LastSettings.bAtmosD2 = (Abs(PPInfo.LastSettings.AtmosD2_Density) > 0.001f) && (PPInfo.LastSettings.AtmosD2_Colour.A > 0);
 		PPInfo.LastSettings.bAtmosH1 = (Abs(PPInfo.LastSettings.AtmosH1_Density) > 0.001f) && (PPInfo.LastSettings.AtmosH1_Colour.A > 0);
 		PPInfo.LastSettings.bAtmosH2 = (Abs(PPInfo.LastSettings.AtmosH2_Density) > 0.001f) && (PPInfo.LastSettings.AtmosH2_Colour.A > 0);
-		PPInfo.LastSettings.AtmosNoise = (PPInfo.LastSettings.AtmosNoiseFade > 0.001f);
 	}
 
 	// Update the current settings and timer.

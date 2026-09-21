@@ -287,6 +287,9 @@ FDOFAndBloomPostProcessSceneProxy
 // useful macro to set postprocess settings (internal name need to match), gives more control than SET_POSTPROCESS_PROPERTY1()
 #define SET_POSTPROCESS_PROPERTY2(Group, Name) Group##Name = GET_POSTPROCESS_PROPERTY_X(Group, Name, Group##Name);
 
+// BM: same as GET_POSTPROCESS_PROPERTY2 for the settings AK stores as LinearColor and the effect as a vector
+#define GET_POSTPROCESS_COLOR_RGB(Group, Name) 	(WorldSettings && WorldSettings->bOverride_##Group##_##Name) 	? FVector(WorldSettings->Group##_##Name.R, WorldSettings->Group##_##Name.G, WorldSettings->Group##_##Name.B) 	: InEffect->Group##Name
+
 class FDOFAndBloomPostProcessSceneProxy : public FPostProcessSceneProxy
 {
 public:

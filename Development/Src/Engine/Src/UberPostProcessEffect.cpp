@@ -345,9 +345,10 @@ public:
 
 		SET_POSTPROCESS_PROPERTY2(Scene, ImageGrainScale);
 
-		ColorTransform.Shadows = GET_POSTPROCESS_PROPERTY2(Scene, Shadows);
-		ColorTransform.HighLights = GET_POSTPROCESS_PROPERTY2(Scene, HighLights);
-		ColorTransform.MidTones = GET_POSTPROCESS_PROPERTY2(Scene, MidTones);
+		// BM: AK made these LinearColor; the color transform only consumes RGB
+		ColorTransform.Shadows = GET_POSTPROCESS_COLOR_RGB(Scene, Shadows);
+		ColorTransform.HighLights = GET_POSTPROCESS_COLOR_RGB(Scene, HighLights);
+		ColorTransform.MidTones = GET_POSTPROCESS_COLOR_RGB(Scene, MidTones);
 		ColorTransform.Desaturation = GET_POSTPROCESS_PROPERTY2(Scene, Desaturation);
 		ColorTransform.Colorize = GET_POSTPROCESS_PROPERTY2(Scene, Colorize);
 

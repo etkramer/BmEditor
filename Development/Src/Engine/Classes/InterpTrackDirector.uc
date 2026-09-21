@@ -34,6 +34,13 @@ cpptext
 	FName GetViewedGroupName(FLOAT CurrentTime, FLOAT& CutTime, FLOAT& CutTransitionTime);
 }
 
+// BM
+enum ECameraBlendType
+{
+	CBT_PlayerWalkCamera,
+	CBT_PlayerCombatCamera
+};
+
 /** Information for one cut in this track. */
 struct immutablewhencooked native DirectorTrackCut
 {
@@ -45,7 +52,12 @@ struct immutablewhencooked native DirectorTrackCut
 
 	/** GroupName of InterpGroup to cut viewpoint to. */
 	var()	name	TargetCamGroup;
-};	
+
+	// BM
+	var		int		ShotNumber;
+	// BM
+	var		editoronly array<InterpTrack>	BoundTracks;
+};
 
 var() bool bResetCameraBehindBatman;
 
@@ -53,17 +65,37 @@ var() bool bKeepBatmanOnScreen;
 
 var() bool bDisableCamerCollisionDuringBlend;
 
-var() bool bResetCameraBehindBatmanOnSkip;
+var(Skip) bool bResetCameraBehindBatmanOnSkip;
 
 /** True to allow clients to simulate their own camera cuts.  Can help with latency-induced timing issues. */
 var() bool bSimulateCameraCutsOnClients;
 
 var() bool bDetachMic;
 
-var() float SkipBlendTime;
+// BM
+var bool bLockedFromEdits;
+
+// BM
+var() bool bCinematicLightingMode;
+
+// BM
+var() bool bDontBlendBackToPlayerOnFinish;
+
+var(Skip) float SkipBlendTime;
 
 /** Array of cuts between cameras. */
 var	array<DirectorTrackCut>	CutTrack;
+
+// BM
+var() ECameraBlendType PreviewBlendFrom;
+// BM
+var() ECameraBlendType PreviewBlendTo;
+// BM
+var() float PreviewBlendFromFOV;
+// BM
+var() float PreviewBlendToFOV;
+// BM
+var() float PreviewAspectRatio;
 
 defaultproperties
 {
@@ -72,4 +104,5 @@ defaultproperties
 	TrackInstClass=class'Engine.InterpTrackInstDirector'
 	TrackTitle="Director"
 	bSimulateCameraCutsOnClients=TRUE
+	PreviewAspectRatio=1.777777
 }

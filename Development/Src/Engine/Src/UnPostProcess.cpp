@@ -11,23 +11,12 @@ IMPLEMENT_CLASS(APostProcessVolume);
 namespace
 {
 	static const FName NAME_EnableBloom								= FName( TEXT("bEnableBloom") );
-	static const FName NAME_Bloom_Scale								= FName( TEXT("Bloom_Scale") );
-	static const FName NAME_Bloom_Threshold							= FName( TEXT("Bloom_Threshold") );
-	static const FName NAME_Bloom_Tint								= FName( TEXT("Bloom_Tint") );
-	static const FName NAME_Bloom_ScreenBlendThreshold				= FName( TEXT("Bloom_ScreenBlendThreshold") );
-	static const FName NAME_Bloom_InterpolationDuration				= FName( TEXT("Bloom_InterpolationDuration") );
+	static const FName NAME_BloomOverload							= FName( TEXT("BloomOverload") );
+	static const FName NAME_BloomLowerCut							= FName( TEXT("BloomLowerCut") );
 
 	static const FName NAME_EnableDOF								= FName( TEXT("bEnableDOF") );
-	static const FName NAME_DOF_FalloffExponent						= FName( TEXT("DOF_FalloffExponent") );
-	static const FName NAME_DOF_BlurKernelSize						= FName( TEXT("DOF_BlurKernelSize") );
-	static const FName NAME_DOF_BlurBloomKernelSize					= FName( TEXT("DOF_BlurBloomKernelSize") );
-	static const FName NAME_DOF_MaxNearBlurAmount					= FName( TEXT("DOF_MaxNearBlurAmount") );
-	static const FName NAME_DOF_MinBlurAmount						= FName( TEXT("DOF_MinBlurAmount") );
-	static const FName NAME_DOF_MaxFarBlurAmount					= FName( TEXT("DOF_MaxFarBlurAmount") );
-	static const FName NAME_DOF_FocusType							= FName( TEXT("DOF_FocusType") );
-	static const FName NAME_DOF_FocusInnerRadius					= FName( TEXT("DOF_FocusInnerRadius") );
+	static const FName NAME_DOF_ApertureStop						= FName( TEXT("DOF_ApertureStop") );
 	static const FName NAME_DOF_FocusDistance						= FName( TEXT("DOF_FocusDistance") );
-	static const FName NAME_DOF_FocusPosition						= FName( TEXT("DOF_FocusPosition") );
 	static const FName NAME_DOF_InterpolationDuration				= FName( TEXT("DOF_InterpolationDuration") );
 
 	static const FName NAME_EnableMotionBlur						= FName( TEXT("bEnableMotionBlur") );
@@ -298,19 +287,8 @@ void FPostProcessSettings::OverrideSettingsFor( FPostProcessSettings& ToOverride
 	}
 	if (ToOverride.bEnableBloom)
 	{
-		LERP_POSTPROCESS(Bloom, Scale)
-		LERP_POSTPROCESS(Bloom, Threshold)
-		LERP_POSTPROCESS(Bloom, ScreenBlendThreshold)
-		LERP_POSTPROCESS(Bloom, InterpolationDuration)
-
-		if( bOverride_Bloom_Tint )
-		{
-			ToOverride.Bloom_Tint = Lerp(FLinearColor(ToOverride.Bloom_Tint), FLinearColor(Bloom_Tint), Alpha).ToFColor(TRUE);
-			ToOverride.bOverride_Bloom_Tint = TRUE;
-		}
-
-		// this one is in the wrong category (DOF, should be bloom)
-		LERP_POSTPROCESS(DOF, BlurBloomKernelSize)
+		LERP_POSTPROCESS_NAMED(BloomOverload, BloomOverload)
+		LERP_POSTPROCESS_NAMED(BloomLowerCut, BloomLowerCut)
 	}
 
 	// DEPTH OF FIELD OVERRIDES
@@ -320,16 +298,8 @@ void FPostProcessSettings::OverrideSettingsFor( FPostProcessSettings& ToOverride
 	}
 	if (ToOverride.bEnableDOF)
 	{
-		LERP_POSTPROCESS(DOF, FalloffExponent)
-		LERP_POSTPROCESS(DOF, BlurKernelSize)
-		LERP_POSTPROCESS(DOF, MaxNearBlurAmount)
-		LERP_POSTPROCESS(DOF, MinBlurAmount)
-		LERP_POSTPROCESS(DOF, MaxFarBlurAmount)
-		LERP_POSTPROCESS_COLOR_NAMED(DOF_ModulateBlurColor, DOF_ModulateBlurColor)
-		SET_POSTPROCESS(DOF, FocusType)
-		LERP_POSTPROCESS(DOF, FocusInnerRadius)
+		LERP_POSTPROCESS(DOF, ApertureStop)
 		LERP_POSTPROCESS(DOF, FocusDistance)
-		LERP_POSTPROCESS(DOF, FocusPosition)
 		LERP_POSTPROCESS(DOF, InterpolationDuration)
 	}
 
@@ -399,12 +369,32 @@ void FPostProcessSettings::OverrideSettingsFor( FPostProcessSettings& ToOverride
 	SET_POSTPROCESS_NAMED(EnableAtmosH2Size, AtmosH2_GradientSize)
 	SET_POSTPROCESS_NAMED(EnableAtmosH2Pos, AtmosH2_GradientPosition)
 
-	SET_POSTPROCESS_NAMED(EnableAtmosNoise, AtmosNoise)
-	SET_POSTPROCESS_NAMED(EnableAtmosNoiseWind, AtmosNoiseWind)
-
 	SET_POSTPROCESS_NAMED(EnableAtmosGlobal_Gradient_Colour, AtmosGlobal_Gradient_Colour)
 	SET_POSTPROCESS_NAMED(EnableAtmosGlobal_Gradient_Direction, AtmosGlobal_Gradient_Direction)
 	SET_POSTPROCESS_NAMED(EnableAtmosGlobal_Gradient_Density, AtmosGlobal_Gradient_Density)
+	SET_POSTPROCESS_NAMED(EnableAtmosGlobal_Gradient_Cosine, AtmosGlobal_Gradient_Cosine)
+
+	SET_POSTPROCESS_NAMED(EnableAtmosHazeWeight, AtmosHazeWeight)
+	SET_POSTPROCESS_NAMED(EnableAtmosHazeNear, AtmosHazeNear)
+	SET_POSTPROCESS_NAMED(EnableAtmosHazeFar, AtmosHazeFar)
+
+	SET_POSTPROCESS_NAMED(EnableAtmosAmbientD1, AtmosAmbientD1)
+	SET_POSTPROCESS_NAMED(EnableAtmosAmbientD2, AtmosAmbientD2)
+	SET_POSTPROCESS_NAMED(EnableAtmosAmbientH1, AtmosAmbientH1)
+	SET_POSTPROCESS_NAMED(EnableAtmosAmbientH2, AtmosAmbientH2)
+
+	SET_POSTPROCESS_NAMED(EnableAtmosNoiseD1, AtmosNoiseD1)
+	SET_POSTPROCESS_NAMED(EnableAtmosNoiseD2, AtmosNoiseD2)
+	SET_POSTPROCESS_NAMED(EnableAtmosNoiseH1, AtmosNoiseH1)
+	SET_POSTPROCESS_NAMED(EnableAtmosNoiseH2, AtmosNoiseH2)
+
+	SET_POSTPROCESS_NAMED(EnableAtmosHeightMapModD1, AtmosHeightMapModD1)
+	SET_POSTPROCESS_NAMED(EnableAtmosHeightMapModD2, AtmosHeightMapModD2)
+	SET_POSTPROCESS_NAMED(EnableAtmosHeightMapModH1, AtmosHeightMapModH1)
+	SET_POSTPROCESS_NAMED(EnableAtmosHeightMapModH2, AtmosHeightMapModH2)
+
+	SET_POSTPROCESS_NAMED(ExposureAutoBracketing, ExposureAutoBracketing)
+	SET_POSTPROCESS_NAMED(ExposureBaseOffset, ExposureBaseOffset)
 }
 
 #undef LERP_POSTPROCESS
@@ -426,44 +416,16 @@ void FPostProcessSettings::EnableOverrideSetting( const FName& PropertyName )
 		return;
 	}
 
-	if( PropertyName == NAME_Bloom_Scale )
+	if( PropertyName == NAME_BloomOverload )
 	{
-		bOverride_Bloom_Scale = TRUE;
+		bOverride_BloomOverload = TRUE;
 		EnableBloom();
 		return;
 	}
 
-	if( PropertyName == NAME_Bloom_Threshold )
+	if( PropertyName == NAME_BloomLowerCut )
 	{
-		bOverride_Bloom_Threshold = TRUE;
-		EnableBloom();
-		return;
-	}
-
-	if( PropertyName == NAME_Bloom_Tint )
-	{
-		bOverride_Bloom_Tint = TRUE;
-		EnableBloom();
-		return;
-	}
-
-	if( PropertyName == NAME_Bloom_ScreenBlendThreshold )
-	{
-		bOverride_Bloom_ScreenBlendThreshold = TRUE;
-		EnableBloom();
-		return;
-	}
-
-	if( PropertyName == NAME_Bloom_InterpolationDuration )
-	{
-		bOverride_Bloom_InterpolationDuration = TRUE;
-		EnableBloom();
-		return;
-	}
-
-	if( PropertyName == NAME_DOF_BlurBloomKernelSize )
-	{
-		bOverride_DOF_BlurBloomKernelSize = TRUE;
+		bOverride_BloomLowerCut = TRUE;
 		EnableBloom();
 		return;
 	}
@@ -474,51 +436,9 @@ void FPostProcessSettings::EnableOverrideSetting( const FName& PropertyName )
 		return;
 	}
 
-	if( PropertyName == NAME_DOF_FalloffExponent )
+	if( PropertyName == NAME_DOF_ApertureStop )
 	{
-		bOverride_DOF_FalloffExponent = TRUE;
-		EnableDOF();
-		return;
-	}
-
-	if( PropertyName == NAME_DOF_BlurKernelSize )
-	{
-		bOverride_DOF_BlurKernelSize = TRUE;
-		EnableDOF();
-		return;
-	}
-
-	if( PropertyName == NAME_DOF_MaxNearBlurAmount )
-	{
-		bOverride_DOF_MaxNearBlurAmount = TRUE;
-		EnableDOF();
-		return;
-	}
-
-	if( PropertyName == NAME_DOF_MinBlurAmount )
-	{
-		bOverride_DOF_MinBlurAmount = TRUE;
-		EnableDOF();
-		return;
-	}
-
-	if( PropertyName == NAME_DOF_MaxFarBlurAmount )
-	{
-		bOverride_DOF_MaxFarBlurAmount = TRUE;
-		EnableDOF();
-		return;
-	}
-
-	if( PropertyName == NAME_DOF_FocusType )
-	{
-		bOverride_DOF_FocusType = TRUE;
-		EnableDOF();
-		return;
-	}
-
-	if( PropertyName == NAME_DOF_FocusInnerRadius )
-	{
-		bOverride_DOF_FocusInnerRadius = TRUE;
+		bOverride_DOF_ApertureStop = TRUE;
 		EnableDOF();
 		return;
 	}
@@ -526,13 +446,6 @@ void FPostProcessSettings::EnableOverrideSetting( const FName& PropertyName )
 	if( PropertyName == NAME_DOF_FocusDistance )
 	{
 		bOverride_DOF_FocusDistance = TRUE;
-		EnableDOF();
-		return;
-	}
-
-	if( PropertyName == NAME_DOF_FocusPosition )
-	{
-		bOverride_DOF_FocusPosition = TRUE;
 		EnableDOF();
 		return;
 	}
@@ -674,44 +587,16 @@ void FPostProcessSettings::DisableOverrideSetting( const FName& PropertyName )
 		return;
 	}
 
-	if( PropertyName == NAME_Bloom_Scale )
+	if( PropertyName == NAME_BloomOverload )
 	{
-		bOverride_Bloom_Scale = FALSE;
+		bOverride_BloomOverload = FALSE;
 		DisableBloomOverrideConditional();
 		return;
 	}
 
-	if( PropertyName == NAME_Bloom_Threshold )
+	if( PropertyName == NAME_BloomLowerCut )
 	{
-		bOverride_Bloom_Threshold = FALSE;
-		DisableBloomOverrideConditional();
-		return;
-	}
-
-	if( PropertyName == NAME_Bloom_Tint )
-	{
-		bOverride_Bloom_Tint = FALSE;
-		DisableBloomOverrideConditional();
-		return;
-	}
-
-	if( PropertyName == NAME_Bloom_ScreenBlendThreshold )
-	{
-		bOverride_Bloom_ScreenBlendThreshold = FALSE;
-		DisableBloomOverrideConditional();
-		return;
-	}
-
-	if( PropertyName == NAME_Bloom_InterpolationDuration )
-	{
-		bOverride_Bloom_InterpolationDuration = FALSE;
-		DisableBloomOverrideConditional();
-		return;
-	}
-
-	if( PropertyName == NAME_DOF_BlurBloomKernelSize )
-	{
-		bOverride_DOF_BlurBloomKernelSize = FALSE;
+		bOverride_BloomLowerCut = FALSE;
 		DisableBloomOverrideConditional();
 		return;
 	}
@@ -722,51 +607,9 @@ void FPostProcessSettings::DisableOverrideSetting( const FName& PropertyName )
 		return;
 	}
 
-	if( PropertyName == NAME_DOF_FalloffExponent )
+	if( PropertyName == NAME_DOF_ApertureStop )
 	{
-		bOverride_DOF_FalloffExponent = FALSE;
-		DisableDOFOverrideConditional();
-		return;
-	}
-
-	if( PropertyName == NAME_DOF_BlurKernelSize )
-	{
-		bOverride_DOF_BlurKernelSize = FALSE;
-		DisableDOFOverrideConditional();
-		return;
-	}
-
-	if( PropertyName == NAME_DOF_MaxNearBlurAmount )
-	{
-		bOverride_DOF_MaxNearBlurAmount = FALSE;
-		DisableDOFOverrideConditional();
-		return;
-	}
-
-	if( PropertyName == NAME_DOF_MinBlurAmount )
-	{
-		bOverride_DOF_MinBlurAmount = FALSE;
-		DisableDOFOverrideConditional();
-		return;
-	}
-
-	if( PropertyName == NAME_DOF_MaxFarBlurAmount )
-	{
-		bOverride_DOF_MaxFarBlurAmount = FALSE;
-		DisableDOFOverrideConditional();
-		return;
-	}
-
-	if( PropertyName == NAME_DOF_FocusType )
-	{
-		bOverride_DOF_FocusType = FALSE;
-		DisableDOFOverrideConditional();
-		return;
-	}
-
-	if( PropertyName == NAME_DOF_FocusInnerRadius )
-	{
-		bOverride_DOF_FocusInnerRadius = FALSE;
+		bOverride_DOF_ApertureStop = FALSE;
 		DisableDOFOverrideConditional();
 		return;
 	}
@@ -774,13 +617,6 @@ void FPostProcessSettings::DisableOverrideSetting( const FName& PropertyName )
 	if( PropertyName == NAME_DOF_FocusDistance )
 	{
 		bOverride_DOF_FocusDistance = FALSE;
-		DisableDOFOverrideConditional();
-		return;
-	}
-
-	if( PropertyName == NAME_DOF_FocusPosition )
-	{
-		bOverride_DOF_FocusPosition = FALSE;
 		DisableDOFOverrideConditional();
 		return;
 	}
@@ -918,24 +754,13 @@ void FPostProcessSettings::DisableAllOverrides()
 {
 	// Disable bloom overrides
 	bOverride_EnableBloom = FALSE;
-	bOverride_Bloom_Scale = FALSE;
-	bOverride_Bloom_Threshold = FALSE;
-	bOverride_Bloom_Tint = FALSE;
-	bOverride_Bloom_ScreenBlendThreshold = FALSE;
-	bOverride_Bloom_InterpolationDuration = FALSE;
+	bOverride_BloomOverload = FALSE;
+	bOverride_BloomLowerCut = FALSE;
 
 	// Disable depth of field overrides
 	bOverride_EnableDOF = FALSE;
-	bOverride_DOF_FalloffExponent = FALSE;
-	bOverride_DOF_BlurKernelSize = FALSE;
-	bOverride_DOF_BlurBloomKernelSize = FALSE;
-	bOverride_DOF_MaxNearBlurAmount = FALSE;
-	bOverride_DOF_MinBlurAmount = FALSE;
-	bOverride_DOF_MaxFarBlurAmount = FALSE;
-	bOverride_DOF_FocusType = FALSE;
-	bOverride_DOF_FocusInnerRadius = FALSE;
+	bOverride_DOF_ApertureStop = FALSE;
 	bOverride_DOF_FocusDistance = FALSE;
-	bOverride_DOF_FocusPosition = FALSE;
 	bOverride_DOF_InterpolationDuration = FALSE;
 
 	// Disable motion blur overrides
@@ -966,7 +791,7 @@ void FPostProcessSettings::DisableAllOverrides()
  */
 void FPostProcessSettings::DisableBloomOverrideConditional()
 {
-	if( !bOverride_Bloom_Scale && !bOverride_Bloom_Threshold && !bOverride_Bloom_Tint && !bOverride_Bloom_ScreenBlendThreshold && !bOverride_Bloom_InterpolationDuration )
+	if( !bOverride_BloomOverload && !bOverride_BloomLowerCut )
 	{
 		bOverride_EnableBloom = FALSE;
 		bEnableBloom = FALSE;
@@ -978,16 +803,8 @@ void FPostProcessSettings::DisableBloomOverrideConditional()
  */
 void FPostProcessSettings::DisableDOFOverrideConditional()
 {
-	if( !bOverride_DOF_FalloffExponent
-	&&	!bOverride_DOF_BlurKernelSize
-	&&	!bOverride_DOF_BlurBloomKernelSize
-	&&	!bOverride_DOF_MaxNearBlurAmount
-	&&	!bOverride_DOF_MinBlurAmount
-	&&	!bOverride_DOF_MaxFarBlurAmount
-	&&	!bOverride_DOF_FocusType
-	&&	!bOverride_DOF_FocusInnerRadius
+	if( !bOverride_DOF_ApertureStop
 	&&	!bOverride_DOF_FocusDistance
-	&&	!bOverride_DOF_FocusPosition
 	&&	!bOverride_DOF_InterpolationDuration )
 	{
 		bOverride_EnableDOF = FALSE;

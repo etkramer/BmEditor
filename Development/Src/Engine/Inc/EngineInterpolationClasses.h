@@ -18,6 +18,15 @@
 #ifndef INCLUDED_ENGINE_INTERPOLATION_ENUMS
 #define INCLUDED_ENGINE_INTERPOLATION_ENUMS 1
 
+enum ECameraBlendType
+{
+    CBT_PlayerWalkCamera    =0,
+    CBT_PlayerCombatCamera  =1,
+    CBT_MAX                 =2,
+};
+#define FOREACH_ENUM_ECAMERABLENDTYPE(op) \
+    op(CBT_PlayerWalkCamera) \
+    op(CBT_PlayerCombatCamera) 
 enum EInterpTrackMoveRotMode
 {
     IMR_Keyframed           =0,
@@ -524,6 +533,8 @@ struct FDirectorTrackCut
     FLOAT Time;
     FLOAT TransitionTime;
     FName TargetCamGroup;
+    INT ShotNumber;
+    TArrayNoInit<class UInterpTrack*> BoundTracks;
 
     /** Constructors */
     FDirectorTrackCut() {}
@@ -543,8 +554,16 @@ public:
     BITFIELD bResetCameraBehindBatmanOnSkip:1;
     BITFIELD bSimulateCameraCutsOnClients:1;
     BITFIELD bDetachMic:1;
+    BITFIELD bLockedFromEdits:1;
+    BITFIELD bCinematicLightingMode:1;
+    BITFIELD bDontBlendBackToPlayerOnFinish:1;
     FLOAT SkipBlendTime;
     TArrayNoInit<struct FDirectorTrackCut> CutTrack;
+    BYTE PreviewBlendFrom;
+    BYTE PreviewBlendTo;
+    FLOAT PreviewBlendFromFOV;
+    FLOAT PreviewBlendToFOV;
+    FLOAT PreviewAspectRatio;
     //## END PROPS InterpTrackDirector
 
     DECLARE_CLASS(UInterpTrackDirector,UInterpTrack,0,Engine)
@@ -2636,7 +2655,7 @@ VERIFY_CLASS_OFFSET_NODIE(UInterpTrackBoolProp,InterpTrackBoolProp,BoolTrack)
 VERIFY_CLASS_OFFSET_NODIE(UInterpTrackBoolProp,InterpTrackBoolProp,PropertyName)
 VERIFY_CLASS_SIZE_NODIE(UInterpTrackBoolProp)
 VERIFY_CLASS_OFFSET_NODIE(UInterpTrackDirector,InterpTrackDirector,SkipBlendTime)
-VERIFY_CLASS_OFFSET_NODIE(UInterpTrackDirector,InterpTrackDirector,CutTrack)
+VERIFY_CLASS_OFFSET_NODIE(UInterpTrackDirector,InterpTrackDirector,PreviewAspectRatio)
 VERIFY_CLASS_SIZE_NODIE(UInterpTrackDirector)
 VERIFY_CLASS_OFFSET_NODIE(UInterpTrackEvent,InterpTrackEvent,EventTrack)
 VERIFY_CLASS_SIZE_NODIE(UInterpTrackEvent)

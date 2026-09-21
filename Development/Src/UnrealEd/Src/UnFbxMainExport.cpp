@@ -350,25 +350,15 @@ void FbxExporter::ExportCamera( ACameraActor* Actor, USeqAct_Interp* MatineeSequ
 		Camera->UseDepthOfField.Set(TRUE);
 		
 		// 'focal depth' <- 'focus distance'.
-		if (PostProcess->DOF_FocusType == FOCUS_Distance)
-		{
-			Camera->FocusSource.Set(fbx::FbxCamera::eFocusSpecificDistance);
-			Camera->FocusDistance.Set(PostProcess->DOF_FocusDistance);
-		}
-		else if (PostProcess->DOF_FocusType == FOCUS_Position)
-		{
-			Camera->FocusSource.Set(fbx::FbxCamera::eFocusSpecificDistance);
-			Camera->FocusDistance.Set((Actor->Location - PostProcess->DOF_FocusPosition).Size());
-		}
-		
+		// BM: AK's PostProcessSettings has no focus type/position/inner radius/kernel size
+		Camera->FocusSource.Set(fbx::FbxCamera::eFocusSpecificDistance);
+		Camera->FocusDistance.Set(PostProcess->DOF_FocusDistance);
+
 		// Add one user property for recording the UE_DOF_FocusDistance animation
 		CreateAnimatableUserProperty(FbxCameraNode, PostProcess->DOF_FocusDistance, "UE_DOF_FocusDistance", "UE_Matinee_Camear_DOF_FocusDistance");
 
-		// Add one user property for recording the DOF_FocusInnerRadius animation
-		CreateAnimatableUserProperty(FbxCameraNode, PostProcess->DOF_FocusInnerRadius, "UE_DOF_FocusInnerRadius", "UE_Matinee_Camear_DOF_FocusInnerRadius");
-		
-		// Add one user property for recording the DOF_BlurKernelSize animation
-		CreateAnimatableUserProperty(FbxCameraNode, PostProcess->DOF_BlurKernelSize, "UE_DOF_BlurKernelSize", "UE_Matinee_Camear_DOF_BlurKernelSize");
+		// Add one user property for recording the DOF_ApertureStop animation
+		CreateAnimatableUserProperty(FbxCameraNode, PostProcess->DOF_ApertureStop, "UE_DOF_ApertureStop", "UE_Matinee_Camear_DOF_ApertureStop");
 	}
 	else if (PostProcess->bEnableMotionBlur)
 	{
@@ -976,13 +966,9 @@ void FbxExporter::ExportMatineeTrackFloatProp(fbx::FbxNode* FbxActor, UInterpTra
 	{
 		FbxProperty = FbxActor->FindProperty("UE_DOF_FocusDistance", false);
 	}
-	else if (PropertyName == "DOF_FocusInnerRadius")
+	else if (PropertyName == "DOF_ApertureStop")
 	{
-		FbxProperty = FbxActor->FindProperty("UE_DOF_FocusInnerRadius", false);
-	}
-	else if (PropertyName == "DOF_BlurKernelSize")
-	{
-		FbxProperty = FbxActor->FindProperty("UE_DOF_BlurKernelSize", false);
+		FbxProperty = FbxActor->FindProperty("UE_DOF_ApertureStop", false);
 	}
 	else if (PropertyName == "MotionBlur_Amount")
 	{

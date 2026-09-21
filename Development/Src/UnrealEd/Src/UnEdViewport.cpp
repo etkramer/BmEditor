@@ -2858,15 +2858,11 @@ FSceneView* FEditorLevelViewportClient::CalcSceneView(FSceneViewFamily* ViewFami
 	// If in squint mode, override post process settings and enable DOF.
 	if ( bUseSquintMode )
 	{
+		// BM: AK's PostProcessSettings only keeps ApertureStop/FocusDistance/InterpolationDuration
 		PostProcessSettings.bEnableDOF = TRUE;
-		PostProcessSettings.DOF_BlurKernelSize = GWorld->GetWorldInfo()->SquintModeKernelSize;
-		PostProcessSettings.DOF_FalloffExponent = 1.0f;
+		PostProcessSettings.DOF_ApertureStop = GWorld->GetWorldInfo()->SquintModeKernelSize;
 		PostProcessSettings.DOF_FocusDistance = 0.0f;
-		PostProcessSettings.DOF_FocusInnerRadius = 0.0f;
-		PostProcessSettings.DOF_FocusType = FOCUS_Distance;
 		PostProcessSettings.DOF_InterpolationDuration = 0.0f;
-		PostProcessSettings.DOF_MaxFarBlurAmount = 1.0f;
-		PostProcessSettings.DOF_MaxNearBlurAmount = 1.0f;
 	}
 
 	FSceneView* View = new FSceneView(

@@ -363,25 +363,13 @@ void CExporter::ExportCamera( ACameraActor* Actor, USeqAct_Interp* MatineeSequen
 		FCDENode* MaxDepthOfFieldNode = CustomTechnique->AddChildNode(DAEFC_CAMERA_DEPTH_OF_FIELD_ELEMENT);
 
 		// 'focal depth' <- 'focus distance'.
-		if (PostProcess->DOF_FocusType == FOCUS_Distance)
-		{
-			FCDENode* FocalDepthNode = MaxDepthOfFieldNode->AddParameter(DAEFC_CAMERA_DOF_FOCALDEPTH_PARAMETER, PostProcess->DOF_FocusDistance);
-			ColladaActor->CreateProperty(TEXT("DOF_FocusDistance"), FocalDepthNode->GetAnimated(), &FocalDepthNode->GetAnimated()->GetDummy(), 1, NULL);
-		}
-		else if (PostProcess->DOF_FocusType == FOCUS_Position)
-		{
-			MaxDepthOfFieldNode->AddParameter(DAEFC_CAMERA_DOF_FOCALDEPTH_PARAMETER, (Actor->Location - PostProcess->DOF_FocusPosition).Size());
-		}
+		// BM: AK's PostProcessSettings has no focus type/position/inner radius/kernel size
+		FCDENode* FocalDepthNode = MaxDepthOfFieldNode->AddParameter(DAEFC_CAMERA_DOF_FOCALDEPTH_PARAMETER, PostProcess->DOF_FocusDistance);
+		ColladaActor->CreateProperty(TEXT("DOF_FocusDistance"), FocalDepthNode->GetAnimated(), &FocalDepthNode->GetAnimated()->GetDummy(), 1, NULL);
 
-		// 'sample radius' <- 10 * 'focus distance' / 'focus radius'.
-		// Since 'focus distance' is animatable, this complicates thing: we'll simply scale using the local value.
-		FCDConversionSampleRadiusFunctor* SampleRadiusConversion = new FCDConversionSampleRadiusFunctor(PostProcess->DOF_FocusDistance);
-		FCDENode* SampleRadiusNode = MaxDepthOfFieldNode->AddParameter(DAEFC_CAMERA_DOF_SAMPLERADIUS_PARAMETER, (*SampleRadiusConversion)(PostProcess->DOF_FocusInnerRadius));
-		ColladaActor->CreateProperty(TEXT("DOF_FocusInnerRadius"), SampleRadiusNode->GetAnimated(), &SampleRadiusNode->GetAnimated()->GetDummy(), 1, SampleRadiusConversion);
-
-		// 'tile size' <- 'blur kernel size'.
-		FCDENode* TileSizeNode = MaxDepthOfFieldNode->AddParameter(DAEFC_CAMERA_DOF_TILESIZE_PARAMETER, PostProcess->DOF_BlurKernelSize);
-		ColladaActor->CreateProperty(TEXT("DOF_BlurKernelSize"), TileSizeNode->GetAnimated(), &TileSizeNode->GetAnimated()->GetDummy(), 1, NULL);
+		// 'tile size' <- 'aperture stop'.
+		FCDENode* TileSizeNode = MaxDepthOfFieldNode->AddParameter(DAEFC_CAMERA_DOF_TILESIZE_PARAMETER, PostProcess->DOF_ApertureStop);
+		ColladaActor->CreateProperty(TEXT("DOF_ApertureStop"), TileSizeNode->GetAnimated(), &TileSizeNode->GetAnimated()->GetDummy(), 1, NULL);
 
 		// 'use target distance'
 		// Always set to false, since we'll be overwriting the target distance with the 'focus distance'.

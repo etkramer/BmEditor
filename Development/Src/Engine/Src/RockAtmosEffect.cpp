@@ -344,9 +344,10 @@ public:
 			AtmosH2Density = WorldSettings->AtmosH2_Density;
 			AtmosH2GradientSize = WorldSettings->AtmosH2_GradientSize;
 			AtmosH2GradientPosition = WorldSettings->AtmosH2_GradientPosition;
-			AtmosNoiseWind = WorldSettings->AtmosNoiseWind;
-			AtmosNoiseOffset = WorldSettings->AtmosNoiseOffset;
-			AtmosNoiseFade = WorldSettings->AtmosNoiseFade;
+			// BM: AK dropped the noise wind/offset/fade from PostProcessSettings, so they only live on the effect
+			AtmosNoiseWind = InEffect->AtmosNoiseWind_PP;
+			AtmosNoiseOffset = InEffect->AtmosNoiseOffset_PP;
+			AtmosNoiseFade = InEffect->AtmosNoiseFade_PP;
 			AtmosGlobalGradientColour = WorldSettings->AtmosGlobal_Gradient_Colour;
 			AtmosGlobalGradientDirection = WorldSettings->AtmosGlobal_Gradient_Direction;
 			AtmosGlobalGradientDensity = WorldSettings->AtmosGlobal_Gradient_Density;
@@ -495,7 +496,10 @@ FPostProcessSceneProxy* URockAtmos::CreateSceneProxy(const FPostProcessSettings*
 	const UBOOL bH2 = WorldSettings && WorldSettings->bAtmosH2;
 	const UBOOL bD1 = WorldSettings && WorldSettings->bAtmosD1;
 	const UBOOL bD2 = WorldSettings && WorldSettings->bAtmosD2;
-	const UBOOL bNoise = WorldSettings && WorldSettings->AtmosNoise;
+	// BM: AK replaced the single AtmosNoise toggle with a per-layer noise amount
+	const UBOOL bNoise = WorldSettings
+		&& (WorldSettings->AtmosNoiseD1 != 0.f || WorldSettings->AtmosNoiseD2 != 0.f
+		||  WorldSettings->AtmosNoiseH1 != 0.f || WorldSettings->AtmosNoiseH2 != 0.f);
 
 #define RETURN_ROCKATMOS_PROXY(H1,H2,D1,D2,N) \
 	if (bH1 == H1 && bH2 == H2 && bD1 == D1 && bD2 == D2 && bNoise == N) \

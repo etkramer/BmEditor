@@ -7496,7 +7496,8 @@ STRUCTTRACK_GETCLOSESTSNAPPOSITION(UInterpTrackDirector, CutTrack, Time)
 /** Add a new keyframe at the speicifed time. Returns index of new keyframe. */
 INT UInterpTrackDirector::AddKeyframe(FLOAT Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode)
 {
-	FDirectorTrackCut NewCut;
+	// BM: BoundTracks is a TArrayNoInit, so zero the whole struct first
+	FDirectorTrackCut NewCut(EC_EventParm);
 	NewCut.TargetCamGroup = NAME_None;
 	NewCut.TransitionTime = 0.f;
 	NewCut.Time = Time;

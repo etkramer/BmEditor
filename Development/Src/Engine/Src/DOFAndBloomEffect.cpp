@@ -311,20 +311,22 @@ FDOFAndBloomPostProcessSceneProxy::FDOFAndBloomPostProcessSceneProxy(const UDOFA
 ,	ColorGrading_LookupTable(0)
 ,	BokehTexture(0)
 {
-	SET_POSTPROCESS_PROPERTY1(DOF, FalloffExponent);
-	SET_POSTPROCESS_PROPERTY1(DOF, BlurKernelSize);
-	SET_POSTPROCESS_PROPERTY1(DOF, BlurBloomKernelSize);
-	SET_POSTPROCESS_PROPERTY1(DOF, MaxNearBlurAmount);
-	SET_POSTPROCESS_PROPERTY1(DOF, MinBlurAmount);
-	SET_POSTPROCESS_PROPERTY1(DOF, MaxFarBlurAmount);
-	SET_POSTPROCESS_PROPERTY1(DOF, FocusType);
-	SET_POSTPROCESS_PROPERTY1(DOF, FocusInnerRadius);
+	// BM: AK's PostProcessSettings only overrides DOF_ApertureStop/FocusDistance/InterpolationDuration,
+	// so everything else is taken straight from the effect.
+	FalloffExponent = InEffect->FalloffExponent;
+	BlurKernelSize = InEffect->BlurKernelSize;
+	BlurBloomKernelSize = InEffect->BlurBloomKernelSize;
+	MaxNearBlurAmount = InEffect->MaxNearBlurAmount;
+	MinBlurAmount = InEffect->MinBlurAmount;
+	MaxFarBlurAmount = InEffect->MaxFarBlurAmount;
+	FocusType = InEffect->FocusType;
+	FocusInnerRadius = InEffect->FocusInnerRadius;
 	SET_POSTPROCESS_PROPERTY1(DOF, FocusDistance);
-	SET_POSTPROCESS_PROPERTY1(DOF, FocusPosition);
-	SET_POSTPROCESS_PROPERTY2(Bloom, Scale);
-	SET_POSTPROCESS_PROPERTY2(Bloom, Threshold);
-	SET_POSTPROCESS_PROPERTY2(Bloom, Tint);
-	SET_POSTPROCESS_PROPERTY2(Bloom, ScreenBlendThreshold);
+	FocusPosition = InEffect->FocusPosition;
+	BloomScale = InEffect->BloomScale;
+	BloomThreshold = InEffect->BloomThreshold;
+	BloomTint = InEffect->BloomTint;
+	BloomScreenBlendThreshold = InEffect->BloomScreenBlendThreshold;
 
 	if(DepthOfFieldType == DOFType_BokehDOF)
 	{

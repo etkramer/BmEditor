@@ -356,15 +356,6 @@ enum EStreamingVolumeUsage
     op(SVB_VisibilityBlockingOnLoad) \
     op(SVB_BlockingOnLoad) \
     op(SVB_LoadingNotVisible) 
-enum EFocusType
-{
-    FOCUS_Distance          =0,
-    FOCUS_Position          =1,
-    FOCUS_MAX               =2,
-};
-#define FOREACH_ENUM_EFOCUSTYPE(op) \
-    op(FOCUS_Distance) \
-    op(FOCUS_Position) 
 enum ReverbPreset
 {
     REVERB_Default          =0,
@@ -1756,6 +1747,15 @@ enum EAmbientOcclusionQuality
     op(AO_High) \
     op(AO_Medium) \
     op(AO_Low) 
+enum EFocusType
+{
+    FOCUS_Distance          =0,
+    FOCUS_Position          =1,
+    FOCUS_MAX               =2,
+};
+#define FOREACH_ENUM_EFOCUSTYPE(op) \
+    op(FOCUS_Distance) \
+    op(FOCUS_Position) 
 enum EDOFQuality
 {
     DOFQuality_Low          =0,
@@ -5761,111 +5761,12 @@ protected:
 public:
 };
 
-class UPostProcessEffect : public UObject
-{
-public:
-    //## BEGIN PROPS PostProcessEffect
-    BITFIELD bShowInEditor:1;
-    BITFIELD bShowInGame:1;
-    BITFIELD bUseWorldSettings:1;
-    BITFIELD bAffectsLightingOnly:1;
-    FName EffectName;
-    INT NodePosY;
-    INT NodePosX;
-    INT DrawWidth;
-    INT DrawHeight;
-    INT OutDrawY;
-    INT InDrawY;
-    BYTE SceneDPG;
-    SCRIPT_ALIGN;
-    //## END PROPS PostProcessEffect
-
-    DECLARE_CLASS(UPostProcessEffect,UObject,0,Engine)
-	/**
-	 * Creates a proxy to represent the render info for a post process effect
-	 * @param WorldSettings - The world's post process settings for the view.
-	 *			Will be NULL if the view didn't provide them, or the effect has bUseWorldSettings=False.
-	 * @return The proxy object.
-	 */
-	virtual class FPostProcessSceneProxy* CreateSceneProxy(const FPostProcessSettings* WorldSettings) 
-	{ 
-		return NULL; 
-	}
-
-	/**
-	 * @param View - current view
-	 * @return TRUE if the effect should be rendered
-	 */
-	virtual UBOOL IsShown(const FSceneView* View) const;
-
-	/**
-	* @return TRUE if the effect requires the uber post process
-	*/
-	virtual UBOOL RequiresUberpostprocess() const 
-	{ 
-		return FALSE; 
-	}
-
-	/**
-	* Tells the SceneRenderer is this effect includes the uber post process.
-	*/
-	virtual UBOOL IncludesUberpostprocess() const
-	{
-		return FALSE;
-	}
-
-#if !BATMAN
-	/**
-	* This allows to print a warning when the effect is used.
-	*/
-	virtual void OnPostProcessWarning(FString& OutWarning) const
-	{
-	}
-#endif
-};
-
-class UDOFEffect : public UPostProcessEffect
-{
-public:
-    //## BEGIN PROPS DOFEffect
-    FLOAT FalloffExponent;
-    FLOAT BlurKernelSize;
-    FLOAT MaxNearBlurAmount;
-    FLOAT MinBlurAmount;
-    FLOAT MaxFarBlurAmount;
-    FColor ModulateBlurColor_DEPRECATED;
-    BYTE FocusType;
-    FLOAT FocusInnerRadius;
-    FLOAT FocusDistance;
-    FVector FocusPosition;
-    //## END PROPS DOFEffect
-
-    DECLARE_ABSTRACT_CLASS(UDOFEffect,UPostProcessEffect,0,Engine)
-	// UPostProcessEffect interface
-
-	/**
-	 * Creates a proxy to represent the render info for a post process effect
-	 * @param WorldSettings - The world's post process settings for the view.
-	 * @return The proxy object.
-	 */
-	virtual class FPostProcessSceneProxy* CreateSceneProxy(const FPostProcessSettings* WorldSettings);
-
-	/**
-	 * @param View - current view
-	 * @return TRUE if the effect should be rendered
-	 */
-	virtual UBOOL IsShown(const FSceneView* View) const;
-
-	// UObject inteface
-
-	/** callback for changed property */
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent);
-};
-
 struct FLUTBlender
 {
     TArrayNoInit<class UTexture*> LUTTextures;
     TArrayNoInit<FLOAT> LUTWeights;
+    BITFIELD bHasChanged:1;
+    SCRIPT_ALIGN;
 
 		/** constructor, by default not even the Neutral element is defined */
 		FLUTBlender();
@@ -5924,6 +5825,7 @@ struct FLUTBlender
 
 struct FPostProcessSettings
 {
+    FVector levelOffsetCached;
     BITFIELD bOverride_InterpolateOverDistance:1;
     BITFIELD bOverride_InterpolateOverDistanceFade:1;
     BITFIELD bOverride_bEnableHighQualityDOF:1;
@@ -5932,22 +5834,10 @@ struct FPostProcessSettings
     BITFIELD bOverride_EnableMotionBlur:1;
     BITFIELD bOverride_EnableSceneEffect:1;
     BITFIELD bOverride_AllowAmbientOcclusion:1;
-    BITFIELD bOverride_Bloom_Scale:1;
-    BITFIELD bOverride_Bloom_Threshold:1;
-    BITFIELD bOverride_Bloom_Tint:1;
-    BITFIELD bOverride_Bloom_ScreenBlendThreshold:1;
-    BITFIELD bOverride_Bloom_InterpolationDuration:1;
-    BITFIELD bOverride_DOF_FalloffExponent:1;
-    BITFIELD bOverride_DOF_BlurKernelSize:1;
-    BITFIELD bOverride_DOF_BlurBloomKernelSize:1;
-    BITFIELD bOverride_DOF_MaxNearBlurAmount:1;
-    BITFIELD bOverride_DOF_MinBlurAmount:1;
-    BITFIELD bOverride_DOF_MaxFarBlurAmount:1;
-    BITFIELD bOverride_DOF_ModulateBlurColor:1;
-    BITFIELD bOverride_DOF_FocusType:1;
-    BITFIELD bOverride_DOF_FocusInnerRadius:1;
+    BITFIELD bOverride_BloomOverload:1;
+    BITFIELD bOverride_BloomLowerCut:1;
+    BITFIELD bOverride_DOF_ApertureStop:1;
     BITFIELD bOverride_DOF_FocusDistance:1;
-    BITFIELD bOverride_DOF_FocusPosition:1;
     BITFIELD bOverride_DOF_InterpolationDuration:1;
     BITFIELD bOverride_MotionBlur_MaxVelocity:1;
     BITFIELD bOverride_MotionBlur_Amount:1;
@@ -5965,6 +5855,7 @@ struct FPostProcessSettings
     BITFIELD bOverride_Scene_ColorGradingLUT:1;
     BITFIELD bEnableInterpolateOverDistance:1;
     FLOAT InterpolateOverDistanceFade;
+    BITFIELD bOverride_MobileColorGrading:1;
     BITFIELD bEnableBloom:1;
     BITFIELD bEnableDOF:1;
     BITFIELD bEnableHighQualityDOF:1;
@@ -6015,16 +5906,6 @@ struct FPostProcessSettings
     FLOAT AtmosH2_GradientSize;
     BITFIELD bOverride_EnableAtmosH2Pos:1;
     FLOAT AtmosH2_GradientPosition;
-    BITFIELD bOverride_EnableAtmosNoise:1;
-    BITFIELD AtmosNoise:1;
-    BITFIELD bOverride_EnableAtmosNoiseWind:1;
-    SCRIPT_ALIGN;
-    FVector AtmosNoiseWind;
-    BITFIELD bOverride_EnableAtmosNoiseOffset:1;
-    SCRIPT_ALIGN;
-    FVector AtmosNoiseOffset;
-    BITFIELD bOverride_EnableAtmosNoiseFade:1;
-    FLOAT AtmosNoiseFade;
     BITFIELD bOverride_EnableAtmosGlobal_Gradient_Colour:1;
     SCRIPT_ALIGN;
     FColor AtmosGlobal_Gradient_Colour;
@@ -6033,22 +5914,48 @@ struct FPostProcessSettings
     FVector AtmosGlobal_Gradient_Direction;
     BITFIELD bOverride_EnableAtmosGlobal_Gradient_Density:1;
     FLOAT AtmosGlobal_Gradient_Density;
-    FLOAT Bloom_Scale;
-    FLOAT Bloom_Threshold;
-    FColor Bloom_Tint;
-    FLOAT Bloom_ScreenBlendThreshold;
-    FLOAT Bloom_InterpolationDuration;
-    FLOAT DOF_BlurBloomKernelSize;
-    FLOAT DOF_FalloffExponent;
-    FLOAT DOF_BlurKernelSize;
-    FLOAT DOF_MaxNearBlurAmount;
-    FLOAT DOF_MinBlurAmount;
-    FLOAT DOF_MaxFarBlurAmount;
-    FColor DOF_ModulateBlurColor;
-    BYTE DOF_FocusType;
-    FLOAT DOF_FocusInnerRadius;
+    BITFIELD bOverride_EnableAtmosGlobal_Gradient_Cosine:1;
+    FLOAT AtmosGlobal_Gradient_Cosine;
+    BITFIELD bOverride_EnableAtmosHazeWeight:1;
+    BITFIELD bOverride_EnableAtmosHazeNear:1;
+    BITFIELD bOverride_EnableAtmosHazeFar:1;
+    FLOAT AtmosHazeWeight;
+    FLOAT AtmosHazeNear;
+    FLOAT AtmosHazeFar;
+    BITFIELD bOverride_EnableAtmosAmbientD1:1;
+    BITFIELD bOverride_EnableAtmosAmbientD2:1;
+    BITFIELD bOverride_EnableAtmosAmbientH1:1;
+    BITFIELD bOverride_EnableAtmosAmbientH2:1;
+    SCRIPT_ALIGN;
+    FLinearColor AtmosAmbientD1;
+    FLinearColor AtmosAmbientD2;
+    FLinearColor AtmosAmbientH1;
+    FLinearColor AtmosAmbientH2;
+    BITFIELD bOverride_EnableAtmosNoiseD1:1;
+    BITFIELD bOverride_EnableAtmosNoiseD2:1;
+    BITFIELD bOverride_EnableAtmosNoiseH1:1;
+    BITFIELD bOverride_EnableAtmosNoiseH2:1;
+    FLOAT AtmosNoiseD1;
+    FLOAT AtmosNoiseD2;
+    FLOAT AtmosNoiseH1;
+    FLOAT AtmosNoiseH2;
+    BITFIELD bOverride_EnableAtmosHeightMapModD1:1;
+    BITFIELD bOverride_EnableAtmosHeightMapModD2:1;
+    BITFIELD bOverride_EnableAtmosHeightMapModH1:1;
+    BITFIELD bOverride_EnableAtmosHeightMapModH2:1;
+    SCRIPT_ALIGN;
+    FVector AtmosHeightMapModD1;
+    FVector AtmosHeightMapModD2;
+    FVector AtmosHeightMapModH1;
+    FVector AtmosHeightMapModH2;
+    BITFIELD bOverride_ExposureAutoBracketing:1;
+    FLOAT ExposureAutoBracketing;
+    BITFIELD bOverride_ExposureBaseOffset:1;
+    FLOAT ExposureBaseOffset;
+    FLOAT BloomOverload;
+    FLOAT BloomLowerCut;
+    FLOAT DOF_ApertureStop;
     FLOAT DOF_FocusDistance;
-    FVector DOF_FocusPosition;
     FLOAT DOF_InterpolationDuration;
     FLOAT MotionBlur_MaxVelocity;
     FLOAT MotionBlur_Amount;
@@ -6059,12 +5966,15 @@ struct FPostProcessSettings
     FLOAT Scene_Desaturation;
     FVector Scene_Colorize;
     FLOAT Scene_ImageGrainScale;
-    FVector Scene_HighLights;
-    FVector Scene_MidTones;
-    FVector Scene_Shadows;
+    FLinearColor Scene_HighLights;
+    FLinearColor Scene_MidTones;
+    FLinearColor Scene_Shadows;
     FLOAT Scene_InterpolationDuration;
     class UTexture* ColorGrading_LookupTable;
     struct FLUTBlender ColorGradingLUT;
+    BITFIELD bOverride_CompositeViewModeBeforeBlur:1;
+    BITFIELD bCompositeViewModeBeforeBlur:1;
+    SCRIPT_ALIGN;
 
 		/* default constructor, for script, values are overwritten by serialization after that */
 		FPostProcessSettings()
@@ -6082,23 +5992,11 @@ struct FPostProcessSettings
 			bOverride_EnableSceneEffect = TRUE;
 			bOverride_AllowAmbientOcclusion = TRUE;
 
-			bOverride_Bloom_Scale = TRUE;
-			bOverride_Bloom_Threshold = TRUE;
-			bOverride_Bloom_Tint = TRUE;
-			bOverride_Bloom_ScreenBlendThreshold = TRUE;
-			bOverride_Bloom_InterpolationDuration = TRUE;
+			bOverride_BloomOverload = TRUE;
+			bOverride_BloomLowerCut = TRUE;
 
-			bOverride_DOF_FalloffExponent = TRUE;
-			bOverride_DOF_BlurKernelSize = TRUE;
-			bOverride_DOF_BlurBloomKernelSize = TRUE;
-			bOverride_DOF_MaxNearBlurAmount = TRUE;
-			bOverride_DOF_MinBlurAmount = FALSE;
-			bOverride_DOF_MaxFarBlurAmount = TRUE;
-			bOverride_DOF_ModulateBlurColor = TRUE;
-			bOverride_DOF_FocusType = TRUE;
-			bOverride_DOF_FocusInnerRadius = TRUE;
+			bOverride_DOF_ApertureStop = TRUE;
 			bOverride_DOF_FocusDistance = TRUE;
-			bOverride_DOF_FocusPosition = TRUE;
 			bOverride_DOF_InterpolationDuration = TRUE;
 
 			bOverride_MotionBlur_MaxVelocity = FALSE;
@@ -6119,6 +6017,8 @@ struct FPostProcessSettings
 			bEnableInterpolateOverDistance=FALSE;
 			InterpolateOverDistanceFade=2500.0f;
 
+			bOverride_MobileColorGrading = FALSE;
+
 			bEnableBloom=TRUE;
 			bEnableDOF=FALSE;
 			bEnableHighQualityDOF=FALSE;
@@ -6126,22 +6026,11 @@ struct FPostProcessSettings
 			bEnableSceneEffect=TRUE;
 			bAllowAmbientOcclusion=TRUE;
 
-			Bloom_Scale=1;
-			Bloom_Threshold=1;
-			Bloom_Tint=FColor(255,255,255);
-			Bloom_ScreenBlendThreshold=10;
-			Bloom_InterpolationDuration=1;
+			BloomOverload=0.05f;
+			BloomLowerCut=0.01f;
 
-			DOF_FalloffExponent=4;
-			DOF_BlurKernelSize=16;
-			DOF_BlurBloomKernelSize=16;
-			DOF_MaxNearBlurAmount=1;
-			DOF_MinBlurAmount=0;
-			DOF_MaxFarBlurAmount=1;
-			DOF_ModulateBlurColor=FColor(255,255,255,255);
-			DOF_FocusType=FOCUS_Distance;
-			DOF_FocusInnerRadius=2000;
-			DOF_FocusDistance=0;
+			DOF_ApertureStop=22.0f;
+			DOF_FocusDistance=220.0f;
 			DOF_InterpolationDuration=1;
 
 			MotionBlur_MaxVelocity=1.0f;
@@ -6154,9 +6043,9 @@ struct FPostProcessSettings
 			Scene_Desaturation=0;
 			Scene_Colorize=FVector(1,1,1);
 			Scene_ImageGrainScale=0.0f;
-			Scene_HighLights=FVector(1,1,1);
-			Scene_MidTones=FVector(1,1,1);
-			Scene_Shadows=FVector(0,0,0);
+			Scene_HighLights=FLinearColor(1,1,1,1);
+			Scene_MidTones=FLinearColor(0.5f,0.5f,0.5f,1);
+			Scene_Shadows=FLinearColor(0,0,0,1);
 			Scene_InterpolationDuration=1;
 		}
 
@@ -6252,15 +6141,12 @@ class APostProcessVolume : public AVolume
 public:
     //## BEGIN PROPS PostProcessVolume
     FLOAT Priority;
-    struct FPostProcessSettings Settings;
-    class APostProcessVolume* NextLowerPriorityVolume;
-    BITFIELD bOverrideDOF:1;
-    BITFIELD bOverrideMotionBlur:1;
-    BITFIELD bOverrideBloom:1;
-    BITFIELD bOverrideScene:1;
-    BITFIELD bOverrideAtmospherics:1;
+    BITFIELD bOverrideWorldPostProcessChain:1;
     BITFIELD bEnabled:1;
     SCRIPT_ALIGN;
+    struct FPostProcessSettings Settings;
+    class APostProcessVolume* NextLowerPriorityVolume;
+    FVector LevelOffset;
     //## END PROPS PostProcessVolume
 
     DECLARE_CLASS(APostProcessVolume,AVolume,0,Engine)
@@ -21110,6 +20996,69 @@ public:
     NO_DEFAULT_CONSTRUCTOR(UPostProcessChain)
 };
 
+class UPostProcessEffect : public UObject
+{
+public:
+    //## BEGIN PROPS PostProcessEffect
+    BITFIELD bShowInEditor:1;
+    BITFIELD bShowInGame:1;
+    BITFIELD bUseWorldSettings:1;
+    BITFIELD bAffectsLightingOnly:1;
+    FName EffectName;
+    INT NodePosY;
+    INT NodePosX;
+    INT DrawWidth;
+    INT DrawHeight;
+    INT OutDrawY;
+    INT InDrawY;
+    BYTE SceneDPG;
+    SCRIPT_ALIGN;
+    //## END PROPS PostProcessEffect
+
+    DECLARE_CLASS(UPostProcessEffect,UObject,0,Engine)
+	/**
+	 * Creates a proxy to represent the render info for a post process effect
+	 * @param WorldSettings - The world's post process settings for the view.
+	 *			Will be NULL if the view didn't provide them, or the effect has bUseWorldSettings=False.
+	 * @return The proxy object.
+	 */
+	virtual class FPostProcessSceneProxy* CreateSceneProxy(const FPostProcessSettings* WorldSettings) 
+	{ 
+		return NULL; 
+	}
+
+	/**
+	 * @param View - current view
+	 * @return TRUE if the effect should be rendered
+	 */
+	virtual UBOOL IsShown(const FSceneView* View) const;
+
+	/**
+	* @return TRUE if the effect requires the uber post process
+	*/
+	virtual UBOOL RequiresUberpostprocess() const 
+	{ 
+		return FALSE; 
+	}
+
+	/**
+	* Tells the SceneRenderer is this effect includes the uber post process.
+	*/
+	virtual UBOOL IncludesUberpostprocess() const
+	{
+		return FALSE;
+	}
+
+#if !BATMAN
+	/**
+	* This allows to print a warning when the effect is used.
+	*/
+	virtual void OnPostProcessWarning(FString& OutWarning) const
+	{
+	}
+#endif
+};
+
 class UAmbientOcclusionEffect : public UPostProcessEffect
 {
 public:
@@ -21164,6 +21113,44 @@ public:
     //## END PROPS BlurEffect
 
     DECLARE_CLASS(UBlurEffect,UPostProcessEffect,0,Engine)
+	// UPostProcessEffect interface
+
+	/**
+	 * Creates a proxy to represent the render info for a post process effect
+	 * @param WorldSettings - The world's post process settings for the view.
+	 * @return The proxy object.
+	 */
+	virtual class FPostProcessSceneProxy* CreateSceneProxy(const FPostProcessSettings* WorldSettings);
+
+	/**
+	 * @param View - current view
+	 * @return TRUE if the effect should be rendered
+	 */
+	virtual UBOOL IsShown(const FSceneView* View) const;
+
+	// UObject inteface
+
+	/** callback for changed property */
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent);
+};
+
+class UDOFEffect : public UPostProcessEffect
+{
+public:
+    //## BEGIN PROPS DOFEffect
+    FLOAT FalloffExponent;
+    FLOAT BlurKernelSize;
+    FLOAT MaxNearBlurAmount;
+    FLOAT MinBlurAmount;
+    FLOAT MaxFarBlurAmount;
+    FColor ModulateBlurColor_DEPRECATED;
+    BYTE FocusType;
+    FLOAT FocusInnerRadius;
+    FLOAT FocusDistance;
+    FVector FocusPosition;
+    //## END PROPS DOFEffect
+
+    DECLARE_ABSTRACT_CLASS(UDOFEffect,UPostProcessEffect,0,Engine)
 	// UPostProcessEffect interface
 
 	/**
@@ -24183,7 +24170,7 @@ VERIFY_CLASS_SIZE_NODIE(ALadderVolume)
 VERIFY_CLASS_OFFSET_NODIE(APortalVolume,PortalVolume,Portals)
 VERIFY_CLASS_SIZE_NODIE(APortalVolume)
 VERIFY_CLASS_OFFSET_NODIE(APostProcessVolume,PostProcessVolume,Priority)
-VERIFY_CLASS_OFFSET_NODIE(APostProcessVolume,PostProcessVolume,NextLowerPriorityVolume)
+VERIFY_CLASS_OFFSET_NODIE(APostProcessVolume,PostProcessVolume,LevelOffset)
 VERIFY_CLASS_SIZE_NODIE(APostProcessVolume)
 VERIFY_CLASS_OFFSET_NODIE(APrecomputedVisibilityOverrideVolume,PrecomputedVisibilityOverrideVolume,OverrideVisibleActors)
 VERIFY_CLASS_OFFSET_NODIE(APrecomputedVisibilityOverrideVolume,PrecomputedVisibilityOverrideVolume,OverrideInvisibleActors)

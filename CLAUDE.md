@@ -96,7 +96,7 @@ These are deliberate, disclosed compromises. Do not silently remove one, and do 
 - `MaterialInstance.cpp:1291` forces `bHasStaticPermutationResource` FALSE on retail cooked loads, dropping static permutation resources. This is the single largest source of serial-size diagnostics.
 - The retail shader cache is skipped.
 - `MLM_RockBRDF` compiles as Phong.
-- `UnClass.cpp:1220` re-seeks the stream when a named struct tag consumes the wrong byte count (`correcting stream`). Pre-existing from bmgame2, but load-bearing now - it fires on `PostProcessSettings` and `InterpTrackDirector.CutTrack`, whose layouts are wrong.
+- `UnClass.cpp:1220` re-seeks the stream when a named struct tag consumes the wrong byte count (`correcting stream`). Pre-existing from bmgame2. It is a counted diagnostic (`correcting` in `[PKGSTAT]`), not a silent one, and since `PostProcessSettings` and `InterpTrackDirector.DirectorTrackCut` were matched to AK it fires zero times on `<startup>` and on every map measured so far. Keep it: only a handful of packages have been measured, and any struct still wrong elsewhere depends on it.
 - `UnModel.h:52` fabricates `BackfaceShadowTexCoord = ShadowTexCoord` for cooked AK verts, which have no such field.
 
 ## Measuring a Load
