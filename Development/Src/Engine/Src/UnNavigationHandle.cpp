@@ -199,8 +199,7 @@ UINT PolyIdx=0;
 	}
 
 #define VERBOSE_LOG_PATH_SUPPORTSMOVETOEDGEFAIL(NAVHANDLEINTERFACE, NEXTEDGE, PREVEDGE, NEXTEDGEPOS) \
-	AController* C = Cast<AController>(NAVHANDLEINTERFACE->GetUObjectInterfaceInterface_NavigationHandle());\
-	UNavigationHandle* Handle = (C) ? C->NavigationHandle : NULL;\
+	UNavigationHandle* Handle = NULL; /* BM: AK's Controller has no NavigationHandle */\
 	if(Handle != NULL && Handle->bUltraVerbosePathDebugging)\
 	{\
 		debugf(TEXT("SUPPORTED MOVE TO EDGE FAIL[C:%u]: NextEdge:%s PrevEdge:%s"),DebugStringIndex+1,*NEXTEDGE->GetDebugText(), *PREVEDGE->GetDebugText());\
@@ -5933,15 +5932,15 @@ UBOOL GetPylonsToCheck(UNavigationHandle* Handle, const FVector& Mid, const FVec
 
 void APawn::physNavMeshWalking(FLOAT deltaTime)
 {
-	// can't cling to navmesh with no navhandle!
-	if( Controller == NULL || Controller->NavigationHandle == NULL )
+	// BM: AK's Controller has no NavigationHandle, so there is never one to cling to and the rest of this
+	// function is unreachable until handles live on their AK owners.
 	{
 		Acceleration	= FVector(0.f);
 		Velocity		= FVector(0.f);
 		return;
 	}
 
-	UNavigationHandle* Handle = Controller->NavigationHandle;
+	UNavigationHandle* Handle = NULL;
 
 	FVector Extent = GetCylinderExtent();
 

@@ -344,14 +344,26 @@ struct Controller_eventNotifyPathChanged_Parms
     {
     }
 };
-class AController : public AActor, public IInterface_NavigationHandle
+class AController : public AActor
 {
 public:
     //## BEGIN PROPS Controller
     class APawn* Pawn;
     class APlayerReplicationInfo* PlayerReplicationInfo;
-    INT PlayerNum;
     class AController* NextController;
+    class AActor* MoveTarget;
+    class AActor* Focus;
+    class AActor* GoalList[4];
+    class ANavigationPoint* StartSpot;
+    class UReachSpec* CurrentPath;
+    class UReachSpec* NextRoutePath;
+    class AActor* RouteGoal;
+    class AInterpActor* PendingMover;
+    class AActor* FailedMoveTarget;
+    class APawn* ShotTarget;
+    class AActor* LastFailedReach;
+    class APawn* Enemy;
+    INT PlayerNum;
     BITFIELD bIsPlayer:1;
     BITFIELD bGodMode:1;
     BITFIELD bSoaking:1;
@@ -367,41 +379,25 @@ public:
     BITFIELD bLOSflag:1;
     BITFIELD bSkipExtraLOSChecks:1;
     BITFIELD bNotifyFallingHitWall:1;
+    BITFIELD bEarlyOutOfSighTestsForSameType:1;
     BITFIELD bPreciseDestination:1;
     BITFIELD bSeeFriendly:1;
     BITFIELD bUsingPathLanes:1;
-    BITFIELD bEarlyOutOfSighTestsForSameType:1;
     SCRIPT_ALIGN;
     BYTE bFire;
     BYTE bAltFire;
     FLOAT MinHitWall;
-    class UClass* NavigationHandleClass;
-    class UNavigationHandle* NavigationHandle;
     FVector OverrideSearchStart;
     FLOAT MoveTimer;
-    class AActor* MoveTarget;
     struct FBasedPosition DestinationPosition;
     struct FBasedPosition FocalPosition;
-    class AActor* Focus;
-    class AActor* GoalList[4];
     struct FBasedPosition AdjustPosition;
-    class ANavigationPoint* StartSpot;
     TArrayNoInit<class ANavigationPoint*> RouteCache;
-    class UReachSpec* CurrentPath;
-    class UReachSpec* NextRoutePath;
     FVector CurrentPathDir;
-    class AActor* RouteGoal;
     FLOAT RouteDist;
     FLOAT LastRouteFind;
-    class AInterpActor* PendingMover;
-    class AActor* FailedMoveTarget;
     INT MoveFailureCount;
     FLOAT GroundPitchTime;
-    FVector ViewX;
-    FVector ViewY;
-    FVector ViewZ;
-    class APawn* ShotTarget;
-    class AActor* LastFailedReach;
     FLOAT FailedReachTime;
     FVector FailedReachLocation;
     FLOAT SightCounter;
@@ -409,7 +405,6 @@ public:
     FLOAT InUseNodeCostMultiplier;
     INT HighJumpNodeCostModifier;
     FLOAT MaxMoveTowardPawnTargetTime;
-    class APawn* Enemy;
     TArrayNoInit<struct FVisiblePortalInfo> VisiblePortals;
     FLOAT LaneOffset;
     FRotator OldBasedRotation;
@@ -871,7 +866,6 @@ public:
         ProcessEvent(FindFunctionChecked(ENGINE_NotifyPathChanged),NULL);
     }
     DECLARE_ABSTRACT_CLASS(AController,AActor,0|CLASS_NativeReplication,Engine)
-    virtual UObject* GetUObjectInterfaceInterface_NavigationHandle(){return this;}
 	INT* GetOptimizedRepList( BYTE* InDefault, FPropertyRetirement* Retire, INT* Ptr, UPackageMap* Map, UActorChannel* Channel );
 	UBOOL Tick( FLOAT DeltaTime, enum ELevelTick TickType );
 	virtual void Spawned();

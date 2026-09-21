@@ -572,16 +572,8 @@ FRotator AActor::FindSlopeRotation(const FVector& FloorNormal, const FRotator& N
 
 FRotator APawn::FindSlopeRotation(const FVector& FloorNormal, const FRotator& NewRotation)
 {
-	if ((Physics == PHYS_Spider || Physics == PHYS_NavMeshWalking) && Controller )
-	{
-		FMatrix M = FMatrix::Identity;
-		M.SetAxis( 0, Controller->ViewY ^ Floor );
-		M.SetAxis( 1, Controller->ViewY );
-		M.SetAxis( 2, Floor );
-		return M.Rotator();
-	}
-	else
-		return Super::FindSlopeRotation(FloorNormal,NewRotation);
+	// BM: AK's Controller has no ViewX/ViewY/ViewZ, so there is no spider basis to build from.
+	return Super::FindSlopeRotation(FloorNormal,NewRotation);
 }
 
 void APawn::physicsRotation(FLOAT deltaTime, FVector OldVelocity)

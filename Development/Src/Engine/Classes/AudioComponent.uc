@@ -7,6 +7,8 @@ class AudioComponent extends ActorComponent
 	collapsecategories
 	hidecategories(Object,ActorComponent)
 	dependson(ReverbVolume)
+	// BM: SubtitleCue lives in EngineTypes; AudioComponent only compiled without this by class ordering.
+	dependson(EngineTypes)
 	editinlinenew;
 
 var()					SoundCue			SoundCue;

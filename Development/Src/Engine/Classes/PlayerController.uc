@@ -603,12 +603,6 @@ simulated event PostBeginPlay()
 	LastActiveTime = WorldInfo.TimeSeconds;
 
 	OnlineSub = class'GameEngine'.static.GetOnlineSubsystem();
-
-	// if we're a client do this here because super is not going to
-	if ( WorldInfo.NetMode == NM_Client )
-	{
-		InitNavigationHandle();
-	}
 }
 
 /**

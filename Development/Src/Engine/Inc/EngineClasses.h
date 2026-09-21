@@ -993,43 +993,6 @@ enum EAkComponentUpdate
     op(AK_COMPONENT_UPDATE_MULTIPOINT_AUTO) \
     op(AK_COMPONENT_UPDATE_MULTIPOINT_NO_AUTO) \
     op(AK_COMPONENT_UPDATE_NEVER) 
-enum ESceneCaptureViewMode
-{
-    SceneCapView_Lit        =0,
-    SceneCapView_Unlit      =1,
-    SceneCapView_LitNoShadows=2,
-    SceneCapView_Wire       =3,
-    SceneCapView_MAX        =4,
-};
-#define FOREACH_ENUM_ESCENECAPTUREVIEWMODE(op) \
-    op(SceneCapView_Lit) \
-    op(SceneCapView_Unlit) \
-    op(SceneCapView_LitNoShadows) \
-    op(SceneCapView_Wire) 
-enum EAkBankLoadType
-{
-    AK_BANK_LOAD_NONE       =0,
-    AK_BANK_LOAD_NORMAL     =1,
-    AK_BANK_LOAD_PREPARE    =2,
-    AK_BANK_LOAD_DEFERRED   =3,
-    AK_BANK_LOAD_MAX        =4,
-};
-#define FOREACH_ENUM_EAKBANKLOADTYPE(op) \
-    op(AK_BANK_LOAD_NONE) \
-    op(AK_BANK_LOAD_NORMAL) \
-    op(AK_BANK_LOAD_PREPARE) \
-    op(AK_BANK_LOAD_DEFERRED) 
-enum DistributionParamMode
-{
-    DPM_Normal              =0,
-    DPM_Abs                 =1,
-    DPM_Direct              =2,
-    DPM_MAX                 =3,
-};
-#define FOREACH_ENUM_DISTRIBUTIONPARAMMODE(op) \
-    op(DPM_Normal) \
-    op(DPM_Abs) \
-    op(DPM_Direct) 
 enum ELightingBuildQuality
 {
     Quality_Preview         =0,
@@ -1233,6 +1196,43 @@ enum EPathFindingError
     op(PATHERROR_NOPATHFOUND) \
     op(PATHERROR_COMPUTEVALIDFINALDEST_FAIL) \
     op(PATHERROR_GETNEXTMOVELOCATION_FAIL) 
+enum ESceneCaptureViewMode
+{
+    SceneCapView_Lit        =0,
+    SceneCapView_Unlit      =1,
+    SceneCapView_LitNoShadows=2,
+    SceneCapView_Wire       =3,
+    SceneCapView_MAX        =4,
+};
+#define FOREACH_ENUM_ESCENECAPTUREVIEWMODE(op) \
+    op(SceneCapView_Lit) \
+    op(SceneCapView_Unlit) \
+    op(SceneCapView_LitNoShadows) \
+    op(SceneCapView_Wire) 
+enum EAkBankLoadType
+{
+    AK_BANK_LOAD_NONE       =0,
+    AK_BANK_LOAD_NORMAL     =1,
+    AK_BANK_LOAD_PREPARE    =2,
+    AK_BANK_LOAD_DEFERRED   =3,
+    AK_BANK_LOAD_MAX        =4,
+};
+#define FOREACH_ENUM_EAKBANKLOADTYPE(op) \
+    op(AK_BANK_LOAD_NONE) \
+    op(AK_BANK_LOAD_NORMAL) \
+    op(AK_BANK_LOAD_PREPARE) \
+    op(AK_BANK_LOAD_DEFERRED) 
+enum DistributionParamMode
+{
+    DPM_Normal              =0,
+    DPM_Abs                 =1,
+    DPM_Direct              =2,
+    DPM_MAX                 =3,
+};
+#define FOREACH_ENUM_DISTRIBUTIONPARAMMODE(op) \
+    op(DPM_Normal) \
+    op(DPM_Abs) \
+    op(DPM_Direct) 
 enum EFontImportCharacterSet
 {
     FontICS_Default         =0,
@@ -6410,92 +6410,6 @@ public:
     }
     DECLARE_CLASS(ADroppedPickup,AActor,0,Engine)
     NO_DEFAULT_CONSTRUCTOR(ADroppedPickup)
-};
-
-class ADynamicSMActor : public AActor
-{
-public:
-    //## BEGIN PROPS DynamicSMActor
-    class UStaticMeshComponent* StaticMeshComponent;
-    class UStaticMesh* ReplicatedMesh;
-    class UMaterialInterface* ReplicatedMaterial0;
-    class UMaterialInterface* ReplicatedMaterial1;
-    BITFIELD bForceStaticDecals:1;
-    BITFIELD bPawnCanBaseOn:1;
-    BITFIELD bSafeBaseIfAsleep:1;
-    BITFIELD bGoIntoStasisWhenHidden:1;
-    BITFIELD bVehicleJumpAutoAlignX:1;
-    BITFIELD bVehicleJumpAutoAlignY:1;
-    BITFIELD bVehicleJumpAutoAlignNegX:1;
-    BITFIELD bVehicleJumpAutoAlignNegY:1;
-    BITFIELD bDisableRigidBodyPhysicsWhenPawnBasedOn:1;
-    SCRIPT_ALIGN;
-    FVector ReplicatedMeshTranslation;
-    FRotator ReplicatedMeshRotation;
-    FVector ReplicatedMeshScale3D;
-    BYTE JumpOffPawnDirectionMask;
-    FLOAT MinImpactVelocityForImpactEffect;
-    //## END PROPS DynamicSMActor
-
-    DECLARE_ABSTRACT_CLASS(ADynamicSMActor,AActor,0,Engine)
-	/**
-	* Function that gets called from within Map_Check to allow this actor to check itself
-	* for any potential errors and register them with map check dialog.
-	*/
-#if WITH_EDITOR
-	virtual void CheckForErrors();
-#endif
-
-protected:
-/**
-     * This function actually does the work for the GetDetailInfo and is virtual.
-     * It should only be called from GetDetailedInfo as GetDetailedInfo is safe to call on NULL object pointers
-     **/
-	virtual FString GetDetailedInfoInternal() const;
-};
-
-class AInterpActor : public ADynamicSMActor
-{
-public:
-    //## BEGIN PROPS InterpActor
-    BITFIELD bShouldSaveForCheckpoint:1;
-    BITFIELD bMonitorMover:1;
-    BITFIELD bMonitorZVelocity:1;
-    BITFIELD bDestroyProjectilesOnEncroach:1;
-    BITFIELD bContinueOnEncroachPhysicsObject:1;
-    BITFIELD bStopOnEncroach:1;
-    BITFIELD bShouldShadowParentAllAttachedActors:1;
-    BITFIELD bIsLift:1;
-    class ANavigationPoint* MyMarker;
-    FLOAT MaxZVelocity;
-    FLOAT StayOpenTime;
-    class USoundCue* OpenSound;
-    class USoundCue* OpeningAmbientSound;
-    class USoundCue* OpenedSound;
-    class USoundCue* CloseSound;
-    class USoundCue* ClosingAmbientSound;
-    class USoundCue* ClosedSound;
-    class UAudioComponent* AmbientSoundComponent;
-    //## END PROPS InterpActor
-
-    virtual void SetShadowParentOnAllAttachedComponents();
-    DECLARE_FUNCTION(execSetShadowParentOnAllAttachedComponents)
-    {
-        P_FINISH;
-        this->SetShadowParentOnAllAttachedComponents();
-    }
-    DECLARE_CLASS(AInterpActor,ADynamicSMActor,0,Engine)
-	UBOOL ShouldTrace(UPrimitiveComponent* Primitive, AActor *SourceActor, DWORD TraceFlags);
-	virtual void TickSpecial(FLOAT DeltaSeconds);
-	virtual FLOAT GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, APlayerController* Viewer, UActorChannel* InChannel, FLOAT Time, UBOOL bLowBandwidth);
-
-	/**
-	 * Function that gets called from within Map_Check to allow this actor to check itself
-	 * for any potential errors and register them with map check dialog.
-	 */
-#if WITH_EDITOR
-	virtual void CheckForErrors();
-#endif
 };
 
 struct Emitter_eventSetTemplate_Parms
@@ -12469,6 +12383,92 @@ public:
     NO_DEFAULT_CONSTRUCTOR(ARStaticClimbableActor)
 };
 
+class ADynamicSMActor : public ARStaticClimbableActor
+{
+public:
+    //## BEGIN PROPS DynamicSMActor
+    class UStaticMeshComponent* StaticMeshComponent;
+    class UStaticMesh* ReplicatedMesh;
+    class UMaterialInterface* ReplicatedMaterial0;
+    class UMaterialInterface* ReplicatedMaterial1;
+    BITFIELD bForceStaticDecals:1;
+    BITFIELD bPawnCanBaseOn:1;
+    BITFIELD bSafeBaseIfAsleep:1;
+    BITFIELD bGoIntoStasisWhenHidden:1;
+    BITFIELD bVehicleJumpAutoAlignX:1;
+    BITFIELD bVehicleJumpAutoAlignY:1;
+    BITFIELD bVehicleJumpAutoAlignNegX:1;
+    BITFIELD bVehicleJumpAutoAlignNegY:1;
+    BITFIELD bDisableRigidBodyPhysicsWhenPawnBasedOn:1;
+    SCRIPT_ALIGN;
+    FVector ReplicatedMeshTranslation;
+    FRotator ReplicatedMeshRotation;
+    FVector ReplicatedMeshScale3D;
+    BYTE JumpOffPawnDirectionMask;
+    FLOAT MinImpactVelocityForImpactEffect;
+    //## END PROPS DynamicSMActor
+
+    DECLARE_ABSTRACT_CLASS(ADynamicSMActor,ARStaticClimbableActor,0,Engine)
+	/**
+	* Function that gets called from within Map_Check to allow this actor to check itself
+	* for any potential errors and register them with map check dialog.
+	*/
+#if WITH_EDITOR
+	virtual void CheckForErrors();
+#endif
+
+protected:
+/**
+     * This function actually does the work for the GetDetailInfo and is virtual.
+     * It should only be called from GetDetailedInfo as GetDetailedInfo is safe to call on NULL object pointers
+     **/
+	virtual FString GetDetailedInfoInternal() const;
+};
+
+class AInterpActor : public ADynamicSMActor
+{
+public:
+    //## BEGIN PROPS InterpActor
+    BITFIELD bShouldSaveForCheckpoint:1;
+    BITFIELD bMonitorMover:1;
+    BITFIELD bMonitorZVelocity:1;
+    BITFIELD bDestroyProjectilesOnEncroach:1;
+    BITFIELD bContinueOnEncroachPhysicsObject:1;
+    BITFIELD bStopOnEncroach:1;
+    BITFIELD bShouldShadowParentAllAttachedActors:1;
+    BITFIELD bIsLift:1;
+    class ANavigationPoint* MyMarker;
+    FLOAT MaxZVelocity;
+    FLOAT StayOpenTime;
+    class USoundCue* OpenSound;
+    class USoundCue* OpeningAmbientSound;
+    class USoundCue* OpenedSound;
+    class USoundCue* CloseSound;
+    class USoundCue* ClosingAmbientSound;
+    class USoundCue* ClosedSound;
+    class UAudioComponent* AmbientSoundComponent;
+    //## END PROPS InterpActor
+
+    virtual void SetShadowParentOnAllAttachedComponents();
+    DECLARE_FUNCTION(execSetShadowParentOnAllAttachedComponents)
+    {
+        P_FINISH;
+        this->SetShadowParentOnAllAttachedComponents();
+    }
+    DECLARE_CLASS(AInterpActor,ADynamicSMActor,0,Engine)
+	UBOOL ShouldTrace(UPrimitiveComponent* Primitive, AActor *SourceActor, DWORD TraceFlags);
+	virtual void TickSpecial(FLOAT DeltaSeconds);
+	virtual FLOAT GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, APlayerController* Viewer, UActorChannel* InChannel, FLOAT Time, UBOOL bLowBandwidth);
+
+	/**
+	 * Function that gets called from within Map_Check to allow this actor to check itself
+	 * for any potential errors and register them with map check dialog.
+	 */
+#if WITH_EDITOR
+	virtual void CheckForErrors();
+#endif
+};
+
 class AStaticMeshActorBase : public ARStaticClimbableActor
 {
 public:
@@ -13728,6 +13728,218 @@ public:
 
     DECLARE_CLASS(UAkPropertySheet,UActorComponent,0,Engine)
     NO_DEFAULT_CONSTRUCTOR(UAkPropertySheet)
+};
+
+struct FSubtitleCue
+{
+    FStringNoInit Text;
+    FLOAT Time;
+
+    /** Constructors */
+    FSubtitleCue() {}
+    FSubtitleCue(EEventParm)
+    {
+        appMemzero(this, sizeof(FSubtitleCue));
+    }
+};
+
+struct FLocalizedSubtitle
+{
+    FStringNoInit LanguageExt;
+    TArrayNoInit<struct FSubtitleCue> Subtitles;
+    BITFIELD bMature:1;
+    BITFIELD bManualWordWrap:1;
+    SCRIPT_ALIGN;
+
+    /** Constructors */
+    FLocalizedSubtitle() {}
+    FLocalizedSubtitle(EEventParm)
+    {
+        appMemzero(this, sizeof(FLocalizedSubtitle));
+    }
+};
+
+struct FDominantShadowInfo
+{
+    FMatrix WorldToLight;
+    FMatrix LightToWorld;
+    FBox LightSpaceImportanceBounds;
+    INT ShadowMapSizeX;
+    INT ShadowMapSizeY;
+
+    /** Constructors */
+    FDominantShadowInfo() {}
+    FDominantShadowInfo(EEventParm)
+    {
+        appMemzero(this, sizeof(FDominantShadowInfo));
+    }
+};
+
+struct FLightmassLightSettings
+{
+    FLOAT IndirectLightingScale;
+    FLOAT IndirectLightingSaturation;
+    FLOAT ShadowExponent;
+
+    /** Constructors */
+    FLightmassLightSettings() {}
+    FLightmassLightSettings(EEventParm)
+    {
+        appMemzero(this, sizeof(FLightmassLightSettings));
+    }
+};
+
+struct FLightmassPointLightSettings : public FLightmassLightSettings
+{
+    FLOAT LightSourceRadius;
+
+    /** Constructors */
+    FLightmassPointLightSettings() {}
+    FLightmassPointLightSettings(EEventParm)
+    {
+        appMemzero(this, sizeof(FLightmassPointLightSettings));
+    }
+};
+
+struct FLightmassDirectionalLightSettings : public FLightmassLightSettings
+{
+    FLOAT LightSourceAngle;
+
+    /** Constructors */
+    FLightmassDirectionalLightSettings() {}
+    FLightmassDirectionalLightSettings(EEventParm)
+    {
+        appMemzero(this, sizeof(FLightmassDirectionalLightSettings));
+    }
+};
+
+struct FLightmassDebugOptions
+{
+    BITFIELD bDebugMode:1;
+    BITFIELD bStatsEnabled:1;
+    BITFIELD bGatherBSPSurfacesAcrossComponents:1;
+    FLOAT CoplanarTolerance;
+    BITFIELD bUseDeterministicLighting:1;
+    BITFIELD bUseImmediateImport:1;
+    BITFIELD bImmediateProcessMappings:1;
+    BITFIELD bSortMappings:1;
+    BITFIELD bDumpBinaryFiles:1;
+    BITFIELD bDebugMaterials:1;
+    BITFIELD bPadMappings:1;
+    BITFIELD bDebugPaddings:1;
+    BITFIELD bOnlyCalcDebugTexelMappings:1;
+    BITFIELD bUseRandomColors:1;
+    BITFIELD bColorBordersGreen:1;
+    BITFIELD bColorByExecutionTime:1;
+    FLOAT ExecutionTimeDivisor;
+    BITFIELD bInitialized:1;
+    SCRIPT_ALIGN;
+
+		//@lmtodo. For some reason, the global instance is not initializing to the default settings...
+		// Be sure to update this function to properly set the desired initial values!!!!
+		void Touch();
+	
+};
+
+struct FSwarmDebugOptions
+{
+    BITFIELD bDistributionEnabled:1;
+    BITFIELD bForceContentExport:1;
+    BITFIELD bInitialized:1;
+    SCRIPT_ALIGN;
+
+		//@lmtodo. For some reason, the global instance is not initializing to the default settings...
+		// Be sure to update this function to properly set the desired initial values!!!!
+		void Touch();
+	
+};
+
+struct FRootMotionCurve
+{
+    FName AnimName;
+    FInterpCurveVector Curve;
+    FLOAT MaxCurveTime;
+
+    /** Constructors */
+    FRootMotionCurve() {}
+    FRootMotionCurve(EEventParm)
+    {
+        appMemzero(this, sizeof(FRootMotionCurve));
+    }
+};
+
+struct FPrimitiveMaterialRef
+{
+    class UPrimitiveComponent* Primitive;
+    INT MaterialIndex;
+
+		FPrimitiveMaterialRef()
+		{}
+		FPrimitiveMaterialRef(EEventParm)
+		{
+			appMemzero(this, sizeof(FPrimitiveMaterialRef));
+		}
+		FPrimitiveMaterialRef(UPrimitiveComponent* InPrimitive, INT InMaterialIndex)
+		: Primitive(InPrimitive), MaterialIndex(InMaterialIndex)
+		{}
+	
+};
+
+struct FPostProcessMaterialRef
+{
+    class UMaterialEffect* Effect;
+
+		FPostProcessMaterialRef()
+		{}
+		FPostProcessMaterialRef(EEventParm)
+		{
+			appMemzero(this, sizeof(FPostProcessMaterialRef));
+		}
+		FPostProcessMaterialRef(UMaterialEffect* InEffect)
+		: Effect(InEffect)
+		{}
+	
+};
+
+struct FMaterialReferenceList
+{
+    class UMaterialInterface* TargetMaterial;
+    TArrayNoInit<struct FPrimitiveMaterialRef> AffectedMaterialRefs;
+    TArrayNoInit<struct FPostProcessMaterialRef> AffectedPPChainMaterialRefs;
+
+    /** Constructors */
+    FMaterialReferenceList() {}
+    FMaterialReferenceList(EEventParm)
+    {
+        appMemzero(this, sizeof(FMaterialReferenceList));
+    }
+};
+
+struct FVelocityObstacleStat
+{
+    FVector Position;
+    FVector Velocity;
+    FLOAT Radius;
+    INT Priority;
+
+    /** Constructors */
+    FVelocityObstacleStat() {}
+    FVelocityObstacleStat(EEventParm)
+    {
+        appMemzero(this, sizeof(FVelocityObstacleStat));
+    }
+};
+
+class UEngineTypes : public UObject
+{
+public:
+    //## BEGIN PROPS EngineTypes
+    //## END PROPS EngineTypes
+
+    DECLARE_ABSTRACT_CLASS(UEngineTypes,UObject,0,Engine)
+    static const TCHAR* StaticConfigName() {return TEXT("Engine");}
+
+    NO_DEFAULT_CONSTRUCTOR(UEngineTypes)
 };
 
 class UHeightFogComponent : public UActorComponent
@@ -15707,16 +15919,26 @@ public:
     BITFIELD bCausedByWorld:1;
     BITFIELD bExtraMomentumZ:1;
     BITFIELD bCausesFracture:1;
-    BITFIELD bRadialDamageVelChange:1;
+    BITFIELD bDeformVehicle:1;
+    BITFIELD bSmashVehicleGlass:1;
+    BITFIELD bSetBatmobileOnFire:1;
+    BITFIELD bAlertTank:1;
     FLOAT KDamageImpulse;
     FLOAT KDeathVel;
     FLOAT KDeathUpKick;
     FLOAT RadialDamageImpulse;
+    BYTE RadialDamageVelChange;
     FLOAT VehicleDamageScaling;
     FLOAT VehicleMomentumScaling;
     class UForceFeedbackWaveform* DamagedFFWaveform;
     class UForceFeedbackWaveform* KilledFFWaveform;
     FLOAT FracturedMeshDamage;
+    FLOAT VehicleDamageAmount;
+    FLOAT VehicleDamageRadius;
+    FLOAT VehicleScratchDamage;
+    FLOAT VehicleBurnDamage;
+    FLOAT VehicleBulletDamage;
+    FLOAT VehiclePartBreakOffImpulse;
     //## END PROPS DamageType
 
     DECLARE_ABSTRACT_CLASS(UDamageType,UObject,0,Engine)
@@ -16378,218 +16600,6 @@ public:
 
     DECLARE_CLASS(UEdCoordSystem,UObject,0,Engine)
     NO_DEFAULT_CONSTRUCTOR(UEdCoordSystem)
-};
-
-struct FSubtitleCue
-{
-    FStringNoInit Text;
-    FLOAT Time;
-
-    /** Constructors */
-    FSubtitleCue() {}
-    FSubtitleCue(EEventParm)
-    {
-        appMemzero(this, sizeof(FSubtitleCue));
-    }
-};
-
-struct FLocalizedSubtitle
-{
-    FStringNoInit LanguageExt;
-    TArrayNoInit<struct FSubtitleCue> Subtitles;
-    BITFIELD bMature:1;
-    BITFIELD bManualWordWrap:1;
-    SCRIPT_ALIGN;
-
-    /** Constructors */
-    FLocalizedSubtitle() {}
-    FLocalizedSubtitle(EEventParm)
-    {
-        appMemzero(this, sizeof(FLocalizedSubtitle));
-    }
-};
-
-struct FDominantShadowInfo
-{
-    FMatrix WorldToLight;
-    FMatrix LightToWorld;
-    FBox LightSpaceImportanceBounds;
-    INT ShadowMapSizeX;
-    INT ShadowMapSizeY;
-
-    /** Constructors */
-    FDominantShadowInfo() {}
-    FDominantShadowInfo(EEventParm)
-    {
-        appMemzero(this, sizeof(FDominantShadowInfo));
-    }
-};
-
-struct FLightmassLightSettings
-{
-    FLOAT IndirectLightingScale;
-    FLOAT IndirectLightingSaturation;
-    FLOAT ShadowExponent;
-
-    /** Constructors */
-    FLightmassLightSettings() {}
-    FLightmassLightSettings(EEventParm)
-    {
-        appMemzero(this, sizeof(FLightmassLightSettings));
-    }
-};
-
-struct FLightmassPointLightSettings : public FLightmassLightSettings
-{
-    FLOAT LightSourceRadius;
-
-    /** Constructors */
-    FLightmassPointLightSettings() {}
-    FLightmassPointLightSettings(EEventParm)
-    {
-        appMemzero(this, sizeof(FLightmassPointLightSettings));
-    }
-};
-
-struct FLightmassDirectionalLightSettings : public FLightmassLightSettings
-{
-    FLOAT LightSourceAngle;
-
-    /** Constructors */
-    FLightmassDirectionalLightSettings() {}
-    FLightmassDirectionalLightSettings(EEventParm)
-    {
-        appMemzero(this, sizeof(FLightmassDirectionalLightSettings));
-    }
-};
-
-struct FLightmassDebugOptions
-{
-    BITFIELD bDebugMode:1;
-    BITFIELD bStatsEnabled:1;
-    BITFIELD bGatherBSPSurfacesAcrossComponents:1;
-    FLOAT CoplanarTolerance;
-    BITFIELD bUseDeterministicLighting:1;
-    BITFIELD bUseImmediateImport:1;
-    BITFIELD bImmediateProcessMappings:1;
-    BITFIELD bSortMappings:1;
-    BITFIELD bDumpBinaryFiles:1;
-    BITFIELD bDebugMaterials:1;
-    BITFIELD bPadMappings:1;
-    BITFIELD bDebugPaddings:1;
-    BITFIELD bOnlyCalcDebugTexelMappings:1;
-    BITFIELD bUseRandomColors:1;
-    BITFIELD bColorBordersGreen:1;
-    BITFIELD bColorByExecutionTime:1;
-    FLOAT ExecutionTimeDivisor;
-    BITFIELD bInitialized:1;
-    SCRIPT_ALIGN;
-
-		//@lmtodo. For some reason, the global instance is not initializing to the default settings...
-		// Be sure to update this function to properly set the desired initial values!!!!
-		void Touch();
-	
-};
-
-struct FSwarmDebugOptions
-{
-    BITFIELD bDistributionEnabled:1;
-    BITFIELD bForceContentExport:1;
-    BITFIELD bInitialized:1;
-    SCRIPT_ALIGN;
-
-		//@lmtodo. For some reason, the global instance is not initializing to the default settings...
-		// Be sure to update this function to properly set the desired initial values!!!!
-		void Touch();
-	
-};
-
-struct FRootMotionCurve
-{
-    FName AnimName;
-    FInterpCurveVector Curve;
-    FLOAT MaxCurveTime;
-
-    /** Constructors */
-    FRootMotionCurve() {}
-    FRootMotionCurve(EEventParm)
-    {
-        appMemzero(this, sizeof(FRootMotionCurve));
-    }
-};
-
-struct FPrimitiveMaterialRef
-{
-    class UPrimitiveComponent* Primitive;
-    INT MaterialIndex;
-
-		FPrimitiveMaterialRef()
-		{}
-		FPrimitiveMaterialRef(EEventParm)
-		{
-			appMemzero(this, sizeof(FPrimitiveMaterialRef));
-		}
-		FPrimitiveMaterialRef(UPrimitiveComponent* InPrimitive, INT InMaterialIndex)
-		: Primitive(InPrimitive), MaterialIndex(InMaterialIndex)
-		{}
-	
-};
-
-struct FPostProcessMaterialRef
-{
-    class UMaterialEffect* Effect;
-
-		FPostProcessMaterialRef()
-		{}
-		FPostProcessMaterialRef(EEventParm)
-		{
-			appMemzero(this, sizeof(FPostProcessMaterialRef));
-		}
-		FPostProcessMaterialRef(UMaterialEffect* InEffect)
-		: Effect(InEffect)
-		{}
-	
-};
-
-struct FMaterialReferenceList
-{
-    class UMaterialInterface* TargetMaterial;
-    TArrayNoInit<struct FPrimitiveMaterialRef> AffectedMaterialRefs;
-    TArrayNoInit<struct FPostProcessMaterialRef> AffectedPPChainMaterialRefs;
-
-    /** Constructors */
-    FMaterialReferenceList() {}
-    FMaterialReferenceList(EEventParm)
-    {
-        appMemzero(this, sizeof(FMaterialReferenceList));
-    }
-};
-
-struct FVelocityObstacleStat
-{
-    FVector Position;
-    FVector Velocity;
-    FLOAT Radius;
-    INT Priority;
-
-    /** Constructors */
-    FVelocityObstacleStat() {}
-    FVelocityObstacleStat(EEventParm)
-    {
-        appMemzero(this, sizeof(FVelocityObstacleStat));
-    }
-};
-
-class UEngineTypes : public UObject
-{
-public:
-    //## BEGIN PROPS EngineTypes
-    //## END PROPS EngineTypes
-
-    DECLARE_ABSTRACT_CLASS(UEngineTypes,UObject,0,Engine)
-    static const TCHAR* StaticConfigName() {return TEXT("Engine");}
-
-    NO_DEFAULT_CONSTRUCTOR(UEngineTypes)
 };
 
 struct FacebookIntegration_eventOnWebRequestComplete_Parms
@@ -22193,7 +22203,6 @@ AUTOGENERATE_FUNCTION(APhysicsVolume,-1,execGetZoneVelocityForActor);
 AUTOGENERATE_FUNCTION(APhysicsVolume,-1,execGetGravityZ);
 AUTOGENERATE_FUNCTION(ADroppedPickup,-1,execRemoveFromNavigation);
 AUTOGENERATE_FUNCTION(ADroppedPickup,-1,execAddToNavigation);
-AUTOGENERATE_FUNCTION(AInterpActor,-1,execSetShadowParentOnAllAttachedComponents);
 AUTOGENERATE_FUNCTION(AEmitter,-1,execSetTemplate);
 AUTOGENERATE_FUNCTION(AEmitterPool,-1,execGetPooledComponent);
 AUTOGENERATE_FUNCTION(AEmitterPool,-1,execGetFreeMatInstConsts);
@@ -22271,6 +22280,7 @@ AUTOGENERATE_FUNCTION(ADynamicPylon,-1,execFlushDynamicEdges);
 AUTOGENERATE_FUNCTION(ADynamicPylon,-1,execRebuildDynamicEdges);
 AUTOGENERATE_FUNCTION(ATeleporter,-1,execCanTeleport);
 AUTOGENERATE_FUNCTION(AProjectile,-1,execGetTeamNum);
+AUTOGENERATE_FUNCTION(AInterpActor,-1,execSetShadowParentOnAllAttachedComponents);
 AUTOGENERATE_FUNCTION(APortalTeleporter,-1,execCreatePortalTexture);
 AUTOGENERATE_FUNCTION(APortalTeleporter,-1,execTransformHitLocation);
 AUTOGENERATE_FUNCTION(APortalTeleporter,-1,execTransformVectorDir);
@@ -22690,9 +22700,6 @@ AUTOGENERATE_FUNCTION(UUIManager,-1,execGetUIManager);
 	ATriggerVolume::StaticClass(); \
 	ADroppedPickup::StaticClass(); \
 	GNativeLookupFuncs.Set(FName("DroppedPickup"), GEngineADroppedPickupNatives); \
-	ADynamicSMActor::StaticClass(); \
-	AInterpActor::StaticClass(); \
-	GNativeLookupFuncs.Set(FName("InterpActor"), GEngineAInterpActorNatives); \
 	AEmitter::StaticClass(); \
 	GNativeLookupFuncs.Set(FName("Emitter"), GEngineAEmitterNatives); \
 	AEmitterPool::StaticClass(); \
@@ -22753,6 +22760,9 @@ AUTOGENERATE_FUNCTION(UUIManager,-1,execGetUIManager);
 	GNativeLookupFuncs.Set(FName("Projectile"), GEngineAProjectileNatives); \
 	ARigidBodyBase::StaticClass(); \
 	ARStaticClimbableActor::StaticClass(); \
+	ADynamicSMActor::StaticClass(); \
+	AInterpActor::StaticClass(); \
+	GNativeLookupFuncs.Set(FName("InterpActor"), GEngineAInterpActorNatives); \
 	AStaticMeshActorBase::StaticClass(); \
 	AStaticMeshActor::StaticClass(); \
 	AStaticMeshCollectionActor::StaticClass(); \
@@ -22941,8 +22951,6 @@ AUTOGENERATE_FUNCTION(UUIManager,-1,execGetUIManager);
 	UK2NodeBase::StaticClass(); \
 	UKMeshProps::StaticClass(); \
 	ULevelBase::StaticClass(); \
-	UUmbraData::StaticClass(); \
-	UUmbraReference::StaticClass(); \
 	ULevel::StaticClass(); \
 	UPendingLevel::StaticClass(); \
 	UDemoPlayPendingLevel::StaticClass(); \
@@ -23058,6 +23066,8 @@ AUTOGENERATE_FUNCTION(UUIManager,-1,execGetUIManager);
 	GNativeLookupFuncs.Set(FName("StringsTag"), GEngineUStringsTagNatives); \
 	UUIManager::StaticClass(); \
 	GNativeLookupFuncs.Set(FName("UIManager"), GEngineUUIManagerNatives); \
+	UUmbraData::StaticClass(); \
+	UUmbraReference::StaticClass(); \
 	UWaveFormBase::StaticClass(); \
 	UWorld::StaticClass(); \
 
@@ -23210,12 +23220,6 @@ FNativeFunctionLookup GEngineADroppedPickupNatives[] =
 { 
 	MAP_NATIVE(ADroppedPickup, execRemoveFromNavigation)
 	MAP_NATIVE(ADroppedPickup, execAddToNavigation)
-	{NULL, NULL}
-};
-
-FNativeFunctionLookup GEngineAInterpActorNatives[] = 
-{ 
-	MAP_NATIVE(AInterpActor, execSetShadowParentOnAllAttachedComponents)
 	{NULL, NULL}
 };
 
@@ -23383,6 +23387,12 @@ FNativeFunctionLookup GEngineATeleporterNatives[] =
 FNativeFunctionLookup GEngineAProjectileNatives[] = 
 { 
 	MAP_NATIVE(AProjectile, execGetTeamNum)
+	{NULL, NULL}
+};
+
+FNativeFunctionLookup GEngineAInterpActorNatives[] = 
+{ 
+	MAP_NATIVE(AInterpActor, execSetShadowParentOnAllAttachedComponents)
 	{NULL, NULL}
 };
 
@@ -24077,12 +24087,6 @@ VERIFY_CLASS_SIZE_NODIE(ATriggerVolume)
 VERIFY_CLASS_OFFSET_NODIE(ADroppedPickup,DroppedPickup,Inventory)
 VERIFY_CLASS_OFFSET_NODIE(ADroppedPickup,DroppedPickup,PickupCache)
 VERIFY_CLASS_SIZE_NODIE(ADroppedPickup)
-VERIFY_CLASS_OFFSET_NODIE(ADynamicSMActor,DynamicSMActor,StaticMeshComponent)
-VERIFY_CLASS_OFFSET_NODIE(ADynamicSMActor,DynamicSMActor,MinImpactVelocityForImpactEffect)
-VERIFY_CLASS_SIZE_NODIE(ADynamicSMActor)
-VERIFY_CLASS_OFFSET_NODIE(AInterpActor,InterpActor,MyMarker)
-VERIFY_CLASS_OFFSET_NODIE(AInterpActor,InterpActor,AmbientSoundComponent)
-VERIFY_CLASS_SIZE_NODIE(AInterpActor)
 VERIFY_CLASS_OFFSET_NODIE(AEmitter,Emitter,ParticleSystemComponent)
 VERIFY_CLASS_OFFSET_NODIE(AEmitter,Emitter,LightEnvironment)
 VERIFY_CLASS_SIZE_NODIE(AEmitter)
@@ -24185,6 +24189,12 @@ VERIFY_CLASS_SIZE_NODIE(AProjectile)
 VERIFY_CLASS_SIZE_NODIE(ARigidBodyBase)
 VERIFY_CLASS_OFFSET_NODIE(ARStaticClimbableActor,RStaticClimbableActor,RailingBlockers)
 VERIFY_CLASS_SIZE_NODIE(ARStaticClimbableActor)
+VERIFY_CLASS_OFFSET_NODIE(ADynamicSMActor,DynamicSMActor,StaticMeshComponent)
+VERIFY_CLASS_OFFSET_NODIE(ADynamicSMActor,DynamicSMActor,MinImpactVelocityForImpactEffect)
+VERIFY_CLASS_SIZE_NODIE(ADynamicSMActor)
+VERIFY_CLASS_OFFSET_NODIE(AInterpActor,InterpActor,MyMarker)
+VERIFY_CLASS_OFFSET_NODIE(AInterpActor,InterpActor,AmbientSoundComponent)
+VERIFY_CLASS_SIZE_NODIE(AInterpActor)
 VERIFY_CLASS_SIZE_NODIE(AStaticMeshActorBase)
 VERIFY_CLASS_OFFSET_NODIE(AStaticMeshActor,StaticMeshActor,StaticMeshComponent)
 VERIFY_CLASS_OFFSET_NODIE(AStaticMeshActor,StaticMeshActor,OldCollisionType)
@@ -24510,7 +24520,7 @@ VERIFY_CLASS_OFFSET_NODIE(UCurveEdPresetCurve,CurveEdPresetCurve,Points)
 VERIFY_CLASS_SIZE_NODIE(UCurveEdPresetCurve)
 VERIFY_CLASS_SIZE_NODIE(UCustomPropertyItemHandler)
 VERIFY_CLASS_OFFSET_NODIE(UDamageType,DamageType,KDamageImpulse)
-VERIFY_CLASS_OFFSET_NODIE(UDamageType,DamageType,FracturedMeshDamage)
+VERIFY_CLASS_OFFSET_NODIE(UDamageType,DamageType,VehiclePartBreakOffImpulse)
 VERIFY_CLASS_SIZE_NODIE(UDamageType)
 VERIFY_CLASS_SIZE_NODIE(UKillZDamageType)
 VERIFY_CLASS_OFFSET_NODIE(UDistributionFloatConstant,DistributionFloatConstant,Constant)

@@ -9283,11 +9283,8 @@ UBOOL FNavMeshMantleEdge::PrepareMoveThru( AController* C, FVector& out_MovePt )
 		FVector Offset = *MoveDest - GetEdgeCenter(WORLD_SPACE);
 		
 		FCheckResult Hit(1.f);
-		if( UNavigationHandle::StaticObstacleLineCheck(C,Hit,out_MovePt,out_MovePt+Offset,FVector(1.f),TRUE) )
-		{
-			C->NavigationHandle->ComputeValidFinalDestination(out_MovePt);
-		}
-		else
+		// BM: AK's Controller has no NavigationHandle, so there is nothing to ask for a valid destination.
+		if( !UNavigationHandle::StaticObstacleLineCheck(C,Hit,out_MovePt,out_MovePt+Offset,FVector(1.f),TRUE) )
 		{
 			out_MovePt = Hit.Location+Hit.Normal*FBoxPushOut(Hit.Normal,Extent);
 		}

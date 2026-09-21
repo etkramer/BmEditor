@@ -88,7 +88,7 @@ event ApplyImpulse( Vector ImpulseDir, float ImpulseMag, Vector HitLocation, opt
 	local float BodyMass;
 
 	BodyMass = StaticMeshComponent.BodyInstance.GetBodyMass();
-	if ( (BodyMass > 0.0) && ((DamageType == None) || !DamageType.default.bRadialDamageVelChange) )
+	if ( (BodyMass > 0.0) && ((DamageType == None) || DamageType.default.RadialDamageVelChange == ERIT_Impulse) )
 	{
 		if ( BodyMass < 1.0 )
 		{

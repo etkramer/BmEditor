@@ -17,7 +17,84 @@ enum EParticleSystemUpdateMode
 	EPSUM_FixedTime
 };
 
+/**
+ *	ParticleSystemLODMethod
+ */
+enum ParticleSystemLODMethod
+{
+	PARTICLESYSTEMLODMETHOD_Automatic,
+	PARTICLESYSTEMLODMETHOD_DirectSet,
+	PARTICLESYSTEMLODMETHOD_ActivateAutomatic
+};
+
+/** Occlusion method enumeration */
+enum EParticleSystemOcclusionBoundsMethod
+{
+	/** Don't determine occlusion on this particle system */
+	EPSOBM_None,
+	/** Use the bounds of the particle system component when determining occlusion */
+	EPSOBM_ParticleBounds,
+	/** Use the custom occlusion bounds when determining occlusion */
+	EPSOBM_CustomBounds
+};
+
+// BM
+enum EParticleSystemOveridePhysXLevel
+{
+	EPSOP_NoOverride,
+	EPSOP_Turbulence,
+	EPSOP_MeshDebris,
+	EPSOP_TurbulenceAndMeshDebris
+};
+
+/** Structure containing per-LOD settings that pertain to the entire UParticleSystem. */
+struct native ParticleSystemLOD
+{
+	/**
+	 * Boolean to indicate whether the particle system accepts lights or not.
+	 * This must not be changed in-game, it can only be changed safely in the editor through Cascade.
+	 */
+	var()	bool	bLit;
+
+structcpptext
+{
+	static FParticleSystemLOD CreateParticleSystemLOD()
+	{
+		FParticleSystemLOD NewLOD;
+		NewLOD.bLit = FALSE;
+		return NewLOD;
+	}
+}
+};
+
+/**
+ *	Temporary array for tracking 'solo' emitter mode.
+ *	Entry will be true if emitter was enabled
+ */
+struct native LODSoloTrack
+{
+	var transient array<byte>	SoloEnableSetting;
+};
+
 var()	EParticleSystemUpdateMode		SystemUpdateMode;
+
+/**
+ *	The method of LOD level determination to utilize for this particle system
+ *	  PARTICLESYSTEMLODMETHOD_Automatic - Automatically set the LOD level, checking every LODDistanceCheckTime seconds.
+ *    PARTICLESYSTEMLODMETHOD_DirectSet - LOD level is directly set by the game code.
+ *    PARTICLESYSTEMLODMETHOD_ActivateAutomatic - LOD level is determined at Activation time, then left alone unless directly set by game code.
+ */
+var(LOD)					ParticleSystemLODMethod		LODMethod;
+
+/**
+ *	Which occlusion bounds method to use for this particle system.
+ *	EPSOBM_None - Don't determine occlusion for this system.
+ *	EPSOBM_ParticleBounds - Use the bounds of the component when determining occlusion.
+ */
+var(Occlusion)	EParticleSystemOcclusionBoundsMethod	OcclusionBoundsMethod;
+
+// BM
+var(PhysXParticleOverride)	EParticleSystemOveridePhysXLevel	MinimumPhysXLevelOverride;
 
 /** UpdateTime_FPS	- the frame per second to update at in FixedTime mode		*/
 var()	float							UpdateTime_FPS;
@@ -27,6 +104,9 @@ var		float							UpdateTime_Delta;
 
 /** WarmupTime	- the time to warm-up the particle system when first rendered	*/
 var()	float							WarmupTime;
+
+// BM
+var()	float							WarmupTickRate;
 
 /** Emitters	- internal - the array of emitters in the system				*/
 var		editinline	export	array<ParticleEmitter>	Emitters;
@@ -46,11 +126,62 @@ var(Thumbnail) editoronly float ThumbnailWarmup;
 /** Deprecated, ParticleSystemLOD::bLit is used instead. */
 var deprecated const bool bLit;
 
+/** If true, the system's Z axis will be oriented toward the camera				*/
+var()	bool	bOrientZAxisTowardCamera;
+
+/**
+ *	Internal value that tracks the regenerate LOD levels preference.
+ *	If TRUE, when autoregenerating LOD levels in code, the low level will
+ *	be a duplicate of the high.
+ */
+var			bool									bRegenerateLODDuplicate;
+var(LOD)	bool									bEnableParticleDistanceCulling;
+
+/** Whether to use the fixed relative bounding box or calculate it every frame. */
+var(Bounds)	bool		bUseFixedRelativeBoundingBox;
+
+/** EDITOR ONLY: Indicates that Cascade would like to have the PeakActiveParticles count reset */
+var			bool			bShouldResetPeakCounts;
+
+// BM
+var		transient			bool							bIsLooping;
+
+/** Set during load time to indicate that physics is used... */
+var		transient			bool							bHasPhysics;
+
+// BM
+var		transient			bool							bHasApex;
+
+/** Inidicates the old 'real-time' thumbnail rendering should be used	*/
+var(Thumbnail)	bool		bUseRealtimeThumbnail;
+/** Internal: Indicates the PSys thumbnail image is out of date			*/
+var				bool		ThumbnailImageOutOfDate;
+
+/**
+ *	When TRUE, do NOT perform the spawning limiter check.
+ *	Intended for effects used in pre-rendered cinematics.
+ */
+var() bool bSkipSpawnCountCheck;
+
+// BM
+var() bool bHighPriorityPoolEffect;
+
+/**
+ *	If TRUE, select the emitter delay from the range
+ *		[DelayLow..Delay]
+ */
+var(Delay) bool bUseDelayRange;
+
+// BM: not in AK's bool run - kept for the mobile renderer, so it takes the first bit past AK's.
+var(Mobile) bool										bUseMobilePointSprites;
+
 /** Used for curve editor to remember curve-editing setup.						*/
 var		export InterpCurveEdSetup	CurveEdSetup;
 
-/** If true, the system's Z axis will be oriented toward the camera				*/
-var()	bool	bOrientZAxisTowardCamera;
+/** Internal: The PSys thumbnail image									*/
+var	editoronly	Texture2D	ThumbnailImage;
+
+var(PhysXParticleOverride) ParticleSystem PhysxParticleSystemRef;
 
 //
 //	LOD
@@ -59,24 +190,6 @@ var()	bool	bOrientZAxisTowardCamera;
  *	How often (in seconds) the system should perform the LOD distance check.
  */
 var(LOD)					float					LODDistanceCheckTime;
-
-/**
- *	ParticleSystemLODMethod
- */
-enum ParticleSystemLODMethod
-{
-	PARTICLESYSTEMLODMETHOD_Automatic,
-	PARTICLESYSTEMLODMETHOD_DirectSet,
-	PARTICLESYSTEMLODMETHOD_ActivateAutomatic
-};
-
-/**
- *	The method of LOD level determination to utilize for this particle system
- *	  PARTICLESYSTEMLODMETHOD_Automatic - Automatically set the LOD level, checking every LODDistanceCheckTime seconds.
- *    PARTICLESYSTEMLODMETHOD_DirectSet - LOD level is directly set by the game code.
- *    PARTICLESYSTEMLODMETHOD_ActivateAutomatic - LOD level is determined at Activation time, then left alone unless directly set by game code.
- */
-var(LOD)					ParticleSystemLODMethod		LODMethod;
 
 /**
  *	The array of distances for each LOD level in the system.
@@ -97,37 +210,12 @@ var(LOD)	editfixedsize	array<float>			LODDistances;
 /** LOD setting for intepolation (set by Cascade) Range [0..100]				*/
 var editoronly int EditorLODSetting;
 
-/**
- *	Internal value that tracks the regenerate LOD levels preference.
- *	If TRUE, when autoregenerating LOD levels in code, the low level will
- *	be a duplicate of the high.
- */
-var			bool									bRegenerateLODDuplicate;
-var			bool									bEnableParticleDistanceCulling;
-
-/** Structure containing per-LOD settings that pertain to the entire UParticleSystem. */
-struct native ParticleSystemLOD
-{
-	/** 
-	 * Boolean to indicate whether the particle system accepts lights or not.
-	 * This must not be changed in-game, it can only be changed safely in the editor through Cascade.
-	 */
-	var()	bool	bLit;
-
-structcpptext
-{
-	static FParticleSystemLOD CreateParticleSystemLOD()
-	{
-		FParticleSystemLOD NewLOD;
-		NewLOD.bLit = FALSE;
-		return NewLOD;
-	}
-}
-};
 var(LOD) array<ParticleSystemLOD> LODSettings;
 
-/** Whether to use the fixed relative bounding box or calculate it every frame. */
-var(Bounds)	bool		bUseFixedRelativeBoundingBox;
+// BM
+var(LOD) float particleDistanceCullMul;
+var(LOD) float particleDistanceCullFarMul;
+
 /**	Fixed relative bounding box for particle system.							*/
 var(Bounds)	box			FixedRelativeBoundingBox;
 /**
@@ -148,78 +236,21 @@ var editoronly	vector		FloorScale3D;
 /** The background color to display in Cascade */
 var editoronly	color		BackgroundColor;
 
-/** EDITOR ONLY: Indicates that Cascade would like to have the PeakActiveParticles count reset */
-var			bool			bShouldResetPeakCounts;
-
-/** Set during load time to indicate that physics is used... */
-var		transient			bool							bHasPhysics;
-
-/** Inidicates the old 'real-time' thumbnail rendering should be used	*/
-var(Thumbnail)	bool		bUseRealtimeThumbnail;
-/** Internal: Indicates the PSys thumbnail image is out of date			*/
-var				bool		ThumbnailImageOutOfDate;
-/** Internal: The PSys thumbnail image									*/
-var	editoronly	Texture2D	ThumbnailImage;
-
-/** 
- *	When TRUE, do NOT perform the spawning limiter check.
- *	Intended for effects used in pre-rendered cinematics.
- */
-var() bool bSkipSpawnCountCheck;
-
 /** How long this Particle system should delay when ActivateSystem is called on it. */
 var(Delay) float Delay;
 /** The low end of the emitter delay if using a range. */
 var(Delay) float DelayLow;
-/**
- *	If TRUE, select the emitter delay from the range 
- *		[DelayLow..Delay]
- */
-var(Delay) bool bUseDelayRange;
 
 /** Local space position that UVs generated with the ParticleMacroUV material node will be centered on. */
-var(MacroUV) vector MacroUVPosition; 
+var(MacroUV) vector MacroUVPosition;
 
 /** World space radius that UVs generated with the ParticleMacroUV material node will tile based on. */
-var(MacroUV) float MacroUVRadius; 
-
-/** Occlusion method enumeration */
-enum EParticleSystemOcclusionBoundsMethod
-{
-	/** Don't determine occlusion on this particle system */
-	EPSOBM_None,
-	/** Use the bounds of the particle system component when determining occlusion */
-	EPSOBM_ParticleBounds,
-	/** Use the custom occlusion bounds when determining occlusion */
-	EPSOBM_CustomBounds
-};
-
-/** 
- *	Which occlusion bounds method to use for this particle system.
- *	EPSOBM_None - Don't determine occlusion for this system.
- *	EPSOBM_ParticleBounds - Use the bounds of the component when determining occlusion.
- */
-var(Occlusion)	EParticleSystemOcclusionBoundsMethod	OcclusionBoundsMethod;
+var(MacroUV) float MacroUVRadius;
 
 /** The occlusion bounds to use if OcclusionBoundsMethod is set to EPSOBM_CustomBounds */
 var(Occlusion)	Box										CustomOcclusionBounds;
 
-/** For mobile only, whether to use point sprite rendering to speed up particle rendering */
-var(Mobile) bool										bUseMobilePointSprites;
-var(Mobile) bool										bLoadIfPhysXLevel0;
-var(Mobile) bool										bLoadIfPhysXLevel1;
-var(Mobile) bool										bLoadIfPhysXLevel2;
- 
-/**
- *	Temporary array for tracking 'solo' emitter mode.
- *	Entry will be true if emitter was enabled 
- */
-struct native LODSoloTrack
-{
-	var transient array<byte>	SoloEnableSetting;
-};
 var transient array<LODSoloTrack>	SoloTracking;
-var ParticleSystem PhysxParticleSystemRef;
 
 //
 /** Return the currently set LOD method											*/
@@ -359,6 +390,10 @@ defaultproperties
 
 	LODMethod=PARTICLESYSTEMLODMETHOD_Automatic
 	LODDistanceCheckTime=0.25
+
+	// BM: retail's CDO value for both
+	particleDistanceCullMul=1.0
+	particleDistanceCullFarMul=1.0
 
 	bRegenerateLODDuplicate=false
 	ThumbnailImageOutOfDate=true

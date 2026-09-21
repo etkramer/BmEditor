@@ -4,7 +4,8 @@
 =============================================================================*/
 
 /*** This class defines a single instance of a destructible asset */
-class ApexDestructibleActor extends Actor
+// BM
+class ApexDestructibleActor extends RStaticClimbableActor
 	dependson(ApexDestructibleAsset)
 	dependson(LightComponent)
 	native(Mesh)

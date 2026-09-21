@@ -21,10 +21,10 @@ var repnotify transient SkeletalMesh ReplicatedMesh;
 /** Used to replicate physics asset to clients */
 var repnotify transient PhysicsAsset ReplicatedPhysAsset;
 
-// BM
-var			object		ImpactSoundEvent;
-var			float		LastImpactTime;
+// BM: AK declares ImpactForceComponent as an export RB_ForceComponent; this tree has no such class, so it
+// stays an object reference - the size and offset are the same either way.
 var			object		ImpactForceComponent;
+var			float		LastImpactTime;
 
 replication
 {
@@ -139,7 +139,7 @@ simulated function TakeRadiusDamage
 {
 	if ( bDamageAppliesImpulse && damageType.default.RadialDamageImpulse > 0 && (Role == ROLE_Authority) )
 	{
-		CollisionComponent.AddRadialImpulse(HurtOrigin, DamageRadius, damageType.default.RadialDamageImpulse, RIF_Linear, damageType.default.bRadialDamageVelChange);
+		CollisionComponent.AddRadialImpulse(HurtOrigin, DamageRadius, damageType.default.RadialDamageImpulse, RIF_Linear, damageType.default.RadialDamageVelChange == ERIT_VelocityChange);
 	}
 }
 

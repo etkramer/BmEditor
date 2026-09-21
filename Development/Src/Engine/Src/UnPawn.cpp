@@ -872,7 +872,7 @@ void APawn::rotateToward(FVector FocalPoint)
 	if ( !bDesiredRotationSet )
 	{
 		// if we're walking on the navmesh calculate a rotation such that our base is on the mesh
-		UNavigationHandle* Handle = (Controller != NULL) ? Controller->NavigationHandle : NULL;
+		UNavigationHandle* Handle = NULL; // BM: AK's Controller has no NavigationHandle
 		if(Physics == PHYS_NavMeshWalking && Handle != NULL && Handle->AnchorPoly != NULL)
 		{
 			FVector Up = Handle->AnchorPoly->GetPolyNormal();
@@ -1413,15 +1413,6 @@ UBOOL APawn::ReachedDestination(const FVector &TestPosition, const FVector &Dest
 	if ( GoalActor && (!Controller || !Controller->bAdjusting) )
 	{
 		return GoalActor->ReachedBy(this, TestPosition, Dest);
-	}
-	else if( bCheckHandle && Controller != NULL && Controller->NavigationHandle != NULL )
-	{
-		UBOOL bRet = FALSE;
-		// if the navhandle successfuly determined if we're there, return what it decided.. otherwise go to thresholdtest
-		if(Controller->NavigationHandle->ReachedDestination(Dest,Controller,CylinderComponent->CollisionRadius + DestinationOffset,bRet))
-		{
-			return bRet;
-		}
 	}
 
 	return ReachThresholdTest(TestPosition, Dest, NULL, 0.f, 0.f, 0.f);

@@ -18,6 +18,19 @@
 #ifndef INCLUDED_ENGINE_PARTICLE_ENUMS
 #define INCLUDED_ENGINE_PARTICLE_ENUMS 1
 
+enum EParticleSystemOveridePhysXLevel
+{
+    EPSOP_NoOverride        =0,
+    EPSOP_Turbulence        =1,
+    EPSOP_MeshDebris        =2,
+    EPSOP_TurbulenceAndMeshDebris=3,
+    EPSOP_MAX               =4,
+};
+#define FOREACH_ENUM_EPARTICLESYSTEMOVERIDEPHYSXLEVEL(op) \
+    op(EPSOP_NoOverride) \
+    op(EPSOP_Turbulence) \
+    op(EPSOP_MeshDebris) \
+    op(EPSOP_TurbulenceAndMeshDebris) 
 enum EParticleSystemOcclusionBoundsMethod
 {
     EPSOBM_None             =0,
@@ -681,9 +694,11 @@ public:
     BYTE SystemUpdateMode;
     BYTE LODMethod;
     BYTE OcclusionBoundsMethod;
+    BYTE MinimumPhysXLevelOverride;
     FLOAT UpdateTime_FPS;
     FLOAT UpdateTime_Delta;
     FLOAT WarmupTime;
+    FLOAT WarmupTickRate;
     TArrayNoInit<class UParticleEmitter*> Emitters;
     class UParticleSystemComponent* PreviewComponent;
     FRotator ThumbnailAngle;
@@ -695,20 +710,24 @@ public:
     BITFIELD bEnableParticleDistanceCulling:1;
     BITFIELD bUseFixedRelativeBoundingBox:1;
     BITFIELD bShouldResetPeakCounts:1;
+    BITFIELD bIsLooping:1;
     BITFIELD bHasPhysics:1;
+    BITFIELD bHasApex:1;
     BITFIELD bUseRealtimeThumbnail:1;
     BITFIELD ThumbnailImageOutOfDate:1;
     BITFIELD bSkipSpawnCountCheck:1;
+    BITFIELD bHighPriorityPoolEffect:1;
     BITFIELD bUseDelayRange:1;
     BITFIELD bUseMobilePointSprites:1;
-    BITFIELD bLoadIfPhysXLevel0:1;
-    BITFIELD bLoadIfPhysXLevel1:1;
-    BITFIELD bLoadIfPhysXLevel2:1;
     class UInterpCurveEdSetup* CurveEdSetup;
+    class UTexture2D* ThumbnailImage;
+    class UParticleSystem* PhysxParticleSystemRef;
     FLOAT LODDistanceCheckTime;
     TArrayNoInit<FLOAT> LODDistances;
     INT EditorLODSetting;
     TArrayNoInit<struct FParticleSystemLOD> LODSettings;
+    FLOAT particleDistanceCullMul;
+    FLOAT particleDistanceCullFarMul;
     FBox FixedRelativeBoundingBox;
     FLOAT SecondsBeforeInactive;
     FStringNoInit FloorMesh;
@@ -717,14 +736,12 @@ public:
     FLOAT FloorScale;
     FVector FloorScale3D;
     FColor BackgroundColor;
-    class UTexture2D* ThumbnailImage;
     FLOAT Delay;
     FLOAT DelayLow;
     FVector MacroUVPosition;
     FLOAT MacroUVRadius;
     FBox CustomOcclusionBounds;
     TArrayNoInit<struct FLODSoloTrack> SoloTracking;
-    class UParticleSystem* PhysxParticleSystemRef;
     //## END PROPS ParticleSystem
 
     virtual BYTE GetCurrentLODMethod();
@@ -6910,7 +6927,7 @@ VERIFY_CLASS_OFFSET_NODIE(UParticleModuleVelocityOverLifetime,ParticleModuleVelo
 VERIFY_CLASS_SIZE_NODIE(UParticleModuleVelocityOverLifetime)
 VERIFY_CLASS_SIZE_NODIE(UParticleModuleEventSendToGame)
 VERIFY_CLASS_OFFSET_NODIE(UParticleSystem,ParticleSystem,SystemUpdateMode)
-VERIFY_CLASS_OFFSET_NODIE(UParticleSystem,ParticleSystem,PhysxParticleSystemRef)
+VERIFY_CLASS_OFFSET_NODIE(UParticleSystem,ParticleSystem,SoloTracking)
 VERIFY_CLASS_SIZE_NODIE(UParticleSystem)
 VERIFY_CLASS_OFFSET_NODIE(UParticleSystemReplay,ParticleSystemReplay,ClipIDNumber)
 VERIFY_CLASS_OFFSET_NODIE(UParticleSystemReplay,ParticleSystemReplay,Frames)

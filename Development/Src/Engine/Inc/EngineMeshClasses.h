@@ -70,6 +70,165 @@ enum EFractureMeshExplosionType
 #include "UnObjBas.h"
 #undef ENABLE_DECLARECLASS_MACRO
 
+#define UCONST_FSM_DEFAULTRECYCLETIME 0.2
+
+struct FractureManager_eventReturnPartActor_Parms
+{
+    class AFracturedStaticMeshPart* Part;
+    FractureManager_eventReturnPartActor_Parms(EEventParm)
+    {
+    }
+};
+struct FractureManager_eventSpawnPartActor_Parms
+{
+    class AFracturedStaticMeshActor* Parent;
+    FVector SpawnLocation;
+    FRotator SpawnRotation;
+    class AFracturedStaticMeshPart* ReturnValue;
+    FractureManager_eventSpawnPartActor_Parms(EEventParm)
+    {
+    }
+};
+struct FractureManager_eventSpawnChunkDestroyEffect_Parms
+{
+    class UParticleSystem* Effect;
+    FBox ChunkBox;
+    FVector ChunkDir;
+    FLOAT Scale;
+    FractureManager_eventSpawnChunkDestroyEffect_Parms(EEventParm)
+    {
+    }
+};
+class AFractureManager : public AActor
+{
+public:
+    //## BEGIN PROPS FractureManager
+    INT FSMPartPoolSize;
+    BITFIELD bEnableAntiVibration:1;
+    BITFIELD bEnableSpawnChunkEffectForRadialDamage:1;
+    FLOAT DestroyVibrationLevel;
+    FLOAT DestroyMinAngVel;
+    FLOAT ExplosionVelScale;
+    TArrayNoInit<class AFracturedStaticMeshPart*> PartPool;
+    TArrayNoInit<INT> FreeParts;
+    TArrayNoInit<class AFracturedStaticMeshActor*> ActorsWithDeferredPartsToSpawn;
+    //## END PROPS FractureManager
+
+    virtual FLOAT GetNumFSMPartsScale();
+    virtual FLOAT GetFSMDirectSpawnChanceScale();
+    virtual FLOAT GetFSMRadialSpawnChanceScale();
+    virtual FLOAT GetFSMFractureCullDistanceScale();
+    virtual void CreateFSMParts();
+    virtual void ResetPoolVisibility();
+    virtual class AFracturedStaticMeshPart* GetFSMPart(class AFracturedStaticMeshActor* Parent,FVector SpawnLocation,FRotator SpawnRotation);
+    DECLARE_FUNCTION(execGetNumFSMPartsScale)
+    {
+        P_FINISH;
+        *(FLOAT*)Result=this->GetNumFSMPartsScale();
+    }
+    DECLARE_FUNCTION(execGetFSMDirectSpawnChanceScale)
+    {
+        P_FINISH;
+        *(FLOAT*)Result=this->GetFSMDirectSpawnChanceScale();
+    }
+    DECLARE_FUNCTION(execGetFSMRadialSpawnChanceScale)
+    {
+        P_FINISH;
+        *(FLOAT*)Result=this->GetFSMRadialSpawnChanceScale();
+    }
+    DECLARE_FUNCTION(execGetFSMFractureCullDistanceScale)
+    {
+        P_FINISH;
+        *(FLOAT*)Result=this->GetFSMFractureCullDistanceScale();
+    }
+    DECLARE_FUNCTION(execCreateFSMParts)
+    {
+        P_FINISH;
+        this->CreateFSMParts();
+    }
+    DECLARE_FUNCTION(execResetPoolVisibility)
+    {
+        P_FINISH;
+        this->ResetPoolVisibility();
+    }
+    DECLARE_FUNCTION(execGetFSMPart)
+    {
+        P_GET_OBJECT(AFracturedStaticMeshActor,Parent);
+        P_GET_STRUCT(FVector,SpawnLocation);
+        P_GET_STRUCT(FRotator,SpawnRotation);
+        P_FINISH;
+        *(class AFracturedStaticMeshPart**)Result=this->GetFSMPart(Parent,SpawnLocation,SpawnRotation);
+    }
+    void eventReturnPartActor(class AFracturedStaticMeshPart* Part)
+    {
+        FractureManager_eventReturnPartActor_Parms Parms(EC_EventParm);
+        Parms.Part=Part;
+        ProcessEvent(FindFunctionChecked(ENGINE_ReturnPartActor),&Parms);
+    }
+    class AFracturedStaticMeshPart* eventSpawnPartActor(class AFracturedStaticMeshActor* Parent,FVector SpawnLocation,FRotator SpawnRotation)
+    {
+        FractureManager_eventSpawnPartActor_Parms Parms(EC_EventParm);
+        Parms.ReturnValue=NULL;
+        Parms.Parent=Parent;
+        Parms.SpawnLocation=SpawnLocation;
+        Parms.SpawnRotation=SpawnRotation;
+        ProcessEvent(FindFunctionChecked(ENGINE_SpawnPartActor),&Parms);
+        return Parms.ReturnValue;
+    }
+    void eventSpawnChunkDestroyEffect(class UParticleSystem* Effect,FBox ChunkBox,FVector ChunkDir,FLOAT Scale)
+    {
+        FractureManager_eventSpawnChunkDestroyEffect_Parms Parms(EC_EventParm);
+        Parms.Effect=Effect;
+        Parms.ChunkBox=ChunkBox;
+        Parms.ChunkDir=ChunkDir;
+        Parms.Scale=Scale;
+        ProcessEvent(FindFunctionChecked(ENGINE_SpawnChunkDestroyEffect),&Parms);
+    }
+    DECLARE_CLASS(AFractureManager,AActor,0,Engine)
+    static const TCHAR* StaticConfigName() {return TEXT("Game");}
+
+	virtual void TickSpecial( FLOAT DeltaSeconds );
+};
+
+class AImageReflection : public AActor
+{
+public:
+    //## BEGIN PROPS ImageReflection
+    BITFIELD bEnabled:1;
+    class UDEPRECATED_ImageReflectionComponent* ReflectionComponent_DEPRECATED;
+    class UImageBasedReflectionComponent* ImageReflectionComponent;
+    //## END PROPS ImageReflection
+
+    DECLARE_CLASS(AImageReflection,AActor,0,Engine)
+protected:
+	virtual void PostLoad();
+};
+
+class AImageReflectionSceneCapture : public AImageReflection
+{
+public:
+    //## BEGIN PROPS ImageReflectionSceneCapture
+    FLOAT DepthRange;
+    FLOAT ColorRange;
+    //## END PROPS ImageReflectionSceneCapture
+
+    DECLARE_CLASS(AImageReflectionSceneCapture,AImageReflection,0,Engine)
+protected:
+	virtual void PostDuplicate();
+};
+
+class AImageReflectionShadowPlane : public AActor
+{
+public:
+    //## BEGIN PROPS ImageReflectionShadowPlane
+    BITFIELD bEnabled:1;
+    class UImageReflectionShadowPlaneComponent* ReflectionShadowComponent;
+    //## END PROPS ImageReflectionShadowPlane
+
+    DECLARE_CLASS(AImageReflectionShadowPlane,AActor,0,Engine)
+    NO_DEFAULT_CONSTRUCTOR(AImageReflectionShadowPlane)
+};
+
 class UApexAsset : public UObject
 {
 public:
@@ -293,7 +452,7 @@ struct ApexDestructibleActor_eventSpawnFractureEmitter_Parms
     {
     }
 };
-class AApexDestructibleActor : public AActor
+class AApexDestructibleActor : public ARStaticClimbableActor
 {
 public:
     //## BEGIN PROPS ApexDestructibleActor
@@ -355,7 +514,7 @@ public:
         Parms.SpawnDirection=SpawnDirection;
         ProcessEvent(FindFunctionChecked(ENGINE_SpawnFractureEmitter),&Parms);
     }
-    DECLARE_CLASS(AApexDestructibleActor,AActor,0|CLASS_Config,Engine)
+    DECLARE_CLASS(AApexDestructibleActor,ARStaticClimbableActor,0|CLASS_Config,Engine)
     static const TCHAR* StaticConfigName() {return TEXT("Engine");}
 
 	/** Performs a specialized Tick method on this actor
@@ -813,7 +972,7 @@ struct FracturedStaticMeshActor_eventBreakOffIsolatedIslands_Parms
     {
     }
 };
-class AFracturedStaticMeshActor : public AActor
+class AFracturedStaticMeshActor : public ARStaticClimbableActor
 {
 public:
     //## BEGIN PROPS FracturedStaticMeshActor
@@ -966,7 +1125,7 @@ public:
         ProcessEvent(FindFunctionChecked(ENGINE_BreakOffIsolatedIslands),&Parms);
         FragmentVis=Parms.FragmentVis;
     }
-    DECLARE_CLASS(AFracturedStaticMeshActor,AActor,0,Engine)
+    DECLARE_CLASS(AFracturedStaticMeshActor,ARStaticClimbableActor,0,Engine)
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent);
 	virtual void TickSpecial(FLOAT DeltaSeconds);
 	virtual UBOOL InStasis();
@@ -1012,165 +1171,6 @@ public:
 	virtual void ModifyNxActorDesc(NxActorDesc& ActorDesc, UPrimitiveComponent* PrimComp, const class NxGroupsMask& GroupsMask, UINT MatIndex);
 	virtual void PostInitRigidBody(NxActor* nActor, NxActorDesc& ActorDesc, UPrimitiveComponent* PrimComp);
 #endif // WITH_NOVODEX
-};
-
-#define UCONST_FSM_DEFAULTRECYCLETIME 0.2
-
-struct FractureManager_eventReturnPartActor_Parms
-{
-    class AFracturedStaticMeshPart* Part;
-    FractureManager_eventReturnPartActor_Parms(EEventParm)
-    {
-    }
-};
-struct FractureManager_eventSpawnPartActor_Parms
-{
-    class AFracturedStaticMeshActor* Parent;
-    FVector SpawnLocation;
-    FRotator SpawnRotation;
-    class AFracturedStaticMeshPart* ReturnValue;
-    FractureManager_eventSpawnPartActor_Parms(EEventParm)
-    {
-    }
-};
-struct FractureManager_eventSpawnChunkDestroyEffect_Parms
-{
-    class UParticleSystem* Effect;
-    FBox ChunkBox;
-    FVector ChunkDir;
-    FLOAT Scale;
-    FractureManager_eventSpawnChunkDestroyEffect_Parms(EEventParm)
-    {
-    }
-};
-class AFractureManager : public AActor
-{
-public:
-    //## BEGIN PROPS FractureManager
-    INT FSMPartPoolSize;
-    BITFIELD bEnableAntiVibration:1;
-    BITFIELD bEnableSpawnChunkEffectForRadialDamage:1;
-    FLOAT DestroyVibrationLevel;
-    FLOAT DestroyMinAngVel;
-    FLOAT ExplosionVelScale;
-    TArrayNoInit<class AFracturedStaticMeshPart*> PartPool;
-    TArrayNoInit<INT> FreeParts;
-    TArrayNoInit<class AFracturedStaticMeshActor*> ActorsWithDeferredPartsToSpawn;
-    //## END PROPS FractureManager
-
-    virtual FLOAT GetNumFSMPartsScale();
-    virtual FLOAT GetFSMDirectSpawnChanceScale();
-    virtual FLOAT GetFSMRadialSpawnChanceScale();
-    virtual FLOAT GetFSMFractureCullDistanceScale();
-    virtual void CreateFSMParts();
-    virtual void ResetPoolVisibility();
-    virtual class AFracturedStaticMeshPart* GetFSMPart(class AFracturedStaticMeshActor* Parent,FVector SpawnLocation,FRotator SpawnRotation);
-    DECLARE_FUNCTION(execGetNumFSMPartsScale)
-    {
-        P_FINISH;
-        *(FLOAT*)Result=this->GetNumFSMPartsScale();
-    }
-    DECLARE_FUNCTION(execGetFSMDirectSpawnChanceScale)
-    {
-        P_FINISH;
-        *(FLOAT*)Result=this->GetFSMDirectSpawnChanceScale();
-    }
-    DECLARE_FUNCTION(execGetFSMRadialSpawnChanceScale)
-    {
-        P_FINISH;
-        *(FLOAT*)Result=this->GetFSMRadialSpawnChanceScale();
-    }
-    DECLARE_FUNCTION(execGetFSMFractureCullDistanceScale)
-    {
-        P_FINISH;
-        *(FLOAT*)Result=this->GetFSMFractureCullDistanceScale();
-    }
-    DECLARE_FUNCTION(execCreateFSMParts)
-    {
-        P_FINISH;
-        this->CreateFSMParts();
-    }
-    DECLARE_FUNCTION(execResetPoolVisibility)
-    {
-        P_FINISH;
-        this->ResetPoolVisibility();
-    }
-    DECLARE_FUNCTION(execGetFSMPart)
-    {
-        P_GET_OBJECT(AFracturedStaticMeshActor,Parent);
-        P_GET_STRUCT(FVector,SpawnLocation);
-        P_GET_STRUCT(FRotator,SpawnRotation);
-        P_FINISH;
-        *(class AFracturedStaticMeshPart**)Result=this->GetFSMPart(Parent,SpawnLocation,SpawnRotation);
-    }
-    void eventReturnPartActor(class AFracturedStaticMeshPart* Part)
-    {
-        FractureManager_eventReturnPartActor_Parms Parms(EC_EventParm);
-        Parms.Part=Part;
-        ProcessEvent(FindFunctionChecked(ENGINE_ReturnPartActor),&Parms);
-    }
-    class AFracturedStaticMeshPart* eventSpawnPartActor(class AFracturedStaticMeshActor* Parent,FVector SpawnLocation,FRotator SpawnRotation)
-    {
-        FractureManager_eventSpawnPartActor_Parms Parms(EC_EventParm);
-        Parms.ReturnValue=NULL;
-        Parms.Parent=Parent;
-        Parms.SpawnLocation=SpawnLocation;
-        Parms.SpawnRotation=SpawnRotation;
-        ProcessEvent(FindFunctionChecked(ENGINE_SpawnPartActor),&Parms);
-        return Parms.ReturnValue;
-    }
-    void eventSpawnChunkDestroyEffect(class UParticleSystem* Effect,FBox ChunkBox,FVector ChunkDir,FLOAT Scale)
-    {
-        FractureManager_eventSpawnChunkDestroyEffect_Parms Parms(EC_EventParm);
-        Parms.Effect=Effect;
-        Parms.ChunkBox=ChunkBox;
-        Parms.ChunkDir=ChunkDir;
-        Parms.Scale=Scale;
-        ProcessEvent(FindFunctionChecked(ENGINE_SpawnChunkDestroyEffect),&Parms);
-    }
-    DECLARE_CLASS(AFractureManager,AActor,0,Engine)
-    static const TCHAR* StaticConfigName() {return TEXT("Game");}
-
-	virtual void TickSpecial( FLOAT DeltaSeconds );
-};
-
-class AImageReflection : public AActor
-{
-public:
-    //## BEGIN PROPS ImageReflection
-    BITFIELD bEnabled:1;
-    class UDEPRECATED_ImageReflectionComponent* ReflectionComponent_DEPRECATED;
-    class UImageBasedReflectionComponent* ImageReflectionComponent;
-    //## END PROPS ImageReflection
-
-    DECLARE_CLASS(AImageReflection,AActor,0,Engine)
-protected:
-	virtual void PostLoad();
-};
-
-class AImageReflectionSceneCapture : public AImageReflection
-{
-public:
-    //## BEGIN PROPS ImageReflectionSceneCapture
-    FLOAT DepthRange;
-    FLOAT ColorRange;
-    //## END PROPS ImageReflectionSceneCapture
-
-    DECLARE_CLASS(AImageReflectionSceneCapture,AImageReflection,0,Engine)
-protected:
-	virtual void PostDuplicate();
-};
-
-class AImageReflectionShadowPlane : public AActor
-{
-public:
-    //## BEGIN PROPS ImageReflectionShadowPlane
-    BITFIELD bEnabled:1;
-    class UImageReflectionShadowPlaneComponent* ReflectionShadowComponent;
-    //## END PROPS ImageReflectionShadowPlane
-
-    DECLARE_CLASS(AImageReflectionShadowPlane,AActor,0,Engine)
-    NO_DEFAULT_CONSTRUCTOR(AImageReflectionShadowPlane)
 };
 
 class UDEPRECATED_ImageReflectionComponent : public UActorComponent
@@ -1875,6 +1875,13 @@ public:
 #endif // !INCLUDED_ENGINE_MESH_CLASSES
 #endif // !NAMES_ONLY
 
+AUTOGENERATE_FUNCTION(AFractureManager,-1,execGetFSMPart);
+AUTOGENERATE_FUNCTION(AFractureManager,-1,execResetPoolVisibility);
+AUTOGENERATE_FUNCTION(AFractureManager,-1,execCreateFSMParts);
+AUTOGENERATE_FUNCTION(AFractureManager,-1,execGetFSMFractureCullDistanceScale);
+AUTOGENERATE_FUNCTION(AFractureManager,-1,execGetFSMRadialSpawnChanceScale);
+AUTOGENERATE_FUNCTION(AFractureManager,-1,execGetFSMDirectSpawnChanceScale);
+AUTOGENERATE_FUNCTION(AFractureManager,-1,execGetNumFSMPartsScale);
 AUTOGENERATE_FUNCTION(AApexDestructibleActor,-1,execTakeRadiusDamage);
 AUTOGENERATE_FUNCTION(AApexDestructibleActor,-1,execTakeDamage);
 AUTOGENERATE_FUNCTION(AApexDestructibleActor,-1,execCacheFractureEffects);
@@ -1888,13 +1895,6 @@ AUTOGENERATE_FUNCTION(AFracturedStaticMeshActor,-1,execSpawnPartMulti);
 AUTOGENERATE_FUNCTION(AFracturedStaticMeshActor,-1,execSpawnPart);
 AUTOGENERATE_FUNCTION(AFracturedStaticMeshPart,-1,execRecyclePart);
 AUTOGENERATE_FUNCTION(AFracturedStaticMeshPart,-1,execInitialize);
-AUTOGENERATE_FUNCTION(AFractureManager,-1,execGetFSMPart);
-AUTOGENERATE_FUNCTION(AFractureManager,-1,execResetPoolVisibility);
-AUTOGENERATE_FUNCTION(AFractureManager,-1,execCreateFSMParts);
-AUTOGENERATE_FUNCTION(AFractureManager,-1,execGetFSMFractureCullDistanceScale);
-AUTOGENERATE_FUNCTION(AFractureManager,-1,execGetFSMRadialSpawnChanceScale);
-AUTOGENERATE_FUNCTION(AFractureManager,-1,execGetFSMDirectSpawnChanceScale);
-AUTOGENERATE_FUNCTION(AFractureManager,-1,execGetNumFSMPartsScale);
 AUTOGENERATE_FUNCTION(UImageReflectionShadowPlaneComponent,-1,execSetEnabled);
 AUTOGENERATE_FUNCTION(UFracturedBaseComponent,-1,execGetNumVisibleFragments);
 AUTOGENERATE_FUNCTION(UFracturedBaseComponent,-1,execGetNumFragments);
@@ -1924,17 +1924,17 @@ AUTOGENERATE_FUNCTION(UImageBasedReflectionComponent,-1,execSetEnabled);
 #define ENGINE_MESH_NATIVE_DEFS
 
 #define AUTO_INITIALIZE_REGISTRANTS_ENGINE_MESH \
+	AFractureManager::StaticClass(); \
+	GNativeLookupFuncs.Set(FName("FractureManager"), GEngineAFractureManagerNatives); \
+	AImageReflection::StaticClass(); \
+	AImageReflectionSceneCapture::StaticClass(); \
+	AImageReflectionShadowPlane::StaticClass(); \
 	AApexDestructibleActor::StaticClass(); \
 	GNativeLookupFuncs.Set(FName("ApexDestructibleActor"), GEngineAApexDestructibleActorNatives); \
 	AFracturedStaticMeshActor::StaticClass(); \
 	GNativeLookupFuncs.Set(FName("FracturedStaticMeshActor"), GEngineAFracturedStaticMeshActorNatives); \
 	AFracturedStaticMeshPart::StaticClass(); \
 	GNativeLookupFuncs.Set(FName("FracturedStaticMeshPart"), GEngineAFracturedStaticMeshPartNatives); \
-	AFractureManager::StaticClass(); \
-	GNativeLookupFuncs.Set(FName("FractureManager"), GEngineAFractureManagerNatives); \
-	AImageReflection::StaticClass(); \
-	AImageReflectionSceneCapture::StaticClass(); \
-	AImageReflectionShadowPlane::StaticClass(); \
 	UDEPRECATED_ImageReflectionComponent::StaticClass(); \
 	UPrimitiveComponent::StaticClass(); \
 	GNativeLookupFuncs.Set(FName("PrimitiveComponent"), GEngineUPrimitiveComponentNatives); \
@@ -1966,6 +1966,18 @@ AUTOGENERATE_FUNCTION(UImageBasedReflectionComponent,-1,execSetEnabled);
 #endif // ENGINE_MESH_NATIVE_DEFS
 
 #ifdef NATIVES_ONLY
+FNativeFunctionLookup GEngineAFractureManagerNatives[] = 
+{ 
+	MAP_NATIVE(AFractureManager, execGetFSMPart)
+	MAP_NATIVE(AFractureManager, execResetPoolVisibility)
+	MAP_NATIVE(AFractureManager, execCreateFSMParts)
+	MAP_NATIVE(AFractureManager, execGetFSMFractureCullDistanceScale)
+	MAP_NATIVE(AFractureManager, execGetFSMRadialSpawnChanceScale)
+	MAP_NATIVE(AFractureManager, execGetFSMDirectSpawnChanceScale)
+	MAP_NATIVE(AFractureManager, execGetNumFSMPartsScale)
+	{NULL, NULL}
+};
+
 FNativeFunctionLookup GEngineAApexDestructibleActorNatives[] = 
 { 
 	MAP_NATIVE(AApexDestructibleActor, execTakeRadiusDamage)
@@ -1991,18 +2003,6 @@ FNativeFunctionLookup GEngineAFracturedStaticMeshPartNatives[] =
 { 
 	MAP_NATIVE(AFracturedStaticMeshPart, execRecyclePart)
 	MAP_NATIVE(AFracturedStaticMeshPart, execInitialize)
-	{NULL, NULL}
-};
-
-FNativeFunctionLookup GEngineAFractureManagerNatives[] = 
-{ 
-	MAP_NATIVE(AFractureManager, execGetFSMPart)
-	MAP_NATIVE(AFractureManager, execResetPoolVisibility)
-	MAP_NATIVE(AFractureManager, execCreateFSMParts)
-	MAP_NATIVE(AFractureManager, execGetFSMFractureCullDistanceScale)
-	MAP_NATIVE(AFractureManager, execGetFSMRadialSpawnChanceScale)
-	MAP_NATIVE(AFractureManager, execGetFSMDirectSpawnChanceScale)
-	MAP_NATIVE(AFractureManager, execGetNumFSMPartsScale)
 	{NULL, NULL}
 };
 
@@ -2113,15 +2113,6 @@ FNativeFunctionLookup GEngineUImageBasedReflectionComponentNatives[] =
 #endif // STATIC_LINKING_MOJO
 
 #ifdef VERIFY_CLASS_SIZES
-VERIFY_CLASS_OFFSET_NODIE(AApexDestructibleActor,ApexDestructibleActor,LightEnvironment)
-VERIFY_CLASS_OFFSET_NODIE(AApexDestructibleActor,ApexDestructibleActor,DamageParams)
-VERIFY_CLASS_SIZE_NODIE(AApexDestructibleActor)
-VERIFY_CLASS_OFFSET_NODIE(AFracturedStaticMeshActor,FracturedStaticMeshActor,MaxPartsToSpawnAtOnce)
-VERIFY_CLASS_OFFSET_NODIE(AFracturedStaticMeshActor,FracturedStaticMeshActor,LastBreakInstigator)
-VERIFY_CLASS_SIZE_NODIE(AFracturedStaticMeshActor)
-VERIFY_CLASS_OFFSET_NODIE(AFracturedStaticMeshPart,FracturedStaticMeshPart,DestroyPartRadiusFactor)
-VERIFY_CLASS_OFFSET_NODIE(AFracturedStaticMeshPart,FracturedStaticMeshPart,LastImpactSoundTime)
-VERIFY_CLASS_SIZE_NODIE(AFracturedStaticMeshPart)
 VERIFY_CLASS_OFFSET_NODIE(AFractureManager,FractureManager,FSMPartPoolSize)
 VERIFY_CLASS_OFFSET_NODIE(AFractureManager,FractureManager,ActorsWithDeferredPartsToSpawn)
 VERIFY_CLASS_SIZE_NODIE(AFractureManager)
@@ -2133,6 +2124,15 @@ VERIFY_CLASS_OFFSET_NODIE(AImageReflectionSceneCapture,ImageReflectionSceneCaptu
 VERIFY_CLASS_SIZE_NODIE(AImageReflectionSceneCapture)
 VERIFY_CLASS_OFFSET_NODIE(AImageReflectionShadowPlane,ImageReflectionShadowPlane,ReflectionShadowComponent)
 VERIFY_CLASS_SIZE_NODIE(AImageReflectionShadowPlane)
+VERIFY_CLASS_OFFSET_NODIE(AApexDestructibleActor,ApexDestructibleActor,LightEnvironment)
+VERIFY_CLASS_OFFSET_NODIE(AApexDestructibleActor,ApexDestructibleActor,DamageParams)
+VERIFY_CLASS_SIZE_NODIE(AApexDestructibleActor)
+VERIFY_CLASS_OFFSET_NODIE(AFracturedStaticMeshActor,FracturedStaticMeshActor,MaxPartsToSpawnAtOnce)
+VERIFY_CLASS_OFFSET_NODIE(AFracturedStaticMeshActor,FracturedStaticMeshActor,LastBreakInstigator)
+VERIFY_CLASS_SIZE_NODIE(AFracturedStaticMeshActor)
+VERIFY_CLASS_OFFSET_NODIE(AFracturedStaticMeshPart,FracturedStaticMeshPart,DestroyPartRadiusFactor)
+VERIFY_CLASS_OFFSET_NODIE(AFracturedStaticMeshPart,FracturedStaticMeshPart,LastImpactSoundTime)
+VERIFY_CLASS_SIZE_NODIE(AFracturedStaticMeshPart)
 VERIFY_CLASS_OFFSET_NODIE(UDEPRECATED_ImageReflectionComponent,ImageReflectionComponent,ReflectionTexture)
 VERIFY_CLASS_SIZE_NODIE(UDEPRECATED_ImageReflectionComponent)
 VERIFY_CLASS_OFFSET_NODIE(UPrimitiveComponent,PrimitiveComponent,Tag)

@@ -17,7 +17,6 @@
 class Controller extends Actor
 	native(Controller)
 	nativereplication
-	implements(Interface_NavigationHandle)
 	abstract;
 
 //=============================================================================
@@ -29,8 +28,25 @@ var editinline repnotify Pawn Pawn;
 /** PlayerReplicationInfo containing replicated information about the player using this controller (only exists if bIsPlayer is true). */
 var editinline repnotify PlayerReplicationInfo 	PlayerReplicationInfo;
 
-var const int							PlayerNum;						// The player number - per-match player number.
 var const private Controller			NextController;					// chained Controller list
+
+// BM: AK declares every object reference up front, ahead of the flags.
+var 	Actor							MoveTarget;						// actor being moved toward
+var		Actor							Focus;							// actor being looked at
+var		Actor							GoalList[4];					// used by navigation AI - list of intermediate goals
+var NavigationPoint 					StartSpot;  					// where player started the match
+var 	ReachSpec						CurrentPath;					// Current path being moved along
+var		ReachSpec						NextRoutePath;					// Next path in route to destination
+var 	Actor							RouteGoal;						// final destination for current route
+var		InterpActor						PendingMover;					// InterpActor that controller is currently waiting on (e.g. door or lift)
+/** used for discovering navigation failures */
+var		Actor							FailedMoveTarget;
+var Pawn ShotTarget;													// Target most recently aimed at
+var const Actor							LastFailedReach;				// cache to avoid trying failed actorreachable more than once per frame
+// Enemy information
+var	 	Pawn					    	Enemy;
+
+var const int							PlayerNum;						// The player number - per-match player number.
 
 var		bool        					bIsPlayer;						// Pawn is a player or a player-bot.
 var		bool							bGodMode;		   				// cheat - when true, can't be killed or hurt
@@ -52,6 +68,7 @@ var		bool							bForceStrafe;
 var const bool							bLOSflag;						// used for alternating LineOfSight traces
 var		bool							bSkipExtraLOSChecks;			// Skip viewport nudging checks for LOS
 var		bool							bNotifyFallingHitWall;			// If true, controller gets NotifyFallingHitWall() when pawn hits wall while falling
+var     bool                            bEarlyOutOfSighTestsForSameType;// when an AI already has an enemy of this type, early out from sight tests to me
 /** Forces all velocity to be directed towards reaching Destination */
 var bool bPreciseDestination;
 /** Do visibility checks, call SeePlayer events() for pawns on same team as self.  Setting to true will result in a lot more AI visibility line checks. */
@@ -78,40 +95,24 @@ var	 	float							MinHitWall;						// Minimum HitNormal dot Velocity.Normal to g
 //=============================================================================
 // NAVIGATION VARIABLES
 
-/** Navigation handle used for pathing when using NavMesh */
-var     class<NavigationHandle>         NavigationHandleClass;
-var     editinline NavigationHandle     NavigationHandle;
 var     Vector                          OverrideSearchStart;
 
 var 	float							MoveTimer;						// internal timer for latent moves, useful for setting a max duration
-var 	Actor							MoveTarget;						// actor being moved toward
 var		BasedPosition					DestinationPosition;			// destination controlled pawn is moving toward
 var		BasedPosition					FocalPosition;					// position controlled pawn is looking at
-var		Actor							Focus;							// actor being looked at
-var		Actor							GoalList[4];					// used by navigation AI - list of intermediate goals
 var		BasedPosition					AdjustPosition;					// intermediate destination used while adjusting around obstacle (bAdjusting is true)
-var NavigationPoint 					StartSpot;  					// where player started the match
 
 /** Cached list of nodes filled in by the last call to FindPathXXX */
 var array<NavigationPoint> RouteCache;
 
-var 	ReachSpec						CurrentPath;					// Current path being moved along
-var		ReachSpec						NextRoutePath;					// Next path in route to destination
 var 	vector							CurrentPathDir;					// direction vector of current path
-var 	Actor							RouteGoal;						// final destination for current route
 var 	float							RouteDist;						// total distance for current route
 var		float							LastRouteFind;					// time at which last route finding occured
-var		InterpActor						PendingMover;					// InterpActor that controller is currently waiting on (e.g. door or lift)
 
-/** used for discovering navigation failures */
-var		Actor							FailedMoveTarget;
 var		int								MoveFailureCount;
 
 var float GroundPitchTime;
-var vector ViewX, ViewY, ViewZ;											// Viewrotation encoding for PHYS_Spider
 
-var Pawn ShotTarget;													// Target most recently aimed at
-var const Actor							LastFailedReach;				// cache to avoid trying failed actorreachable more than once per frame
 var const float 						FailedReachTime;
 var const vector 						FailedReachLocation;
 
@@ -130,9 +131,6 @@ var int HighJumpNodeCostModifier;
 
 /** Max time when moving toward a pawn target before latent movetoward returns (allowing reassessment of movement) */
 var float MaxMoveTowardPawnTargetTime;
-
-// Enemy information
-var	 	Pawn					    	Enemy;
 
 /** List of destinations whose source portals are visible to this Controller */
 struct native VisiblePortalInfo
@@ -172,8 +170,6 @@ var const rotator OldBasedRotation;
 
 /** allows easy modification of the search extent provided by setuppathfindingparams() */
 var vector NavMeshPath_SearchExtent_Modifier;
-
-var     bool                            bEarlyOutOfSighTestsForSameType;// when an AI already has an enemy of this type, early out from sight tests to me
 
 cpptext
 {
@@ -446,7 +442,6 @@ event PostBeginPlay()
 			// create a new player replication info
 			InitPlayerReplicationInfo();
 		}
-		InitNavigationHandle();
 	}
 	// randomly offset the sight counter to avoid hitches
 	SightCounter = SightCounterInterval * FRand();
@@ -1864,15 +1859,6 @@ function SendMessage(PlayerReplicationInfo Recipient, name MessageType, float Wa
 
 function ReadyForLift();
 
-/** spawn and init Navigation Handle */
-simulated function InitNavigationHandle()
-{
-	if( NavigationHandleClass != None )
-	{
-		NavigationHandle = new(self) NavigationHandleClass;
-	}
-}
-
 simulated event InterpolationStarted(SeqAct_Interp InterpAction, InterpGroupInst GroupInst)
 {
 	if (Pawn!=none)
@@ -1912,6 +1898,4 @@ defaultproperties
 
 	SightCounterInterval=0.2
 	MaxMoveTowardPawnTargetTime=1.2
-
-	NavigationHandleClass=class'NavigationHandle'
 }

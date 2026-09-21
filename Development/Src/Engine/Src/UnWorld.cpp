@@ -5879,10 +5879,6 @@ void FSeamlessTravelHandler::Tick()
 			{
 				if (It->Actor != NULL)
 				{
-					if(It->Actor->NavigationHandle!=NULL)
-					{
-						FNavMeshWorld::RegisterActiveHandle(It->Actor->NavigationHandle);
-					}
 					It->Actor->eventNotifyLoadedWorld(GWorld->GetOutermost()->GetFName(), bSwitchedToDefaultMap);
 					It->Actor->eventServerNotifyLoadedWorld(GWorld->GetOutermost()->GetFName());
 				}

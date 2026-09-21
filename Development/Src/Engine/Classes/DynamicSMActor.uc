@@ -5,7 +5,8 @@
 // Copyright 1998-2011 Epic Games, Inc. All Rights Reserved.
 //=============================================================================
 
-class DynamicSMActor extends Actor
+// BM
+class DynamicSMActor extends RStaticClimbableActor
 	native
 	abstract;
 

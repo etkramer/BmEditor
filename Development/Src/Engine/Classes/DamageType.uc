@@ -21,6 +21,12 @@ var   bool					bExtraMomentumZ;			// Add extra Z to momentum on walking pawns to
 /** Can break bits off FracturedStaticMeshActors. */
 var() bool					bCausesFracture;
 
+// BM
+var   bool					bDeformVehicle;
+var   bool					bSmashVehicleGlass;
+var   bool					bSetBatmobileOnFire;
+var   bool					bAlertTank;
+
 var(RigidBody)	float		KDamageImpulse;				// magnitude of impulse applied to KActor due to this damage type.
 var(RigidBody)  float		KDeathVel;					// How fast ragdoll moves upon death
 var(RigidBody)  float		KDeathUpKick;				// Amount of upwards kick ragdolls get when they die
@@ -28,8 +34,9 @@ var(RigidBody)  float		KDeathUpKick;				// Amount of upwards kick ragdolls get w
 /** Size of impulse to apply when doing radial damage. */
 var(RigidBody)	float		RadialDamageImpulse;
 
-/** When applying radial impulses, whether to treat as impulse or velocity change. */
-var(RigidBody)	bool		bRadialDamageVelChange;
+/** When applying radial impulses, how the impulse is applied to the body. */
+// BM: stock UE3 has this as the bool bRadialDamageVelChange.
+var(RigidBody)	PrimitiveComponent.ERadialImpulseType	RadialDamageVelChange;
 
 /** multiply damage by this for vehicles */
 var float VehicleDamageScaling;							
@@ -45,6 +52,14 @@ var ForceFeedbackWaveform KilledFFWaveform;
 
 /** Damage imparted by this damage type to fracturable meshes.  Scaled by config WorldInfo.FracturedMeshWeaponDamage. */
 var float FracturedMeshDamage;
+
+// BM
+var float VehicleDamageAmount;
+var float VehicleDamageRadius;
+var float VehicleScratchDamage;
+var float VehicleBurnDamage;
+var float VehicleBulletDamage;
+var float VehiclePartBreakOffImpulse;
 
 static function float VehicleDamageScalingFor(Vehicle V)
 {

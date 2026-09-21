@@ -821,68 +821,7 @@ exec function SetOnlineDebugLevel(int DebugLevel)
 	}
 }
 
-/**
- * tries to path from the player's current position to the position the player is looking at 
- *
- */
-exec function TestNavMeshPath(optional bool bDrawPath=TRUE)
-{
-	local actor HitActor;
-	local vector HitLoc,HitNorm, Start, End;
-	local rotator Rot;
-
-	if(NavigationHandle == none)
-	{
-		NavigationHandle = new(outer) class'NavigationHandle';
-	}
-
-	GetPlayerViewPoint(Start,Rot);
-	End = Start + vector(rot) * 10000;
-
-	HitActor = Trace(HitLoc,HitNorm,End,Start,false);
-	if(HitActor != none)
-	{ 
-		class'NavmeshPath_Toward'.static.TowardPoint(NavigationHandle,HitLoc);
-		class'NavMeshGoal_At'.static.AtLocation(NavigationHandle,HitLoc);
-		
-		NavigationHandle.bDebugConstraintsAndGoalEvals=true;
-		NavigationHandle.bUltraVerbosePathDebugging=TRUE;
-		if(NavigationHandle.FindPath())
-		{
-			DrawDebugLine(HitLoc,Start,0,255,0,TRUE);
-			DrawDebugCoordinateSystem(HitLoc,rot(0,0,0),25.f,TRUE);
-			if(bDrawPath)
-			{
-				NavigationHandle.DrawPathCache(,true);
-			}
-		}
-		else
-		{
-			DrawDebugLine(HitLoc,Start,255,0,0,TRUE);
-			DrawDebugCoordinateSystem(HitLoc,rot(0,0,0),25.f,TRUE);
-			DrawDebugBox(Pawn.Location,Pawn.GetCollisionExtent(),255,0,0,TRUE);
-		}
-	}
-}
-
-exec function VerbosePathDebug()
-{
-	local vector HitLoc,HitNorm, Start, End;
-	local rotator Rot;
-	local Pawn P;
-
-	GetPlayerViewPoint(Start,Rot);
-	End = Start + vector(rot) * 10000;
-
-	foreach TraceActors(class'Pawn',P,HitLoc,HitNorm,End,Start,vect(1,1,1))
-	{
-		Pawn.MessagePlayer("Verbosepathdebug trace hit"@P);
-		if(P != none && P.Controller != none)
-		{
-			P.Controller.NavigationHandle.bUltraVerbosePathDebugging=!P.Controller.NavigationHandle.bUltraVerbosePathDebugging;
-		}
-	}
-}
+// BM: TestNavMeshPath and VerbosePathDebug went with Controller.NavigationHandle, which AK does not have.
 
 /** This is not an actor, so we need a stand in for PostBeginPlay */
 function InitCheatManager();

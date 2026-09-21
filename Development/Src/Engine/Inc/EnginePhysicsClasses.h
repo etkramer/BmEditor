@@ -84,150 +84,6 @@ enum EWheelSide
 #include "UnObjBas.h"
 #undef ENABLE_DECLARECLASS_MACRO
 
-struct KActor_eventApplyImpulse_Parms
-{
-    FVector ImpulseDir;
-    FLOAT ImpulseMag;
-    FVector HitLocation;
-    struct FTraceHitInfo HitInfo;
-    class UClass* DamageType;
-    KActor_eventApplyImpulse_Parms(EEventParm)
-    {
-    }
-};
-class AKActor : public ADynamicSMActor
-{
-public:
-    //## BEGIN PROPS KActor
-    BITFIELD bDamageAppliesImpulse:1;
-    BITFIELD bWakeOnLevelStart:1;
-    BITFIELD bCurrentSlide:1;
-    BITFIELD bSlideActive:1;
-    BITFIELD bDontBlockActors:1;
-    BITFIELD bEnableStayUprightSpring:1;
-    BITFIELD bLimitMaxPhysicsVelocity:1;
-    BITFIELD bNeedsRBStateReplication:1;
-    BITFIELD bDisableClientSidePawnInteractions:1;
-    class UParticleSystemComponent* ImpactEffectComponent;
-    class UObject* ImpactSoundEvent;
-    FLOAT LastImpactTime;
-    struct FPhysEffectInfo ImpactEffectInfo;
-    class UObject* ImpactForceComponent;
-    class UParticleSystemComponent* SlideEffectComponent;
-    struct FAkSoundLoop SlideSoundLoop;
-    FLOAT LastSlideTime;
-    struct FPhysEffectInfo SlideEffectInfo;
-    FLOAT StayUprightTorqueFactor;
-    FLOAT StayUprightMaxTorque;
-    FLOAT MaxPhysicsVelocity;
-    FRigidBodyState RBState;
-    FLOAT AngErrorAccumulator;
-    FVector ReplicatedDrawScale3D;
-    FVector InitialLocation;
-    FRotator InitialRotation;
-    //## END PROPS KActor
-
-    class UPhysicalMaterial* GetKActorPhysMaterial();
-    void ResolveRBState();
-    DECLARE_FUNCTION(execGetKActorPhysMaterial)
-    {
-        P_FINISH;
-        *(class UPhysicalMaterial**)Result=this->GetKActorPhysMaterial();
-    }
-    DECLARE_FUNCTION(execResolveRBState)
-    {
-        P_FINISH;
-        this->ResolveRBState();
-    }
-    void eventApplyImpulse(FVector ImpulseDir,FLOAT ImpulseMag,FVector HitLocation,struct FTraceHitInfo HitInfo=FTraceHitInfo(EC_EventParm),class UClass* DamageType=NULL)
-    {
-        KActor_eventApplyImpulse_Parms Parms(EC_EventParm);
-        Parms.ImpulseDir=ImpulseDir;
-        Parms.ImpulseMag=ImpulseMag;
-        Parms.HitLocation=HitLocation;
-        Parms.HitInfo=HitInfo;
-        Parms.DamageType=DamageType;
-        ProcessEvent(FindFunctionChecked(ENGINE_ApplyImpulse),&Parms);
-    }
-    DECLARE_CLASS(AKActor,ADynamicSMActor,0|CLASS_NativeReplication,Engine)
-	// AActor interface
-	virtual void physRigidBody(FLOAT DeltaTime);
-	virtual INT* GetOptimizedRepList(BYTE* InDefault, FPropertyRetirement* Retire, INT* Ptr, UPackageMap* Map, UActorChannel* Channel);
-	virtual void OnRigidBodyCollision(const FRigidBodyCollisionInfo& MyInfo, const FRigidBodyCollisionInfo& OtherInfo, const FCollisionImpactData& RigidCollisionData);
-	UBOOL ShouldTrace(UPrimitiveComponent* Primitive, AActor *SourceActor, DWORD TraceFlags);
-
-	/**
-	 * Function that gets called from within Map_Check to allow this actor to check itself
-	 * for any potential errors and register them with map check dialog.
-	 */
-#if WITH_EDITOR
-	virtual void CheckForErrors();
-#endif
-
-	virtual void TickSpecial(FLOAT DeltaSeconds);
-};
-
-class AKActorFromStatic : public AKActor
-{
-public:
-    //## BEGIN PROPS KActorFromStatic
-    class AActor* MyStaticMeshActor;
-    FLOAT MaxImpulseSpeed;
-    //## END PROPS KActorFromStatic
-
-    void DisablePrecomputedLighting();
-    void MakeStatic();
-    class AKActorFromStatic* MakeDynamic(class UStaticMeshComponent* MovableMesh);
-    DECLARE_FUNCTION(execDisablePrecomputedLighting)
-    {
-        P_FINISH;
-        this->DisablePrecomputedLighting();
-    }
-    DECLARE_FUNCTION(execMakeStatic)
-    {
-        P_FINISH;
-        this->MakeStatic();
-    }
-    DECLARE_FUNCTION(execMakeDynamic)
-    {
-        P_GET_OBJECT(UStaticMeshComponent,MovableMesh);
-        P_FINISH;
-        *(class AKActorFromStatic**)Result=this->MakeDynamic(MovableMesh);
-    }
-    DECLARE_CLASS(AKActorFromStatic,AKActor,0|CLASS_Transient,Engine)
-	virtual void NotifyBump(AActor *Other, UPrimitiveComponent* OtherComp, const FVector &HitNormal);
-	virtual UBOOL IgnoreBlockingBy( const AActor *Other ) const;
-};
-
-struct KActorSpawnable_eventRecycleInternal_Parms
-{
-    KActorSpawnable_eventRecycleInternal_Parms(EEventParm)
-    {
-    }
-};
-class AKActorSpawnable : public AKActor
-{
-public:
-    //## BEGIN PROPS KActorSpawnable
-    BITFIELD bRecycleScaleToZero:1;
-    BITFIELD bScalingToZero:1;
-    SCRIPT_ALIGN;
-    //## END PROPS KActorSpawnable
-
-    void ResetComponents();
-    DECLARE_FUNCTION(execResetComponents)
-    {
-        P_FINISH;
-        this->ResetComponents();
-    }
-    void eventRecycleInternal()
-    {
-        ProcessEvent(FindFunctionChecked(ENGINE_RecycleInternal),NULL);
-    }
-    DECLARE_CLASS(AKActorSpawnable,AKActor,0,Engine)
-	virtual void TickSpecial(FLOAT DeltaSeconds);
-};
-
 class AKAsset : public AActor
 {
 public:
@@ -238,9 +94,8 @@ public:
     BITFIELD bBlockPawns:1;
     class USkeletalMesh* ReplicatedMesh;
     class UPhysicsAsset* ReplicatedPhysAsset;
-    class UObject* ImpactSoundEvent;
-    FLOAT LastImpactTime;
     class UObject* ImpactForceComponent;
+    FLOAT LastImpactTime;
     //## END PROPS KAsset
 
     DECLARE_CLASS(AKAsset,AActor,0|CLASS_NativeReplication,Engine)
@@ -549,6 +404,150 @@ public:
 
     DECLARE_CLASS(ARB_Thruster,ARigidBodyBase,0,Engine)
 	virtual UBOOL Tick( FLOAT DeltaSeconds, ELevelTick TickType );
+};
+
+struct KActor_eventApplyImpulse_Parms
+{
+    FVector ImpulseDir;
+    FLOAT ImpulseMag;
+    FVector HitLocation;
+    struct FTraceHitInfo HitInfo;
+    class UClass* DamageType;
+    KActor_eventApplyImpulse_Parms(EEventParm)
+    {
+    }
+};
+class AKActor : public ADynamicSMActor
+{
+public:
+    //## BEGIN PROPS KActor
+    BITFIELD bDamageAppliesImpulse:1;
+    BITFIELD bWakeOnLevelStart:1;
+    BITFIELD bCurrentSlide:1;
+    BITFIELD bSlideActive:1;
+    BITFIELD bDontBlockActors:1;
+    BITFIELD bEnableStayUprightSpring:1;
+    BITFIELD bLimitMaxPhysicsVelocity:1;
+    BITFIELD bNeedsRBStateReplication:1;
+    BITFIELD bDisableClientSidePawnInteractions:1;
+    class UParticleSystemComponent* ImpactEffectComponent;
+    class UObject* ImpactSoundEvent;
+    FLOAT LastImpactTime;
+    struct FPhysEffectInfo ImpactEffectInfo;
+    class UObject* ImpactForceComponent;
+    class UParticleSystemComponent* SlideEffectComponent;
+    struct FAkSoundLoop SlideSoundLoop;
+    FLOAT LastSlideTime;
+    struct FPhysEffectInfo SlideEffectInfo;
+    FLOAT StayUprightTorqueFactor;
+    FLOAT StayUprightMaxTorque;
+    FLOAT MaxPhysicsVelocity;
+    FRigidBodyState RBState;
+    FLOAT AngErrorAccumulator;
+    FVector ReplicatedDrawScale3D;
+    FVector InitialLocation;
+    FRotator InitialRotation;
+    //## END PROPS KActor
+
+    class UPhysicalMaterial* GetKActorPhysMaterial();
+    void ResolveRBState();
+    DECLARE_FUNCTION(execGetKActorPhysMaterial)
+    {
+        P_FINISH;
+        *(class UPhysicalMaterial**)Result=this->GetKActorPhysMaterial();
+    }
+    DECLARE_FUNCTION(execResolveRBState)
+    {
+        P_FINISH;
+        this->ResolveRBState();
+    }
+    void eventApplyImpulse(FVector ImpulseDir,FLOAT ImpulseMag,FVector HitLocation,struct FTraceHitInfo HitInfo=FTraceHitInfo(EC_EventParm),class UClass* DamageType=NULL)
+    {
+        KActor_eventApplyImpulse_Parms Parms(EC_EventParm);
+        Parms.ImpulseDir=ImpulseDir;
+        Parms.ImpulseMag=ImpulseMag;
+        Parms.HitLocation=HitLocation;
+        Parms.HitInfo=HitInfo;
+        Parms.DamageType=DamageType;
+        ProcessEvent(FindFunctionChecked(ENGINE_ApplyImpulse),&Parms);
+    }
+    DECLARE_CLASS(AKActor,ADynamicSMActor,0|CLASS_NativeReplication,Engine)
+	// AActor interface
+	virtual void physRigidBody(FLOAT DeltaTime);
+	virtual INT* GetOptimizedRepList(BYTE* InDefault, FPropertyRetirement* Retire, INT* Ptr, UPackageMap* Map, UActorChannel* Channel);
+	virtual void OnRigidBodyCollision(const FRigidBodyCollisionInfo& MyInfo, const FRigidBodyCollisionInfo& OtherInfo, const FCollisionImpactData& RigidCollisionData);
+	UBOOL ShouldTrace(UPrimitiveComponent* Primitive, AActor *SourceActor, DWORD TraceFlags);
+
+	/**
+	 * Function that gets called from within Map_Check to allow this actor to check itself
+	 * for any potential errors and register them with map check dialog.
+	 */
+#if WITH_EDITOR
+	virtual void CheckForErrors();
+#endif
+
+	virtual void TickSpecial(FLOAT DeltaSeconds);
+};
+
+class AKActorFromStatic : public AKActor
+{
+public:
+    //## BEGIN PROPS KActorFromStatic
+    class AActor* MyStaticMeshActor;
+    FLOAT MaxImpulseSpeed;
+    //## END PROPS KActorFromStatic
+
+    void DisablePrecomputedLighting();
+    void MakeStatic();
+    class AKActorFromStatic* MakeDynamic(class UStaticMeshComponent* MovableMesh);
+    DECLARE_FUNCTION(execDisablePrecomputedLighting)
+    {
+        P_FINISH;
+        this->DisablePrecomputedLighting();
+    }
+    DECLARE_FUNCTION(execMakeStatic)
+    {
+        P_FINISH;
+        this->MakeStatic();
+    }
+    DECLARE_FUNCTION(execMakeDynamic)
+    {
+        P_GET_OBJECT(UStaticMeshComponent,MovableMesh);
+        P_FINISH;
+        *(class AKActorFromStatic**)Result=this->MakeDynamic(MovableMesh);
+    }
+    DECLARE_CLASS(AKActorFromStatic,AKActor,0|CLASS_Transient,Engine)
+	virtual void NotifyBump(AActor *Other, UPrimitiveComponent* OtherComp, const FVector &HitNormal);
+	virtual UBOOL IgnoreBlockingBy( const AActor *Other ) const;
+};
+
+struct KActorSpawnable_eventRecycleInternal_Parms
+{
+    KActorSpawnable_eventRecycleInternal_Parms(EEventParm)
+    {
+    }
+};
+class AKActorSpawnable : public AKActor
+{
+public:
+    //## BEGIN PROPS KActorSpawnable
+    BITFIELD bRecycleScaleToZero:1;
+    BITFIELD bScalingToZero:1;
+    SCRIPT_ALIGN;
+    //## END PROPS KActorSpawnable
+
+    void ResetComponents();
+    DECLARE_FUNCTION(execResetComponents)
+    {
+        P_FINISH;
+        this->ResetComponents();
+    }
+    void eventRecycleInternal()
+    {
+        ProcessEvent(FindFunctionChecked(ENGINE_RecycleInternal),NULL);
+    }
+    DECLARE_CLASS(AKActorSpawnable,AKActor,0,Engine)
+	virtual void TickSpecial(FLOAT DeltaSeconds);
 };
 
 class URB_ConstraintDrawComponent : public UPrimitiveComponent
@@ -1928,12 +1927,6 @@ public:
 #endif // !INCLUDED_ENGINE_PHYSICS_CLASSES
 #endif // !NAMES_ONLY
 
-AUTOGENERATE_FUNCTION(AKActor,-1,execResolveRBState);
-AUTOGENERATE_FUNCTION(AKActor,-1,execGetKActorPhysMaterial);
-AUTOGENERATE_FUNCTION(AKActorFromStatic,-1,execMakeDynamic);
-AUTOGENERATE_FUNCTION(AKActorFromStatic,-1,execMakeStatic);
-AUTOGENERATE_FUNCTION(AKActorFromStatic,-1,execDisablePrecomputedLighting);
-AUTOGENERATE_FUNCTION(AKActorSpawnable,-1,execResetComponents);
 AUTOGENERATE_FUNCTION(ASVehicle,-1,execHasWheelsOnGround);
 AUTOGENERATE_FUNCTION(ASVehicle,-1,execInitVehicleRagdoll);
 AUTOGENERATE_FUNCTION(ASVehicle,-1,execSetWheelCollision);
@@ -1945,6 +1938,12 @@ AUTOGENERATE_FUNCTION(ARB_ConstraintActor,-1,execTermConstraint);
 AUTOGENERATE_FUNCTION(ARB_ConstraintActor,-1,execInitConstraint);
 AUTOGENERATE_FUNCTION(ARB_ConstraintActor,-1,execSetDisableCollision);
 AUTOGENERATE_FUNCTION(ARB_LineImpulseActor,-1,execFireLineImpulse);
+AUTOGENERATE_FUNCTION(AKActor,-1,execResolveRBState);
+AUTOGENERATE_FUNCTION(AKActor,-1,execGetKActorPhysMaterial);
+AUTOGENERATE_FUNCTION(AKActorFromStatic,-1,execMakeDynamic);
+AUTOGENERATE_FUNCTION(AKActorFromStatic,-1,execMakeStatic);
+AUTOGENERATE_FUNCTION(AKActorFromStatic,-1,execDisablePrecomputedLighting);
+AUTOGENERATE_FUNCTION(AKActorSpawnable,-1,execResetComponents);
 AUTOGENERATE_FUNCTION(URB_RadialImpulseComponent,-1,execFireImpulse);
 AUTOGENERATE_FUNCTION(URB_Handle,-1,execGetOrientation);
 AUTOGENERATE_FUNCTION(URB_Handle,-1,execSetOrientation);
@@ -2019,12 +2018,6 @@ AUTOGENERATE_FUNCTION(URB_ConstraintInstance,-1,execInitConstraint);
 #define ENGINE_PHYSICS_NATIVE_DEFS
 
 #define AUTO_INITIALIZE_REGISTRANTS_ENGINE_PHYSICS \
-	AKActor::StaticClass(); \
-	GNativeLookupFuncs.Set(FName("KActor"), GEngineAKActorNatives); \
-	AKActorFromStatic::StaticClass(); \
-	GNativeLookupFuncs.Set(FName("KActorFromStatic"), GEngineAKActorFromStaticNatives); \
-	AKActorSpawnable::StaticClass(); \
-	GNativeLookupFuncs.Set(FName("KActorSpawnable"), GEngineAKActorSpawnableNatives); \
 	AKAsset::StaticClass(); \
 	ASVehicle::StaticClass(); \
 	GNativeLookupFuncs.Set(FName("SVehicle"), GEngineASVehicleNatives); \
@@ -2034,6 +2027,12 @@ AUTOGENERATE_FUNCTION(URB_ConstraintInstance,-1,execInitConstraint);
 	GNativeLookupFuncs.Set(FName("RB_LineImpulseActor"), GEngineARB_LineImpulseActorNatives); \
 	ARB_RadialImpulseActor::StaticClass(); \
 	ARB_Thruster::StaticClass(); \
+	AKActor::StaticClass(); \
+	GNativeLookupFuncs.Set(FName("KActor"), GEngineAKActorNatives); \
+	AKActorFromStatic::StaticClass(); \
+	GNativeLookupFuncs.Set(FName("KActorFromStatic"), GEngineAKActorFromStaticNatives); \
+	AKActorSpawnable::StaticClass(); \
+	GNativeLookupFuncs.Set(FName("KActorSpawnable"), GEngineAKActorSpawnableNatives); \
 	URB_ConstraintDrawComponent::StaticClass(); \
 	URB_RadialImpulseComponent::StaticClass(); \
 	GNativeLookupFuncs.Set(FName("RB_RadialImpulseComponent"), GEngineURB_RadialImpulseComponentNatives); \
@@ -2074,27 +2073,6 @@ AUTOGENERATE_FUNCTION(URB_ConstraintInstance,-1,execInitConstraint);
 #endif // ENGINE_PHYSICS_NATIVE_DEFS
 
 #ifdef NATIVES_ONLY
-FNativeFunctionLookup GEngineAKActorNatives[] = 
-{ 
-	MAP_NATIVE(AKActor, execResolveRBState)
-	MAP_NATIVE(AKActor, execGetKActorPhysMaterial)
-	{NULL, NULL}
-};
-
-FNativeFunctionLookup GEngineAKActorFromStaticNatives[] = 
-{ 
-	MAP_NATIVE(AKActorFromStatic, execMakeDynamic)
-	MAP_NATIVE(AKActorFromStatic, execMakeStatic)
-	MAP_NATIVE(AKActorFromStatic, execDisablePrecomputedLighting)
-	{NULL, NULL}
-};
-
-FNativeFunctionLookup GEngineAKActorSpawnableNatives[] = 
-{ 
-	MAP_NATIVE(AKActorSpawnable, execResetComponents)
-	{NULL, NULL}
-};
-
 FNativeFunctionLookup GEngineASVehicleNatives[] = 
 { 
 	MAP_NATIVE(ASVehicle, execHasWheelsOnGround)
@@ -2118,6 +2096,27 @@ FNativeFunctionLookup GEngineARB_ConstraintActorNatives[] =
 FNativeFunctionLookup GEngineARB_LineImpulseActorNatives[] = 
 { 
 	MAP_NATIVE(ARB_LineImpulseActor, execFireLineImpulse)
+	{NULL, NULL}
+};
+
+FNativeFunctionLookup GEngineAKActorNatives[] = 
+{ 
+	MAP_NATIVE(AKActor, execResolveRBState)
+	MAP_NATIVE(AKActor, execGetKActorPhysMaterial)
+	{NULL, NULL}
+};
+
+FNativeFunctionLookup GEngineAKActorFromStaticNatives[] = 
+{ 
+	MAP_NATIVE(AKActorFromStatic, execMakeDynamic)
+	MAP_NATIVE(AKActorFromStatic, execMakeStatic)
+	MAP_NATIVE(AKActorFromStatic, execDisablePrecomputedLighting)
+	{NULL, NULL}
+};
+
+FNativeFunctionLookup GEngineAKActorSpawnableNatives[] = 
+{ 
+	MAP_NATIVE(AKActorSpawnable, execResetComponents)
 	{NULL, NULL}
 };
 
@@ -2229,15 +2228,8 @@ FNativeFunctionLookup GEngineURB_ConstraintInstanceNatives[] =
 #endif // STATIC_LINKING_MOJO
 
 #ifdef VERIFY_CLASS_SIZES
-VERIFY_CLASS_OFFSET_NODIE(AKActor,KActor,ImpactEffectComponent)
-VERIFY_CLASS_OFFSET_NODIE(AKActor,KActor,InitialRotation)
-VERIFY_CLASS_SIZE_NODIE(AKActor)
-VERIFY_CLASS_OFFSET_NODIE(AKActorFromStatic,KActorFromStatic,MyStaticMeshActor)
-VERIFY_CLASS_OFFSET_NODIE(AKActorFromStatic,KActorFromStatic,MaxImpulseSpeed)
-VERIFY_CLASS_SIZE_NODIE(AKActorFromStatic)
-VERIFY_CLASS_SIZE_NODIE(AKActorSpawnable)
 VERIFY_CLASS_OFFSET_NODIE(AKAsset,KAsset,SkeletalMeshComponent)
-VERIFY_CLASS_OFFSET_NODIE(AKAsset,KAsset,ImpactForceComponent)
+VERIFY_CLASS_OFFSET_NODIE(AKAsset,KAsset,LastImpactTime)
 VERIFY_CLASS_SIZE_NODIE(AKAsset)
 VERIFY_CLASS_OFFSET_NODIE(ASVehicle,SVehicle,SimObj)
 VERIFY_CLASS_OFFSET_NODIE(ASVehicle,SVehicle,RadialImpulseScaling)
@@ -2253,6 +2245,13 @@ VERIFY_CLASS_OFFSET_NODIE(ARB_RadialImpulseActor,RB_RadialImpulseActor,ImpulseCo
 VERIFY_CLASS_SIZE_NODIE(ARB_RadialImpulseActor)
 VERIFY_CLASS_OFFSET_NODIE(ARB_Thruster,RB_Thruster,ThrustStrength)
 VERIFY_CLASS_SIZE_NODIE(ARB_Thruster)
+VERIFY_CLASS_OFFSET_NODIE(AKActor,KActor,ImpactEffectComponent)
+VERIFY_CLASS_OFFSET_NODIE(AKActor,KActor,InitialRotation)
+VERIFY_CLASS_SIZE_NODIE(AKActor)
+VERIFY_CLASS_OFFSET_NODIE(AKActorFromStatic,KActorFromStatic,MyStaticMeshActor)
+VERIFY_CLASS_OFFSET_NODIE(AKActorFromStatic,KActorFromStatic,MaxImpulseSpeed)
+VERIFY_CLASS_SIZE_NODIE(AKActorFromStatic)
+VERIFY_CLASS_SIZE_NODIE(AKActorSpawnable)
 VERIFY_CLASS_OFFSET_NODIE(URB_ConstraintDrawComponent,RB_ConstraintDrawComponent,LimitMaterial)
 VERIFY_CLASS_SIZE_NODIE(URB_ConstraintDrawComponent)
 VERIFY_CLASS_OFFSET_NODIE(URB_RadialImpulseComponent,RB_RadialImpulseComponent,ImpulseFalloff)

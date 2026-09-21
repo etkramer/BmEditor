@@ -1150,11 +1150,6 @@ void AController::execMoveToDirectNonPathPos(FFrame& Stack, RESULT_DECL)
 	P_GET_UBOOL_OPTX(bShouldWalk, (Pawn != NULL) ? Pawn->bIsWalking : 0);
 	P_FINISH;
 
-	if(NavigationHandle != NULL)
-	{
-		NavigationHandle->SetFinalDestination(dest);
-	}
-
 	MoveTo(dest,viewfocus,DesiredOffset,bShouldWalk);
 }
 
@@ -1213,13 +1208,6 @@ void AController::execPollMoveTo( FFrame& Stack, RESULT_DECL )
 	if ( bAdjusting )
 	{
 		bAdjusting = !Pawn->moveToward(GetAdjustLocation(), NULL);
-		if( !bAdjusting )
-		{
-			if( NavigationHandle != NULL && NavigationHandle->HandleFinishedAdjustMove() )
-			{			
-				return;
-			}
-		}
 	}
 	if (!bAdjusting)
 	{
@@ -1582,13 +1570,6 @@ void AController::execPollMoveToward( FFrame& Stack, RESULT_DECL )
 	if ( bAdjusting )
 	{
 		bAdjusting = !Pawn->moveToward(GetAdjustLocation(), MoveTarget);
-		if( !bAdjusting )
-		{
-			if( NavigationHandle != NULL && NavigationHandle->HandleFinishedAdjustMove() )
-			{			
-				return;
-			}
-		}
 	}
 	if ( !MoveTarget || !Pawn )
 	{
@@ -2500,13 +2481,6 @@ void AAIController::AdjustFromWall(FVector HitNormal, AActor* HitActor)
 			}
 		}
 
- 		if( NavigationHandle != NULL && NavigationHandle->HandleWallAdjust(HitNormal, HitActor) )
- 		{
- 			FailMove();
- 			FailedMoveTarget = MoveTarget;
- 			return;
- 		}
-
 		if ( bAdjusting )
 		{
 			FailMove();
@@ -2528,7 +2502,6 @@ void APlayerController::PostScriptDestroyed()
 {
 	PlayerInput = NULL;
 	CheatManager = NULL;
-	NavigationHandle = NULL;
 	Super::PostScriptDestroyed();
 }
 
