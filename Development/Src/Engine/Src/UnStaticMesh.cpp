@@ -4929,6 +4929,16 @@ void AStaticMeshCollectionActor::Serialize( FArchive& Ar )
 
 	if (!HasAnyFlags(RF_ClassDefaultObject) && Ar.GetLinker() != NULL )
 	{
+#if BATMAN
+		// BM: AK writes no per-component transform after the tagged block - Clocktower_C1's
+		// StaticMeshCollectionActor_863 is 163 bytes and its tag stream ends exactly there,
+		// while the 25 components this loop would read are the 1600 bytes it overran by.
+		if ( Ar.IsLoading() )
+		{
+			Components = (TArrayNoInit<UActorComponent*>&)StaticMeshComponents;
+			StaticMeshComponents.Empty();
+		}
+#else
 		if ( Ar.IsLoading() )
 		{
 			FMatrix IdentityMatrix;
@@ -4966,6 +4976,7 @@ void AStaticMeshCollectionActor::Serialize( FArchive& Ar )
 				}
 			}
 		}
+#endif
 	}
 }
 
