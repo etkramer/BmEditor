@@ -658,6 +658,21 @@ static UBOOL IsBmOffsetTagCompatible( const UProperty* Prop, const FPropertyTag&
 	return Prop->GetID() == ExpectedID && (ElementOffset % Prop->ElementSize) == 0;
 }
 
+// BM: a class that declares nothing at retail's offset, reported once per site like the mismatch below.
+static void ReportMissingOffsetProperty( const UStruct* Struct, const FPropertyTag& Tag, FArchive& Ar )
+{
+	static TSet<QWORD> ReportedSites;
+	const QWORD Site = ((QWORD)Struct->GetFName().GetIndex() << 32) | (QWORD)Tag.PropertyOffset;
+	if( ReportedSites.Contains(Site) )
+	{
+		return;
+	}
+	ReportedSites.Add( Site );
+
+	warnf( NAME_Warning, TEXT("[LAYOUT] %s: no property at offset %u (type %s) (package %s)"),
+		*Struct->GetName(), (UINT)Tag.PropertyOffset, *Tag.Type.ToString(), *Ar.GetArchiveName() );
+}
+
 static void ReportLayoutMismatch( const UStruct* Struct, const UProperty* Prop, const FPropertyTag& Tag, FArchive& Ar )
 {
 	if( IsBmOffsetTagCompatible( Prop, Tag ) )
@@ -727,34 +742,30 @@ void UStruct::SerializeTaggedProperties( FArchive& Ar, BYTE* Data, UStruct* Defa
 				if (Ar.LicenseeVer() >= VER_BATMAN2 && Ar.ContainsCookedData() && Tag.Type != NAME_None)
 				{
 					UBOOL bDiscardOffsetValue = FALSE;
-					const UClass* SerializedClass = ConstCast<UClass>(this);
-					if (SerializedClass == NULL || !SerializedClass->HasAnyClassFlags(CLASS_Intrinsic))
+					UProperty* OffsetProp = NULL;
+					for (UProperty* P = PropertyLink; P; P = P->PropertyLinkNext)
 					{
-						UProperty* OffsetProp = NULL;
-						for (UProperty* P = PropertyLink; P; P = P->PropertyLinkNext)
+						// BM: fixed-array elements carry a per-element offset, so match anywhere in the property's footprint.
+						const INT PropEnd = P->Offset + P->ArrayDim * P->ElementSize;
+						if ((INT)Tag.PropertyOffset >= P->Offset && (INT)Tag.PropertyOffset < PropEnd)
 						{
-							// BM: fixed-array elements carry a per-element offset, so match anywhere in the property's footprint.
-							const INT PropEnd = P->Offset + P->ArrayDim * P->ElementSize;
-							if ((INT)Tag.PropertyOffset >= P->Offset && (INT)Tag.PropertyOffset < PropEnd)
-							{
-								OffsetProp = P;
-								break;
-							}
+							OffsetProp = P;
+							break;
 						}
-						if (!OffsetProp)
-						{
-							// BM: retail classes carry properties ours lack - read the value and throw it away.
-							warnf(NAME_Warning, TEXT("[LAYOUT] %s: no property at offset %u (type %s) (package %s)"),
-								*GetName(), (UINT)Tag.PropertyOffset, *Tag.Type.ToString(), *Ar.GetArchiveName());
-							bDiscardOffsetValue = TRUE;
-						}
-						else
-						{
-							ReportLayoutMismatch(this, OffsetProp, Tag, Ar);
+					}
+					if (!OffsetProp)
+					{
+						// BM: retail classes carry properties ours lack - read the value and throw it away.
+						// An intrinsic class has no properties at all, so every one of its tags lands here.
+						ReportMissingOffsetProperty(this, Tag, Ar);
+						bDiscardOffsetValue = TRUE;
+					}
+					else
+					{
+						ReportLayoutMismatch(this, OffsetProp, Tag, Ar);
 
-							// BM: writing retail's value onto a member of another type would corrupt our object.
-							bDiscardOffsetValue = !IsBmOffsetTagCompatible(OffsetProp, Tag);
-						}
+						// BM: writing retail's value onto a member of another type would corrupt our object.
+						bDiscardOffsetValue = !IsBmOffsetTagCompatible(OffsetProp, Tag);
 					}
 
 					FString DiscardString;
