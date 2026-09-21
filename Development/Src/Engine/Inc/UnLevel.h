@@ -735,6 +735,48 @@ struct FEdgeCollectionMember
 
 	TArray<MemberContainer> AssociatedMembers;
 };
+
+/**
+ * BM4: Umbra occlusion tome for a level. AK's UmbraData is an intrinsic class with no
+ * script properties, so the whole payload is the native serializer.
+ */
+class UUmbraData : public UObject
+{
+	DECLARE_CLASS_INTRINSIC(UUmbraData,UObject,0,Engine)
+
+	/** Opaque Umbra tome, handed to the middleware as-is. */
+	TArray<BYTE>	TomeData;
+	/** BM: unidentified INT AK writes after the tome - 0 or 1 in retail content */
+	INT				TomeTailValue;
+
+	UUmbraData()
+	:	TomeTailValue(0)
+	{}
+
+	virtual void Serialize( FArchive& Ar );
+};
+
+/** BM4: Names an Umbra tome for a level, keyed by the UmbraStreamingVolume that built it. */
+class UUmbraReference : public UObject
+{
+	DECLARE_CLASS_INTRINSIC(UUmbraReference,UObject,0,Engine)
+
+	/** Matches UmbraStreamingVolume.UmbraVolumeGuid. Serialized natively, not as a tag. */
+	FGuid			UmbraVolumeGuid;
+	/** May live in another package when the volume's storage mode is USM_SeparatePackage. */
+	UUmbraData*		VisibilityData;
+
+	UUmbraReference()
+	:	VisibilityData(NULL)
+	{}
+
+	void StaticConstructor();
+	virtual void Serialize( FArchive& Ar );
+};
+
+// AK declares VisibilityData at 100 and the class at 108; the saved property tag carries that offset.
+checkAtCompileTime(STRUCT_OFFSET(UUmbraReference,VisibilityData) == 100, UmbraReferenceMustMatchArkhamKnightLayout);
+checkAtCompileTime(sizeof(UUmbraReference) == 108, UmbraReferenceMustMatchArkhamKnightSize);
 #endif
 
 //
@@ -887,7 +929,8 @@ class ULevel : public ULevelBase
 	BYTE										EdgeCollectionFlag;
 	/** BM: unidentified block AK appends after PrecomputedVolumeDistanceField, kept so saves round-trip */
 	FLOAT										LevelTailValues[4];
-	TArray<INT>									LevelTailArray;
+	/** BM4: the level's Umbra occlusion tomes - one per UmbraStreamingVolume that stores with the level */
+	TArray<UUmbraReference*>					UmbraReferences;
 	INT											LevelTailInts[5];
 #endif
 

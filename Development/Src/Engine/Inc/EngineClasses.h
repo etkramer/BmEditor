@@ -22941,6 +22941,8 @@ AUTOGENERATE_FUNCTION(UUIManager,-1,execGetUIManager);
 	UK2NodeBase::StaticClass(); \
 	UKMeshProps::StaticClass(); \
 	ULevelBase::StaticClass(); \
+	UUmbraData::StaticClass(); \
+	UUmbraReference::StaticClass(); \
 	ULevel::StaticClass(); \
 	UPendingLevel::StaticClass(); \
 	UDemoPlayPendingLevel::StaticClass(); \

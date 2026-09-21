@@ -242,6 +242,57 @@ FArchive& operator<<( FArchive& Ar, FPrecomputedVolumeDistanceField& D )
 	return Ar;
 }
 
+#if BATMAN
+
+IMPLEMENT_CLASS(UUmbraData);
+IMPLEMENT_CLASS(UUmbraReference);
+
+void UUmbraData::Serialize( FArchive& Ar )
+{
+	Super::Serialize( Ar );
+
+	INT TomeSize = TomeData.Num();
+	Ar << TomeSize;
+	if( Ar.IsLoading() )
+	{
+		TomeData.Empty( TomeSize );
+		TomeData.Add( TomeSize );
+	}
+	Ar.Serialize( TomeData.GetData(), TomeSize );
+
+	// AK reads these two into a scratch INT and writes zeroes back
+	for( INT PadIndex = 0; PadIndex < 2; PadIndex++ )
+	{
+		INT Discarded = 0;
+		Ar << Discarded;
+		if( Ar.IsLoading() && Discarded != 0 )
+		{
+			warnf( NAME_Warning, TEXT("%s: Umbra tome pad %d is %d, not 0"), *GetFullName(), PadIndex, Discarded );
+		}
+	}
+
+	Ar << TomeTailValue;
+}
+
+void UUmbraReference::StaticConstructor()
+{
+	UClass* TheClass = GetClass();
+	TheClass->EmitObjectReference( STRUCT_OFFSET( UUmbraReference, VisibilityData ) );
+
+	new(TheClass,TEXT("VisibilityData"),RF_Public) UObjectProperty(CPP_PROPERTY(VisibilityData),TEXT("VisibilityData"),CPF_CrossLevelPassive|CPF_CrossLevelActive,UUmbraData::StaticClass());
+}
+
+void UUmbraReference::Serialize( FArchive& Ar )
+{
+	Super::Serialize( Ar );
+
+	Ar << UmbraVolumeGuid;
+	// AK writes VisibilityData again here, after the tagged property
+	Ar << VisibilityData;
+}
+
+#endif
+
 IMPLEMENT_CLASS(ULevel);
 
 ULevel::ULevel( const FURL& InURL )
@@ -269,6 +320,9 @@ void ULevel::StaticConstructor()
 	TheClass->EmitObjectReference( STRUCT_OFFSET( ULevel, PylonListEnd ) );
 	TheClass->EmitObjectArrayReference( STRUCT_OFFSET( ULevel, CrossLevelActors ) );
 	TheClass->EmitObjectArrayReference( STRUCT_OFFSET( ULevel, CoverLinkRefs ) );
+#if BATMAN
+	TheClass->EmitObjectArrayReference( STRUCT_OFFSET( ULevel, UmbraReferences ) );
+#endif
 
 	new(TheClass,TEXT("LightmapTotalSize"),RF_Public) UFloatProperty(CPP_PROPERTY(LightmapTotalSize),TEXT(""),CPF_EditConst|CPF_Const);
 	new(TheClass,TEXT("ShadowmapTotalSize"),RF_Public) UFloatProperty(CPP_PROPERTY(ShadowmapTotalSize),TEXT(""),CPF_EditConst|CPF_Const);
@@ -513,14 +567,14 @@ void ULevel::Serialize( FArchive& Ar )
 	}
 
 #if BATMAN
-	// BM: unidentified tail AK writes last; shape is byte-proven, meaning is not
+	// BM: tail AK writes last; only the Umbra references are identified, the rest is shape-only
 	if (Ar.LicenseeVer() >= VER_BATMAN4)
 	{
 		for (INT i = 0; i < ARRAY_COUNT(LevelTailValues); i++)
 		{
 			Ar << LevelTailValues[i];
 		}
-		Ar << LevelTailArray;
+		Ar << UmbraReferences;
 		for (INT i = 0; i < ARRAY_COUNT(LevelTailInts); i++)
 		{
 			Ar << LevelTailInts[i];
