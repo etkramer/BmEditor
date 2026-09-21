@@ -5536,6 +5536,28 @@ void UNavigationMeshBase::Serialize(FArchive& Ar)
 		{
 			BuildBounds();
 		}
+
+#if BATMAN
+		// BM
+		if( NavMeshVersionNum >= VER_BM_SERIALIZED_KDOP )
+		{
+			if( Ar.IsSaving() )
+			{
+				KDOPInitialized = FALSE;
+				BuildKDOP();
+			}
+
+			UBOOL bKDOPValid = (KDOPInitialized != FALSE);
+			Ar << bKDOPValid;
+
+			if( Ar.IsLoading() )
+			{
+				KDOPInitialized = (bKDOPValid != FALSE);
+			}
+
+			Ar << KDOPTree;
+		}
+#endif
 	}
 
 	// always serialize edges 
@@ -8063,6 +8085,14 @@ FArchive& operator<<( FArchive& Ar, FPolyReference& T )
 		T.PolyId |= (65535<<16);
 	}
 
+#if BATMAN
+	// BM
+	if( Ar.LicenseeVer() >= VER_NAVMESH_POLYREF_BUILDID )
+	{
+		Ar << T.PylonBuildID;
+	}
+#endif
+
 	return Ar;
 }
 
@@ -8530,12 +8560,7 @@ FArchive& FNavMeshEdgeBase::Serialize( FArchive& Ar )
 	Ar << Poly1;
 
 	// if this is old data account for edgelength float still being in the stream
-#if BATMAN
-	const DWORD RemovedEdgeLengthVer = Ar.LicenseeVer() >= VER_BATMAN2 ? VER_BM_REMOVED_EDGELENGTH : VER_REMOVED_EDGELENGTH;
-	if( NavMesh != NULL && NavMesh->NavMeshVersionNum < RemovedEdgeLengthVer )
-#else
 	if( NavMesh != NULL && NavMesh->NavMeshVersionNum < VER_REMOVED_EDGELENGTH )
-#endif
 	{
 		FLOAT DummyFloat;
 		Ar << DummyFloat;
@@ -8574,6 +8599,21 @@ FArchive& FNavMeshEdgeBase::Serialize( FArchive& Ar )
 		else
 		{
 			EdgePerp = FVector(0.f);
+		}
+	}
+
+	// BM
+	if( NavMesh != NULL && NavMesh->NavMeshVersionNum >= VER_BM_EDGE_TRAILING_DATA )
+	{
+		if( Ar.IsLoading() && Ar.LicenseeVer() < VER_NAVMESH_PACKED_POLY )
+		{
+			DWORD Deprecated = 0;
+			Ar << Deprecated;
+		}
+
+		if( NavMesh->NavMeshVersionNum >= VER_BM_EDGE_DISABLE_COUNT || Ar.LicenseeVer() >= VER_NAVMESH_EDGE_TRAILING_WORD )
+		{
+			Ar << EdgeDisableCount;
 		}
 	}
 #endif
@@ -10023,8 +10063,7 @@ FNavMeshPolyBase::FNavMeshPolyBase( UNavigationMeshBase* Mesh, const TArray<WORD
 	TransientCost(0),
 	BorderListNode(NULL),
 	NumObstaclesAffectingThisPoly(0),
-	bForceConstrainPawns(FALSE), // BM
-	bForceDontConstrainPawns(FALSE)
+	PolyFlags(0) // BM
 {
 	PolyBuildLoc = FVector(0.f);
 	PolyCenter = FVector(0.f);

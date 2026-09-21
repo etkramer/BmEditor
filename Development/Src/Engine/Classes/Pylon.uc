@@ -510,6 +510,8 @@ struct native CornerPointInfo
 struct immutablewhencooked native PolyReference
 {
 	var ActorReference OwningPylon;
+	// BM
+	var INT PylonBuildID;
 	// Poly ID that indexes into the navmesh poly array
 	// NOTE: this has two WORDs shoved into it, lowest 2 bytes are Top level poly ID, highest 2 bytes are sub-poly ID
 	var private {private} INT PolyId;
@@ -519,6 +521,7 @@ struct immutablewhencooked native PolyReference
 	{
 		FPolyReference()
 		{
+			PylonBuildID = 0; // BM
 			SetPolyId(MAXWORD,MAXWORD);
 		}
 		FPolyReference(EEventParm)
@@ -529,6 +532,7 @@ struct immutablewhencooked native PolyReference
 		explicit FPolyReference(AActor* Pylon, INT InPolyId)
 		{
 			OwningPylon = FActorReference(Pylon,*Pylon->GetGuid());
+			PylonBuildID = 0; // BM
 			SetPolyId(InPolyId,MAXWORD);
 		}
 

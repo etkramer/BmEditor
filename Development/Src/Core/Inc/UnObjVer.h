@@ -732,6 +732,9 @@ enum ELicenseeVersion
 	// - USkeletalMeshComponent serializes XRayMaterials and ThermalMaterials
 	VER_SKELETALMESHCOMPONENT_VIEW_MATERIALS = 95,
 
+	// - FMeshVertex stops reading its poly index list back
+	VER_NAVMESH_VERT_POLYINDICES_UNREAD = 99,
+
 	// - BM2 release
 	VER_BATMAN2 = 101,
 
@@ -743,6 +746,9 @@ enum ELicenseeVersion
 
 	// - Summary stores a table of string triples
 	VER_SUMMARY_STRING_TABLE = 110,
+
+	// - FMeshVertex reads its poly index list again
+	VER_NAVMESH_VERT_POLYINDICES_READ = 129,
 
 	// - UMeshComponent gained BatmobileViewMaterials
 	VER_MESHCOMPONENT_BATMOBILE_VIEW_MATERIALS = 138,
@@ -768,8 +774,20 @@ enum ELicenseeVersion
 	// - NetIndex dropped from the object header
 	VER_REMOVED_NET_INDEX = 203,
 
+	// - Navmesh polys pack their center, normal and flags
+	VER_NAVMESH_PACKED_POLY = 204,
+
+	// - Navmesh edges always serialize their trailing word
+	VER_NAVMESH_EDGE_TRAILING_WORD = 205,
+
 	// - FStaticMeshComponentLODInfo dropped its shadow maps and light map
 	VER_REMOVED_SMC_LODINFO_LIGHTMAPS = 207,
+
+	// - The packed navmesh poly flags gained a sixth bit
+	VER_NAVMESH_POLY_FLAG_BIT5 = 209,
+
+	// - FPolyReference gained PylonBuildID
+	VER_NAVMESH_POLYREF_BUILDID = 219,
 
 	// - BM4 release
 	VER_BATMAN4 = 227

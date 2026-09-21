@@ -632,8 +632,8 @@ public:
 	{
 		Ar << V.X << V.Y << V.Z;
 #if BATMAN
-		// BM: BM2 dropped PolyIndices, verts are position-only
-		if( Ar.LicenseeVer() < VER_BATMAN2 )
+		// BM: PolyIndices is always written, but was not read back for one range of licensee versions
+		if( !Ar.IsLoading() || Ar.LicenseeVer() < VER_NAVMESH_VERT_POLYINDICES_UNREAD || Ar.LicenseeVer() >= VER_NAVMESH_VERT_POLYINDICES_READ )
 #endif
 		Ar << V.PolyIndices;
 		return Ar;
@@ -734,6 +734,8 @@ public:
 	DWORD	ExtraEdgeCost;
 	/** when edges overlap due to multiple sizes, they are grouped together, this identifies their group */
 	BYTE EdgeGroupID;
+	// BM: a non-zero value makes this edge unusable for pathing - the name is inferred from that use
+	WORD EdgeDisableCount;
 
 	/** Bookkeeping for pathfinding */
 	// -- weights 
@@ -773,6 +775,7 @@ public:
 		EdgeType(0),
 		ExtraEdgeCost(0),
 		EdgeGroupID(MAXBYTE),
+		EdgeDisableCount(0), // BM
 		VisitedPathWeight(-1),
 		EstimatedOverallPathWeight(-1),
 		NextOpenOrdered(NULL),
@@ -1940,20 +1943,25 @@ public:
 	/** SessionID of the last path search that touched this polygon (useful for determining if the search has seen this poly yet in evaluagegoal)*/
 	INT SavedPathSessionID;
 
+	// BM: packed flags - bits 2-5 exist in AK but are not identified here
+	enum EPolyFlags
+	{
+		POLYFLAG_ForceConstrainPawns		= 0x01,
+		POLYFLAG_ForceDontConstrainPawns	= 0x02,
+		POLYFLAG_SerializedMask				= 0x1F,
+		POLYFLAG_SerializedMaskWithBit5		= 0x3F,
+	};
 	// BM
-	UBOOL bForceConstrainPawns;
-	// BM
-	UBOOL bForceDontConstrainPawns;
+	BYTE PolyFlags;
 
 	// Constructor
-	FNavMeshPolyBase() : 
+	FNavMeshPolyBase() :
 		FNavMeshObject(NULL),
 		TransientCost(0),
 		BorderListNode(NULL),
 		NumObstaclesAffectingThisPoly(0),
 		SavedPathSessionID(MAXINT),
-		bForceConstrainPawns(FALSE), // BM
-		bForceDontConstrainPawns(FALSE){}
+		PolyFlags(0){} // BM
 	FNavMeshPolyBase( UNavigationMeshBase* Mesh, const TArray<VERTID>& inPolyIndices, FLOAT PolyHeight);
 	~FNavMeshPolyBase();
 
@@ -2356,8 +2364,34 @@ public:
 	{
 		Ar << T.PolyVerts;
 		Ar << T.PolyEdges;
-		Ar << T.PolyCenter;
-		Ar << T.PolyNormal;
+#if BATMAN
+		if( Ar.LicenseeVer() >= VER_NAVMESH_PACKED_POLY )
+		{
+			// BM: the center rounds to whole units and the normal scales by 255, both as signed words
+			SWORD Center[3], Normal[3];
+			if( !Ar.IsLoading() )
+			{
+				Center[0] = (SWORD)appRound(T.PolyCenter.X);
+				Center[1] = (SWORD)appRound(T.PolyCenter.Y);
+				Center[2] = (SWORD)appRound(T.PolyCenter.Z);
+				Normal[0] = (SWORD)appRound(T.PolyNormal.X * 255.f);
+				Normal[1] = (SWORD)appRound(T.PolyNormal.Y * 255.f);
+				Normal[2] = (SWORD)appRound(T.PolyNormal.Z * 255.f);
+			}
+			Ar << Center[0] << Center[1] << Center[2];
+			Ar << Normal[0] << Normal[1] << Normal[2];
+			if( Ar.IsLoading() )
+			{
+				T.PolyCenter = FVector(Center[0],Center[1],Center[2]);
+				T.PolyNormal = FVector(Normal[0]/255.f,Normal[1]/255.f,Normal[2]/255.f);
+			}
+		}
+		else
+#endif
+		{
+			Ar << T.PolyCenter;
+			Ar << T.PolyNormal;
+		}
 		Ar << T.BoxBounds;
 
 		if( Ar.Ver() >= VER_NAVMESH_COVERREF )
@@ -2384,10 +2418,23 @@ public:
 		}
 
 #if BATMAN
-		if( Ar.LicenseeVer() >= VER_BATMAN2 )
+		if( Ar.LicenseeVer() >= VER_NAVMESH_PACKED_POLY )
 		{
-			Ar << T.bForceConstrainPawns;
-			Ar << T.bForceDontConstrainPawns;
+			// BM
+			const BYTE Mask = (Ar.LicenseeVer() >= VER_NAVMESH_POLY_FLAG_BIT5) ? POLYFLAG_SerializedMaskWithBit5 : POLYFLAG_SerializedMask;
+			BYTE Flags = T.PolyFlags & Mask;
+			Ar << Flags;
+			T.PolyFlags = (T.PolyFlags & ~Mask) | (Flags & Mask);
+		}
+		else if( Ar.LicenseeVer() >= VER_BATMAN2 )
+		{
+			// BM
+			UBOOL bForceConstrainPawns = (T.PolyFlags & POLYFLAG_ForceConstrainPawns) != 0;
+			UBOOL bForceDontConstrainPawns = (T.PolyFlags & POLYFLAG_ForceDontConstrainPawns) != 0;
+			Ar << bForceConstrainPawns;
+			Ar << bForceDontConstrainPawns;
+			T.PolyFlags &= ~(POLYFLAG_ForceConstrainPawns|POLYFLAG_ForceDontConstrainPawns);
+			T.PolyFlags |= (bForceConstrainPawns ? POLYFLAG_ForceConstrainPawns : 0) | (bForceDontConstrainPawns ? POLYFLAG_ForceDontConstrainPawns : 0);
 		}
 #endif
 
@@ -2485,8 +2532,6 @@ typedef TMultiMap<FMeshVertex,VERTID> FVertHash;
 #define VER_SERIALIZE_OBSTACLEPOLYID 31
 // 1/26/2011 - removed edgelength
 #define VER_REMOVED_EDGELENGTH 32
-// BM: BM2 landed the edgelength removal at its own version instead
-#define VER_BM_REMOVED_EDGELENGTH 35
 // 1/31/2011 - fixed cross-pylon edge generation
 #define VER_FIXED_CROSS_PYLON_EDGES 33
 // 2/2/2011 - fixed edges near cross pylon edges not getting generated correctly
@@ -2503,8 +2548,14 @@ typedef TMultiMap<FMeshVertex,VERTID> FVertHash;
 #define VER_COMBATZONE_FIX 39
 // BM: serialize edge perpendicular direction
 #define VER_BM_EDGE_PERP 41
+// BM: edges gained trailing data
+#define VER_BM_EDGE_TRAILING_DATA 44
+// BM: the kdop tree is serialized with the mesh
+#define VER_BM_SERIALIZED_KDOP 45
+// BM: edges always serialize the trailing word
+#define VER_BM_EDGE_DISABLE_COUNT 46
 #if BATMAN
-#define VER_LATEST_NAVMESH		42
+#define VER_LATEST_NAVMESH		VER_BM_EDGE_DISABLE_COUNT
 #else
 #define VER_LATEST_NAVMESH		VER_COMBATZONE_FIX
 #endif

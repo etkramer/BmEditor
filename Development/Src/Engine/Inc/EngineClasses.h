@@ -7843,6 +7843,7 @@ struct FCornerPointInfo
 struct FPolyReference
 {
     struct FActorReference OwningPylon;
+    INT PylonBuildID;
 private:
     INT PolyId;
     struct FNavMeshPolyBase* CachedPoly;
@@ -7850,6 +7851,7 @@ public:
 
 		FPolyReference()
 		{
+			PylonBuildID = 0; // BM
 			SetPolyId(MAXWORD,MAXWORD);
 		}
 		FPolyReference(EEventParm)
@@ -7860,6 +7862,7 @@ public:
 		explicit FPolyReference(AActor* Pylon, INT InPolyId)
 		{
 			OwningPylon = FActorReference(Pylon,*Pylon->GetGuid());
+			PylonBuildID = 0; // BM
 			SetPolyId(InPolyId,MAXWORD);
 		}
 
