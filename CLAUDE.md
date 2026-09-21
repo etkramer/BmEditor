@@ -84,6 +84,29 @@ Beware that a clean package load is weak evidence about layouts. Only offset-onl
 
 An offset-only tag whose offset hits no property of ours, or a property of a different type, is reported as `[LAYOUT]` and the value is read into a scratch buffer and dropped. That is deliberate: writing retail's value at retail's offset on a class whose layout has drifted corrupts the object. The warnings are the work list.
 
+## Standing Workarounds
+
+These are deliberate, disclosed compromises. Do not silently remove one, and do not assume any of them is correct - each is a debt:
+
+- APEX is hard-disabled on Win64 by a version check in `NvApexManager.cpp`; the three asset `Serialize` paths read and discard their payload.
+- `WITH_PERFORCE` is skipped for Win64 in `UE3BuildExternal.cs`; the stub source-control provider is used.
+- `UnPhysLevel.cpp` strips `PhysXUpdateLoader64.dll` from `PATH` during `InitGameRBPhys`.
+- `UnLinker.cpp` downgrades the serialized-wrong-amount check from `appErrorf` to `warnf`. **A clean exit code is therefore not proof of a clean load - read the log.**
+- An offset-only tag matching no property, or a wrong-typed one, is warned as `[LAYOUT]` and discarded rather than written.
+- `MaterialInstance.cpp:1291` forces `bHasStaticPermutationResource` FALSE on retail cooked loads, dropping static permutation resources. This is the single largest source of serial-size diagnostics.
+- The retail shader cache is skipped.
+- `MLM_RockBRDF` compiles as Phong.
+- `UnClass.cpp:1220` re-seeks the stream when a named struct tag consumes the wrong byte count (`correcting stream`). Pre-existing from bmgame2, but load-bearing now - it fires on `PostProcessSettings` and `InterpTrackDirector.CutTrack`, whose layouts are wrong.
+- `UnModel.h:52` fabricates `BackfaceShadowTexCoord = ShadowTexCoord` for cooked AK verts, which have no such field.
+
+## Measuring a Load
+
+**Run ONE package per invocation when quoting numbers.** The `[LAYOUT]` reporters dedupe process-wide on (class, offset), so a package loaded second reports far fewer warnings than the same package loaded alone - JokerBoss measures 65 diagnostics alone and 17 after Clocktower. Cross-run comparisons are meaningless unless the load order is identical.
+
+**Diagnostic counts and uncreated exports are independent.** A package can report 2 diagnostics while dropping 14 exports. Always quote both, plus what `CheckPackageLoad` does *not* count: `correcting stream`, `Bad name index`, `Missing class`, `Failed to load 'BmScript.`.
+
+**Deserializing is not loading correctly.** Offset-only tag acceptance only checks the property class, the struct for Vector/Rotator, and alignment. Drift that lands an Int tag on a different Int, an Object tag on a different pointer, or a bool dword on a different bool dword is accepted and written silently - and a bool tag carries the whole dword, so a wrong bit order takes AK's flags wholesale.
+
 ## Materials
 
 **Materials cannot be compiled and we are not going to try.** With the exception of parameters, all material expressions are stripped from cooked content. Rendering is meant to work the way BM2 did it: load retail's shader caches and render from those. That is a much larger task than content loading and is deliberately deferred - do not start it, and do not attempt to reconstruct or recompile expression graphs.
