@@ -604,7 +604,8 @@ struct FHorizontalEdge
 
 	friend FArchive& operator<<( FArchive& Ar, FHorizontalEdge& E )
 	{
-		Ar << E.VertexA << E.VertexB << E.OutwardDir << E.MatchingCollections << E.BoundingBox;
+		// BM: AK stores only the two vertex indices - the rest stays build-time state
+		Ar << E.VertexA << E.VertexB;
 		return Ar;
 	}
 };
@@ -691,9 +692,13 @@ struct FActorEdgeCollection : public FEdgeCollectionBase
 	friend FArchive& operator<<( FArchive& Ar, FActorEdgeCollection& C )
 	{
 		Ar << C.Edges << C.BoundingBox << C.ConnectedCollections << C.RailingTops;
-		if( Ar.LicenseeVer() >= VER_BATMAN4 )
+		if( Ar.LicenseeVer() >= VER_LEVEL_EDGE_COLLECTION_COMPONENT )
 		{
 			Ar << C.Component;
+		}
+		else
+		{
+			C.Component = NULL;
 		}
 		return Ar;
 	}
@@ -925,7 +930,7 @@ class ULevel : public ULevelBase
 	TArray<FEdgeCollection>						HorizontalEdges;
 	TArray<FActorEdgeCollection>				ActorHorizontalEdges;
 	UBOOL										bEdgesValid;
-	/** BM: unidentified BYTE AK writes ahead of ActorHorizontalEdges - zero in every retail level seen */
+	/** BM: unidentified BYTE AK writes at the head of the edge block - zero in every retail level seen */
 	BYTE										EdgeCollectionFlag;
 	/** BM: unidentified block AK appends after PrecomputedVolumeDistanceField, kept so saves round-trip */
 	FLOAT										LevelTailValues[4];

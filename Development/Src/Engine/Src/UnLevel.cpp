@@ -534,14 +534,20 @@ void ULevel::Serialize( FArchive& Ar )
 	}
 
 #if BATMAN
+	// BM: AK writes this BYTE ahead of the edge block, not inside it
+	if (Ar.LicenseeVer() >= VER_LEVEL_EDGE_FLAG)
+	{
+		Ar << EdgeCollectionFlag;
+	}
+	else
+	{
+		EdgeCollectionFlag = 0;
+	}
+
 	if (Ar.LicenseeVer() >= VER_BATMAN2)
 	{
 		Ar << NodeEdgeCollection;
 		Ar << HorizontalEdges;
-		if (Ar.LicenseeVer() >= VER_BATMAN4)
-		{
-			Ar << EdgeCollectionFlag;
-		}
 		Ar << ActorHorizontalEdges;
 		Ar << bEdgesValid;
 	}

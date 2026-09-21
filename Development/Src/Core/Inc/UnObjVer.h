@@ -756,6 +756,9 @@ enum ELicenseeVersion
 	// - FStaticLODModel::RequiredBones widened to INT
 	VER_SKELMESH_INT_REQUIRED_BONES = 159,
 
+	// - FActorEdgeCollection gained the primitive it was built from
+	VER_LEVEL_EDGE_COLLECTION_COMPONENT = 167,
+
 	// - Summary stores the file offset of the precached export
 	VER_SUMMARY_PRECACHE_OFFSET = 175,
 
@@ -785,6 +788,9 @@ enum ELicenseeVersion
 
 	// - The packed navmesh poly flags gained a sixth bit
 	VER_NAVMESH_POLY_FLAG_BIT5 = 209,
+
+	// - ULevel writes a BYTE ahead of its edge collections
+	VER_LEVEL_EDGE_FLAG = 215,
 
 	// - FPolyReference gained PylonBuildID
 	VER_NAVMESH_POLYREF_BUILDID = 219,
