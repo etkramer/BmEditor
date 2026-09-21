@@ -8236,26 +8236,90 @@ IMPLEMENT_CLASS(UByteCodeSerializer);
 
 // BM: Preload's "serialized wrong amount" check is only a warning under BATMAN, so gather up the
 // diagnostics that stock UE3 would have made fatal and fail on them instead of letting them scroll past.
+enum ELoadDiagnosticCategory
+{
+	LDC_Layout,			// an offset-only tag landing on no property, or on one of another type
+	LDC_SerialSize,		// Preload consumed the wrong number of bytes for an export
+	LDC_Correcting,		// UnClass.cpp re-seeked after a named struct tag read the wrong count
+	LDC_BadName,		// a name index outside the linker's name map
+	LDC_BadScriptName,	// the same, in a bytecode stream
+	LDC_MissingClass,	// an export whose class could not be resolved - this is where exports go missing
+	LDC_BmScript,		// an import into the global cross-map BmScript package that resolved to nothing
+	LDC_MissingImport,	// any other import that failed to resolve
+	LDC_SkippedCDO,
+	LDC_TypeMismatch,
+	LDC_NotSerializable,
+	LDC_OtherError,		// NAME_Error/NAME_Critical matching none of the above
+	LDC_MAX
+};
+
+static const TCHAR* GLoadDiagnosticCategoryNames[LDC_MAX] =
+{
+	TEXT("layout"), TEXT("serialsize"), TEXT("correcting"), TEXT("badname"), TEXT("badscriptname"),
+	TEXT("missingclass"), TEXT("bmscript"), TEXT("missingimport"), TEXT("skippedcdo"),
+	TEXT("typemismatch"), TEXT("notserializable"), TEXT("othererror")
+};
+
 class FLoadDiagnosticSink : public FOutputDevice
 {
 public:
 	TArray<FString> Failures;
+	INT CategoryCounts[LDC_MAX];
+
+	FLoadDiagnosticSink()
+	{
+		appMemzero( CategoryCounts, sizeof(CategoryCounts) );
+	}
+
+	INT Total() const
+	{
+		INT Sum = 0;
+		for( INT Index=0; Index<LDC_MAX; Index++ )
+		{
+			Sum += CategoryCounts[Index];
+		}
+		return Sum;
+	}
 
 	virtual void Serialize( const TCHAR* Data, EName Event )
 	{
 		const FString Line( Data );
-		if( Event == NAME_Error
-		||	Event == NAME_Critical
-		||	Line.InStr( TEXT("[LAYOUT]") ) != INDEX_NONE
-		||	Line.InStr( TEXT("skipping CDO") ) != INDEX_NONE
-		||	Line.InStr( TEXT("Type mismatch in ") ) != INDEX_NONE
-		||	Line.InStr( TEXT("struct type mismatch") ) != INDEX_NONE
-		||	Line.InStr( TEXT("is not serializable for package") ) != INDEX_NONE )
+		INT Category = INDEX_NONE;
+
+		// Ordered most specific first; every one of these used to be dropped on the floor except LAYOUT.
+		if     ( Line.InStr( TEXT("[LAYOUT]") ) != INDEX_NONE )						Category = LDC_Layout;
+		else if( Line.InStr( TEXT("Serial size mismatch") ) != INDEX_NONE )			Category = LDC_SerialSize;
+		else if( Line.InStr( TEXT("correcting stream") ) != INDEX_NONE )			Category = LDC_Correcting;
+		else if( Line.InStr( TEXT("Bad script name index") ) != INDEX_NONE )		Category = LDC_BadScriptName;
+		else if( Line.InStr( TEXT("Bad name index") ) != INDEX_NONE )				Category = LDC_BadName;
+		else if( Line.InStr( TEXT("Missing class ") ) != INDEX_NONE )				Category = LDC_MissingClass;
+		else if( Line.InStr( TEXT("Failed to load 'BmScript") ) != INDEX_NONE )	Category = LDC_BmScript;
+		else if( Line.InStr( TEXT("Failed to load '") ) != INDEX_NONE )				Category = LDC_MissingImport;
+		else if( Line.InStr( TEXT("skipping CDO") ) != INDEX_NONE )					Category = LDC_SkippedCDO;
+		else if( Line.InStr( TEXT("Type mismatch in ") ) != INDEX_NONE
+			||	 Line.InStr( TEXT("struct type mismatch") ) != INDEX_NONE )			Category = LDC_TypeMismatch;
+		else if( Line.InStr( TEXT("is not serializable for package") ) != INDEX_NONE ) Category = LDC_NotSerializable;
+		else if( Event == NAME_Error || Event == NAME_Critical )						Category = LDC_OtherError;
+
+		if( Category != INDEX_NONE )
 		{
+			CategoryCounts[Category]++;
 			Failures.AddItem( Line );
 		}
 	}
 };
+
+// BM: one machine-readable line per load so stages and sweeps can be diffed instead of eyeballed.
+static void ReportLoadStats( const FLoadDiagnosticSink& Diagnostics, const TCHAR* PackageName, INT bLoaded, INT NumExports, INT NumImports, INT NumUncreated, INT NumUnloaded )
+{
+	FString Summary = FString::Printf( TEXT("[PKGSTAT] package=%s loaded=%d exports=%d imports=%d uncreated=%d unloaded=%d diagnostics=%d"),
+		PackageName, bLoaded, NumExports, NumImports, NumUncreated, NumUnloaded, Diagnostics.Total() );
+	for( INT Category=0; Category<LDC_MAX; Category++ )
+	{
+		Summary += FString::Printf( TEXT(" %s=%d"), GLoadDiagnosticCategoryNames[Category], Diagnostics.CategoryCounts[Category] );
+	}
+	warnf( NAME_Log, TEXT("%s"), *Summary );
+}
 
 static void DescribeLoadedObject( UObject* Object )
 {
@@ -8303,6 +8367,11 @@ static void CreateBareEditorEngine()
 	// so map loads need the [Engine.StartupPackages] merge, not just our own .u files.
 	const UBOOL bLoadStartupPackages = ParseParam( appCmdLine(), TEXT("startup") );
 
+	// BM: the startup merge is a load too, and the one where 'correcting stream' and the BmScript import
+	// failures actually fire - without this they were invisible and got misattributed to whichever map ran.
+	FLoadDiagnosticSink StartupDiagnostics;
+	GLog->AddOutputDevice( &StartupDiagnostics );
+
 	GIsUCC = FALSE;
 	if( bLoadStartupPackages )
 	{
@@ -8313,6 +8382,9 @@ static void CreateBareEditorEngine()
 		LoadAllNativeScriptPackages( FALSE );
 	}
 	GIsUCC = TRUE;
+
+	GLog->RemoveOutputDevice( &StartupDiagnostics );
+	ReportLoadStats( StartupDiagnostics, bLoadStartupPackages ? TEXT("<startup>") : TEXT("<nativescript>"), 1, -1, -1, -1, -1 );
 
 	// Skip UEditorEngine::InitEditor - deserializing content doesn't need the editor's own content set.
 	UClass* EngineClass = UObject::StaticLoadClass( UEditorEngine::StaticClass(), NULL, TEXT("engine-ini:Engine.Engine.EditorEngine"), NULL, LOAD_None, NULL );
@@ -8368,9 +8440,26 @@ INT UCheckPackageLoadCommandlet::Main( const FString& Params )
 		TArray<UObject*> Contents;
 		INT NumUnloaded = 0;
 		INT NumMissingExports = 0;
+		INT NumExports = -1;
+		INT NumImports = -1;
 		if( Package != NULL )
 		{
 			ULinkerLoad* Linker = UObject::GetPackageLinker( Package, NULL, LOAD_NoWarn|LOAD_Quiet, NULL, NULL );
+
+			// BM: an underscore-prefixed retail script package is remapped onto the editor's own package, so
+			// the package's linker is our .u and its export count describes the wrong file. Prefer the linker
+			// that actually read this token.
+			for( TObjectIterator<ULinkerLoad> It; It; ++It )
+			{
+				if( FFilename(It->Filename).GetBaseFilename() == Token )
+				{
+					Linker = *It;
+					break;
+				}
+			}
+
+			NumExports = Linker ? Linker->ExportMap.Num() : -1;
+			NumImports = Linker ? Linker->ImportMap.Num() : -1;
 			warnf( NAME_Log, TEXT("Loaded %s: %d exports, %d imports"), *Package->GetName(),
 				Linker ? Linker->ExportMap.Num() : -1, Linker ? Linker->ImportMap.Num() : -1 );
 
@@ -8416,10 +8505,12 @@ INT UCheckPackageLoadCommandlet::Main( const FString& Params )
 			}
 		}
 
+		ReportLoadStats( Diagnostics, *Token, Package != NULL ? 1 : 0, NumExports, NumImports, NumMissingExports, NumUnloaded );
+
 		if( Diagnostics.Failures.Num() > 0 || NumUnloaded > 0 || NumMissingExports > 0 || Package == NULL )
 		{
 			NumFailedPackages++;
-			warnf( NAME_Warning, TEXT("FAILED %s (%d diagnostics)"), *Token, Diagnostics.Failures.Num() );
+			warnf( NAME_Warning, TEXT("FAILED %s (%d diagnostics, %d uncreated exports)"), *Token, Diagnostics.Total(), NumMissingExports );
 			for( INT Index=0; Index<Diagnostics.Failures.Num(); Index++ )
 			{
 				warnf( NAME_Warning, TEXT("  %s"), *Diagnostics.Failures(Index) );

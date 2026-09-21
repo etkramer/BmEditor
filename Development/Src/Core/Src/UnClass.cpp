@@ -675,16 +675,27 @@ static UBOOL IsBmOffsetTagCompatible( const UProperty* Prop, const FPropertyTag&
 	return (ElementOffset % Prop->ElementSize) == 0;
 }
 
+// BM: dedupe per (package, class, site). Keying on (class, site) alone was process-wide, so a class
+// corrupted in one map went unreported purely because an earlier package had already reported that site.
+static UBOOL ShouldReportLayoutSite( TSet<FString>& ReportedSites, const UStruct* Struct, DWORD Site, FArchive& Ar )
+{
+	const FString Key = FString::Printf( TEXT("%s|%d|%u"), *Ar.GetArchiveName(), Struct->GetFName().GetIndex(), Site );
+	if( ReportedSites.Contains(Key) )
+	{
+		return FALSE;
+	}
+	ReportedSites.Add( Key );
+	return TRUE;
+}
+
 // BM: a class that declares nothing at retail's offset, reported once per site like the mismatch below.
 static void ReportMissingOffsetProperty( const UStruct* Struct, const FPropertyTag& Tag, FArchive& Ar )
 {
-	static TSet<QWORD> ReportedSites;
-	const QWORD Site = ((QWORD)Struct->GetFName().GetIndex() << 32) | (QWORD)Tag.PropertyOffset;
-	if( ReportedSites.Contains(Site) )
+	static TSet<FString> ReportedSites;
+	if( !ShouldReportLayoutSite( ReportedSites, Struct, (DWORD)Tag.PropertyOffset, Ar ) )
 	{
 		return;
 	}
-	ReportedSites.Add( Site );
 
 	warnf( NAME_Warning, TEXT("[LAYOUT] %s: no property at offset %u (type %s) (package %s)"),
 		*Struct->GetName(), (UINT)Tag.PropertyOffset, *Tag.Type.ToString(), *Ar.GetArchiveName() );
@@ -695,13 +706,11 @@ static void ReportMissingOffsetProperty( const UStruct* Struct, const FPropertyT
 // slot the engine later reads as a component.
 static void ReportOffsetClassMismatch( const UStruct* Struct, const UObjectProperty* Prop, const FPropertyTag& Tag, const UObject* Value, FArchive& Ar )
 {
-	static TSet<QWORD> ReportedSites;
-	const QWORD Site = ((QWORD)Struct->GetFName().GetIndex() << 32) | (QWORD)Tag.PropertyOffset;
-	if( ReportedSites.Contains(Site) )
+	static TSet<FString> ReportedSites;
+	if( !ShouldReportLayoutSite( ReportedSites, Struct, (DWORD)Tag.PropertyOffset, Ar ) )
 	{
 		return;
 	}
-	ReportedSites.Add( Site );
 
 	warnf( NAME_Warning, TEXT("[LAYOUT] %s: offset %u holds %s %s (a %s), but the package writes %s there (package %s)"),
 		*Struct->GetName(), (UINT)Tag.PropertyOffset, *Prop->GetName(), *Prop->GetOuter()->GetName(),
@@ -715,13 +724,11 @@ static void ReportLayoutMismatch( const UStruct* Struct, const UProperty* Prop, 
 		return;
 	}
 
-	static TSet<QWORD> ReportedSites;
-	const QWORD Site = ((QWORD)Struct->GetFName().GetIndex() << 32) | (QWORD)Tag.PropertyOffset;
-	if( ReportedSites.Contains(Site) )
+	static TSet<FString> ReportedSites;
+	if( !ShouldReportLayoutSite( ReportedSites, Struct, (DWORD)Tag.PropertyOffset, Ar ) )
 	{
 		return;
 	}
-	ReportedSites.Add( Site );
 
 	warnf( NAME_Warning, TEXT("[LAYOUT] %s: offset %u holds %s %s (%s), but the package writes %s there (package %s)"),
 		*Struct->GetName(), (UINT)Tag.PropertyOffset, *Prop->GetID().ToString(), *Prop->GetName(),
@@ -731,13 +738,11 @@ static void ReportLayoutMismatch( const UStruct* Struct, const UProperty* Prop, 
 // BM: named cooked tags carry retail's offset as well, so every one of them is a free layout assertion.
 static void ReportNamedTagOffsetMismatch( const UStruct* Struct, const UProperty* Prop, const FPropertyTag& Tag, INT ExpectedOffset, FArchive& Ar )
 {
-	static TSet<QWORD> ReportedSites;
-	const QWORD Site = ((QWORD)Struct->GetFName().GetIndex() << 32) | (QWORD)Prop->GetFName().GetIndex();
-	if( ReportedSites.Contains(Site) )
+	static TSet<FString> ReportedSites;
+	if( !ShouldReportLayoutSite( ReportedSites, Struct, (DWORD)Prop->GetFName().GetIndex(), Ar ) )
 	{
 		return;
 	}
-	ReportedSites.Add( Site );
 
 	warnf( NAME_Warning, TEXT("[LAYOUT] %s: %s %s (%s) is at offset %d, but the package writes it at %u (package %s)"),
 		*Struct->GetName(), *Prop->GetID().ToString(), *Prop->GetName(), *Prop->GetOuter()->GetName(),
