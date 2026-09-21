@@ -59,7 +59,7 @@ enum EDecalTransform
 #include "UnObjBas.h"
 #undef ENABLE_DECLARECLASS_MACRO
 
-class ADecalActorBase : public AActor
+class ADecalActorBase : public AActor, public IEditorLinkSelectionInterface
 {
 public:
     //## BEGIN PROPS DecalActorBase
@@ -67,6 +67,7 @@ public:
     //## END PROPS DecalActorBase
 
     DECLARE_ABSTRACT_CLASS(ADecalActorBase,AActor,0,Engine)
+    virtual UObject* GetUObjectInterfaceEditorLinkSelectionInterface(){return this;}
 	// UObject interface.
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent);
 

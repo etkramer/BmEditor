@@ -5,6 +5,8 @@
 class DecalActorBase extends Actor
 	native(Decal)
 	ClassGroup(Decals)
+	// BM
+	implements(EditorLinkSelectionInterface)
 	abstract;
 
 var() editconst const DecalComponent Decal;

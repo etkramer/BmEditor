@@ -9,7 +9,8 @@ interface Interface_NavigationHandle
 cpptext
 {
 	/** >>>>> here lie functions which take input, and thus can not be cached */
-	virtual UBOOL	CanCoverSlip(ACoverLink* Link, INT SlotIdx)	{ return FALSE; }
+	// BM: elaborated type names - APylon implements this interface, so it is now emitted before ACoverLink
+	virtual UBOOL	CanCoverSlip(class ACoverLink* Link, INT SlotIdx)	{ return FALSE; }
 
 	/**
 	 * returns the offset from the edge move point this entity should move toward (e.g. how high off the ground we should move to)
@@ -46,7 +47,7 @@ cpptext
 	 * extra cost to be added for other entities trying to use that edge.  (e.g. to keep guys from using the same path)
 	 * @param Edge - the edge we're about to mark as active
 	 */
-	virtual INT  ExtraEdgeCostToAddWhenActive(FNavMeshEdgeBase* Edge) { return 0; }
+	virtual INT  ExtraEdgeCostToAddWhenActive(struct FNavMeshEdgeBase* Edge) { return 0; }
 
 	/**
 	 * DebugLog function which is called to log information specific to this AI (call NAVHANDLE_DEBUG_LOG macro, don't call this directly)

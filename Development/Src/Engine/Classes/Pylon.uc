@@ -8,6 +8,8 @@
 class Pylon extends NavigationPoint
 	hidecategories(Lighting,LightColor,Force)
 	implements(EditorLinkSelectionInterface)
+	// BM
+	implements(Interface_NavigationHandle)
 	placeable
 	native;
 
@@ -27,6 +29,23 @@ cpptext
 {
 	typedef TDoubleLinkedList<struct FNavMeshPolyBase*> WSType;
 	typedef TDoubleLinkedList<class IInterface_NavMeshPathObject*> PathObjectList;
+
+	// BM
+	// AK's Pylon implements Interface_NavigationHandle purely so that the VfTable property is present
+	// in the layout; a Pylon is never the outer of a NavigationHandle, so none of these can be reached.
+	virtual FVector GetEdgeZAdjust(struct FNavMeshEdgeBase* Edge)
+	{
+		appErrorf(TEXT("APylon::GetEdgeZAdjust called - Pylon is not a pathfinding entity"));
+		return FVector(0.f,0.f,0.f);
+	}
+	virtual void SetupPathfindingParams( struct FNavMeshPathParams& out_ParamCache )
+	{
+		appErrorf(TEXT("APylon::SetupPathfindingParams called - Pylon is not a pathfinding entity"));
+	}
+	virtual void InitForPathfinding()
+	{
+		appErrorf(TEXT("APylon::InitForPathfinding called - Pylon is not a pathfinding entity"));
+	}
 
 	// overidden ensure we're not in the pylon octree when we are deleted
 	virtual void BeginDestroy();
@@ -429,6 +448,14 @@ var const native Pointer OctreeIWasAddedTo{void};
 /** Next pylon in the linked list */
 var const Pylon NextPylon;
 
+/** sprite comp to be used when this pylon is broken somehow */
+var const transient SpriteComponent BrokenSprite;
+
+/** pointer to this pylon's rendering component */
+var NavMeshRenderingComponent RenderingComp;
+
+var DrawPylonRadiusComponent PylonRadiusPreview;
+
 /** A list of volumes within which is valid to explore Note this trumps expansion radius */
 var(MeshGeneration) array<Volume> ExpansionVolumes;
 
@@ -437,25 +464,94 @@ var(MeshGeneration) float ExpansionRadius;
 /** Used to prevent exploration from wrapping past the 65536 available indices in a WORD */
 var	  const float MaxExpansionRadius;
 
-var DrawPylonRadiusComponent PylonRadiusPreview;
-
 /** Indicates if this pylon is associated with an imported mesh */
 var bool bImportedMesh;
 
 /** when TRUE, center of sphere used for expansion bounds will be ExpansionSphereCenter rather than this.location*/
 var bool bUseExpansionSphereOverride;
-var vector ExpansionSphereCenter;
 
 /** indicates that this pylon's CostFor function needs to be called when considering edges owned by it
     False by default in order to avoid unnecessary vfunc calls*/
 var bool bNeedsCostCheck;
 
-/** pointer to this pylon's rendering component */
-var NavMeshRenderingComponent RenderingComp;
+// BM
+var(MeshGeneration) bool bStreetLevelCityPylon;
+// BM
+var(MeshGeneration) bool bAllowAutomaticConnectionToAdjacentPylons;
+// BM
+var(MeshGeneration) bool bUseUnstableSnappingStep;
+// BM
+var(MeshGeneration) bool bMergePolysAfterGeneration;
+// BM
+var(MeshGeneration) bool bSkipPylonIntersections;
+// BM
+var(MeshGeneration) bool bExcludeSameSidePolysWhenBuildingObstacleMesh;
+// BM
+var(ConformToFloor) bool bConformMeshToFloor;
+// BM
+var(ConformToFloor) bool bSplitPolys;
+// BM
+var(ConformToFloor) bool bSplitEdges;
+// BM
+var transient bool bPylonInHighLevelPath;
+// BM
+var(MeshGeneration) bool bUseRecast;
+// BM
+var transient bool bAllowRecastGenerator;
 
-/** sprite comp to be used when this pylon is broken somehow */
-var const transient SpriteComponent BrokenSprite;
+//debug
+var(Debug) bool bDrawEdgePolys;
+var(Debug) bool bDrawPolyBounds;
+var(Display) bool bRenderInShowPaths;
+var(Display) bool bDrawWalkableSurface;
+var(Display) bool bDrawObstacleSurface;
+// BM
+var(Display) bool bSolidObstaclesInGame;
+// BM
+var bool bAboutToBeDeleted;
+// BM
+var() bool bEmbedVisibilityInfo;
+// BM
+var(Recast) bool bRecast_RespectAICanStepUpOn;
+// BM
+var(Recast) bool bRecast_MergeFlags;
+// BM
+var(Recast) bool bRecast_ApplyHeightSpanFilter;
+// BM
+var(Recast) bool bRecast_FilterLowHangingWalkableObstacles;
+// BM
+var(Recast) bool bRecast_FilterLedgeSpans;
+// BM
+var(Recast) bool bRecast_FilterWalkableLowHeightSpans;
+// BM
+var() bool bMoveablePylon;
+// BM
+var() bool bRebuildThisPylon;
+// BM
+var transient bool bAddedToValidationList;
 
+/** when FALSE this pylon's navmesh will not be cleared, nor built during 'build paths' -- useful for building subsets of the map at once*/
+var transient bool bBuildThisPylon;
+
+// BM
+var transient bool bForceDontBuildThisPylon;
+
+// when TRUE, this pylon and its mesh are considered invalid (same as unloaded)
+var bool bDisabled;
+
+// when TRUE, obstacle mesh polys will collide even if they have Cross Pylon edges which are loaded
+var bool bForceObstacleMeshCollision;
+
+// BM
+var() bool bSkipSquareMerge;
+// BM
+var() bool bSkipConcaveMerge;
+// BM
+var() bool bDoRawGridOnly;
+// BM
+var transient bool bMaxVertIDLimitHit;
+
+var vector ExpansionSphereCenter;
 
 /** Imposter pylon - this is another pylon which at some point will replace this one due to a gameplay event or some such.  Meshbuild of this
  *  pylon will ignore collisions with the imposter pylon (e.g. build through it)
@@ -469,34 +565,52 @@ var(MeshGeneration) array<Actor> OnBuild_DisableCollisionForThese;
 var(MeshGeneration) array<Actor> OnBuild_EnableCollisionForThese;
 
 var(MeshGeneration) float   MaxPolyHeight_Optional;
+// BM
+var(MeshGeneration) float AdjoiningPylonFillerDepth;
+// BM
+var(MeshGeneration) float ExcludePolyMinWidth;
+// BM
+var(MeshGeneration) float ObstacleMeshEdgeDelta;
+// BM
+var(MeshGeneration) float ObstacleMeshEdgeDeltaZ;
+// BM
+var(ConformToFloor) float MaxMeshHeightDeviationAllowed;
+// BM
+var(ConformToFloor) float CheckAmountUp;
+// BM
+var(ConformToFloor) float CheckAmountDown;
+// BM
+var(ConformToFloor) float MinEdgeLengthToSplit;
+// BM
+var(ConformToFloor) float MinPolyWidthToSplit;
+// BM
+var byte NavMeshGenerator;
+// BM
+var transient array<KAggregateGeom> VoxelFilterBounds;
+// BM
+var transient array<Matrix> VoxelFilterTM;
 
-//debug
 var(Debug) int DebugEdgeCount;
-var(Debug) bool bDrawEdgePolys;
-var(Debug) bool bDrawPolyBounds;
-var(Display) bool bRenderInShowPaths;
-var(Display) bool bDrawWalkableSurface;
-var(Display) bool bDrawObstacleSurface;
-// BM
-var() bool bEmbedVisibilityInfo;
-// BM
-var transient bool bForceDontBuildThisPylon;
-// BM
-var() bool bSkipSquareMerge;
-// BM
-var() bool bSkipConcaveMerge;
-// BM
-var() bool bDoRawGridOnly;
-// BM
-var transient bool bMaxVertIDLimitHit;
 
 // BM
 var() array<Actor> AdditionalSeedList;
 // BM
+var() int PylonCellSize;
+// BM
+var() int PylonCellHeight;
+// BM
+var array<Pawn> CrossLevelPawns;
+// BM
+var(Debug) int NavMeshBuildID;
+// BM
+var transient vector DebugPathExtent;
+// BM
+var transient vector DebugPathStartLocation;
+// BM
 var() float MaxGroundCheckSize;
 // BM
 var() int MaxSubdivisions;
-// BM
+// BM: not present in AK's Pylon - kept last so it cannot shift a retail offset
 var() float MaxPolyHeight;
 
 // BM
@@ -608,20 +722,14 @@ struct immutablewhencooked native PolyReference
 	}
 };
 
-/** when FALSE this pylon's navmesh will not be cleared, nor built during 'build paths' -- useful for building subsets of the map at once*/
-var transient bool bBuildThisPylon;
-
-// when TRUE, this pylon and its mesh are considered invalid (same as unloaded)
-var bool bDisabled;
-
-// when TRUE, obstacle mesh polys will collide even if they have Cross Pylon edges which are loaded
-var bool bForceObstacleMeshCollision;
-
 /**
- * called whenever this pylon is turned on or off.. will do necessary work 
+ * called whenever this pylon is turned on or off.. will do necessary work
  * in area to make sure the state of the mesh is up to date
  */
 native function OnPylonStatusChange();
+
+// BM: Interface_NavigationHandle
+event NotifyPathChanged();
 
 function PostBeginPlay()
 {
@@ -700,6 +808,16 @@ defaultproperties
 	MaxGroundCheckSize=10
 	MaxSubdivisions=2
 	MaxPolyHeight=500
+	ExcludePolyMinWidth=6
+	ObstacleMeshEdgeDelta=-1
+	ObstacleMeshEdgeDeltaZ=12
+	MaxMeshHeightDeviationAllowed=50
+	CheckAmountUp=200
+	CheckAmountDown=500
+	MinEdgeLengthToSplit=200
+	MinPolyWidthToSplit=100
+	PylonCellSize=20
+	PylonCellHeight=15
 
 	bDestinationOnly=TRUE
 	bRenderInShowPaths=TRUE

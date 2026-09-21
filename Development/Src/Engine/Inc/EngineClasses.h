@@ -7740,6 +7740,69 @@ public:
 	virtual void UnLinkSelection(USelection* SelectedObjects){}
 };
 
+class UInterface_NavigationHandle : public UInterface
+{
+public:
+    DECLARE_ABSTRACT_CLASS(UInterface_NavigationHandle,UInterface,0|CLASS_Interface,Engine)
+    NO_DEFAULT_CONSTRUCTOR(UInterface_NavigationHandle)
+};
+
+class IInterface_NavigationHandle
+{
+protected:
+	virtual ~IInterface_NavigationHandle() {}
+public:
+	typedef UInterface_NavigationHandle UClassType;
+	virtual UObject* GetUObjectInterfaceInterface_NavigationHandle()=0;
+    virtual void eventNotifyPathChanged()=0;
+	/** >>>>> here lie functions which take input, and thus can not be cached */
+	// BM: elaborated type names - APylon implements this interface, so it is now emitted before ACoverLink
+	virtual UBOOL	CanCoverSlip(class ACoverLink* Link, INT SlotIdx)	{ return FALSE; }
+
+	/**
+	 * returns the offset from the edge move point this entity should move toward (e.g. how high off the ground we should move to)
+	 * @param Edge - the edge we're moving to
+	 * @return - the offset to use
+	 */
+	virtual FVector GetEdgeZAdjust(struct FNavMeshEdgeBase* Edge)=0;
+
+	/**
+	 * allows entities to do custom validation before OK'ing mantle edges
+	 * @param Edge - the edge we're verifying
+	 * @return TRUE if the passed edge is OK to traverse
+	 */
+	virtual UBOOL CheckMantleValidity(struct FNavMeshMantleEdge* Edge){ return TRUE; }
+    /*** <<<<<< */
+
+
+	/**
+	 * this function is responsible for setting all the relevant parmeters used for pathfinding
+	 * @param out_ParamCache - the output struct to populate params in
+	 * @NOTE: ALL Params FNavMeshPathParams should be populated
+	 * 
+	 */
+	virtual void SetupPathfindingParams( struct FNavMeshPathParams& out_ParamCache )=0;
+
+	/**
+	 * Called from FindPath() at the beginning of a path search to give this entity a chance to initialize transient data
+	 */
+	virtual void InitForPathfinding()=0;
+
+
+	/**
+	 * when this entity is using an edge (e.g. it has been marked active and is in this handle's pathcache) this function allows
+	 * extra cost to be added for other entities trying to use that edge.  (e.g. to keep guys from using the same path)
+	 * @param Edge - the edge we're about to mark as active
+	 */
+	virtual INT  ExtraEdgeCostToAddWhenActive(struct FNavMeshEdgeBase* Edge) { return 0; }
+
+	/**
+	 * DebugLog function which is called to log information specific to this AI (call NAVHANDLE_DEBUG_LOG macro, don't call this directly)
+	 * @param LogText - text to log for this AI
+	 */
+	virtual void DebugLogInternal(const TCHAR* LogText) {}
+};
+
 struct FCornerPointInfo
 {
     class AActor* StartPoint;
@@ -7866,7 +7929,13 @@ struct Pylon_eventSetEnabled_Parms
     {
     }
 };
-class APylon : public ANavigationPoint, public IEditorLinkSelectionInterface
+struct Pylon_eventNotifyPathChanged_Parms
+{
+    Pylon_eventNotifyPathChanged_Parms(EEventParm)
+    {
+    }
+};
+class APylon : public ANavigationPoint, public IEditorLinkSelectionInterface, public IInterface_NavigationHandle
 {
 public:
     //## BEGIN PROPS Pylon
@@ -7879,37 +7948,78 @@ public:
     FOctreeElementId OctreeId;
     void* OctreeIWasAddedTo;
     class APylon* NextPylon;
+    class USpriteComponent* BrokenSprite;
+    class UNavMeshRenderingComponent* RenderingComp;
+    class UDrawPylonRadiusComponent* PylonRadiusPreview;
     TArrayNoInit<class AVolume*> ExpansionVolumes;
     FLOAT ExpansionRadius;
     FLOAT MaxExpansionRadius;
-    class UDrawPylonRadiusComponent* PylonRadiusPreview;
     BITFIELD bImportedMesh:1;
     BITFIELD bUseExpansionSphereOverride:1;
     BITFIELD bNeedsCostCheck:1;
+    BITFIELD bStreetLevelCityPylon:1;
+    BITFIELD bAllowAutomaticConnectionToAdjacentPylons:1;
+    BITFIELD bUseUnstableSnappingStep:1;
+    BITFIELD bMergePolysAfterGeneration:1;
+    BITFIELD bSkipPylonIntersections:1;
+    BITFIELD bExcludeSameSidePolysWhenBuildingObstacleMesh:1;
+    BITFIELD bConformMeshToFloor:1;
+    BITFIELD bSplitPolys:1;
+    BITFIELD bSplitEdges:1;
+    BITFIELD bPylonInHighLevelPath:1;
+    BITFIELD bUseRecast:1;
+    BITFIELD bAllowRecastGenerator:1;
     BITFIELD bDrawEdgePolys:1;
     BITFIELD bDrawPolyBounds:1;
     BITFIELD bRenderInShowPaths:1;
     BITFIELD bDrawWalkableSurface:1;
     BITFIELD bDrawObstacleSurface:1;
+    BITFIELD bSolidObstaclesInGame:1;
+    BITFIELD bAboutToBeDeleted:1;
     BITFIELD bEmbedVisibilityInfo:1;
+    BITFIELD bRecast_RespectAICanStepUpOn:1;
+    BITFIELD bRecast_MergeFlags:1;
+    BITFIELD bRecast_ApplyHeightSpanFilter:1;
+    BITFIELD bRecast_FilterLowHangingWalkableObstacles:1;
+    BITFIELD bRecast_FilterLedgeSpans:1;
+    BITFIELD bRecast_FilterWalkableLowHeightSpans:1;
+    BITFIELD bMoveablePylon:1;
+    BITFIELD bRebuildThisPylon:1;
+    BITFIELD bAddedToValidationList:1;
+    BITFIELD bBuildThisPylon:1;
     BITFIELD bForceDontBuildThisPylon:1;
+    BITFIELD bDisabled:1;
+    BITFIELD bForceObstacleMeshCollision:1;
     BITFIELD bSkipSquareMerge:1;
     BITFIELD bSkipConcaveMerge:1;
     BITFIELD bDoRawGridOnly:1;
     BITFIELD bMaxVertIDLimitHit:1;
-    BITFIELD bBuildThisPylon:1;
-    BITFIELD bDisabled:1;
-    BITFIELD bForceObstacleMeshCollision:1;
     SCRIPT_ALIGN;
     FVector ExpansionSphereCenter;
-    class UNavMeshRenderingComponent* RenderingComp;
-    class USpriteComponent* BrokenSprite;
     TArrayNoInit<class APylon*> ImposterPylons;
     TArrayNoInit<class AActor*> OnBuild_DisableCollisionForThese;
     TArrayNoInit<class AActor*> OnBuild_EnableCollisionForThese;
     FLOAT MaxPolyHeight_Optional;
+    FLOAT AdjoiningPylonFillerDepth;
+    FLOAT ExcludePolyMinWidth;
+    FLOAT ObstacleMeshEdgeDelta;
+    FLOAT ObstacleMeshEdgeDeltaZ;
+    FLOAT MaxMeshHeightDeviationAllowed;
+    FLOAT CheckAmountUp;
+    FLOAT CheckAmountDown;
+    FLOAT MinEdgeLengthToSplit;
+    FLOAT MinPolyWidthToSplit;
+    BYTE NavMeshGenerator;
+    TArrayNoInit<FKAggregateGeom> VoxelFilterBounds;
+    TArrayNoInit<FMatrix> VoxelFilterTM;
     INT DebugEdgeCount;
     TArrayNoInit<class AActor*> AdditionalSeedList;
+    INT PylonCellSize;
+    INT PylonCellHeight;
+    TArrayNoInit<class APawn*> CrossLevelPawns;
+    INT NavMeshBuildID;
+    FVector DebugPathExtent;
+    FVector DebugPathStartLocation;
     FLOAT MaxGroundCheckSize;
     INT MaxSubdivisions;
     FLOAT MaxPolyHeight;
@@ -7942,10 +8052,32 @@ public:
         Parms.bEnabled=bEnabled ? FIRST_BITFIELD : FALSE;
         ProcessEvent(FindFunctionChecked(ENGINE_SetEnabled),&Parms);
     }
+    void eventNotifyPathChanged()
+    {
+        ProcessEvent(FindFunctionChecked(ENGINE_NotifyPathChanged),NULL);
+    }
     DECLARE_CLASS(APylon,ANavigationPoint,0,Engine)
     virtual UObject* GetUObjectInterfaceEditorLinkSelectionInterface(){return this;}
+    virtual UObject* GetUObjectInterfaceInterface_NavigationHandle(){return this;}
 	typedef TDoubleLinkedList<struct FNavMeshPolyBase*> WSType;
 	typedef TDoubleLinkedList<class IInterface_NavMeshPathObject*> PathObjectList;
+
+	// BM
+	// AK's Pylon implements Interface_NavigationHandle purely so that the VfTable property is present
+	// in the layout; a Pylon is never the outer of a NavigationHandle, so none of these can be reached.
+	virtual FVector GetEdgeZAdjust(struct FNavMeshEdgeBase* Edge)
+	{
+		appErrorf(TEXT("APylon::GetEdgeZAdjust called - Pylon is not a pathfinding entity"));
+		return FVector(0.f,0.f,0.f);
+	}
+	virtual void SetupPathfindingParams( struct FNavMeshPathParams& out_ParamCache )
+	{
+		appErrorf(TEXT("APylon::SetupPathfindingParams called - Pylon is not a pathfinding entity"));
+	}
+	virtual void InitForPathfinding()
+	{
+		appErrorf(TEXT("APylon::InitForPathfinding called - Pylon is not a pathfinding entity"));
+	}
 
 	// overidden ensure we're not in the pylon octree when we are deleted
 	virtual void BeginDestroy();
@@ -19013,68 +19145,6 @@ public:
     static const TCHAR* StaticConfigName() {return TEXT("Engine");}
 
     NO_DEFAULT_CONSTRUCTOR(UIniLocPatcher)
-};
-
-class UInterface_NavigationHandle : public UInterface
-{
-public:
-    DECLARE_ABSTRACT_CLASS(UInterface_NavigationHandle,UInterface,0|CLASS_Interface,Engine)
-    NO_DEFAULT_CONSTRUCTOR(UInterface_NavigationHandle)
-};
-
-class IInterface_NavigationHandle
-{
-protected:
-	virtual ~IInterface_NavigationHandle() {}
-public:
-	typedef UInterface_NavigationHandle UClassType;
-	virtual UObject* GetUObjectInterfaceInterface_NavigationHandle()=0;
-    virtual void eventNotifyPathChanged()=0;
-	/** >>>>> here lie functions which take input, and thus can not be cached */
-	virtual UBOOL	CanCoverSlip(ACoverLink* Link, INT SlotIdx)	{ return FALSE; }
-
-	/**
-	 * returns the offset from the edge move point this entity should move toward (e.g. how high off the ground we should move to)
-	 * @param Edge - the edge we're moving to
-	 * @return - the offset to use
-	 */
-	virtual FVector GetEdgeZAdjust(struct FNavMeshEdgeBase* Edge)=0;
-
-	/**
-	 * allows entities to do custom validation before OK'ing mantle edges
-	 * @param Edge - the edge we're verifying
-	 * @return TRUE if the passed edge is OK to traverse
-	 */
-	virtual UBOOL CheckMantleValidity(struct FNavMeshMantleEdge* Edge){ return TRUE; }
-    /*** <<<<<< */
-
-
-	/**
-	 * this function is responsible for setting all the relevant parmeters used for pathfinding
-	 * @param out_ParamCache - the output struct to populate params in
-	 * @NOTE: ALL Params FNavMeshPathParams should be populated
-	 * 
-	 */
-	virtual void SetupPathfindingParams( struct FNavMeshPathParams& out_ParamCache )=0;
-
-	/**
-	 * Called from FindPath() at the beginning of a path search to give this entity a chance to initialize transient data
-	 */
-	virtual void InitForPathfinding()=0;
-
-
-	/**
-	 * when this entity is using an edge (e.g. it has been marked active and is in this handle's pathcache) this function allows
-	 * extra cost to be added for other entities trying to use that edge.  (e.g. to keep guys from using the same path)
-	 * @param Edge - the edge we're about to mark as active
-	 */
-	virtual INT  ExtraEdgeCostToAddWhenActive(FNavMeshEdgeBase* Edge) { return 0; }
-
-	/**
-	 * DebugLog function which is called to log information specific to this AI (call NAVHANDLE_DEBUG_LOG macro, don't call this directly)
-	 * @param LogText - text to log for this AI
-	 */
-	virtual void DebugLogInternal(const TCHAR* LogText) {}
 };
 
 class UInterface_Speaker : public UInterface
